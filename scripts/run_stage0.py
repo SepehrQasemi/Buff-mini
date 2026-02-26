@@ -18,7 +18,7 @@ from buffmini.config import compute_config_hash, load_config
 from buffmini.constants import DEFAULT_CONFIG_PATH, RAW_DATA_DIR, RUNS_DIR
 from buffmini.data.features import calculate_features
 from buffmini.data.loader import fetch_ohlcv
-from buffmini.data.storage import load_parquet, save_parquet
+from buffmini.data.store import DataStore, build_data_store
 from buffmini.data.window import slice_last_n_months
 from buffmini.types import ConfigDict
 from buffmini.utils.logging import get_logger
@@ -145,6 +145,7 @@ def run_stage0(
 
     costs = config["costs"]
     risk = config["risk"]
+    store = build_data_store(backend=str(config.get("data", {}).get("backend", "parquet")), data_dir=data_dir)
 
     summary_rows: list[dict[str, float | str | int | None]] = []
     date_ranges_by_symbol: dict[str, str] = {}
@@ -158,7 +159,7 @@ def run_stage0(
             dry_run=dry_run,
             seed=seed,
             synthetic_bars=synthetic_bars,
-            data_dir=data_dir,
+            store=store,
         )
         if raw.empty:
             logger.warning("Skipping %s due to empty data.", symbol)
@@ -285,7 +286,7 @@ def _load_symbol_data(
     dry_run: bool,
     seed: int,
     synthetic_bars: int,
-    data_dir: Path,
+    store: DataStore,
 ) -> pd.DataFrame:
     """Load cached/fetched market data or produce deterministic synthetic bars."""
 
@@ -294,12 +295,12 @@ def _load_symbol_data(
 
     try:
         logger.info("Loading cached data for %s", symbol)
-        return load_parquet(symbol=symbol, timeframe=timeframe, data_dir=data_dir)
+        return store.load_ohlcv(symbol=symbol, timeframe=timeframe, start=start, end=end)
     except FileNotFoundError:
         logger.info("No cached data for %s. Downloading from Binance.", symbol)
         fetched = fetch_ohlcv(symbol=symbol, timeframe=timeframe, start=start, end=end)
         if not fetched.empty:
-            save_parquet(frame=fetched, symbol=symbol, timeframe=timeframe, data_dir=data_dir)
+            store.save_ohlcv(symbol=symbol, timeframe=timeframe, df=fetched)
         return fetched
 
 

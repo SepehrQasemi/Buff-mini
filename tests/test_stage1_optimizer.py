@@ -8,8 +8,11 @@ from pathlib import Path
 import numpy as np
 
 from buffmini.config import load_config
+from buffmini.data.features import calculate_features
 from buffmini.discovery.funnel import (
+    _build_candidate_signal_cache,
     _build_stage_diagnostics,
+    _build_temporal_splits_with_holdout_months,
     _candidate_rejection_reason,
     _compute_expectancy_lcb,
     _compute_exposure_penalty,
@@ -17,6 +20,9 @@ from buffmini.discovery.funnel import (
     _compute_pf_adjusted,
     _compute_temporal_score,
     _compute_trades_per_month,
+    _evaluate_temporal_candidate_metrics,
+    _evaluate_temporal_candidate_metrics_cached,
+    _generate_synthetic_ohlcv,
     _passes_validation_evidence,
     run_stage1_optimization,
 )
@@ -77,6 +83,8 @@ def test_funnel_reduces_candidate_count_and_writes_artifacts(tmp_path: Path) -> 
         "stage1_real_data_report.md",
         "stage1_real_data_report.json",
         "stage1_diagnostics.md",
+        "accepted_candidates.csv",
+        "near_miss_candidates.csv",
     ]
     for name in required:
         assert (run_dir / name).exists(), f"missing artifact {name}"
@@ -88,12 +96,43 @@ def test_funnel_reduces_candidate_count_and_writes_artifacts(tmp_path: Path) -> 
     assert summary["candidate_count_stage_c"] <= min(50, config["evaluation"]["stage1"]["top_k"])
     assert summary["promotion_holdout_months"] == [3, 6, 9, 12]
     assert set(summary["promotion_counts"].keys()) == {"6", "9", "12"}
+    assert "candidate_artifact_paths" in summary
 
     top_strategies = json.loads((run_dir / "strategies.json").read_text(encoding="utf-8"))
     for row in top_strategies:
         assert int(row["holdout_months_used"]) in {3, 6, 9, 12}
         validation = row["validation_evidence"]
         assert isinstance(validation["active_days"], int)
+
+    candidates_dir = run_dir / "candidates"
+    assert candidates_dir.exists()
+    candidate_files = sorted(candidates_dir.glob("strategy_*.json"))
+    assert len(candidate_files) == summary["accepted_count"] + summary["near_miss_count"]
+    if candidate_files:
+        payload = json.loads(candidate_files[0].read_text(encoding="utf-8"))
+        required_keys = {
+            "strategy_name",
+            "strategy_family",
+            "parameters",
+            "gating",
+            "exit_mode",
+            "holdout_months_used",
+            "trade_count_validation",
+            "trade_count_holdout",
+            "pf_holdout",
+            "pf_adj_holdout",
+            "expectancy_holdout",
+            "exp_lcb_holdout",
+            "effective_edge",
+            "trades_per_month_holdout",
+            "exposure_ratio",
+            "validation_exposure_ratio",
+            "validation_active_days",
+            "per_symbol_metrics",
+            "score",
+            "acceptance_flags",
+        }
+        assert required_keys.issubset(payload.keys())
 
     diagnostics = json.loads((run_dir / "diagnostics.json").read_text(encoding="utf-8"))
     for stage in ["A", "B", "C"]:
@@ -309,3 +348,44 @@ def test_validation_evidence_gate_requires_exposure_or_active_days() -> None:
         min_validation_exposure_ratio=0.01,
         min_validation_active_days=10.0,
     ) is True
+
+
+def test_cached_temporal_metrics_match_recompute() -> None:
+    root = Path(__file__).resolve().parents[1]
+    config = _small_stage1_config(root)
+    search_space = config["evaluation"]["stage1"]["search_space"]
+    rng = np.random.default_rng(123)
+    candidate = sample_candidate(index=1, rng=rng, search_space=search_space)
+
+    raw = {
+        "BTC/USDT": calculate_features(
+            _generate_synthetic_ohlcv(symbol="BTC/USDT", start="2024-01-01T00:00:00Z", bars=2400, seed=7)
+        ),
+        "ETH/USDT": calculate_features(
+            _generate_synthetic_ohlcv(symbol="ETH/USDT", start="2024-01-01T00:00:00Z", bars=2400, seed=7)
+        ),
+    }
+    splits = _build_temporal_splits_with_holdout_months(stage_c_data=raw, split_mode="60_20_20", holdout_months=3)
+    cached = _build_candidate_signal_cache(candidate=candidate, data_by_symbol=raw)
+
+    direct = _evaluate_temporal_candidate_metrics(
+        candidate=candidate,
+        splits=splits,
+        round_trip_cost_pct=0.1,
+        slippage_pct=0.0005,
+        initial_capital=10_000.0,
+    )
+    cached_metrics = _evaluate_temporal_candidate_metrics_cached(
+        candidate=candidate,
+        signal_cache=cached,
+        splits=splits,
+        round_trip_cost_pct=0.1,
+        slippage_pct=0.0005,
+        initial_capital=10_000.0,
+    )
+
+    for bucket in ["validation", "holdout", "combined"]:
+        for key in ["expectancy", "profit_factor", "max_drawdown", "trade_count", "final_equity", "return_pct"]:
+            assert direct[bucket][key] == cached_metrics[bucket][key]
+        assert direct[bucket]["date_range"] == cached_metrics[bucket]["date_range"]
+        assert direct[f"{bucket}_by_symbol"] == cached_metrics[f"{bucket}_by_symbol"]

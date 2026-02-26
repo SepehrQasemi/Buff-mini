@@ -18,7 +18,7 @@ from buffmini.baselines.stage0 import generate_signals
 from buffmini.config import compute_config_hash
 from buffmini.constants import RAW_DATA_DIR, RUNS_DIR
 from buffmini.data.features import calculate_features
-from buffmini.data.storage import load_parquet
+from buffmini.data.store import DataStore, build_data_store
 from buffmini.data.window import slice_last_n_months
 from buffmini.discovery.generator import (
     Candidate,
@@ -172,6 +172,7 @@ def run_stage1_optimization(
     target_trades_per_month_holdout = float(stage1["target_trades_per_month_holdout"])
     low_signal_penalty_weight = float(stage1["low_signal_penalty_weight"])
     min_trades_per_month_floor = float(stage1["min_trades_per_month_floor"])
+    near_miss_top_n = int(stage1["near_miss_top_n"])
     min_validation_exposure_ratio = float(stage1["min_validation_exposure_ratio"])
     min_validation_active_days = float(stage1["min_validation_active_days"])
     allow_rare_if_high_expectancy = bool(stage1["allow_rare_if_high_expectancy"])
@@ -191,12 +192,17 @@ def run_stage1_optimization(
     if len(required_symbols) < 2:
         raise ValueError("Stage-1 requires BTC/USDT and ETH/USDT in config.universe.symbols")
 
+    store = build_data_store(
+        backend=str(config.get("data", {}).get("backend", "parquet")),
+        data_dir=data_dir,
+    )
     raw_data = _load_stage1_data(
         symbols=required_symbols,
         timeframe=config["universe"]["timeframe"],
-        data_dir=data_dir,
+        store=store,
         dry_run=dry_run,
         start=config["universe"]["start"],
+        end=config["universe"]["end"],
         seed=resolved_seed,
     )
     feature_data = {symbol: calculate_features(frame) for symbol, frame in raw_data.items()}
@@ -229,6 +235,7 @@ def run_stage1_optimization(
         "target_trades_per_month_holdout": target_trades_per_month_holdout,
         "low_signal_penalty_weight": low_signal_penalty_weight,
         "min_trades_per_month_floor": min_trades_per_month_floor,
+        "near_miss_top_n": near_miss_top_n,
         "min_validation_exposure_ratio": min_validation_exposure_ratio,
         "min_validation_active_days": min_validation_active_days,
         "allow_rare_if_high_expectancy": allow_rare_if_high_expectancy,
@@ -272,6 +279,7 @@ def run_stage1_optimization(
     stage_a_results: list[CandidateEval] = []
     best_score = -math.inf
     no_improve = 0
+    stage_a_started = time.time()
 
     for idx in range(resolved_candidate_count):
         candidate = sample_candidate(index=idx + 1, rng=rng, search_space=search_space)
@@ -316,6 +324,9 @@ def run_stage1_optimization(
             logger.info("Stage A early stop at %s candidates", idx + 1)
             break
 
+    stage_a_seconds = time.time() - stage_a_started
+    logger.info("Stage A completed in %.2fs", stage_a_seconds)
+
     stage_a_sorted = sorted(stage_a_results, key=lambda x: x.score, reverse=True)
     top_k_candidates = [row.candidate for row in stage_a_sorted[:resolved_top_k]]
 
@@ -325,6 +336,7 @@ def run_stage1_optimization(
     # Stage B: medium data, top K re-evaluation with instability penalty
     stage_b_results: list[CandidateEval] = []
     instability_symbol = {"BTC/USDT": stage_b_data["BTC/USDT"]}
+    stage_b_started = time.time()
 
     for candidate in top_k_candidates:
         metrics = _evaluate_candidate_metrics(
@@ -364,6 +376,9 @@ def run_stage1_optimization(
             )
         )
 
+    stage_b_seconds = time.time() - stage_b_started
+    logger.info("Stage B completed in %.2fs", stage_b_seconds)
+
     stage_b_sorted = sorted(stage_b_results, key=lambda x: x.score, reverse=True)
     stage_c_candidate_pool = [row.candidate for row in stage_b_sorted[: min(stage_c_pool_top_k, len(stage_b_sorted))]]
 
@@ -373,9 +388,14 @@ def run_stage1_optimization(
     # Stage C: robust temporal evaluation (60/20/20 split).
     stage_c_results: list[CandidateEval] = []
     promoted_counts: dict[int, int] = {months: 0 for months in promotion_holdout_months[1:]}
+    stage_c_started = time.time()
+    stage_c_candidate_timings: list[dict[str, Any]] = []
     for candidate in stage_c_candidate_pool:
+        candidate_started = time.time()
+        signal_cache = _build_candidate_signal_cache(candidate=candidate, data_by_symbol=stage_c_data)
         temporal_metrics, holdout_months_used = _evaluate_with_holdout_promotion(
             candidate=candidate,
+            signal_cache=signal_cache,
             splits_by_holdout=stage_c_splits_by_holdout,
             promotion_holdout_months=promotion_holdout_months,
             min_trades_per_month_floor=min_trades_per_month_floor,
@@ -450,6 +470,7 @@ def run_stage1_optimization(
             instability = _instability_penalty_temporal(
                 candidate=candidate,
                 base_score=base_score,
+                full_data_by_symbol=stage_c_data,
                 splits=stage_c_splits_by_holdout[holdout_months_used],
                 search_space=search_space,
                 round_trip_cost_pct=round_trip_cost_pct,
@@ -499,6 +520,23 @@ def run_stage1_optimization(
                 holdout_months_used=holdout_months_used,
             )
         )
+        candidate_seconds = time.time() - candidate_started
+        stage_c_candidate_timings.append(
+            {
+                "candidate_id": candidate.candidate_id,
+                "seconds": float(candidate_seconds),
+                "holdout_months_used": int(holdout_months_used),
+            }
+        )
+        logger.info(
+            "Stage C candidate %s evaluated in %.2fs (holdout_months_used=%s)",
+            candidate.candidate_id,
+            candidate_seconds,
+            holdout_months_used,
+        )
+
+    stage_c_seconds = time.time() - stage_c_started
+    logger.info("Stage C completed in %.2fs", stage_c_seconds)
 
     stage_c_sorted = sorted(stage_c_results, key=lambda x: x.score, reverse=True)
     accepted = [row for row in stage_c_sorted if not row.rejected]
@@ -584,6 +622,12 @@ def run_stage1_optimization(
     with (run_dir / "strategies.json").open("w", encoding="utf-8") as handle:
         json.dump(strategies_payload, handle, indent=2)
 
+    candidate_artifacts = _persist_candidate_artifacts(
+        run_dir=run_dir,
+        rows=stage_c_sorted,
+        near_miss_top_n=near_miss_top_n,
+    )
+
     stage_a_trade_counts = [float(row.trade_count) for row in stage_a_results]
     stage_b_trade_counts = [float(row.trade_count) for row in stage_b_results]
     stage_c_trade_counts = [
@@ -594,6 +638,12 @@ def run_stage1_optimization(
         "run_id": resolved_run_id,
         "seed": resolved_seed,
         "split_mode": split_mode,
+        "timings": {
+            "stage_a_seconds": float(stage_a_seconds),
+            "stage_b_seconds": float(stage_b_seconds),
+            "stage_c_seconds": float(stage_c_seconds),
+            "stage_c_per_candidate_seconds": stage_c_candidate_timings,
+        },
         "stages": {
             "A": _build_stage_diagnostics(stage_a_trade_counts),
             "B": _build_stage_diagnostics(stage_b_trade_counts),
@@ -671,18 +721,28 @@ def run_stage1_optimization(
         "holdout_months": resolved_holdout_months,
         "promotion_holdout_months": promotion_holdout_months,
         "promotion_counts": {str(key): int(value) for key, value in promoted_counts.items()},
+        "accepted_count": candidate_artifacts["accepted_count"],
+        "near_miss_count": candidate_artifacts["near_miss_count"],
+        "candidate_artifact_paths": candidate_artifacts["paths"],
         "split_mode": split_mode,
         "min_holdout_trades": min_holdout_trades,
         "recent_weight": recent_weight,
         "target_trades_per_month_holdout": target_trades_per_month_holdout,
         "low_signal_penalty_weight": low_signal_penalty_weight,
         "min_trades_per_month_floor": min_trades_per_month_floor,
+        "near_miss_top_n": near_miss_top_n,
         "min_validation_exposure_ratio": min_validation_exposure_ratio,
         "min_validation_active_days": min_validation_active_days,
         "allow_rare_if_high_expectancy": allow_rare_if_high_expectancy,
         "rare_expectancy_threshold": rare_expectancy_threshold,
         "rare_penalty_relief": rare_penalty_relief,
         "runtime_seconds": duration_sec,
+        "timings": {
+            "stage_a_seconds": float(stage_a_seconds),
+            "stage_b_seconds": float(stage_b_seconds),
+            "stage_c_seconds": float(stage_c_seconds),
+            "stage_c_per_candidate_seconds": stage_c_candidate_timings,
+        },
         "dry_run": dry_run,
         "diagnostics": diagnostics,
         "any_holdout_pf_expectancy_positive_raw": any(
@@ -760,26 +820,48 @@ def _evaluate_temporal_candidate_metrics(
     slippage_pct: float,
     initial_capital: float,
 ) -> dict[str, dict[str, float | str]]:
-    validation_metrics = _evaluate_candidate_metrics(
+    signal_cache = _build_candidate_signal_cache(candidate=candidate, data_by_symbol=splits["combined"])
+    return _evaluate_temporal_candidate_metrics_cached(
         candidate=candidate,
-        data_by_symbol=splits["validation"],
+        signal_cache=signal_cache,
+        splits=splits,
         round_trip_cost_pct=round_trip_cost_pct,
         slippage_pct=slippage_pct,
         initial_capital=initial_capital,
+    )
+
+
+def _evaluate_temporal_candidate_metrics_cached(
+    candidate: Candidate,
+    signal_cache: dict[str, pd.DataFrame],
+    splits: dict[str, dict[str, pd.DataFrame]],
+    round_trip_cost_pct: float,
+    slippage_pct: float,
+    initial_capital: float,
+) -> dict[str, dict[str, float | str]]:
+    validation_metrics = _evaluate_candidate_metrics(
+        candidate=candidate,
+        data_by_symbol=_slice_signal_cache(signal_cache=signal_cache, split_data=splits["validation"]),
+        round_trip_cost_pct=round_trip_cost_pct,
+        slippage_pct=slippage_pct,
+        initial_capital=initial_capital,
+        signal_precomputed=True,
     )
     holdout_metrics = _evaluate_candidate_metrics(
         candidate=candidate,
-        data_by_symbol=splits["holdout"],
+        data_by_symbol=_slice_signal_cache(signal_cache=signal_cache, split_data=splits["holdout"]),
         round_trip_cost_pct=round_trip_cost_pct,
         slippage_pct=slippage_pct,
         initial_capital=initial_capital,
+        signal_precomputed=True,
     )
     combined_metrics = _evaluate_candidate_metrics(
         candidate=candidate,
-        data_by_symbol=splits["combined"],
+        data_by_symbol=_slice_signal_cache(signal_cache=signal_cache, split_data=splits["combined"]),
         round_trip_cost_pct=round_trip_cost_pct,
         slippage_pct=slippage_pct,
         initial_capital=initial_capital,
+        signal_precomputed=True,
     )
     return {
         "validation": validation_metrics,
@@ -791,8 +873,45 @@ def _evaluate_temporal_candidate_metrics(
     }
 
 
+def _build_candidate_signal_cache(
+    candidate: Candidate,
+    data_by_symbol: dict[str, pd.DataFrame],
+) -> dict[str, pd.DataFrame]:
+    spec = candidate_to_strategy_spec(candidate)
+    cached: dict[str, pd.DataFrame] = {}
+    for symbol, frame in data_by_symbol.items():
+        prepared = frame.copy()
+        prepared["signal"] = generate_signals(prepared, spec, gating_mode=candidate.gating_mode)
+        cached[symbol] = prepared
+    return cached
+
+
+def _slice_signal_cache(
+    signal_cache: dict[str, pd.DataFrame],
+    split_data: dict[str, pd.DataFrame],
+) -> dict[str, pd.DataFrame]:
+    sliced: dict[str, pd.DataFrame] = {}
+    for symbol, template in split_data.items():
+        cached = signal_cache.get(symbol)
+        if cached is None or template.empty:
+            sliced[symbol] = template.copy()
+            continue
+
+        if len(template) == len(cached):
+            sliced[symbol] = cached.copy().reset_index(drop=True)
+            continue
+
+        template_ts = pd.to_datetime(template["timestamp"], utc=True)
+        cached_ts = pd.to_datetime(cached["timestamp"], utc=True)
+        start_ts = template_ts.iloc[0]
+        end_ts = template_ts.iloc[-1]
+        sliced[symbol] = cached.loc[(cached_ts >= start_ts) & (cached_ts <= end_ts)].reset_index(drop=True)
+    return sliced
+
+
 def _evaluate_with_holdout_promotion(
     candidate: Candidate,
+    signal_cache: dict[str, pd.DataFrame],
     splits_by_holdout: dict[int, dict[str, dict[str, pd.DataFrame]]],
     promotion_holdout_months: list[int],
     min_trades_per_month_floor: float,
@@ -805,8 +924,9 @@ def _evaluate_with_holdout_promotion(
     selected_months = int(promotion_holdout_months[-1])
 
     for holdout_months in promotion_holdout_months:
-        temporal_metrics = _evaluate_temporal_candidate_metrics(
+        temporal_metrics = _evaluate_temporal_candidate_metrics_cached(
             candidate=candidate,
+            signal_cache=signal_cache,
             splits=splits_by_holdout[int(holdout_months)],
             round_trip_cost_pct=round_trip_cost_pct,
             slippage_pct=slippage_pct,
@@ -1068,6 +1188,7 @@ def _compute_temporal_score(
 def _instability_penalty_temporal(
     candidate: Candidate,
     base_score: float,
+    full_data_by_symbol: dict[str, pd.DataFrame],
     splits: dict[str, dict[str, pd.DataFrame]],
     search_space: dict[str, Any],
     round_trip_cost_pct: float,
@@ -1080,8 +1201,10 @@ def _instability_penalty_temporal(
 
     variant_scores: list[float] = []
     for variant in perturbed:
-        temporal = _evaluate_temporal_candidate_metrics(
+        signal_cache = _build_candidate_signal_cache(candidate=variant, data_by_symbol=full_data_by_symbol)
+        temporal = _evaluate_temporal_candidate_metrics_cached(
             candidate=variant,
+            signal_cache=signal_cache,
             splits=splits,
             round_trip_cost_pct=round_trip_cost_pct,
             slippage_pct=slippage_pct,
@@ -1126,14 +1249,13 @@ def _cagr_from_metrics(metrics: dict[str, float | str]) -> float:
 
 
 def _evaluate_candidate_metrics(
-    candidate: Candidate,
+    candidate: Candidate | None,
     data_by_symbol: dict[str, pd.DataFrame],
     round_trip_cost_pct: float,
     slippage_pct: float,
     initial_capital: float,
+    signal_precomputed: bool = False,
 ) -> dict[str, float | str]:
-    spec = candidate_to_strategy_spec(candidate)
-
     expectancy_list: list[float] = []
     trade_pnl_values: list[float] = []
     pf_list: list[float] = []
@@ -1160,11 +1282,18 @@ def _evaluate_candidate_metrics(
         max_ts = current_max if max_ts is None else max(max_ts, current_max)
 
         eval_frame = frame.copy()
-        eval_frame["signal"] = generate_signals(eval_frame, spec, gating_mode=candidate.gating_mode)
+        if signal_precomputed:
+            if "signal" not in eval_frame.columns:
+                raise ValueError("signal_precomputed=True requires a signal column")
+        else:
+            if candidate is None:
+                raise ValueError("candidate is required when signal_precomputed=False")
+            spec = candidate_to_strategy_spec(candidate)
+            eval_frame["signal"] = generate_signals(eval_frame, spec, gating_mode=candidate.gating_mode)
 
         result = run_backtest(
             frame=eval_frame,
-            strategy_name=spec.name,
+            strategy_name=(candidate_to_strategy_spec(candidate).name if candidate is not None else "cached_candidate"),
             symbol=symbol,
             stop_atr_multiple=float(candidate.params["atr_sl_multiplier"]),
             take_profit_atr_multiple=float(candidate.params["atr_tp_multiplier"]),
@@ -1374,9 +1503,10 @@ def _compute_data_hash(data_by_symbol: dict[str, pd.DataFrame]) -> str:
 def _load_stage1_data(
     symbols: list[str],
     timeframe: str,
-    data_dir: Path,
+    store: DataStore,
     dry_run: bool,
     start: str | None,
+    end: str | None,
     seed: int,
 ) -> dict[str, pd.DataFrame]:
     loaded: dict[str, pd.DataFrame] = {}
@@ -1386,7 +1516,7 @@ def _load_stage1_data(
         return loaded
 
     for symbol in symbols:
-        loaded[symbol] = load_parquet(symbol=symbol, timeframe=timeframe, data_dir=data_dir)
+        loaded[symbol] = store.load_ohlcv(symbol=symbol, timeframe=timeframe, start=start, end=end)
     return loaded
 
 
@@ -1466,6 +1596,110 @@ def _build_stage_diagnostics(trade_counts: list[float]) -> dict[str, Any]:
     }
 
 
+def _persist_candidate_artifacts(
+    run_dir: Path,
+    rows: list[CandidateEval],
+    near_miss_top_n: int,
+) -> dict[str, Any]:
+    candidates_dir = run_dir / "candidates"
+    candidates_dir.mkdir(parents=True, exist_ok=True)
+
+    accepted_rows = [
+        row
+        for row in rows
+        if row.exp_lcb_holdout > 0.0 and row.effective_edge > 0.0 and bool(row.validation_evidence_passed)
+    ]
+    near_miss_rows = [
+        row
+        for row in rows
+        if row.exp_lcb_holdout > -5.0
+        and row.pf_adj_holdout > 1.1
+        and bool(row.validation_evidence_passed)
+        and not (row.exp_lcb_holdout > 0.0 and row.effective_edge > 0.0 and bool(row.validation_evidence_passed))
+    ][: int(near_miss_top_n)]
+
+    artifact_paths: list[str] = []
+    accepted_csv_rows: list[dict[str, Any]] = []
+    near_miss_csv_rows: list[dict[str, Any]] = []
+
+    ordered_rows = [("accepted", row) for row in accepted_rows] + [("near_miss", row) for row in near_miss_rows]
+    for rank, (collection, row) in enumerate(ordered_rows, start=1):
+        payload = _candidate_artifact_payload(row=row, collection=collection)
+        path = candidates_dir / f"strategy_{rank:02d}_{row.candidate.candidate_id}.json"
+        path.write_text(json.dumps(payload, indent=2), encoding="utf-8")
+        artifact_rel = str(path.relative_to(run_dir))
+        artifact_paths.append(artifact_rel)
+
+        csv_row = row.to_row(rank=rank)
+        csv_row["artifact_path"] = artifact_rel
+        csv_row["collection"] = collection
+        csv_row["accepted_core"] = bool(collection == "accepted")
+        csv_row["near_miss"] = bool(collection == "near_miss")
+        if collection == "accepted":
+            accepted_csv_rows.append(csv_row)
+        else:
+            near_miss_csv_rows.append(csv_row)
+
+    accepted_df = pd.DataFrame(accepted_csv_rows)
+    near_miss_df = pd.DataFrame(near_miss_csv_rows)
+    accepted_path = run_dir / "accepted_candidates.csv"
+    near_miss_path = run_dir / "near_miss_candidates.csv"
+    accepted_df.to_csv(accepted_path, index=False)
+    near_miss_df.to_csv(near_miss_path, index=False)
+
+    return {
+        "accepted_count": int(len(accepted_rows)),
+        "near_miss_count": int(len(near_miss_rows)),
+        "paths": {
+            "candidates_dir": str(candidates_dir.relative_to(run_dir)),
+            "accepted_csv": str(accepted_path.relative_to(run_dir)),
+            "near_miss_csv": str(near_miss_path.relative_to(run_dir)),
+            "candidate_json_files": artifact_paths,
+        },
+    }
+
+
+def _candidate_artifact_payload(row: CandidateEval, collection: str) -> dict[str, Any]:
+    spec = candidate_to_strategy_spec(row.candidate)
+    validation = row.metrics_validation or {}
+    holdout = row.metrics_holdout or {}
+    return {
+        "candidate_id": row.candidate.candidate_id,
+        "collection": collection,
+        "strategy_name": spec.name,
+        "strategy_family": row.candidate.family,
+        "parameters": row.candidate.params,
+        "gating": row.candidate.gating_mode,
+        "exit_mode": row.candidate.exit_mode,
+        "holdout_months_used": int(row.holdout_months_used),
+        "trade_count_validation": float(validation.get("trade_count", 0.0)),
+        "trade_count_holdout": float(holdout.get("trade_count", 0.0)),
+        "pf_holdout": float(holdout.get("profit_factor", 0.0)),
+        "pf_adj_holdout": float(row.pf_adj_holdout),
+        "expectancy_holdout": float(holdout.get("expectancy", 0.0)),
+        "exp_lcb_holdout": float(row.exp_lcb_holdout),
+        "effective_edge": float(row.effective_edge),
+        "trades_per_month_holdout": float(row.trades_per_month_holdout),
+        "exposure_ratio": float(row.exposure_ratio),
+        "validation_exposure_ratio": float(row.validation_exposure_ratio),
+        "validation_active_days": int(row.validation_active_days),
+        "per_symbol_metrics": row.holdout_symbol_metrics or {},
+        "score": float(row.score),
+        "acceptance_flags": {
+            "accepted_core": bool(
+                row.exp_lcb_holdout > 0.0 and row.effective_edge > 0.0 and bool(row.validation_evidence_passed)
+            ),
+            "accepted_ranked": bool(not row.rejected),
+            "near_miss": bool(collection == "near_miss"),
+            "validation_evidence_passed": bool(row.validation_evidence_passed),
+            "exp_lcb_positive": bool(row.exp_lcb_holdout > 0.0),
+            "effective_edge_positive": bool(row.effective_edge > 0.0),
+            "rejected": bool(row.rejected),
+            "rejection_reason": row.rejection_reason,
+        },
+    }
+
+
 def _write_stage1_diagnostics_report(
     run_dir: Path,
     diagnostics: dict[str, Any],
@@ -1480,6 +1714,10 @@ def _write_stage1_diagnostics_report(
     lines.append(f"- run_id: `{diagnostics['run_id']}`")
     lines.append(f"- seed: `{diagnostics['seed']}`")
     lines.append(f"- split_mode: `{diagnostics['split_mode']}`")
+    timings = diagnostics.get("timings", {})
+    lines.append(f"- stage_a_seconds: `{float(timings.get('stage_a_seconds', 0.0)):.2f}`")
+    lines.append(f"- stage_b_seconds: `{float(timings.get('stage_b_seconds', 0.0)):.2f}`")
+    lines.append(f"- stage_c_seconds: `{float(timings.get('stage_c_seconds', 0.0)):.2f}`")
     lines.append("")
 
     for stage_name in ["A", "B", "C"]:
@@ -1525,6 +1763,9 @@ def _write_stage1_report(
     report_lines.append(f"- data_hash: `{summary['data_hash']}`")
     report_lines.append(f"- cost(round_trip_cost_pct): `{summary['round_trip_cost_pct']}`")
     report_lines.append(f"- candidates A/B/C: `{summary['candidate_count_stage_a']}/{summary['candidate_count_stage_b']}/{summary['candidate_count_stage_c']}`")
+    report_lines.append(f"- accepted_count: `{summary.get('accepted_count', 0)}`")
+    report_lines.append(f"- near_miss_count: `{summary.get('near_miss_count', 0)}`")
+    report_lines.append(f"- stage_c_seconds: `{float(summary.get('timings', {}).get('stage_c_seconds', 0.0)):.2f}`")
     report_lines.append("")
 
     report_lines.append("## Top 3 Candidates")
@@ -1699,6 +1940,10 @@ def _write_stage1_real_data_reports(
         "validation_evidence_rule": "validation_exposure_ratio >= min_validation_exposure_ratio OR validation_active_days >= min_validation_active_days",
         "acceptance_rule": "exp_lcb_holdout > 0 AND effective_edge > 0 AND validation_evidence_passed",
         "rejected_due_validation_evidence_count": summary["rejected_due_validation_evidence_count"],
+        "accepted_count": summary["accepted_count"],
+        "near_miss_count": summary["near_miss_count"],
+        "candidate_artifact_paths": summary["candidate_artifact_paths"],
+        "timings": summary.get("timings", {}),
         "round_trip_cost_pct": summary["round_trip_cost_pct"],
         "any_pf_holdout_gt_1_and_expectancy_holdout_gt_0": any_profitable_raw,
         "any_accepted_pf_holdout_gt_1_and_expectancy_holdout_gt_0": any_profitable_accepted,
@@ -1728,6 +1973,12 @@ def _write_stage1_real_data_reports(
     )
     lines.append("- acceptance_rule: `exp_lcb_holdout > 0 AND effective_edge > 0 AND validation_evidence_passed`")
     lines.append(f"- rejected_due_validation_evidence_count: `{summary['rejected_due_validation_evidence_count']}`")
+    lines.append(f"- accepted_count: `{summary['accepted_count']}`")
+    lines.append(f"- near_miss_count: `{summary['near_miss_count']}`")
+    lines.append(f"- candidates_dir: `{summary['candidate_artifact_paths']['candidates_dir']}`")
+    lines.append(f"- accepted_csv: `{summary['candidate_artifact_paths']['accepted_csv']}`")
+    lines.append(f"- near_miss_csv: `{summary['candidate_artifact_paths']['near_miss_csv']}`")
+    lines.append(f"- stage_c_seconds: `{summary.get('timings', {}).get('stage_c_seconds', 0.0):.2f}`")
     lines.append(f"- target_trades_per_month_holdout: `{summary['target_trades_per_month_holdout']}`")
     lines.append(f"- low_signal_penalty_weight: `{summary['low_signal_penalty_weight']}`")
     lines.append(f"- min_trades_per_month_floor: `{summary['min_trades_per_month_floor']}`")

@@ -6,9 +6,9 @@ import argparse
 from pathlib import Path
 
 from buffmini.config import load_config
-from buffmini.constants import DEFAULT_CONFIG_PATH
+from buffmini.constants import DEFAULT_CONFIG_PATH, RAW_DATA_DIR
 from buffmini.data.loader import fetch_ohlcv
-from buffmini.data.storage import save_parquet
+from buffmini.data.store import build_data_store
 from buffmini.utils.logging import get_logger
 
 
@@ -18,12 +18,17 @@ logger = get_logger(__name__)
 def parse_args() -> argparse.Namespace:
     parser = argparse.ArgumentParser(description="Update 1h OHLCV parquet data")
     parser.add_argument("--config", type=Path, default=DEFAULT_CONFIG_PATH)
+    parser.add_argument("--data-dir", type=Path, default=RAW_DATA_DIR)
     return parser.parse_args()
 
 
 def main() -> None:
     args = parse_args()
     config = load_config(args.config)
+    store = build_data_store(
+        backend=str(config.get("data", {}).get("backend", "parquet")),
+        data_dir=args.data_dir,
+    )
 
     universe = config["universe"]
     timeframe = universe["timeframe"]
@@ -37,8 +42,8 @@ def main() -> None:
             logger.warning("No rows fetched for %s", symbol)
             continue
 
-        path = save_parquet(frame=frame, symbol=symbol, timeframe=timeframe)
-        logger.info("Saved %s rows to %s", len(frame), path)
+        store.save_ohlcv(symbol=symbol, timeframe=timeframe, df=frame)
+        logger.info("Saved %s rows for %s %s", len(frame), symbol, timeframe)
 
 
 if __name__ == "__main__":

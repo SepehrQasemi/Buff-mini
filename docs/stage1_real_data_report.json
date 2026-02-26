@@ -1,6 +1,6 @@
 {
-  "run_id": "20260226_192036_d518b36605f0_stage1",
-  "timestamp_utc": "20260226_203246",
+  "run_id": "20260226_223856_417c7a3f42c9_stage1",
+  "timestamp_utc": "20260226_231500",
   "split_mode": "60_20_20",
   "recent_weight": 2.0,
   "min_holdout_trades": 50,
@@ -20,6 +20,282 @@
   "validation_evidence_rule": "validation_exposure_ratio >= min_validation_exposure_ratio OR validation_active_days >= min_validation_active_days",
   "acceptance_rule": "exp_lcb_holdout > 0 AND effective_edge > 0 AND validation_evidence_passed",
   "rejected_due_validation_evidence_count": 37,
+  "accepted_count": 9,
+  "near_miss_count": 1,
+  "candidate_artifact_paths": {
+    "candidates_dir": "candidates",
+    "accepted_csv": "accepted_candidates.csv",
+    "near_miss_csv": "near_miss_candidates.csv",
+    "candidate_json_files": [
+      "candidates\\strategy_01_cand_001106_0220dce2.json",
+      "candidates\\strategy_02_cand_000637_42edc0b1.json",
+      "candidates\\strategy_03_cand_001139_d55f8520.json",
+      "candidates\\strategy_04_cand_001264_848f658f.json",
+      "candidates\\strategy_05_cand_001147_0131018a.json",
+      "candidates\\strategy_06_cand_001603_418d4b75.json",
+      "candidates\\strategy_07_cand_001012_dbec7b03.json",
+      "candidates\\strategy_08_cand_000839_134b1afb.json",
+      "candidates\\strategy_09_cand_001674_4d2aff0a.json",
+      "candidates\\strategy_10_cand_000455_b5533efa.json"
+    ]
+  },
+  "timings": {
+    "stage_a_seconds": 913.8841760158539,
+    "stage_b_seconds": 619.6511642932892,
+    "stage_c_seconds": 629.3565099239349,
+    "stage_c_per_candidate_seconds": [
+      {
+        "candidate_id": "cand_000743_1fc927ae",
+        "seconds": 16.24226975440979,
+        "holdout_months_used": 12
+      },
+      {
+        "candidate_id": "cand_000479_b1601f01",
+        "seconds": 19.34883189201355,
+        "holdout_months_used": 12
+      },
+      {
+        "candidate_id": "cand_001464_7338bf9b",
+        "seconds": 17.261062622070312,
+        "holdout_months_used": 12
+      },
+      {
+        "candidate_id": "cand_000014_f5923ea9",
+        "seconds": 16.466347217559814,
+        "holdout_months_used": 12
+      },
+      {
+        "candidate_id": "cand_000906_e1b3bcf2",
+        "seconds": 16.435460567474365,
+        "holdout_months_used": 12
+      },
+      {
+        "candidate_id": "cand_001093_cb5294d8",
+        "seconds": 15.865375518798828,
+        "holdout_months_used": 12
+      },
+      {
+        "candidate_id": "cand_001606_0bb0538b",
+        "seconds": 16.08429455757141,
+        "holdout_months_used": 12
+      },
+      {
+        "candidate_id": "cand_000337_c26663c1",
+        "seconds": 16.901826858520508,
+        "holdout_months_used": 12
+      },
+      {
+        "candidate_id": "cand_001044_fad04120",
+        "seconds": 16.682138204574585,
+        "holdout_months_used": 12
+      },
+      {
+        "candidate_id": "cand_000637_42edc0b1",
+        "seconds": 9.769338369369507,
+        "holdout_months_used": 3
+      },
+      {
+        "candidate_id": "cand_001506_17117851",
+        "seconds": 15.129429817199707,
+        "holdout_months_used": 12
+      },
+      {
+        "candidate_id": "cand_000869_243873e1",
+        "seconds": 14.47669529914856,
+        "holdout_months_used": 12
+      },
+      {
+        "candidate_id": "cand_000839_134b1afb",
+        "seconds": 16.141066789627075,
+        "holdout_months_used": 12
+      },
+      {
+        "candidate_id": "cand_001260_6a1c2d79",
+        "seconds": 16.050538539886475,
+        "holdout_months_used": 12
+      },
+      {
+        "candidate_id": "cand_000301_46539359",
+        "seconds": 15.459024906158447,
+        "holdout_months_used": 12
+      },
+      {
+        "candidate_id": "cand_001139_d55f8520",
+        "seconds": 8.09545612335205,
+        "holdout_months_used": 3
+      },
+      {
+        "candidate_id": "cand_001241_31519798",
+        "seconds": 15.710571050643921,
+        "holdout_months_used": 12
+      },
+      {
+        "candidate_id": "cand_000073_cf825852",
+        "seconds": 17.47101593017578,
+        "holdout_months_used": 12
+      },
+      {
+        "candidate_id": "cand_001354_ed1ad04c",
+        "seconds": 13.933879852294922,
+        "holdout_months_used": 12
+      },
+      {
+        "candidate_id": "cand_001103_6403ff89",
+        "seconds": 11.070146560668945,
+        "holdout_months_used": 12
+      },
+      {
+        "candidate_id": "cand_000802_06f52b45",
+        "seconds": 10.984691619873047,
+        "holdout_months_used": 12
+      },
+      {
+        "candidate_id": "cand_001012_dbec7b03",
+        "seconds": 14.079677820205688,
+        "holdout_months_used": 9
+      },
+      {
+        "candidate_id": "cand_000455_b5533efa",
+        "seconds": 2.2520909309387207,
+        "holdout_months_used": 3
+      },
+      {
+        "candidate_id": "cand_001193_941a769c",
+        "seconds": 11.174238920211792,
+        "holdout_months_used": 12
+      },
+      {
+        "candidate_id": "cand_001623_ff20fbd6",
+        "seconds": 11.266010046005249,
+        "holdout_months_used": 12
+      },
+      {
+        "candidate_id": "cand_001147_0131018a",
+        "seconds": 18.037693738937378,
+        "holdout_months_used": 12
+      },
+      {
+        "candidate_id": "cand_001106_0220dce2",
+        "seconds": 7.139033079147339,
+        "holdout_months_used": 3
+      },
+      {
+        "candidate_id": "cand_001264_848f658f",
+        "seconds": 6.797543287277222,
+        "holdout_months_used": 3
+      },
+      {
+        "candidate_id": "cand_001674_4d2aff0a",
+        "seconds": 11.186503648757935,
+        "holdout_months_used": 12
+      },
+      {
+        "candidate_id": "cand_000338_4dbd0955",
+        "seconds": 11.243330240249634,
+        "holdout_months_used": 12
+      },
+      {
+        "candidate_id": "cand_001203_fd1dc644",
+        "seconds": 11.29977798461914,
+        "holdout_months_used": 12
+      },
+      {
+        "candidate_id": "cand_001246_22bd0bcc",
+        "seconds": 11.381671667098999,
+        "holdout_months_used": 12
+      },
+      {
+        "candidate_id": "cand_000574_79a0305f",
+        "seconds": 10.959081888198853,
+        "holdout_months_used": 12
+      },
+      {
+        "candidate_id": "cand_000258_7db0c562",
+        "seconds": 11.132170915603638,
+        "holdout_months_used": 12
+      },
+      {
+        "candidate_id": "cand_000176_1c8e6a98",
+        "seconds": 10.791312456130981,
+        "holdout_months_used": 12
+      },
+      {
+        "candidate_id": "cand_000844_2536f02c",
+        "seconds": 10.974921226501465,
+        "holdout_months_used": 12
+      },
+      {
+        "candidate_id": "cand_000404_5671415b",
+        "seconds": 11.027407169342041,
+        "holdout_months_used": 12
+      },
+      {
+        "candidate_id": "cand_000732_209255d0",
+        "seconds": 11.103066205978394,
+        "holdout_months_used": 12
+      },
+      {
+        "candidate_id": "cand_001292_6b718ab3",
+        "seconds": 11.325428485870361,
+        "holdout_months_used": 12
+      },
+      {
+        "candidate_id": "cand_001603_418d4b75",
+        "seconds": 18.057833909988403,
+        "holdout_months_used": 12
+      },
+      {
+        "candidate_id": "cand_000013_2194fa75",
+        "seconds": 11.07688307762146,
+        "holdout_months_used": 12
+      },
+      {
+        "candidate_id": "cand_001220_0d2c6573",
+        "seconds": 11.220099210739136,
+        "holdout_months_used": 12
+      },
+      {
+        "candidate_id": "cand_000809_c007f79e",
+        "seconds": 11.093172550201416,
+        "holdout_months_used": 12
+      },
+      {
+        "candidate_id": "cand_001243_e3725da7",
+        "seconds": 10.922229290008545,
+        "holdout_months_used": 12
+      },
+      {
+        "candidate_id": "cand_001222_3b4c39df",
+        "seconds": 11.095505952835083,
+        "holdout_months_used": 12
+      },
+      {
+        "candidate_id": "cand_000205_f59f9ee9",
+        "seconds": 11.495402097702026,
+        "holdout_months_used": 12
+      },
+      {
+        "candidate_id": "cand_000039_09eda689",
+        "seconds": 10.699432849884033,
+        "holdout_months_used": 12
+      },
+      {
+        "candidate_id": "cand_000957_252cee9e",
+        "seconds": 11.03955078125,
+        "holdout_months_used": 12
+      },
+      {
+        "candidate_id": "cand_001562_daefde29",
+        "seconds": 11.287915468215942,
+        "holdout_months_used": 12
+      },
+      {
+        "candidate_id": "cand_000930_b5e47a30",
+        "seconds": 2.6091296672821045,
+        "holdout_months_used": 3
+      }
+    ]
+  },
   "round_trip_cost_pct": 0.1,
   "any_pf_holdout_gt_1_and_expectancy_holdout_gt_0": true,
   "any_accepted_pf_holdout_gt_1_and_expectancy_holdout_gt_0": true,

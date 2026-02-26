@@ -1,13 +1,16 @@
 # Stage-1 Auto Optimization Report
 
-- run_id: `20260226_192036_d518b36605f0_stage1`
+- run_id: `20260226_223856_417c7a3f42c9_stage1`
 - stage: `stage1`
-- runtime_seconds: `4329.99`
+- runtime_seconds: `2163.51`
 - seed: `42`
-- config_hash: `d518b36605f0`
+- config_hash: `417c7a3f42c9`
 - data_hash: `c923139f4ab67059`
 - cost(round_trip_cost_pct): `0.1`
 - candidates A/B/C: `1743/100/50`
+- accepted_count: `9`
+- near_miss_count: `1`
+- stage_c_seconds: `629.36`
 
 ## Top 3 Candidates
 ### Rank 1 - TrendPullback

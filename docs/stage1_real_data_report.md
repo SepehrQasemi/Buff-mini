@@ -1,6 +1,6 @@
 # Stage-1 Real Data Report
 
-- run_id: `20260226_192036_d518b36605f0_stage1`
+- run_id: `20260226_223856_417c7a3f42c9_stage1`
 - split_mode: `60_20_20`
 - recent_weight: `2.0`
 - min_holdout_trades: `50`
@@ -11,6 +11,12 @@
 - validation_evidence_rule: `validation_exposure_ratio >= min_validation_exposure_ratio OR validation_active_days >= min_validation_active_days`
 - acceptance_rule: `exp_lcb_holdout > 0 AND effective_edge > 0 AND validation_evidence_passed`
 - rejected_due_validation_evidence_count: `37`
+- accepted_count: `9`
+- near_miss_count: `1`
+- candidates_dir: `candidates`
+- accepted_csv: `accepted_candidates.csv`
+- near_miss_csv: `near_miss_candidates.csv`
+- stage_c_seconds: `629.36`
 - target_trades_per_month_holdout: `8.0`
 - low_signal_penalty_weight: `1.0`
 - min_trades_per_month_floor: `2.0`

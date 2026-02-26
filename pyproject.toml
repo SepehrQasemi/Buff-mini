@@ -23,6 +23,11 @@ dependencies = [
   "pytest"
 ]
 
+[project.optional-dependencies]
+duckdb = [
+  "duckdb"
+]
+
 [tool.setuptools]
 package-dir = { "" = "src" }
 

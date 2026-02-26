@@ -22,6 +22,9 @@ search:
   candidates: 100
   seed: 42
 
+data:
+  backend: parquet
+
 evaluation:
   stage0_enabled: true
   stage06:
@@ -46,6 +49,7 @@ evaluation:
     allow_rare_if_high_expectancy: false
     rare_expectancy_threshold: 3.0
     rare_penalty_relief: 0.1
+    near_miss_top_n: 20
     promotion_holdout_months: [3, 6, 9, 12]
     walkforward_splits: 3
     early_stop_patience: 1000

@@ -31,6 +31,10 @@ STAGE06_DEFAULTS = {
     "end_mode": "latest",
 }
 
+DATA_DEFAULTS = {
+    "backend": "parquet",
+}
+
 
 STAGE1_DEFAULTS = {
     "enabled": True,
@@ -51,6 +55,7 @@ STAGE1_DEFAULTS = {
     "allow_rare_if_high_expectancy": False,
     "rare_expectancy_threshold": 3.0,
     "rare_penalty_relief": 0.1,
+    "near_miss_top_n": 20,
     "promotion_holdout_months": [3, 6, 9, 12],
     "walkforward_splits": 3,
     "early_stop_patience": 1000,
@@ -139,6 +144,11 @@ def validate_config(config: ConfigDict) -> None:
         raise ValueError("search.candidates must be >= 1")
     int(search["seed"])
 
+    data = _merge_defaults(DATA_DEFAULTS, config.get("data", {}))
+    if str(data["backend"]) not in {"parquet", "duckdb"}:
+        raise ValueError("data.backend must be 'parquet' or 'duckdb'")
+    config["data"] = data
+
     evaluation = config["evaluation"]
     if not isinstance(evaluation["stage0_enabled"], bool):
         raise ValueError("evaluation.stage0_enabled must be bool")
@@ -216,6 +226,8 @@ def _validate_stage1(stage1: dict[str, Any]) -> None:
         raise ValueError("evaluation.stage1.low_signal_penalty_weight must be >= 0")
     if float(stage1["min_trades_per_month_floor"]) < 0:
         raise ValueError("evaluation.stage1.min_trades_per_month_floor must be >= 0")
+    if int(stage1["near_miss_top_n"]) < 0:
+        raise ValueError("evaluation.stage1.near_miss_top_n must be >= 0")
     if not isinstance(stage1["allow_rare_if_high_expectancy"], bool):
         raise ValueError("evaluation.stage1.allow_rare_if_high_expectancy must be bool")
     float(stage1["rare_expectancy_threshold"])
