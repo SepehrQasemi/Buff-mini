@@ -17,6 +17,7 @@ from buffmini.discovery.funnel import (
     _compute_pf_adjusted,
     _compute_temporal_score,
     _compute_trades_per_month,
+    _passes_validation_evidence,
     run_stage1_optimization,
 )
 from buffmini.discovery.generator import candidate_within_search_space, sample_candidate
@@ -240,6 +241,7 @@ def test_degenerate_rejection_triggers_below_tpm_floor() -> None:
         min_trades_per_month_floor=2.0,
         allow_rare_if_high_expectancy=True,
         rare_expectancy_threshold=3.0,
+        validation_evidence_passed=True,
     )
     assert reason == "degenerate_low_trades_per_month"
 
@@ -255,5 +257,27 @@ def test_degenerate_rejection_relief_with_extremely_high_expectancy() -> None:
         min_trades_per_month_floor=2.0,
         allow_rare_if_high_expectancy=True,
         rare_expectancy_threshold=3.0,
+        validation_evidence_passed=True,
     )
     assert reason == ""
+
+
+def test_validation_evidence_gate_requires_exposure_or_active_days() -> None:
+    assert _passes_validation_evidence(
+        validation_exposure_ratio=0.0,
+        validation_active_days=0.0,
+        min_validation_exposure_ratio=0.01,
+        min_validation_active_days=10.0,
+    ) is False
+    assert _passes_validation_evidence(
+        validation_exposure_ratio=0.02,
+        validation_active_days=0.0,
+        min_validation_exposure_ratio=0.01,
+        min_validation_active_days=10.0,
+    ) is True
+    assert _passes_validation_evidence(
+        validation_exposure_ratio=0.0,
+        validation_active_days=12.0,
+        min_validation_exposure_ratio=0.01,
+        min_validation_active_days=10.0,
+    ) is True

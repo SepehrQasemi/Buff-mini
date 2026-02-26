@@ -1,6 +1,6 @@
 # Stage-1 Diagnostics
 
-- run_id: `20260226_170035_3fc0a2b58f96_stage1`
+- run_id: `20260226_181107_dd4955695aad_stage1`
 - seed: `42`
 - split_mode: `60_20_20`
 

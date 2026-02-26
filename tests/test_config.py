@@ -20,9 +20,11 @@ def test_load_config_success() -> None:
     assert config["evaluation"]["stage1"]["target_trades_per_month_holdout"] == 8
     assert config["evaluation"]["stage1"]["low_signal_penalty_weight"] == 1.0
     assert config["evaluation"]["stage1"]["min_trades_per_month_floor"] == 2
-    assert config["evaluation"]["stage1"]["allow_rare_if_high_expectancy"] is True
+    assert config["evaluation"]["stage1"]["min_validation_exposure_ratio"] == 0.01
+    assert config["evaluation"]["stage1"]["min_validation_active_days"] == 10
+    assert config["evaluation"]["stage1"]["allow_rare_if_high_expectancy"] is False
     assert config["evaluation"]["stage1"]["rare_expectancy_threshold"] == 3.0
-    assert config["evaluation"]["stage1"]["rare_penalty_relief"] == 0.5
+    assert config["evaluation"]["stage1"]["rare_penalty_relief"] == 0.1
 
 
 def test_compute_config_hash_is_deterministic() -> None:

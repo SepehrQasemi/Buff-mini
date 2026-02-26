@@ -43,12 +43,14 @@ STAGE1_DEFAULTS = {
     "split_mode": "60_20_20",
     "min_holdout_trades": 50,
     "recent_weight": 2.0,
+    "min_validation_exposure_ratio": 0.01,
+    "min_validation_active_days": 10.0,
     "target_trades_per_month_holdout": 8.0,
     "low_signal_penalty_weight": 1.0,
     "min_trades_per_month_floor": 2.0,
-    "allow_rare_if_high_expectancy": True,
+    "allow_rare_if_high_expectancy": False,
     "rare_expectancy_threshold": 3.0,
-    "rare_penalty_relief": 0.5,
+    "rare_penalty_relief": 0.1,
     "walkforward_splits": 3,
     "early_stop_patience": 1000,
     "min_stage_a_evals": 1000,
@@ -203,6 +205,10 @@ def _validate_stage1(stage1: dict[str, Any]) -> None:
         raise ValueError("evaluation.stage1.split_mode must be '60_20_20'")
     if float(stage1["recent_weight"]) < 0:
         raise ValueError("evaluation.stage1.recent_weight must be >= 0")
+    if float(stage1["min_validation_exposure_ratio"]) < 0:
+        raise ValueError("evaluation.stage1.min_validation_exposure_ratio must be >= 0")
+    if float(stage1["min_validation_active_days"]) < 0:
+        raise ValueError("evaluation.stage1.min_validation_active_days must be >= 0")
     if float(stage1["target_trades_per_month_holdout"]) <= 0:
         raise ValueError("evaluation.stage1.target_trades_per_month_holdout must be > 0")
     if float(stage1["low_signal_penalty_weight"]) < 0:
