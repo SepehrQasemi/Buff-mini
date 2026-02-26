@@ -35,6 +35,8 @@ from buffmini.utils.time import utc_now_compact
 
 logger = get_logger(__name__)
 
+DEFAULT_SMALL_EXPECTANCY_THRESHOLD = 1e-6
+
 
 @dataclass
 class CandidateEval:
@@ -52,6 +54,12 @@ class CandidateEval:
     complexity_penalty: float
     instability_penalty: float
     date_range: str
+    rejected: bool = False
+    rejection_reason: str = ""
+    metrics_validation: dict[str, float | str] | None = None
+    metrics_holdout: dict[str, float | str] | None = None
+    metrics_combined: dict[str, float | str] | None = None
+    cagr_approx_holdout: float = 0.0
 
     def to_row(self, rank: int | None = None) -> dict[str, Any]:
         row = {
@@ -70,10 +78,24 @@ class CandidateEval:
             "complexity_penalty": self.complexity_penalty,
             "instability_penalty": self.instability_penalty,
             "date_range": self.date_range,
+            "rejected": self.rejected,
+            "rejection_reason": self.rejection_reason,
             "params": json.dumps(self.candidate.params, sort_keys=True),
         }
         if rank is not None:
             row["rank"] = int(rank)
+        if self.metrics_validation is not None:
+            row["trade_count_validation"] = float(self.metrics_validation["trade_count"])
+            row["profit_factor_validation"] = float(self.metrics_validation["profit_factor"])
+            row["expectancy_validation"] = float(self.metrics_validation["expectancy"])
+        if self.metrics_holdout is not None:
+            row["trade_count_holdout"] = float(self.metrics_holdout["trade_count"])
+            row["profit_factor_holdout"] = float(self.metrics_holdout["profit_factor"])
+            row["expectancy_holdout"] = float(self.metrics_holdout["expectancy"])
+            row["return_pct_holdout"] = float(self.metrics_holdout["return_pct"])
+        if self.metrics_combined is not None:
+            row["max_drawdown_combined"] = float(self.metrics_combined["max_drawdown"])
+        row["cagr_approx_holdout"] = float(self.cagr_approx_holdout)
         return row
 
 
@@ -107,9 +129,12 @@ def run_stage1_optimization(
     resolved_stage_a_months = int(stage_a_months if stage_a_months is not None else stage1["stage_a_months"])
     resolved_stage_b_months = int(stage_b_months if stage_b_months is not None else stage1["stage_b_months"])
     resolved_holdout_months = int(holdout_months if holdout_months is not None else stage1["holdout_months"])
-    walkforward_splits = int(stage1["walkforward_splits"])
     early_stop_patience = int(stage1["early_stop_patience"])
     min_stage_a_evals = int(stage1["min_stage_a_evals"])
+    split_mode = str(stage1["split_mode"])
+    min_holdout_trades = int(stage1["min_holdout_trades"])
+    recent_weight = float(stage1["recent_weight"])
+    small_expectancy_threshold = float(stage1.get("small_expectancy_threshold", DEFAULT_SMALL_EXPECTANCY_THRESHOLD))
 
     costs = config["costs"]
     round_trip_cost_pct = float(cost_pct if cost_pct is not None else costs["round_trip_cost_pct"])
@@ -150,9 +175,12 @@ def run_stage1_optimization(
         "stage_a_months": resolved_stage_a_months,
         "stage_b_months": resolved_stage_b_months,
         "holdout_months": resolved_holdout_months,
-        "walkforward_splits": walkforward_splits,
         "early_stop_patience": early_stop_patience,
         "min_stage_a_evals": min_stage_a_evals,
+        "split_mode": split_mode,
+        "min_holdout_trades": min_holdout_trades,
+        "recent_weight": recent_weight,
+        "small_expectancy_threshold": small_expectancy_threshold,
         "round_trip_cost_pct": round_trip_cost_pct,
         "slippage_pct": slippage_pct,
         "weights": weights,
@@ -175,6 +203,7 @@ def run_stage1_optimization(
         symbol: frame.copy().sort_values("timestamp").reset_index(drop=True)
         for symbol, frame in feature_data.items()
     }
+    stage_c_splits = _build_temporal_splits(stage_c_data=stage_c_data, split_mode=split_mode)
 
     rng = np.random.default_rng(resolved_seed)
     leaderboard_rows: list[dict[str, Any]] = []
@@ -281,57 +310,90 @@ def run_stage1_optimization(
     for rank, item in enumerate(stage_b_sorted[:resolved_top_m], start=1):
         leaderboard_rows.append(item.to_row(rank=rank))
 
-    # Stage C: walk-forward + holdout on top M
+    # Stage C: robust temporal evaluation (60/20/20 split).
     stage_c_results: list[CandidateEval] = []
     for candidate in top_m_candidates:
-        holdout_metrics, wf_std_penalty = _evaluate_stage_c_candidate(
+        temporal_metrics = _evaluate_temporal_candidate_metrics(
             candidate=candidate,
-            data_by_symbol=stage_c_data,
-            holdout_months=resolved_holdout_months,
-            walkforward_splits=walkforward_splits,
+            splits=stage_c_splits,
             round_trip_cost_pct=round_trip_cost_pct,
             slippage_pct=slippage_pct,
             initial_capital=initial_capital,
         )
+        validation_metrics = temporal_metrics["validation"]
+        holdout_metrics = temporal_metrics["holdout"]
+        combined_metrics = temporal_metrics["combined"]
 
-        perturb_penalty = _instability_penalty(
-            candidate=candidate,
-            base_metrics=holdout_metrics,
-            data_by_symbol={"BTC/USDT": _slice_by_months(stage_c_data["BTC/USDT"], resolved_holdout_months)},
-            search_space=search_space,
-            round_trip_cost_pct=round_trip_cost_pct,
-            slippage_pct=slippage_pct,
-            initial_capital=initial_capital,
-            weights=weights,
+        rejection_reason = _candidate_rejection_reason(
+            holdout_metrics=holdout_metrics,
+            min_holdout_trades=min_holdout_trades,
+            small_expectancy_threshold=small_expectancy_threshold,
         )
-        instability = perturb_penalty + wf_std_penalty
+        rejected = bool(rejection_reason)
 
-        score = _compute_score(
-            metrics=holdout_metrics,
-            candidate=candidate,
-            weights=weights,
-            instability_penalty=instability,
+        base_score = _compute_temporal_score(
+            expectancy_validation=float(validation_metrics["expectancy"]),
+            expectancy_holdout=float(holdout_metrics["expectancy"]),
+            profit_factor_validation=float(validation_metrics["profit_factor"]),
+            max_drawdown_combined=float(combined_metrics["max_drawdown"]),
+            complexity=complexity_penalty(candidate),
+            instability=0.0,
+            recent_weight=recent_weight,
         )
+
+        instability = 0.0
+        score = -1e9 if rejected else base_score
+        if not rejected:
+            instability = _instability_penalty_temporal(
+                candidate=candidate,
+                base_score=base_score,
+                splits=stage_c_splits,
+                search_space=search_space,
+                round_trip_cost_pct=round_trip_cost_pct,
+                slippage_pct=slippage_pct,
+                initial_capital=initial_capital,
+                recent_weight=recent_weight,
+            )
+            score = _compute_temporal_score(
+                expectancy_validation=float(validation_metrics["expectancy"]),
+                expectancy_holdout=float(holdout_metrics["expectancy"]),
+                profit_factor_validation=float(validation_metrics["profit_factor"]),
+                max_drawdown_combined=float(combined_metrics["max_drawdown"]),
+                complexity=complexity_penalty(candidate),
+                instability=instability,
+                recent_weight=recent_weight,
+            )
 
         stage_c_results.append(
             CandidateEval(
                 candidate=candidate,
                 stage="C",
                 score=score,
-                expectancy=holdout_metrics["expectancy"],
-                profit_factor=holdout_metrics["profit_factor"],
-                max_drawdown=holdout_metrics["max_drawdown"],
-                trade_count=holdout_metrics["trade_count"],
-                final_equity=holdout_metrics["final_equity"],
-                return_pct=holdout_metrics["return_pct"],
+                expectancy=float(holdout_metrics["expectancy"]),
+                profit_factor=float(holdout_metrics["profit_factor"]),
+                max_drawdown=float(combined_metrics["max_drawdown"]),
+                trade_count=float(holdout_metrics["trade_count"]),
+                final_equity=float(holdout_metrics["final_equity"]),
+                return_pct=float(holdout_metrics["return_pct"]),
                 complexity_penalty=complexity_penalty(candidate),
                 instability_penalty=instability,
-                date_range=holdout_metrics["date_range"],
+                date_range=str(holdout_metrics["date_range"]),
+                rejected=rejected,
+                rejection_reason=rejection_reason,
+                metrics_validation=validation_metrics,
+                metrics_holdout=holdout_metrics,
+                metrics_combined=combined_metrics,
+                cagr_approx_holdout=_cagr_from_metrics(holdout_metrics),
             )
         )
 
     stage_c_sorted = sorted(stage_c_results, key=lambda x: x.score, reverse=True)
-    top_three = stage_c_sorted[:3]
+    accepted = [row for row in stage_c_sorted if not row.rejected]
+    rejected_rows = [row for row in stage_c_sorted if row.rejected]
+    top_three = accepted[:3]
+    if len(top_three) < 3:
+        top_three.extend(rejected_rows[: 3 - len(top_three)])
+    top_five = stage_c_sorted[:5]
 
     for rank, item in enumerate(stage_c_sorted, start=1):
         leaderboard_rows.append(item.to_row(rank=rank))
@@ -355,15 +417,29 @@ def run_stage1_optimization(
                     "exit": spec.exit_rules,
                 },
                 "parameters": item.candidate.params,
+                "rejected": item.rejected,
+                "rejection_reason": item.rejection_reason,
+                "metrics_validation": {
+                    "profit_factor": float(item.metrics_validation["profit_factor"]) if item.metrics_validation else 0.0,
+                    "expectancy": float(item.metrics_validation["expectancy"]) if item.metrics_validation else 0.0,
+                    "trade_count": float(item.metrics_validation["trade_count"]) if item.metrics_validation else 0.0,
+                    "date_range": str(item.metrics_validation["date_range"]) if item.metrics_validation else "n/a",
+                },
                 "metrics_holdout": {
                     "score": item.score,
                     "profit_factor": item.profit_factor,
                     "expectancy": item.expectancy,
-                    "max_drawdown": item.max_drawdown,
+                    "max_drawdown": float(item.metrics_combined["max_drawdown"]) if item.metrics_combined else item.max_drawdown,
                     "trade_count": item.trade_count,
                     "final_equity": item.final_equity,
                     "return_pct": item.return_pct,
                     "date_range": item.date_range,
+                    "cagr_approx": item.cagr_approx_holdout,
+                },
+                "metrics_combined": {
+                    "max_drawdown": float(item.metrics_combined["max_drawdown"]) if item.metrics_combined else 0.0,
+                    "trade_count": float(item.metrics_combined["trade_count"]) if item.metrics_combined else 0.0,
+                    "date_range": str(item.metrics_combined["date_range"]) if item.metrics_combined else "n/a",
                 },
             }
         )
@@ -381,6 +457,8 @@ def run_stage1_optimization(
         "candidate_count_stage_a": len(stage_a_results),
         "candidate_count_stage_b": len(stage_b_results),
         "candidate_count_stage_c": len(stage_c_results),
+        "accepted_stage_c_count": len(accepted),
+        "rejected_stage_c_count": len(rejected_rows),
         "top_k": resolved_top_k,
         "top_m": resolved_top_m,
         "top_n": len(top_three),
@@ -388,9 +466,24 @@ def run_stage1_optimization(
         "stage_a_months": resolved_stage_a_months,
         "stage_b_months": resolved_stage_b_months,
         "holdout_months": resolved_holdout_months,
-        "walkforward_splits": walkforward_splits,
+        "split_mode": split_mode,
+        "min_holdout_trades": min_holdout_trades,
+        "recent_weight": recent_weight,
         "runtime_seconds": duration_sec,
         "dry_run": dry_run,
+        "any_holdout_pf_expectancy_positive_raw": any(
+            row.metrics_holdout is not None
+            and float(row.metrics_holdout["profit_factor"]) > 1.0
+            and float(row.metrics_holdout["expectancy"]) > 0.0
+            for row in stage_c_sorted
+        ),
+        "any_holdout_pf_expectancy_positive_accepted": any(
+            row.metrics_holdout is not None
+            and float(row.metrics_holdout["profit_factor"]) > 1.0
+            and float(row.metrics_holdout["expectancy"]) > 0.0
+            and not row.rejected
+            for row in stage_c_sorted
+        ),
         "best": strategies_payload[0] if strategies_payload else None,
     }
     with (run_dir / "summary.json").open("w", encoding="utf-8") as handle:
@@ -402,107 +495,210 @@ def run_stage1_optimization(
         top_three=strategies_payload,
         docs_report_path=docs_report_path,
     )
+    docs_base = docs_report_path or (Path("docs") / "stage1_auto_optimization_report.md")
+    _write_stage1_real_data_reports(
+        run_dir=run_dir,
+        summary=summary,
+        top_five_rows=top_five,
+        docs_md_path=docs_base.parent / "stage1_real_data_report.md",
+        docs_json_path=docs_base.parent / "stage1_real_data_report.json",
+    )
 
-    if top_three:
-        best = top_three[0]
+    if strategies_payload:
+        best = strategies_payload[0]
+        best_holdout = best["metrics_holdout"]
         logger.info(
-            "Stage-1 best candidate: %s | PF=%.4f | expectancy=%.4f | max_dd=%.4f",
-            best.candidate.candidate_id,
-            best.profit_factor,
-            best.expectancy,
-            best.max_drawdown,
+            "Stage-1 best candidate: %s | PF_holdout=%.4f | expectancy_holdout=%.4f | max_dd_combined=%.4f",
+            best["candidate_id"],
+            float(best_holdout["profit_factor"]),
+            float(best_holdout["expectancy"]),
+            float(best_holdout["max_drawdown"]),
         )
     logger.info("Saved Stage-1 artifacts to %s", run_dir)
     return run_dir
 
 
-def _evaluate_stage_c_candidate(
+def _evaluate_temporal_candidate_metrics(
     candidate: Candidate,
-    data_by_symbol: dict[str, pd.DataFrame],
-    holdout_months: int,
-    walkforward_splits: int,
+    splits: dict[str, dict[str, pd.DataFrame]],
     round_trip_cost_pct: float,
     slippage_pct: float,
     initial_capital: float,
-) -> tuple[dict[str, float | str], float]:
-    holdout_data: dict[str, pd.DataFrame] = {}
-    train_data: dict[str, pd.DataFrame] = {}
-
-    for symbol, data in data_by_symbol.items():
-        data_sorted = data.sort_values("timestamp").reset_index(drop=True)
-        holdout, _ = slice_last_n_months(data_sorted, window_months=holdout_months, end_mode="latest")
-        holdout_start = pd.to_datetime(holdout["timestamp"], utc=True).iloc[0]
-
-        train = data_sorted[pd.to_datetime(data_sorted["timestamp"], utc=True) < holdout_start].reset_index(drop=True)
-        if train.empty:
-            train = data_sorted.iloc[:-len(holdout)].reset_index(drop=True) if len(data_sorted) > len(holdout) else data_sorted.copy()
-
-        holdout_data[symbol] = holdout
-        train_data[symbol] = train
-
-    holdout_metrics = _evaluate_candidate_metrics(
+) -> dict[str, dict[str, float | str]]:
+    validation_metrics = _evaluate_candidate_metrics(
         candidate=candidate,
-        data_by_symbol=holdout_data,
+        data_by_symbol=splits["validation"],
         round_trip_cost_pct=round_trip_cost_pct,
         slippage_pct=slippage_pct,
         initial_capital=initial_capital,
     )
+    holdout_metrics = _evaluate_candidate_metrics(
+        candidate=candidate,
+        data_by_symbol=splits["holdout"],
+        round_trip_cost_pct=round_trip_cost_pct,
+        slippage_pct=slippage_pct,
+        initial_capital=initial_capital,
+    )
+    combined_metrics = _evaluate_candidate_metrics(
+        candidate=candidate,
+        data_by_symbol=splits["combined"],
+        round_trip_cost_pct=round_trip_cost_pct,
+        slippage_pct=slippage_pct,
+        initial_capital=initial_capital,
+    )
+    return {
+        "validation": validation_metrics,
+        "holdout": holdout_metrics,
+        "combined": combined_metrics,
+    }
 
-    wf_scores: list[float] = []
-    for split_idx in range(walkforward_splits):
-        split_data: dict[str, pd.DataFrame] = {}
-        for symbol, train in train_data.items():
-            if train.empty:
-                continue
-            split = _rolling_split_test_window(train, split_idx=split_idx, total_splits=walkforward_splits)
-            if split is None:
-                continue
-            split_data[symbol] = split
 
-        if not split_data:
-            continue
+def _build_temporal_splits(
+    stage_c_data: dict[str, pd.DataFrame],
+    split_mode: str,
+) -> dict[str, dict[str, pd.DataFrame]]:
+    if split_mode != "60_20_20":
+        raise ValueError(f"Unsupported stage1 split_mode: {split_mode}")
 
-        split_metrics = _evaluate_candidate_metrics(
-            candidate=candidate,
-            data_by_symbol=split_data,
+    train: dict[str, pd.DataFrame] = {}
+    validation: dict[str, pd.DataFrame] = {}
+    holdout: dict[str, pd.DataFrame] = {}
+    combined: dict[str, pd.DataFrame] = {}
+
+    for symbol, frame in stage_c_data.items():
+        train_frame, validation_frame, holdout_frame = _split_symbol_60_20_20(frame)
+        train[symbol] = train_frame
+        validation[symbol] = validation_frame
+        holdout[symbol] = holdout_frame
+        combined[symbol] = pd.concat([validation_frame, holdout_frame], axis=0, ignore_index=True)
+
+    return {
+        "train": train,
+        "validation": validation,
+        "holdout": holdout,
+        "combined": combined,
+    }
+
+
+def _split_symbol_60_20_20(frame: pd.DataFrame) -> tuple[pd.DataFrame, pd.DataFrame, pd.DataFrame]:
+    data = frame.copy().sort_values("timestamp").reset_index(drop=True)
+    n = len(data)
+    if n < 10:
+        raise ValueError("Stage-1 requires at least 10 rows per symbol for 60/20/20 split")
+
+    train_end = int(math.floor(n * 0.60))
+    val_end = int(math.floor(n * 0.80))
+
+    train_end = max(1, min(train_end, n - 2))
+    val_end = max(train_end + 1, min(val_end, n - 1))
+
+    train = data.iloc[:train_end].reset_index(drop=True)
+    validation = data.iloc[train_end:val_end].reset_index(drop=True)
+    holdout = data.iloc[val_end:].reset_index(drop=True)
+
+    if validation.empty or holdout.empty:
+        split_a = max(1, n - 2)
+        split_b = n - 1
+        train = data.iloc[:split_a].reset_index(drop=True)
+        validation = data.iloc[split_a:split_b].reset_index(drop=True)
+        holdout = data.iloc[split_b:].reset_index(drop=True)
+
+    return train, validation, holdout
+
+
+def _candidate_rejection_reason(
+    holdout_metrics: dict[str, float | str],
+    min_holdout_trades: int,
+    small_expectancy_threshold: float,
+) -> str:
+    if float(holdout_metrics["trade_count"]) < float(min_holdout_trades):
+        return "min_holdout_trades"
+    if float(holdout_metrics["profit_factor"]) < 0.9:
+        return "holdout_profit_factor_below_0.9"
+    if float(holdout_metrics["expectancy"]) < -abs(float(small_expectancy_threshold)):
+        return "holdout_expectancy_too_negative"
+    return ""
+
+
+def _compute_temporal_score(
+    expectancy_validation: float,
+    expectancy_holdout: float,
+    profit_factor_validation: float,
+    max_drawdown_combined: float,
+    complexity: float,
+    instability: float,
+    recent_weight: float,
+) -> float:
+    exp_val = _finite_or_default(expectancy_validation, default=-1_000.0)
+    exp_holdout = _finite_or_default(expectancy_holdout, default=-1_000.0)
+    pf_val = _clamp(_finite_or_default(profit_factor_validation, default=1e-6), 1e-6, 10.0)
+    dd_combined = _clamp(_finite_or_default(max_drawdown_combined, default=1.0), 0.0, 1.0)
+    complexity_v = _finite_or_default(complexity, default=1.0)
+    instability_v = _finite_or_default(instability, default=1.0)
+
+    return (
+        1.0 * exp_val
+        + float(recent_weight) * exp_holdout
+        + 0.5 * math.log(pf_val)
+        - 1.0 * dd_combined
+        - complexity_v
+        - instability_v
+    )
+
+
+def _instability_penalty_temporal(
+    candidate: Candidate,
+    base_score: float,
+    splits: dict[str, dict[str, pd.DataFrame]],
+    search_space: dict[str, Any],
+    round_trip_cost_pct: float,
+    slippage_pct: float,
+    initial_capital: float,
+    recent_weight: float,
+) -> float:
+    perturbed = perturb_candidate(candidate=candidate, search_space=search_space, pct=0.1)
+    if not perturbed:
+        return 0.0
+
+    variant_scores: list[float] = []
+    for variant in perturbed:
+        temporal = _evaluate_temporal_candidate_metrics(
+            candidate=variant,
+            splits=splits,
             round_trip_cost_pct=round_trip_cost_pct,
             slippage_pct=slippage_pct,
             initial_capital=initial_capital,
         )
-        raw = _raw_score(
-            expectancy=float(split_metrics["expectancy"]),
-            profit_factor=float(split_metrics["profit_factor"]),
-            max_drawdown=float(split_metrics["max_drawdown"]),
-            complexity=complexity_penalty(candidate),
+        score = _compute_temporal_score(
+            expectancy_validation=float(temporal["validation"]["expectancy"]),
+            expectancy_holdout=float(temporal["holdout"]["expectancy"]),
+            profit_factor_validation=float(temporal["validation"]["profit_factor"]),
+            max_drawdown_combined=float(temporal["combined"]["max_drawdown"]),
+            complexity=complexity_penalty(variant),
             instability=0.0,
-            weights={
-                "expectancy": 1.0,
-                "log_profit_factor": 1.0,
-                "max_drawdown": 1.0,
-                "complexity": 1.0,
-                "instability": 1.0,
-            },
+            recent_weight=recent_weight,
         )
-        wf_scores.append(raw)
+        variant_scores.append(score)
 
-    wf_std_penalty = float(np.std(wf_scores)) if wf_scores else 0.0
-    return holdout_metrics, wf_std_penalty
+    mean_variant_score = float(np.mean(variant_scores)) if variant_scores else float(base_score)
+    return max(0.0, float(base_score) - mean_variant_score)
 
 
-def _rolling_split_test_window(train: pd.DataFrame, split_idx: int, total_splits: int) -> pd.DataFrame | None:
-    if train.empty:
-        return None
+def _cagr_from_metrics(metrics: dict[str, float | str]) -> float:
+    duration_days = float(metrics.get("duration_days", 0.0))
+    if duration_days <= 0:
+        return 0.0
 
-    n = len(train)
-    test_len = max(120, n // (total_splits + 2))
-    test_start = n - (total_splits - split_idx) * test_len
-    test_end = min(n, test_start + test_len)
+    duration_years = duration_days / 365.25
+    if duration_years <= 0:
+        return 0.0
 
-    if test_start < 0 or test_start >= n or test_end <= test_start:
-        return None
+    return_pct = float(metrics.get("return_pct", 0.0))
+    growth = 1.0 + return_pct
+    if growth <= 0:
+        return -1.0
 
-    window = train.iloc[test_start:test_end].reset_index(drop=True)
-    return window if not window.empty else None
+    return float(growth ** (1.0 / duration_years) - 1.0)
 
 
 def _evaluate_candidate_metrics(
@@ -565,20 +761,29 @@ def _evaluate_candidate_metrics(
             "trade_count": 0.0,
             "final_equity": 0.0,
             "return_pct": -1.0,
+            "duration_days": 0.0,
             "date_range": "n/a",
         }
 
     final_equity = float(np.mean(final_equity_list)) if final_equity_list else 0.0
     return_pct = (final_equity - float(initial_capital)) / float(initial_capital)
     date_range = f"{min_ts.isoformat()}..{max_ts.isoformat()}" if min_ts is not None and max_ts is not None else "n/a"
+    duration_days = (
+        float((max_ts - min_ts).total_seconds() / 86400.0)
+        if min_ts is not None and max_ts is not None
+        else 0.0
+    )
+
+    mean_profit_factor = _clamp(_finite_or_default(float(np.mean(pf_list)), default=10.0), 0.0, 10.0)
 
     return {
         "expectancy": float(np.mean(expectancy_list)),
-        "profit_factor": float(np.mean(pf_list)),
+        "profit_factor": mean_profit_factor,
         "max_drawdown": float(np.mean(dd_list)),
         "trade_count": float(trade_count_total),
         "final_equity": final_equity,
         "return_pct": float(return_pct),
+        "duration_days": duration_days,
         "date_range": date_range,
     }
 
@@ -790,3 +995,118 @@ def _write_stage1_report(
     resolved_docs_path = docs_report_path or (Path("docs") / "stage1_auto_optimization_report.md")
     resolved_docs_path.parent.mkdir(parents=True, exist_ok=True)
     resolved_docs_path.write_text(report_text, encoding="utf-8")
+
+
+def _write_stage1_real_data_reports(
+    run_dir: Path,
+    summary: dict[str, Any],
+    top_five_rows: list[CandidateEval],
+    docs_md_path: Path,
+    docs_json_path: Path,
+) -> None:
+    payload_candidates: list[dict[str, Any]] = []
+    for idx, row in enumerate(top_five_rows, start=1):
+        spec = candidate_to_strategy_spec(row.candidate)
+        validation = row.metrics_validation or {}
+        holdout = row.metrics_holdout or {}
+        combined = row.metrics_combined or {}
+        payload_candidates.append(
+            {
+                "rank": idx,
+                "candidate_id": row.candidate.candidate_id,
+                "strategy_name": spec.name,
+                "strategy_family": row.candidate.family,
+                "parameters": row.candidate.params,
+                "gating": row.candidate.gating_mode,
+                "exit_mode": row.candidate.exit_mode,
+                "trade_count_validation": float(validation.get("trade_count", 0.0)),
+                "trade_count_holdout": float(holdout.get("trade_count", 0.0)),
+                "pf_validation": float(validation.get("profit_factor", 0.0)),
+                "pf_holdout": float(holdout.get("profit_factor", 0.0)),
+                "expectancy_validation": float(validation.get("expectancy", 0.0)),
+                "expectancy_holdout": float(holdout.get("expectancy", 0.0)),
+                "max_drawdown_combined": float(combined.get("max_drawdown", 0.0)),
+                "return_pct_holdout": float(holdout.get("return_pct", 0.0)),
+                "cagr_approx_holdout": float(row.cagr_approx_holdout),
+                "validation_range": str(validation.get("date_range", "n/a")),
+                "holdout_range": str(holdout.get("date_range", "n/a")),
+                "combined_range": str(combined.get("date_range", "n/a")),
+                "rejected": bool(row.rejected),
+                "rejection_reason": row.rejection_reason,
+                "score": float(row.score),
+            }
+        )
+
+    any_profitable_raw = any(
+        item["pf_holdout"] > 1.0 and item["expectancy_holdout"] > 0.0
+        for item in payload_candidates
+    )
+    any_profitable_accepted = any(
+        item["pf_holdout"] > 1.0 and item["expectancy_holdout"] > 0.0 and not item["rejected"]
+        for item in payload_candidates
+    )
+
+    report_payload = {
+        "run_id": summary["run_id"],
+        "timestamp_utc": utc_now_compact(),
+        "split_mode": summary["split_mode"],
+        "recent_weight": summary["recent_weight"],
+        "min_holdout_trades": summary["min_holdout_trades"],
+        "round_trip_cost_pct": summary["round_trip_cost_pct"],
+        "any_pf_holdout_gt_1_and_expectancy_holdout_gt_0": any_profitable_raw,
+        "any_accepted_pf_holdout_gt_1_and_expectancy_holdout_gt_0": any_profitable_accepted,
+        "top_5_candidates": payload_candidates,
+    }
+
+    docs_json_path.parent.mkdir(parents=True, exist_ok=True)
+    docs_json_path.write_text(json.dumps(report_payload, indent=2), encoding="utf-8")
+    (run_dir / "stage1_real_data_report.json").write_text(json.dumps(report_payload, indent=2), encoding="utf-8")
+
+    lines: list[str] = []
+    lines.append("# Stage-1 Real Data Report")
+    lines.append("")
+    lines.append(f"- run_id: `{summary['run_id']}`")
+    lines.append(f"- split_mode: `{summary['split_mode']}`")
+    lines.append(f"- recent_weight: `{summary['recent_weight']}`")
+    lines.append(f"- min_holdout_trades: `{summary['min_holdout_trades']}`")
+    lines.append(f"- round_trip_cost_pct: `{summary['round_trip_cost_pct']}`")
+    lines.append("")
+    lines.append("## Top 5 Candidates")
+    lines.append(
+        "| rank | strategy | gating | exit | val_trades | hold_trades | PF_val | PF_hold | exp_val | exp_hold | max_dd_combined | return_hold | CAGR_hold | rejected |"
+    )
+    lines.append("| --- | --- | --- | --- | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | --- |")
+    for item in payload_candidates:
+        lines.append(
+            f"| {item['rank']} | {item['strategy_name']} | {item['gating']} | {item['exit_mode']} | "
+            f"{item['trade_count_validation']:.0f} | {item['trade_count_holdout']:.0f} | "
+            f"{item['pf_validation']:.4f} | {item['pf_holdout']:.4f} | "
+            f"{item['expectancy_validation']:.4f} | {item['expectancy_holdout']:.4f} | "
+            f"{item['max_drawdown_combined']:.4f} | {item['return_pct_holdout']:.4f} | "
+            f"{item['cagr_approx_holdout']:.4f} | "
+            f"{'yes' if item['rejected'] else 'no'} |"
+        )
+    lines.append("")
+    lines.append(
+        "Does any candidate satisfy PF_holdout > 1 and expectancy_holdout > 0? "
+        f"**{'YES' if any_profitable_raw else 'NO'}**"
+    )
+    lines.append(
+        "Accepted candidates only (after min_holdout_trades / rejection filters): "
+        f"**{'YES' if any_profitable_accepted else 'NO'}**"
+    )
+    lines.append("")
+
+    md_text = "\n".join(lines).strip() + "\n"
+    docs_md_path.parent.mkdir(parents=True, exist_ok=True)
+    docs_md_path.write_text(md_text, encoding="utf-8")
+    (run_dir / "stage1_real_data_report.md").write_text(md_text, encoding="utf-8")
+
+
+def _clamp(value: float, lo: float, hi: float) -> float:
+    return max(lo, min(hi, value))
+
+
+def _finite_or_default(value: float, default: float) -> float:
+    numeric = float(value)
+    return numeric if math.isfinite(numeric) else float(default)

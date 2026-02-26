@@ -40,6 +40,9 @@ STAGE1_DEFAULTS = {
     "stage_a_months": 9,
     "stage_b_months": 24,
     "holdout_months": 9,
+    "split_mode": "60_20_20",
+    "min_holdout_trades": 50,
+    "recent_weight": 2.0,
     "walkforward_splits": 3,
     "early_stop_patience": 1000,
     "min_stage_a_evals": 1000,
@@ -187,6 +190,13 @@ def _validate_stage1(stage1: dict[str, Any]) -> None:
     for field in int_fields:
         if int(stage1[field]) < 1:
             raise ValueError(f"evaluation.stage1.{field} must be >= 1")
+
+    if int(stage1["min_holdout_trades"]) < 0:
+        raise ValueError("evaluation.stage1.min_holdout_trades must be >= 0")
+    if str(stage1["split_mode"]) != "60_20_20":
+        raise ValueError("evaluation.stage1.split_mode must be '60_20_20'")
+    if float(stage1["recent_weight"]) < 0:
+        raise ValueError("evaluation.stage1.recent_weight must be >= 0")
 
     if int(stage1["top_k"]) > int(stage1["candidate_count"]):
         raise ValueError("evaluation.stage1.top_k must be <= candidate_count")

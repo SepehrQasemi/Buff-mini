@@ -35,6 +35,9 @@ evaluation:
     stage_a_months: 9
     stage_b_months: 24
     holdout_months: 9
+    split_mode: "60_20_20"
+    min_holdout_trades: 50
+    recent_weight: 2.0
     walkforward_splits: 3
     early_stop_patience: 1000
     min_stage_a_evals: 1000

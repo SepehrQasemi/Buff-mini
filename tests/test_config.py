@@ -14,6 +14,9 @@ def test_load_config_success() -> None:
     assert config["evaluation"]["stage0_enabled"] is True
     assert config["evaluation"]["stage06"]["window_months"] == 36
     assert config["evaluation"]["stage06"]["end_mode"] == "latest"
+    assert config["evaluation"]["stage1"]["split_mode"] == "60_20_20"
+    assert config["evaluation"]["stage1"]["min_holdout_trades"] == 50
+    assert config["evaluation"]["stage1"]["recent_weight"] == 2.0
 
 
 def test_compute_config_hash_is_deterministic() -> None:

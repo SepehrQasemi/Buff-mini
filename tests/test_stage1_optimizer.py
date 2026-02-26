@@ -24,6 +24,9 @@ def _small_stage1_config(root: Path) -> dict:
     stage1["walkforward_splits"] = 2
     stage1["early_stop_patience"] = 20
     stage1["min_stage_a_evals"] = 20
+    stage1["split_mode"] = "60_20_20"
+    stage1["min_holdout_trades"] = 1
+    stage1["recent_weight"] = 2.0
     return config
 
 
@@ -59,6 +62,8 @@ def test_funnel_reduces_candidate_count_and_writes_artifacts(tmp_path: Path) -> 
         "strategies.json",
         "summary.json",
         "stage1_report.md",
+        "stage1_real_data_report.md",
+        "stage1_real_data_report.json",
     ]
     for name in required:
         assert (run_dir / name).exists(), f"missing artifact {name}"
