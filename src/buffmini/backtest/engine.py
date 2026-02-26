@@ -1,4 +1,4 @@
-﻿"""Minimal Stage-0 backtest engine."""
+﻿"""Minimal backtest engine with configurable exit modes."""
 
 from __future__ import annotations
 
@@ -9,6 +9,9 @@ import pandas as pd
 from buffmini.backtest.costs import apply_fee, apply_slippage, round_trip_pct_to_one_way_fee_rate
 from buffmini.backtest.metrics import calculate_metrics
 from buffmini.types import BacktestResult, Trade
+
+
+_ALLOWED_EXIT_MODES = {"fixed_atr", "breakeven_1r", "trailing_atr", "partial_then_trail"}
 
 
 def run_backtest(
@@ -23,14 +26,20 @@ def run_backtest(
     max_hold_bars: int = 24,
     round_trip_cost_pct: float = 0.1,
     slippage_pct: float = 0.0005,
+    exit_mode: str = "fixed_atr",
+    trailing_atr_k: float = 1.5,
+    partial_size: float = 0.5,
 ) -> BacktestResult:
-    """Run a single-position long/short backtest with ATR exits."""
+    """Run a single-position long/short backtest with multiple exit styles."""
 
     required = {"timestamp", "high", "low", "close", signal_col, atr_col}
     missing = required.difference(frame.columns)
     if missing:
         msg = f"Missing required columns: {sorted(missing)}"
         raise ValueError(msg)
+
+    if exit_mode not in _ALLOWED_EXIT_MODES:
+        raise ValueError(f"Unsupported exit_mode: {exit_mode}")
 
     data = frame.copy().reset_index(drop=True)
     data["timestamp"] = pd.to_datetime(data["timestamp"], utc=True)
@@ -77,12 +86,19 @@ def run_backtest(
                 "entry_time": timestamp,
                 "entry_price": entry_price,
                 "side": side,
-                "qty": qty,
+                "qty_total": qty,
+                "qty_open": qty,
                 "entry_notional": entry_notional,
                 "entry_fee": entry_fee,
+                "atr_entry": atr,
                 "stop_price": stop_price,
                 "tp_price": tp_price,
                 "just_opened": True,
+                "realized_partial_pnl": 0.0,
+                "partial_taken": False,
+                "breakeven_applied": False,
+                "highest_price": float(row["high"]),
+                "lowest_price": float(row["low"]),
             }
 
         if position is not None:
@@ -92,42 +108,103 @@ def run_backtest(
                 continue
 
             side = position["side"]
+            direction = 1.0 if side == "long" else -1.0
+            atr_current = float(row[atr_col]) if pd.notna(row[atr_col]) and float(row[atr_col]) > 0 else float(position["atr_entry"])
+            one_r = float(position["atr_entry"]) * float(stop_atr_multiple)
+            one_r_price = (
+                float(position["entry_price"]) + one_r
+                if side == "long"
+                else float(position["entry_price"]) - one_r
+            )
+
+            # Break-even trigger at 1R.
+            if exit_mode in {"breakeven_1r", "partial_then_trail"} and not position["breakeven_applied"]:
+                reached_one_r = (
+                    float(row["high"]) >= one_r_price
+                    if side == "long"
+                    else float(row["low"]) <= one_r_price
+                )
+                if reached_one_r:
+                    if side == "long":
+                        position["stop_price"] = max(float(position["stop_price"]), float(position["entry_price"]))
+                    else:
+                        position["stop_price"] = min(float(position["stop_price"]), float(position["entry_price"]))
+                    position["breakeven_applied"] = True
+
+            # Partial at 1R then trail remaining position.
+            if exit_mode == "partial_then_trail" and not position["partial_taken"]:
+                reached_one_r = (
+                    float(row["high"]) >= one_r_price
+                    if side == "long"
+                    else float(row["low"]) <= one_r_price
+                )
+                if reached_one_r:
+                    partial_qty = float(position["qty_total"]) * float(partial_size)
+                    partial_qty = max(0.0, min(partial_qty, float(position["qty_open"])))
+                    if partial_qty > 0:
+                        partial_side = "sell" if side == "long" else "buy"
+                        partial_price = apply_slippage(one_r_price, slippage_pct, partial_side)
+                        partial_notional = partial_price * partial_qty
+                        partial_fee = apply_fee(partial_notional, one_way_fee_rate)
+                        partial_gross = (partial_price - float(position["entry_price"])) * partial_qty * direction
+                        partial_net = partial_gross - partial_fee
+
+                        position["qty_open"] = float(position["qty_open"]) - partial_qty
+                        position["realized_partial_pnl"] = float(position["realized_partial_pnl"]) + partial_net
+                        position["partial_taken"] = True
+                        equity += partial_net
+
+            if exit_mode in {"trailing_atr", "partial_then_trail"}:
+                if side == "long":
+                    position["highest_price"] = max(float(position["highest_price"]), float(row["high"]))
+                    trail_stop = float(position["highest_price"]) - float(trailing_atr_k) * atr_current
+                    position["stop_price"] = max(float(position["stop_price"]), trail_stop)
+                else:
+                    position["lowest_price"] = min(float(position["lowest_price"]), float(row["low"]))
+                    trail_stop = float(position["lowest_price"]) + float(trailing_atr_k) * atr_current
+                    position["stop_price"] = min(float(position["stop_price"]), trail_stop)
+
             exit_reason = ""
             exit_price = None
 
             if side == "long":
-                if float(row["low"]) <= position["stop_price"]:
-                    exit_reason = "stop_loss"
-                    exit_price = apply_slippage(position["stop_price"], slippage_pct, "sell")
-                elif float(row["high"]) >= position["tp_price"]:
-                    exit_reason = "take_profit"
-                    exit_price = apply_slippage(position["tp_price"], slippage_pct, "sell")
+                stop_hit = float(row["low"]) <= float(position["stop_price"])
+                tp_hit = float(row["high"]) >= float(position["tp_price"])
             else:
-                if float(row["high"]) >= position["stop_price"]:
-                    exit_reason = "stop_loss"
-                    exit_price = apply_slippage(position["stop_price"], slippage_pct, "buy")
-                elif float(row["low"]) <= position["tp_price"]:
-                    exit_reason = "take_profit"
-                    exit_price = apply_slippage(position["tp_price"], slippage_pct, "buy")
+                stop_hit = float(row["high"]) >= float(position["stop_price"])
+                tp_hit = float(row["low"]) <= float(position["tp_price"])
+
+            if stop_hit:
+                exit_reason = "stop_loss"
+                exec_side = "sell" if side == "long" else "buy"
+                exit_price = apply_slippage(float(position["stop_price"]), slippage_pct, exec_side)
+            elif exit_mode in {"fixed_atr", "breakeven_1r"} and tp_hit:
+                exit_reason = "take_profit"
+                exec_side = "sell" if side == "long" else "buy"
+                exit_price = apply_slippage(float(position["tp_price"]), slippage_pct, exec_side)
 
             bars_held = idx - int(position["entry_idx"])
-            if not exit_reason and bars_held >= max_hold_bars:
+            if not exit_reason and bars_held >= int(max_hold_bars):
                 exit_reason = "time_stop"
                 exec_side = "sell" if side == "long" else "buy"
                 exit_price = apply_slippage(float(row["close"]), slippage_pct, exec_side)
 
             if exit_reason and exit_price is not None:
-                direction = 1.0 if side == "long" else -1.0
-                qty = float(position["qty"])
-                entry_price = float(position["entry_price"])
-                entry_notional = float(position["entry_notional"])
-                entry_fee = float(position["entry_fee"])
-                exit_notional = float(exit_price) * qty
-                exit_fee = apply_fee(exit_notional, one_way_fee_rate)
+                qty_open = float(position["qty_open"])
+                if qty_open <= 0:
+                    qty_open = 0.0
 
-                gross_pnl = (float(exit_price) - entry_price) * qty * direction
-                net_trade_pnl = gross_pnl - entry_fee - exit_fee
-                equity += gross_pnl - exit_fee
+                exit_notional = float(exit_price) * qty_open
+                exit_fee = apply_fee(exit_notional, one_way_fee_rate)
+                gross_pnl = (float(exit_price) - float(position["entry_price"])) * qty_open * direction
+                exit_net = gross_pnl - exit_fee
+
+                equity += exit_net
+                net_trade_pnl = (
+                    float(position["realized_partial_pnl"])
+                    + exit_net
+                    - float(position["entry_fee"])
+                )
 
                 trade = Trade(
                     strategy=strategy_name,
@@ -135,10 +212,10 @@ def run_backtest(
                     side=side,
                     entry_time=position["entry_time"],
                     exit_time=timestamp,
-                    entry_price=entry_price,
+                    entry_price=float(position["entry_price"]),
                     exit_price=float(exit_price),
                     pnl=float(net_trade_pnl),
-                    return_pct=float(net_trade_pnl / entry_notional) if entry_notional else 0.0,
+                    return_pct=float(net_trade_pnl / float(position["entry_notional"])) if position["entry_notional"] else 0.0,
                     bars_held=bars_held,
                     exit_reason=exit_reason,
                 )
@@ -151,20 +228,22 @@ def run_backtest(
         final_row = data.iloc[-1]
         final_time = pd.to_datetime(final_row["timestamp"], utc=True)
         side = position["side"]
+        direction = 1.0 if side == "long" else -1.0
         exec_side = "sell" if side == "long" else "buy"
         exit_price = apply_slippage(float(final_row["close"]), slippage_pct, exec_side)
 
-        direction = 1.0 if side == "long" else -1.0
-        qty = float(position["qty"])
-        entry_price = float(position["entry_price"])
-        entry_notional = float(position["entry_notional"])
-        entry_fee = float(position["entry_fee"])
-        exit_notional = exit_price * qty
+        qty_open = float(position["qty_open"])
+        exit_notional = exit_price * qty_open
         exit_fee = apply_fee(exit_notional, one_way_fee_rate)
+        gross_pnl = (exit_price - float(position["entry_price"])) * qty_open * direction
+        exit_net = gross_pnl - exit_fee
+        equity += exit_net
 
-        gross_pnl = (exit_price - entry_price) * qty * direction
-        net_trade_pnl = gross_pnl - entry_fee - exit_fee
-        equity += gross_pnl - exit_fee
+        net_trade_pnl = (
+            float(position["realized_partial_pnl"])
+            + exit_net
+            - float(position["entry_fee"])
+        )
 
         trade = Trade(
             strategy=strategy_name,
@@ -172,11 +251,11 @@ def run_backtest(
             side=side,
             entry_time=position["entry_time"],
             exit_time=final_time,
-            entry_price=entry_price,
+            entry_price=float(position["entry_price"]),
             exit_price=float(exit_price),
             pnl=float(net_trade_pnl),
-            return_pct=float(net_trade_pnl / entry_notional) if entry_notional else 0.0,
-            bars_held=int(len(data) - 1 - position["entry_idx"]),
+            return_pct=float(net_trade_pnl / float(position["entry_notional"])) if position["entry_notional"] else 0.0,
+            bars_held=int(len(data) - 1 - int(position["entry_idx"])),
             exit_reason="end_of_data",
         )
         trades.append(trade.to_dict())

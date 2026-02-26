@@ -1,24 +1,91 @@
-universe:
+﻿universe:
   symbols:
-  - BTC/USDT
-  - ETH/USDT
+    - BTC/USDT
+    - ETH/USDT
   timeframe: 1h
-  start: '2023-01-01T00:00:00Z'
+  start: "2023-01-01T00:00:00Z"
   end: null
+
 costs:
+  # Percent units: 0.1 means 0.1% round-trip.
   round_trip_cost_pct: 0.1
   slippage_pct: 0.0005
   funding_pct_per_day: 0.0
+
 risk:
   risk_per_trade_pct: 0.01
   max_drawdown_pct: 0.25
   max_daily_loss_pct: 0.05
   max_concurrent_positions: 1
+
 search:
   candidates: 100
   seed: 42
+
 evaluation:
   stage0_enabled: true
   stage06:
     window_months: 36
     end_mode: latest
+  stage1:
+    enabled: true
+    candidate_count: 5000
+    top_k: 100
+    top_m: 20
+    stage_a_months: 9
+    stage_b_months: 24
+    holdout_months: 9
+    walkforward_splits: 3
+    early_stop_patience: 1000
+    min_stage_a_evals: 1000
+    instability_perturbations: 2
+    weights:
+      expectancy: 1.0
+      log_profit_factor: 1.5
+      max_drawdown: 1.0
+      complexity: 0.5
+      instability: 0.75
+    search_space:
+      families:
+        - DonchianBreakout
+        - RSIMeanReversion
+        - TrendPullback
+        - BollingerMeanReversion
+        - RangeBreakoutTrendFilter
+      gating_modes:
+        - none
+        - vol
+        - vol+regime
+      exit_modes:
+        - fixed_atr
+        - breakeven_1r
+        - trailing_atr
+        - partial_then_trail
+      donchian_periods:
+        - 20
+        - 55
+        - 100
+      ema_pairs:
+        - [20, 200]
+        - [50, 200]
+        - [50, 100]
+      rsi_long_entry_min: 20
+      rsi_long_entry_max: 40
+      rsi_short_entry_min: 60
+      rsi_short_entry_max: 80
+      bollinger_period: 20
+      bollinger_stds:
+        - 1.5
+        - 2.0
+        - 2.5
+      atr_sl_min: 0.8
+      atr_sl_max: 2.5
+      atr_tp_min: 1.0
+      atr_tp_max: 5.0
+      trailing_atr_k_min: 1.0
+      trailing_atr_k_max: 2.5
+      max_holding_bars:
+        - 12
+        - 24
+        - 48
+        - 96

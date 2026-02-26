@@ -1,4 +1,4 @@
-﻿"""Feature calculation for Stage-0, Stage-0.5, and Stage-0.6 indicators."""
+﻿"""Feature calculation for Stage-0, Stage-0.5, Stage-0.6, and Stage-1."""
 
 from __future__ import annotations
 
@@ -24,6 +24,7 @@ def calculate_features(frame: pd.DataFrame) -> pd.DataFrame:
 
     data["ema_20"] = close.ewm(span=20, adjust=False, min_periods=20).mean()
     data["ema_50"] = close.ewm(span=50, adjust=False, min_periods=50).mean()
+    data["ema_100"] = close.ewm(span=100, adjust=False, min_periods=100).mean()
     data["ema_200"] = close.ewm(span=200, adjust=False, min_periods=200).mean()
 
     delta = close.diff()
@@ -49,14 +50,16 @@ def calculate_features(frame: pd.DataFrame) -> pd.DataFrame:
 
     rolling_mid = close.rolling(window=20, min_periods=20)
     data["bb_mid_20"] = rolling_mid.mean()
-    bb_std = rolling_mid.std(ddof=0)
-    data["bb_upper_20_2"] = data["bb_mid_20"] + (2.0 * bb_std)
-    data["bb_lower_20_2"] = data["bb_mid_20"] - (2.0 * bb_std)
+    data["bb_std_20"] = rolling_mid.std(ddof=0)
+    data["bb_upper_20_2"] = data["bb_mid_20"] + (2.0 * data["bb_std_20"])
+    data["bb_lower_20_2"] = data["bb_mid_20"] - (2.0 * data["bb_std_20"])
 
     # Shift Donchian channels by one bar to avoid using current candle breakout level.
     data["donchian_high_20"] = high.rolling(window=20, min_periods=20).max().shift(1)
     data["donchian_low_20"] = low.rolling(window=20, min_periods=20).min().shift(1)
     data["donchian_high_55"] = high.rolling(window=55, min_periods=55).max().shift(1)
     data["donchian_low_55"] = low.rolling(window=55, min_periods=55).min().shift(1)
+    data["donchian_high_100"] = high.rolling(window=100, min_periods=100).max().shift(1)
+    data["donchian_low_100"] = low.rolling(window=100, min_periods=100).min().shift(1)
 
     return data

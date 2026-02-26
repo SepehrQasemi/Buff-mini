@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+from copy import deepcopy
 from pathlib import Path
 from typing import Any
 
@@ -28,6 +29,54 @@ _REQUIRED_SCHEMA: dict[str, tuple[str, ...]] = {
 STAGE06_DEFAULTS = {
     "window_months": 36,
     "end_mode": "latest",
+}
+
+
+STAGE1_DEFAULTS = {
+    "enabled": True,
+    "candidate_count": 5000,
+    "top_k": 100,
+    "top_m": 20,
+    "stage_a_months": 9,
+    "stage_b_months": 24,
+    "holdout_months": 9,
+    "walkforward_splits": 3,
+    "early_stop_patience": 1000,
+    "min_stage_a_evals": 1000,
+    "instability_perturbations": 2,
+    "weights": {
+        "expectancy": 1.0,
+        "log_profit_factor": 1.5,
+        "max_drawdown": 1.0,
+        "complexity": 0.5,
+        "instability": 0.75,
+    },
+    "search_space": {
+        "families": [
+            "DonchianBreakout",
+            "RSIMeanReversion",
+            "TrendPullback",
+            "BollingerMeanReversion",
+            "RangeBreakoutTrendFilter",
+        ],
+        "gating_modes": ["none", "vol", "vol+regime"],
+        "exit_modes": ["fixed_atr", "breakeven_1r", "trailing_atr", "partial_then_trail"],
+        "donchian_periods": [20, 55, 100],
+        "ema_pairs": [[20, 200], [50, 200], [50, 100]],
+        "rsi_long_entry_min": 20,
+        "rsi_long_entry_max": 40,
+        "rsi_short_entry_min": 60,
+        "rsi_short_entry_max": 80,
+        "bollinger_period": 20,
+        "bollinger_stds": [1.5, 2.0, 2.5],
+        "atr_sl_min": 0.8,
+        "atr_sl_max": 2.5,
+        "atr_tp_min": 1.0,
+        "atr_tp_max": 5.0,
+        "trailing_atr_k_min": 1.0,
+        "trailing_atr_k_max": 2.5,
+        "max_holding_bars": [12, 24, 48, 96],
+    },
 }
 
 
@@ -82,21 +131,16 @@ def validate_config(config: ConfigDict) -> None:
     if not isinstance(evaluation["stage0_enabled"], bool):
         raise ValueError("evaluation.stage0_enabled must be bool")
 
-    stage06 = evaluation.get("stage06", STAGE06_DEFAULTS)
-    if not isinstance(stage06, dict):
-        raise ValueError("evaluation.stage06 must be a mapping")
-
-    if "window_months" not in stage06:
-        stage06["window_months"] = STAGE06_DEFAULTS["window_months"]
-    if "end_mode" not in stage06:
-        stage06["end_mode"] = STAGE06_DEFAULTS["end_mode"]
-
+    stage06 = _merge_defaults(STAGE06_DEFAULTS, evaluation.get("stage06", {}))
     if int(stage06["window_months"]) < 1:
         raise ValueError("evaluation.stage06.window_months must be >= 1")
     if stage06["end_mode"] != "latest":
         raise ValueError("evaluation.stage06.end_mode must be 'latest'")
-
     evaluation["stage06"] = stage06
+
+    stage1 = _merge_defaults(STAGE1_DEFAULTS, evaluation.get("stage1", {}))
+    _validate_stage1(stage1)
+    evaluation["stage1"] = stage1
 
 
 def compute_config_hash(config: ConfigDict) -> str:
@@ -115,3 +159,63 @@ def _validate_percent_value(value: Any, name: str) -> None:
     numeric = float(value)
     if not 0 <= numeric <= 100:
         raise ValueError(f"{name} must be between 0 and 100 (percent units)")
+
+
+def _merge_defaults(defaults: dict[str, Any], override: dict[str, Any]) -> dict[str, Any]:
+    merged = deepcopy(defaults)
+    for key, value in (override or {}).items():
+        if isinstance(value, dict) and isinstance(merged.get(key), dict):
+            merged[key] = _merge_defaults(merged[key], value)
+        else:
+            merged[key] = value
+    return merged
+
+
+def _validate_stage1(stage1: dict[str, Any]) -> None:
+    int_fields = [
+        "candidate_count",
+        "top_k",
+        "top_m",
+        "stage_a_months",
+        "stage_b_months",
+        "holdout_months",
+        "walkforward_splits",
+        "early_stop_patience",
+        "min_stage_a_evals",
+        "instability_perturbations",
+    ]
+    for field in int_fields:
+        if int(stage1[field]) < 1:
+            raise ValueError(f"evaluation.stage1.{field} must be >= 1")
+
+    if int(stage1["top_k"]) > int(stage1["candidate_count"]):
+        raise ValueError("evaluation.stage1.top_k must be <= candidate_count")
+    if int(stage1["top_m"]) > int(stage1["top_k"]):
+        raise ValueError("evaluation.stage1.top_m must be <= top_k")
+
+    weights = stage1["weights"]
+    for key in ["expectancy", "log_profit_factor", "max_drawdown", "complexity", "instability"]:
+        if float(weights[key]) < 0:
+            raise ValueError(f"evaluation.stage1.weights.{key} must be >= 0")
+
+    search_space = stage1["search_space"]
+    if not search_space["families"]:
+        raise ValueError("evaluation.stage1.search_space.families must be non-empty")
+    if not search_space["gating_modes"]:
+        raise ValueError("evaluation.stage1.search_space.gating_modes must be non-empty")
+    if not search_space["exit_modes"]:
+        raise ValueError("evaluation.stage1.search_space.exit_modes must be non-empty")
+
+    if int(search_space["rsi_long_entry_min"]) > int(search_space["rsi_long_entry_max"]):
+        raise ValueError("evaluation.stage1.search_space rsi_long_entry_min > rsi_long_entry_max")
+    if int(search_space["rsi_short_entry_min"]) > int(search_space["rsi_short_entry_max"]):
+        raise ValueError("evaluation.stage1.search_space rsi_short_entry_min > rsi_short_entry_max")
+
+    float_ranges = [
+        ("atr_sl_min", "atr_sl_max"),
+        ("atr_tp_min", "atr_tp_max"),
+        ("trailing_atr_k_min", "trailing_atr_k_max"),
+    ]
+    for lo_key, hi_key in float_ranges:
+        if float(search_space[lo_key]) > float(search_space[hi_key]):
+            raise ValueError(f"evaluation.stage1.search_space {lo_key} > {hi_key}")

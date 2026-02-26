@@ -2,6 +2,8 @@
 
 from __future__ import annotations
 
+import re
+
 import numpy as np
 import pandas as pd
 
@@ -13,7 +15,7 @@ def donchian_breakout() -> StrategySpec:
 
     return StrategySpec(
         name="Donchian Breakout",
-        entry_rules="Long when close > Donchian(20) high; short when close < Donchian(20) low.",
+        entry_rules="Long when close > Donchian(period) high; short when close < Donchian(period) low.",
         exit_rules="ATR stop loss, ATR take profit, or time stop from backtest engine.",
         parameters={
             "channel_period": 20,
@@ -27,12 +29,12 @@ def rsi_mean_reversion() -> StrategySpec:
 
     return StrategySpec(
         name="RSI Mean Reversion",
-        entry_rules="Long when RSI(14) < 30; short when RSI(14) > 70.",
+        entry_rules="Long when RSI(14) < long_entry; short when RSI(14) > short_entry.",
         exit_rules="ATR stop loss, ATR take profit, or time stop from backtest engine.",
         parameters={
             "rsi_period": 14,
-            "oversold": 30,
-            "overbought": 70,
+            "rsi_long_entry": 30,
+            "rsi_short_entry": 70,
             "regime_gate": {"long": True, "short": True},
         },
     )
@@ -44,17 +46,17 @@ def trend_pullback() -> StrategySpec:
     return StrategySpec(
         name="Trend Pullback",
         entry_rules=(
-            "Long when EMA50 > EMA200, close > EMA20, and RSI(14) < 40; "
-            "short when EMA50 < EMA200, close < EMA20, and RSI(14) > 60."
+            "Long when EMA_fast > EMA_slow, close > EMA_signal, and RSI(14) < long_entry; "
+            "short when EMA_fast < EMA_slow, close < EMA_signal, and RSI(14) > short_entry."
         ),
         exit_rules="ATR stop loss, ATR take profit, or time stop from backtest engine.",
         parameters={
-            "ema_fast": 20,
-            "ema_trend": 50,
-            "ema_long": 200,
+            "ema_fast": 50,
+            "ema_slow": 200,
+            "signal_ema": 20,
             "rsi_period": 14,
-            "rsi_long_threshold": 40,
-            "rsi_short_threshold": 60,
+            "rsi_long_entry": 40,
+            "rsi_short_entry": 60,
             "regime_gate": {"long": False, "short": False},
         },
     )
@@ -65,12 +67,14 @@ def bollinger_mean_reversion() -> StrategySpec:
 
     return StrategySpec(
         name="Bollinger Mean Reversion",
-        entry_rules="Long when close < lower_band_20_2 and RSI(14) < 40; short when close > upper_band_20_2 and RSI(14) > 60.",
+        entry_rules="Long when close < lower_band and RSI(14) < long_entry; short when close > upper_band and RSI(14) > short_entry.",
         exit_rules="ATR stop loss, ATR take profit, or time stop from backtest engine.",
         parameters={
-            "bb_period": 20,
-            "bb_std": 2.0,
+            "bollinger_period": 20,
+            "bollinger_std": 2.0,
             "rsi_period": 14,
+            "rsi_long_entry": 40,
+            "rsi_short_entry": 60,
             "regime_gate": {"long": False, "short": False},
         },
     )
@@ -82,14 +86,14 @@ def range_breakout_with_ema_trend_filter() -> StrategySpec:
     return StrategySpec(
         name="Range Breakout w/ EMA Trend Filter",
         entry_rules=(
-            "Long when close > Donchian(55) high and EMA50 > EMA200; "
-            "short when close < Donchian(55) low and EMA50 < EMA200."
+            "Long when close > Donchian(period) high and EMA_fast > EMA_slow; "
+            "short when close < Donchian(period) low and EMA_fast < EMA_slow."
         ),
         exit_rules="ATR stop loss, ATR take profit, or time stop from backtest engine.",
         parameters={
             "channel_period": 55,
-            "ema_trend": 50,
-            "ema_long": 200,
+            "ema_fast": 50,
+            "ema_slow": 200,
             "regime_gate": {"long": False, "short": False},
         },
     )
@@ -170,25 +174,73 @@ def generate_signals(
 
 
 def _base_conditions(frame: pd.DataFrame, strategy: StrategySpec) -> tuple[pd.Series, pd.Series]:
-    name = strategy.name
+    key = _normalize_name(strategy.name)
+    p = strategy.parameters
 
-    if name == "Donchian Breakout":
-        long_cond = frame["close"] > frame["donchian_high_20"]
-        short_cond = frame["close"] < frame["donchian_low_20"]
-    elif name == "RSI Mean Reversion":
-        long_cond = frame["rsi_14"] < 30
-        short_cond = frame["rsi_14"] > 70
-    elif name == "Trend Pullback":
-        long_cond = (frame["ema_50"] > frame["ema_200"]) & (frame["close"] > frame["ema_20"]) & (frame["rsi_14"] < 40)
-        short_cond = (frame["ema_50"] < frame["ema_200"]) & (frame["close"] < frame["ema_20"]) & (frame["rsi_14"] > 60)
-    elif name == "Bollinger Mean Reversion":
-        long_cond = (frame["close"] < frame["bb_lower_20_2"]) & (frame["rsi_14"] < 40)
-        short_cond = (frame["close"] > frame["bb_upper_20_2"]) & (frame["rsi_14"] > 60)
-    elif name == "Range Breakout w/ EMA Trend Filter":
-        long_cond = (frame["close"] > frame["donchian_high_55"]) & (frame["ema_50"] > frame["ema_200"])
-        short_cond = (frame["close"] < frame["donchian_low_55"]) & (frame["ema_50"] < frame["ema_200"])
+    if key == "donchianbreakout":
+        period = int(p.get("channel_period", 20))
+        high_col = _require_column(frame, f"donchian_high_{period}")
+        low_col = _require_column(frame, f"donchian_low_{period}")
+        long_cond = frame["close"] > frame[high_col]
+        short_cond = frame["close"] < frame[low_col]
+    elif key == "rsimeanreversion":
+        long_entry = float(p.get("rsi_long_entry", p.get("oversold", 30)))
+        short_entry = float(p.get("rsi_short_entry", p.get("overbought", 70)))
+        long_cond = frame["rsi_14"] < long_entry
+        short_cond = frame["rsi_14"] > short_entry
+    elif key == "trendpullback":
+        ema_fast = int(p.get("ema_fast", 50))
+        ema_slow = int(p.get("ema_slow", p.get("ema_long", 200)))
+        signal_ema = int(p.get("signal_ema", p.get("ema_fast", 20)))
+        rsi_long = float(p.get("rsi_long_entry", p.get("rsi_long_threshold", 40)))
+        rsi_short = float(p.get("rsi_short_entry", p.get("rsi_short_threshold", 60)))
+
+        fast_col = _require_column(frame, f"ema_{ema_fast}")
+        slow_col = _require_column(frame, f"ema_{ema_slow}")
+        signal_col = _require_column(frame, f"ema_{signal_ema}")
+
+        long_cond = (frame[fast_col] > frame[slow_col]) & (frame["close"] > frame[signal_col]) & (frame["rsi_14"] < rsi_long)
+        short_cond = (frame[fast_col] < frame[slow_col]) & (frame["close"] < frame[signal_col]) & (frame["rsi_14"] > rsi_short)
+    elif key == "bollingermeanreversion":
+        period = int(p.get("bollinger_period", p.get("bb_period", 20)))
+        if period != 20:
+            raise ValueError("Only bollinger_period=20 is supported in Stage-1")
+
+        std_mult = float(p.get("bollinger_std", p.get("bb_std", 2.0)))
+        rsi_long = float(p.get("rsi_long_entry", 40))
+        rsi_short = float(p.get("rsi_short_entry", 60))
+
+        mid_col = _require_column(frame, "bb_mid_20")
+        std_col = _require_column(frame, "bb_std_20")
+        upper = frame[mid_col] + std_mult * frame[std_col]
+        lower = frame[mid_col] - std_mult * frame[std_col]
+
+        long_cond = (frame["close"] < lower) & (frame["rsi_14"] < rsi_long)
+        short_cond = (frame["close"] > upper) & (frame["rsi_14"] > rsi_short)
+    elif key in {"rangebreakoutematrendfilter", "rangebreakoutwematrendfilter"}:
+        period = int(p.get("channel_period", 55))
+        ema_fast = int(p.get("ema_fast", p.get("ema_trend", 50)))
+        ema_slow = int(p.get("ema_slow", p.get("ema_long", 200)))
+
+        high_col = _require_column(frame, f"donchian_high_{period}")
+        low_col = _require_column(frame, f"donchian_low_{period}")
+        fast_col = _require_column(frame, f"ema_{ema_fast}")
+        slow_col = _require_column(frame, f"ema_{ema_slow}")
+
+        long_cond = (frame["close"] > frame[high_col]) & (frame[fast_col] > frame[slow_col])
+        short_cond = (frame["close"] < frame[low_col]) & (frame[fast_col] < frame[slow_col])
     else:
-        msg = f"Unknown strategy: {name}"
+        msg = f"Unknown strategy: {strategy.name}"
         raise ValueError(msg)
 
     return long_cond, short_cond
+
+
+def _normalize_name(value: str) -> str:
+    return re.sub(r"[^a-z0-9]+", "", value.lower())
+
+
+def _require_column(frame: pd.DataFrame, column: str) -> str:
+    if column not in frame.columns:
+        raise ValueError(f"Missing required feature column: {column}")
+    return column

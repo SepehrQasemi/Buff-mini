@@ -12,17 +12,21 @@ from buffmini.data.features import calculate_features
 FEATURE_COLUMNS = [
     "ema_20",
     "ema_50",
+    "ema_100",
     "ema_200",
     "rsi_14",
     "atr_14",
     "atr_14_sma_50",
     "bb_mid_20",
+    "bb_std_20",
     "bb_upper_20_2",
     "bb_lower_20_2",
     "donchian_high_20",
     "donchian_low_20",
     "donchian_high_55",
     "donchian_low_55",
+    "donchian_high_100",
+    "donchian_low_100",
 ]
 
 
