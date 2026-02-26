@@ -1,6 +1,6 @@
 # Stage-1 Diagnostics
 
-- run_id: `20260226_141335_3fc0a2b58f96_stage1`
+- run_id: `20260226_170035_3fc0a2b58f96_stage1`
 - seed: `42`
 - split_mode: `60_20_20`
 
@@ -38,8 +38,8 @@
 
 ## Stage C
 - total_candidates_evaluated: `20`
-- total_trades_evaluated: `206.00`
-- avg_trades_per_candidate: `10.30`
+- total_trades_evaluated: `205.00`
+- avg_trades_per_candidate: `10.25`
 - median_trades_per_candidate: `5.00`
 - min_trades: `1.00`
 - max_trades: `34.00`

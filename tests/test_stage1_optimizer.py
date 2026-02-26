@@ -11,7 +11,10 @@ from buffmini.config import load_config
 from buffmini.discovery.funnel import (
     _build_stage_diagnostics,
     _candidate_rejection_reason,
+    _compute_expectancy_lcb,
+    _compute_exposure_penalty,
     _compute_low_signal_penalty,
+    _compute_pf_adjusted,
     _compute_temporal_score,
     _compute_trades_per_month,
     run_stage1_optimization,
@@ -167,30 +170,41 @@ def test_zero_trade_diagnostics_detection() -> None:
     assert histogram[">200"] == 1
 
 
-def test_low_signal_penalty_reduces_score_when_tpm_low() -> None:
-    base_score = _compute_temporal_score(
-        expectancy_validation=5.0,
-        expectancy_holdout=4.0,
-        profit_factor_validation=1.5,
-        max_drawdown_combined=0.2,
+def test_pf_adjusted_downweights_low_trade_spikes() -> None:
+    low_trade_pf_adj = _compute_pf_adjusted(profit_factor_holdout=5.0, holdout_trades=1.0)
+    high_trade_pf_adj = _compute_pf_adjusted(profit_factor_holdout=5.0, holdout_trades=200.0)
+    assert low_trade_pf_adj < high_trade_pf_adj
+    assert low_trade_pf_adj > 1.0
+
+
+def test_expectancy_lcb_is_lower_than_mean_with_variance() -> None:
+    lcb = _compute_expectancy_lcb(mean_holdout=10.0, std_holdout=5.0, holdout_trades=25.0)
+    assert lcb < 10.0
+
+
+def test_exposure_penalty_applies_below_threshold() -> None:
+    low_exposure_penalty = _compute_exposure_penalty(exposure_ratio=0.005, threshold=0.02)
+    high_exposure_penalty = _compute_exposure_penalty(exposure_ratio=0.05, threshold=0.02)
+    assert low_exposure_penalty > 0.0
+    assert high_exposure_penalty == 0.0
+
+
+def test_stage13_score_prefers_effective_edge_and_penalizes_exposure() -> None:
+    low_exposure = _compute_temporal_score(
+        effective_edge=10.0,
+        max_drawdown_holdout=0.1,
         complexity=0.5,
-        instability=0.1,
-        recent_weight=2.0,
-        low_signal_penalty=0.0,
-        low_signal_penalty_weight=1.0,
+        instability=0.2,
+        exposure_penalty=3.0,
     )
-    penalized_score = _compute_temporal_score(
-        expectancy_validation=5.0,
-        expectancy_holdout=4.0,
-        profit_factor_validation=1.5,
-        max_drawdown_combined=0.2,
+    high_exposure = _compute_temporal_score(
+        effective_edge=10.0,
+        max_drawdown_holdout=0.1,
         complexity=0.5,
-        instability=0.1,
-        recent_weight=2.0,
-        low_signal_penalty=0.8,
-        low_signal_penalty_weight=1.0,
+        instability=0.2,
+        exposure_penalty=0.0,
     )
-    assert penalized_score < base_score
+    assert high_exposure > low_exposure
 
 
 def test_penalty_relief_triggers_when_expectancy_high() -> None:
@@ -228,3 +242,18 @@ def test_degenerate_rejection_triggers_below_tpm_floor() -> None:
         rare_expectancy_threshold=3.0,
     )
     assert reason == "degenerate_low_trades_per_month"
+
+
+def test_degenerate_rejection_relief_with_extremely_high_expectancy() -> None:
+    holdout_metrics = {
+        "expectancy": 10.0,
+    }
+    tpm = _compute_trades_per_month(trade_count=1.0, duration_days=60.0)
+    reason = _candidate_rejection_reason(
+        holdout_metrics=holdout_metrics,
+        trades_per_month_holdout=tpm,
+        min_trades_per_month_floor=2.0,
+        allow_rare_if_high_expectancy=True,
+        rare_expectancy_threshold=3.0,
+    )
+    assert reason == ""

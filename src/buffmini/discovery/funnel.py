@@ -63,6 +63,11 @@ class CandidateEval:
     trades_per_month_holdout: float = 0.0
     low_signal_penalty: float = 0.0
     penalty_relief_applied: bool = False
+    pf_adj_holdout: float = 0.0
+    exp_lcb_holdout: float = 0.0
+    effective_edge: float = 0.0
+    exposure_ratio: float = 0.0
+    exposure_penalty: float = 0.0
 
     def to_row(self, rank: int | None = None) -> dict[str, Any]:
         row = {
@@ -102,6 +107,11 @@ class CandidateEval:
         row["trades_per_month_holdout"] = float(self.trades_per_month_holdout)
         row["low_signal_penalty"] = float(self.low_signal_penalty)
         row["penalty_relief_applied"] = bool(self.penalty_relief_applied)
+        row["pf_adj_holdout"] = float(self.pf_adj_holdout)
+        row["exp_lcb_holdout"] = float(self.exp_lcb_holdout)
+        row["effective_edge"] = float(self.effective_edge)
+        row["exposure_ratio"] = float(self.exposure_ratio)
+        row["exposure_penalty"] = float(self.exposure_penalty)
         return row
 
 
@@ -342,6 +352,15 @@ def run_stage1_optimization(
         holdout_metrics = temporal_metrics["holdout"]
         combined_metrics = temporal_metrics["combined"]
 
+        pf_adj_holdout = _compute_pf_adjusted(
+            profit_factor_holdout=float(holdout_metrics["profit_factor"]),
+            holdout_trades=float(holdout_metrics["trade_count"]),
+        )
+        exp_lcb_holdout = _compute_expectancy_lcb(
+            mean_holdout=float(holdout_metrics["expectancy"]),
+            std_holdout=float(holdout_metrics["expectancy_std"]),
+            holdout_trades=float(holdout_metrics["trade_count"]),
+        )
         trades_per_month_holdout = _compute_trades_per_month(
             trade_count=float(holdout_metrics["trade_count"]),
             duration_days=float(holdout_metrics["duration_days"]),
@@ -354,6 +373,9 @@ def run_stage1_optimization(
             rare_expectancy_threshold=rare_expectancy_threshold,
             rare_penalty_relief=rare_penalty_relief,
         )
+        effective_edge = float(exp_lcb_holdout) * float(trades_per_month_holdout)
+        exposure_ratio = float(holdout_metrics["exposure_ratio"])
+        exposure_penalty = _compute_exposure_penalty(exposure_ratio)
 
         rejection_reason = _candidate_rejection_reason(
             holdout_metrics=holdout_metrics,
@@ -365,15 +387,11 @@ def run_stage1_optimization(
         rejected = bool(rejection_reason)
 
         base_score = _compute_temporal_score(
-            expectancy_validation=float(validation_metrics["expectancy"]),
-            expectancy_holdout=float(holdout_metrics["expectancy"]),
-            profit_factor_validation=float(validation_metrics["profit_factor"]),
-            max_drawdown_combined=float(combined_metrics["max_drawdown"]),
+            effective_edge=effective_edge,
+            max_drawdown_holdout=float(holdout_metrics["max_drawdown"]),
             complexity=complexity_penalty(candidate),
             instability=0.0,
-            recent_weight=recent_weight,
-            low_signal_penalty=low_signal_penalty,
-            low_signal_penalty_weight=low_signal_penalty_weight,
+            exposure_penalty=exposure_penalty,
         )
 
         instability = 0.0
@@ -387,23 +405,13 @@ def run_stage1_optimization(
                 round_trip_cost_pct=round_trip_cost_pct,
                 slippage_pct=slippage_pct,
                 initial_capital=initial_capital,
-                recent_weight=recent_weight,
-                target_trades_per_month_holdout=target_trades_per_month_holdout,
-                low_signal_penalty_weight=low_signal_penalty_weight,
-                allow_rare_if_high_expectancy=allow_rare_if_high_expectancy,
-                rare_expectancy_threshold=rare_expectancy_threshold,
-                rare_penalty_relief=rare_penalty_relief,
             )
             score = _compute_temporal_score(
-                expectancy_validation=float(validation_metrics["expectancy"]),
-                expectancy_holdout=float(holdout_metrics["expectancy"]),
-                profit_factor_validation=float(validation_metrics["profit_factor"]),
-                max_drawdown_combined=float(combined_metrics["max_drawdown"]),
+                effective_edge=effective_edge,
+                max_drawdown_holdout=float(holdout_metrics["max_drawdown"]),
                 complexity=complexity_penalty(candidate),
                 instability=instability,
-                recent_weight=recent_weight,
-                low_signal_penalty=low_signal_penalty,
-                low_signal_penalty_weight=low_signal_penalty_weight,
+                exposure_penalty=exposure_penalty,
             )
 
         stage_c_results.append(
@@ -429,6 +437,11 @@ def run_stage1_optimization(
                 trades_per_month_holdout=trades_per_month_holdout,
                 low_signal_penalty=low_signal_penalty,
                 penalty_relief_applied=penalty_relief_applied,
+                pf_adj_holdout=pf_adj_holdout,
+                exp_lcb_holdout=exp_lcb_holdout,
+                effective_edge=effective_edge,
+                exposure_ratio=exposure_ratio,
+                exposure_penalty=exposure_penalty,
             )
         )
 
@@ -473,10 +486,15 @@ def run_stage1_optimization(
                 "metrics_holdout": {
                     "score": item.score,
                     "profit_factor": item.profit_factor,
+                    "pf_adj": item.pf_adj_holdout,
                     "expectancy": item.expectancy,
+                    "exp_lcb": item.exp_lcb_holdout,
+                    "effective_edge": item.effective_edge,
                     "max_drawdown": float(item.metrics_combined["max_drawdown"]) if item.metrics_combined else item.max_drawdown,
                     "trade_count": item.trade_count,
                     "trades_per_month": item.trades_per_month_holdout,
+                    "exposure_ratio": item.exposure_ratio,
+                    "exposure_penalty": item.exposure_penalty,
                     "low_signal_penalty": item.low_signal_penalty,
                     "penalty_relief_applied": item.penalty_relief_applied,
                     "final_equity": item.final_equity,
@@ -529,11 +547,17 @@ def run_stage1_optimization(
             "strategy_name": best_acc_spec.name,
             "gating_mode": best_acc.candidate.gating_mode,
             "exit_mode": best_acc.candidate.exit_mode,
+            "score": float(best_acc.score),
             "metrics_holdout": {
                 "profit_factor": float(best_acc.profit_factor),
+                "pf_adj": float(best_acc.pf_adj_holdout),
                 "expectancy": float(best_acc.expectancy),
+                "exp_lcb": float(best_acc.exp_lcb_holdout),
+                "effective_edge": float(best_acc.effective_edge),
                 "trade_count": float(best_acc.trade_count),
                 "trades_per_month": float(best_acc.trades_per_month_holdout),
+                "exposure_ratio": float(best_acc.exposure_ratio),
+                "exposure_penalty": float(best_acc.exposure_penalty),
                 "low_signal_penalty": float(best_acc.low_signal_penalty),
             },
         }
@@ -624,12 +648,13 @@ def run_stage1_optimization(
     if best_accepted_payload is not None:
         best_acc_holdout = best_accepted_payload["metrics_holdout"]
         logger.info(
-            "Stage-1 best accepted: %s | PF_holdout=%.4f | expectancy_holdout=%.4f | tpm_holdout=%.4f | low_signal_penalty=%.4f",
+            "Stage-1 best accepted: %s | pf_adj_holdout=%.4f | exp_lcb_holdout=%.4f | tpm_holdout=%.4f | exposure_ratio=%.4f | score=%.4f",
             best_accepted_payload["candidate_id"],
-            float(best_acc_holdout["profit_factor"]),
-            float(best_acc_holdout["expectancy"]),
+            float(best_acc_holdout["pf_adj"]),
+            float(best_acc_holdout["exp_lcb"]),
             float(best_acc_holdout["trades_per_month"]),
-            float(best_acc_holdout["low_signal_penalty"]),
+            float(best_acc_holdout["exposure_ratio"]),
+            float(best_accepted_payload["score"]),
         )
     logger.info("Saved Stage-1 artifacts to %s", run_dir)
     return run_dir
@@ -749,6 +774,37 @@ def _compute_trades_per_month(
     return float(trade_count) / (days / 30.0)
 
 
+def _compute_pf_adjusted(
+    profit_factor_holdout: float,
+    holdout_trades: float,
+) -> float:
+    trades = max(0.0, float(holdout_trades))
+    pf = _clamp(_finite_or_default(float(profit_factor_holdout), default=1.0), 0.0, 10.0)
+    return 1.0 + (pf - 1.0) * (trades / (trades + 50.0))
+
+
+def _compute_expectancy_lcb(
+    mean_holdout: float,
+    std_holdout: float,
+    holdout_trades: float,
+) -> float:
+    mean_value = _finite_or_default(float(mean_holdout), default=-1_000.0)
+    std_value = max(0.0, _finite_or_default(float(std_holdout), default=0.0))
+    n = max(1.0, float(holdout_trades))
+    return float(mean_value - (1.0 * std_value / math.sqrt(n)))
+
+
+def _compute_exposure_penalty(
+    exposure_ratio: float,
+    threshold: float = 0.02,
+) -> float:
+    ratio = max(0.0, _finite_or_default(float(exposure_ratio), default=0.0))
+    if ratio >= float(threshold):
+        return 0.0
+    gap = (float(threshold) - ratio) / float(threshold)
+    return 5.0 * gap
+
+
 def _compute_low_signal_penalty(
     trades_per_month_holdout: float,
     target_trades_per_month_holdout: float,
@@ -771,31 +827,24 @@ def _compute_low_signal_penalty(
 
 
 def _compute_temporal_score(
-    expectancy_validation: float,
-    expectancy_holdout: float,
-    profit_factor_validation: float,
-    max_drawdown_combined: float,
+    effective_edge: float,
+    max_drawdown_holdout: float,
     complexity: float,
     instability: float,
-    recent_weight: float,
-    low_signal_penalty: float,
-    low_signal_penalty_weight: float,
+    exposure_penalty: float,
 ) -> float:
-    exp_val = _finite_or_default(expectancy_validation, default=-1_000.0)
-    exp_holdout = _finite_or_default(expectancy_holdout, default=-1_000.0)
-    pf_val = _clamp(_finite_or_default(profit_factor_validation, default=1e-6), 1e-6, 10.0)
-    dd_combined = _clamp(_finite_or_default(max_drawdown_combined, default=1.0), 0.0, 1.0)
+    edge = _finite_or_default(effective_edge, default=-1_000.0)
+    dd_holdout = _clamp(_finite_or_default(max_drawdown_holdout, default=1.0), 0.0, 1.0)
     complexity_v = _finite_or_default(complexity, default=1.0)
     instability_v = _finite_or_default(instability, default=1.0)
+    exposure_v = max(0.0, _finite_or_default(exposure_penalty, default=0.0))
 
     return (
-        1.0 * exp_val
-        + float(recent_weight) * exp_holdout
-        + 0.5 * math.log(pf_val)
-        - 1.0 * dd_combined
-        - complexity_v
-        - instability_v
-        - float(low_signal_penalty_weight) * float(max(0.0, low_signal_penalty))
+        2.0 * edge
+        - 1.0 * dd_holdout
+        - 0.5 * complexity_v
+        - 0.5 * instability_v
+        - exposure_v
     )
 
 
@@ -807,12 +856,6 @@ def _instability_penalty_temporal(
     round_trip_cost_pct: float,
     slippage_pct: float,
     initial_capital: float,
-    recent_weight: float,
-    target_trades_per_month_holdout: float,
-    low_signal_penalty_weight: float,
-    allow_rare_if_high_expectancy: bool,
-    rare_expectancy_threshold: float,
-    rare_penalty_relief: float,
 ) -> float:
     perturbed = perturb_candidate(candidate=candidate, search_space=search_space, pct=0.1)
     if not perturbed:
@@ -828,25 +871,19 @@ def _instability_penalty_temporal(
             initial_capital=initial_capital,
         )
         score = _compute_temporal_score(
-            expectancy_validation=float(temporal["validation"]["expectancy"]),
-            expectancy_holdout=float(temporal["holdout"]["expectancy"]),
-            profit_factor_validation=float(temporal["validation"]["profit_factor"]),
-            max_drawdown_combined=float(temporal["combined"]["max_drawdown"]),
+            effective_edge=_compute_expectancy_lcb(
+                mean_holdout=float(temporal["holdout"]["expectancy"]),
+                std_holdout=float(temporal["holdout"]["expectancy_std"]),
+                holdout_trades=float(temporal["holdout"]["trade_count"]),
+            )
+            * _compute_trades_per_month(
+                trade_count=float(temporal["holdout"]["trade_count"]),
+                duration_days=float(temporal["holdout"]["duration_days"]),
+            ),
+            max_drawdown_holdout=float(temporal["holdout"]["max_drawdown"]),
             complexity=complexity_penalty(variant),
             instability=0.0,
-            recent_weight=recent_weight,
-            low_signal_penalty=_compute_low_signal_penalty(
-                trades_per_month_holdout=_compute_trades_per_month(
-                    trade_count=float(temporal["holdout"]["trade_count"]),
-                    duration_days=float(temporal["holdout"]["duration_days"]),
-                ),
-                target_trades_per_month_holdout=target_trades_per_month_holdout,
-                expectancy_holdout=float(temporal["holdout"]["expectancy"]),
-                allow_rare_if_high_expectancy=allow_rare_if_high_expectancy,
-                rare_expectancy_threshold=rare_expectancy_threshold,
-                rare_penalty_relief=rare_penalty_relief,
-            )[0],
-            low_signal_penalty_weight=low_signal_penalty_weight,
+            exposure_penalty=_compute_exposure_penalty(float(temporal["holdout"]["exposure_ratio"])),
         )
         variant_scores.append(score)
 
@@ -881,16 +918,21 @@ def _evaluate_candidate_metrics(
     spec = candidate_to_strategy_spec(candidate)
 
     expectancy_list: list[float] = []
+    trade_pnl_values: list[float] = []
     pf_list: list[float] = []
     dd_list: list[float] = []
     trade_count_total = 0.0
     final_equity_list: list[float] = []
+    total_bars_in_position = 0.0
+    total_bars = 0.0
     min_ts: pd.Timestamp | None = None
     max_ts: pd.Timestamp | None = None
 
     for symbol, frame in data_by_symbol.items():
         if frame.empty:
             continue
+
+        total_bars += float(len(frame))
 
         timestamps = pd.to_datetime(frame["timestamp"], utc=True)
         current_min = timestamps.iloc[0]
@@ -919,6 +961,10 @@ def _evaluate_candidate_metrics(
         pf_list.append(float(result.metrics["profit_factor"]))
         dd_list.append(float(result.metrics["max_drawdown"]))
         trade_count_total += float(result.metrics["trade_count"])
+        if not result.trades.empty:
+            trade_pnl_values.extend(result.trades["pnl"].astype(float).tolist())
+            if "bars_held" in result.trades.columns:
+                total_bars_in_position += float(result.trades["bars_held"].astype(float).clip(lower=0).sum())
 
         if not result.equity_curve.empty:
             final_equity_list.append(float(result.equity_curve["equity"].iloc[-1]))
@@ -932,6 +978,10 @@ def _evaluate_candidate_metrics(
             "final_equity": 0.0,
             "return_pct": -1.0,
             "duration_days": 0.0,
+            "expectancy_std": 0.0,
+            "exposure_ratio": 0.0,
+            "total_bars_in_position": 0.0,
+            "total_bars": 0.0,
             "date_range": "n/a",
         }
 
@@ -945,15 +995,26 @@ def _evaluate_candidate_metrics(
     )
 
     mean_profit_factor = _clamp(_finite_or_default(float(np.mean(pf_list)), default=10.0), 0.0, 10.0)
+    expectancy_mean = (
+        float(np.mean(trade_pnl_values))
+        if trade_pnl_values
+        else float(np.mean(expectancy_list))
+    )
+    expectancy_std = float(np.std(trade_pnl_values, ddof=0)) if trade_pnl_values else 0.0
+    exposure_ratio = (float(total_bars_in_position) / float(total_bars)) if total_bars > 0 else 0.0
 
     return {
-        "expectancy": float(np.mean(expectancy_list)),
+        "expectancy": expectancy_mean,
         "profit_factor": mean_profit_factor,
         "max_drawdown": float(np.mean(dd_list)),
         "trade_count": float(trade_count_total),
         "final_equity": final_equity,
         "return_pct": float(return_pct),
         "duration_days": duration_days,
+        "expectancy_std": expectancy_std,
+        "exposure_ratio": exposure_ratio,
+        "total_bars_in_position": float(total_bars_in_position),
+        "total_bars": float(total_bars),
         "date_range": date_range,
     }
 
@@ -1238,8 +1299,12 @@ def _write_stage1_report(
                 "- Holdout metrics: "
                 f"trade_count={metrics['trade_count']:.0f}, "
                 f"tpm={metrics.get('trades_per_month', 0.0):.4f}, "
+                f"pf_adj={metrics.get('pf_adj', 0.0):.4f}, "
                 f"PF={metrics['profit_factor']:.4f}, "
                 f"expectancy={metrics['expectancy']:.4f}, "
+                f"exp_lcb={metrics.get('exp_lcb', 0.0):.4f}, "
+                f"effective_edge={metrics.get('effective_edge', 0.0):.4f}, "
+                f"exposure_ratio={metrics.get('exposure_ratio', 0.0):.4f}, "
                 f"low_signal_penalty={metrics.get('low_signal_penalty', 0.0):.4f}, "
                 f"penalty_relief={bool(metrics.get('penalty_relief_applied', False))}, "
                 f"max_dd={metrics['max_drawdown']:.4f}, "
@@ -1283,12 +1348,18 @@ def _write_stage1_real_data_reports(
                 "trade_count_holdout": float(holdout.get("trade_count", 0.0)),
                 "pf_validation": float(validation.get("profit_factor", 0.0)),
                 "pf_holdout": float(holdout.get("profit_factor", 0.0)),
+                "pf_adj_holdout": float(row.pf_adj_holdout),
                 "expectancy_validation": float(validation.get("expectancy", 0.0)),
                 "expectancy_holdout": float(holdout.get("expectancy", 0.0)),
+                "exp_lcb_holdout": float(row.exp_lcb_holdout),
+                "effective_edge": float(row.effective_edge),
                 "max_drawdown_combined": float(combined.get("max_drawdown", 0.0)),
+                "max_drawdown_holdout": float(holdout.get("max_drawdown", 0.0)),
                 "return_pct_holdout": float(holdout.get("return_pct", 0.0)),
                 "cagr_approx_holdout": float(row.cagr_approx_holdout),
                 "trades_per_month_holdout": float(row.trades_per_month_holdout),
+                "exposure_ratio": float(row.exposure_ratio),
+                "exposure_penalty": float(row.exposure_penalty),
                 "low_signal_penalty": float(row.low_signal_penalty),
                 "penalty_relief_applied": bool(row.penalty_relief_applied),
                 "validation_range": str(validation.get("date_range", "n/a")),
@@ -1317,7 +1388,24 @@ def _write_stage1_real_data_reports(
         "median": float(np.median(accepted_tpm_values)) if accepted_tpm_values else 0.0,
         "max": float(np.max(accepted_tpm_values)) if accepted_tpm_values else 0.0,
     }
-    best_accepted = accepted_candidates[0] if accepted_candidates else None
+    best_accepted = summary.get("best_accepted")
+    if best_accepted is None and accepted_candidates:
+        best_accepted = accepted_candidates[0]
+    best_accepted_flat: dict[str, Any] | None = None
+    if best_accepted is not None:
+        if "metrics_holdout" in best_accepted and "pf_adj_holdout" not in best_accepted:
+            metrics_holdout = best_accepted.get("metrics_holdout", {})
+            best_accepted_flat = {
+                "candidate_id": best_accepted.get("candidate_id"),
+                "strategy_name": best_accepted.get("strategy_name"),
+                "score": float(best_accepted.get("score", 0.0)),
+                "pf_adj_holdout": float(metrics_holdout.get("pf_adj", 0.0)),
+                "exp_lcb_holdout": float(metrics_holdout.get("exp_lcb", 0.0)),
+                "trades_per_month_holdout": float(metrics_holdout.get("trades_per_month", 0.0)),
+                "exposure_ratio": float(metrics_holdout.get("exposure_ratio", 0.0)),
+            }
+        else:
+            best_accepted_flat = best_accepted
 
     report_payload = {
         "run_id": summary["run_id"],
@@ -1328,7 +1416,7 @@ def _write_stage1_real_data_reports(
         "round_trip_cost_pct": summary["round_trip_cost_pct"],
         "any_pf_holdout_gt_1_and_expectancy_holdout_gt_0": any_profitable_raw,
         "any_accepted_pf_holdout_gt_1_and_expectancy_holdout_gt_0": any_profitable_accepted,
-        "best_accepted_candidate": best_accepted,
+        "best_accepted_candidate": best_accepted_flat,
         "accepted_top10_tpm_distribution": accepted_tpm_stats,
         "top_5_candidates": payload_candidates,
     }
@@ -1351,33 +1439,35 @@ def _write_stage1_real_data_reports(
     lines.append("")
     lines.append("## Top 5 Candidates")
     lines.append(
-        "| rank | strategy | gating | exit | val_trades | hold_trades | tpm_hold | penalty | relief | PF_val | PF_hold | exp_val | exp_hold | max_dd_combined | return_hold | CAGR_hold | rejected |"
+        "| rank | strategy | gating | exit | val_trades | hold_trades | tpm_hold | pf_adj | exp_lcb | effective_edge | exposure | PF_val | PF_hold | exp_val | exp_hold | max_dd_hold | return_hold | CAGR_hold | score | rejected |"
     )
-    lines.append("| --- | --- | --- | --- | ---: | ---: | ---: | ---: | --- | ---: | ---: | ---: | ---: | ---: | ---: | ---: | --- |")
+    lines.append("| --- | --- | --- | --- | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | --- |")
     for item in payload_candidates:
         lines.append(
             f"| {item['rank']} | {item['strategy_name']} | {item['gating']} | {item['exit_mode']} | "
             f"{item['trade_count_validation']:.0f} | {item['trade_count_holdout']:.0f} | "
-            f"{item['trades_per_month_holdout']:.4f} | {item['low_signal_penalty']:.4f} | "
-            f"{'yes' if item['penalty_relief_applied'] else 'no'} | "
+            f"{item['trades_per_month_holdout']:.4f} | {item['pf_adj_holdout']:.4f} | "
+            f"{item['exp_lcb_holdout']:.4f} | {item['effective_edge']:.4f} | "
+            f"{item['exposure_ratio']:.4f} | "
             f"{item['pf_validation']:.4f} | {item['pf_holdout']:.4f} | "
             f"{item['expectancy_validation']:.4f} | {item['expectancy_holdout']:.4f} | "
-            f"{item['max_drawdown_combined']:.4f} | {item['return_pct_holdout']:.4f} | "
-            f"{item['cagr_approx_holdout']:.4f} | "
+            f"{item['max_drawdown_holdout']:.4f} | {item['return_pct_holdout']:.4f} | "
+            f"{item['cagr_approx_holdout']:.4f} | {item['score']:.4f} | "
             f"{'yes' if item['rejected'] else 'no'} |"
         )
     lines.append("")
     lines.append("## Accepted Summary")
-    if best_accepted is None:
+    if best_accepted_flat is None:
         lines.append("- Best ACCEPTED candidate: none")
     else:
         lines.append(
             "- Best ACCEPTED candidate: "
-            f"`{best_accepted['strategy_name']}` "
-            f"(PF_holdout={best_accepted['pf_holdout']:.4f}, "
-            f"expectancy_holdout={best_accepted['expectancy_holdout']:.4f}, "
-            f"tpm_holdout={best_accepted['trades_per_month_holdout']:.4f}, "
-            f"penalty={best_accepted['low_signal_penalty']:.4f})"
+            f"`{best_accepted_flat['strategy_name']}` "
+            f"(pf_adj_holdout={best_accepted_flat['pf_adj_holdout']:.4f}, "
+            f"exp_lcb_holdout={best_accepted_flat['exp_lcb_holdout']:.4f}, "
+            f"tpm_holdout={best_accepted_flat['trades_per_month_holdout']:.4f}, "
+            f"exposure_ratio={best_accepted_flat['exposure_ratio']:.4f}, "
+            f"score={best_accepted_flat['score']:.4f})"
         )
     lines.append(
         "- Top 10 accepted candidates tpm distribution: "
