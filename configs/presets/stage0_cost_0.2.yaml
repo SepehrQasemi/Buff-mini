@@ -1,0 +1,21 @@
+universe:
+  symbols:
+  - BTC/USDT
+  - ETH/USDT
+  timeframe: 1h
+  start: '2023-01-01T00:00:00Z'
+  end: null
+costs:
+  round_trip_cost_pct: 0.2
+  slippage_pct: 0.0005
+  funding_pct_per_day: 0.0
+risk:
+  risk_per_trade_pct: 0.01
+  max_drawdown_pct: 0.25
+  max_daily_loss_pct: 0.05
+  max_concurrent_positions: 1
+search:
+  candidates: 100
+  seed: 42
+evaluation:
+  stage0_enabled: true

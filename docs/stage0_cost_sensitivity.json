@@ -1,0 +1,202 @@
+{
+  "runs": [
+    {
+      "round_trip_cost_pct": 1.0,
+      "run_id": "20260226_092426_85a7f2023b3a",
+      "results": [
+        {
+          "symbol": "BTC/USDT",
+          "strategy": "Donchian Breakout",
+          "win_rate": 0.0,
+          "profit_factor": 0.0,
+          "expectancy": null,
+          "max_drawdown": null,
+          "trade_count": 1275.0,
+          "final_equity": null
+        },
+        {
+          "symbol": "BTC/USDT",
+          "strategy": "RSI Mean Reversion",
+          "win_rate": 0.0,
+          "profit_factor": 0.0,
+          "expectancy": null,
+          "max_drawdown": null,
+          "trade_count": 1583.0,
+          "final_equity": null
+        },
+        {
+          "symbol": "BTC/USDT",
+          "strategy": "Trend Pullback",
+          "win_rate": 0.0,
+          "profit_factor": 0.0,
+          "expectancy": -3.4424918799020823e+69,
+          "max_drawdown": 9.019328725343456e+67,
+          "trade_count": 262.0,
+          "final_equity": -9.019328725343456e+71
+        },
+        {
+          "symbol": "ETH/USDT",
+          "strategy": "Donchian Breakout",
+          "win_rate": 0.0,
+          "profit_factor": 0.0,
+          "expectancy": null,
+          "max_drawdown": null,
+          "trade_count": 1272.0,
+          "final_equity": null
+        },
+        {
+          "symbol": "ETH/USDT",
+          "strategy": "RSI Mean Reversion",
+          "win_rate": 0.0,
+          "profit_factor": 0.0,
+          "expectancy": null,
+          "max_drawdown": null,
+          "trade_count": 1572.0,
+          "final_equity": null
+        },
+        {
+          "symbol": "ETH/USDT",
+          "strategy": "Trend Pullback",
+          "win_rate": 0.0,
+          "profit_factor": 0.0,
+          "expectancy": -1.920440550536471e+78,
+          "max_drawdown": 5.1851894864484706e+76,
+          "trade_count": 270.0,
+          "final_equity": -5.185189486448471e+80
+        }
+      ]
+    },
+    {
+      "round_trip_cost_pct": 0.2,
+      "run_id": "20260226_092438_5bf3d8b4c424",
+      "results": [
+        {
+          "symbol": "BTC/USDT",
+          "strategy": "Donchian Breakout",
+          "win_rate": 0.0,
+          "profit_factor": 0.0,
+          "expectancy": -7.843137254901962,
+          "max_drawdown": 1.0,
+          "trade_count": 1275.0,
+          "final_equity": 3.4808826646417287e-121
+        },
+        {
+          "symbol": "BTC/USDT",
+          "strategy": "RSI Mean Reversion",
+          "win_rate": 0.0,
+          "profit_factor": 0.0,
+          "expectancy": -6.317119393556538,
+          "max_drawdown": 1.0,
+          "trade_count": 1583.0,
+          "final_equity": 3.115092165613051e-151
+        },
+        {
+          "symbol": "BTC/USDT",
+          "strategy": "Trend Pullback",
+          "win_rate": 0.0,
+          "profit_factor": 0.0,
+          "expectancy": -38.167938931297705,
+          "max_drawdown": 1.0,
+          "trade_count": 262.0,
+          "final_equity": 3.365821098656908e-22
+        },
+        {
+          "symbol": "ETH/USDT",
+          "strategy": "Donchian Breakout",
+          "win_rate": 0.0,
+          "profit_factor": 0.0,
+          "expectancy": -7.8616352201257875,
+          "max_drawdown": 1.0,
+          "trade_count": 1272.0,
+          "final_equity": 7.167084720467385e-121
+        },
+        {
+          "symbol": "ETH/USDT",
+          "strategy": "RSI Mean Reversion",
+          "win_rate": 0.0,
+          "profit_factor": 0.0,
+          "expectancy": -6.361323155216285,
+          "max_drawdown": 1.0,
+          "trade_count": 1572.0,
+          "final_equity": 2.3292515421122812e-150
+        },
+        {
+          "symbol": "ETH/USDT",
+          "strategy": "Trend Pullback",
+          "win_rate": 0.0,
+          "profit_factor": 0.0,
+          "expectancy": -37.03703703703704,
+          "max_drawdown": 1.0,
+          "trade_count": 270.0,
+          "final_equity": 6.324415704005033e-23
+        }
+      ]
+    },
+    {
+      "round_trip_cost_pct": 0.1,
+      "run_id": "20260226_092450_30dbdc5f9765",
+      "results": [
+        {
+          "symbol": "BTC/USDT",
+          "strategy": "Donchian Breakout",
+          "win_rate": 0.0,
+          "profit_factor": 0.0,
+          "expectancy": -7.843137254901962,
+          "max_drawdown": 1.0,
+          "trade_count": 1275.0,
+          "final_equity": 7.406255507920459e-56
+        },
+        {
+          "symbol": "BTC/USDT",
+          "strategy": "RSI Mean Reversion",
+          "win_rate": 0.0,
+          "profit_factor": 0.0,
+          "expectancy": -6.317119393556538,
+          "max_drawdown": 1.0,
+          "trade_count": 1583.0,
+          "final_equity": 3.992951023794339e-70
+        },
+        {
+          "symbol": "BTC/USDT",
+          "strategy": "Trend Pullback",
+          "win_rate": 0.0,
+          "profit_factor": 0.0,
+          "expectancy": -38.16793893126449,
+          "max_drawdown": 0.9999999999991298,
+          "trade_count": 262.0,
+          "final_equity": 8.701289841842606e-09
+        },
+        {
+          "symbol": "ETH/USDT",
+          "strategy": "Donchian Breakout",
+          "win_rate": 0.0,
+          "profit_factor": 0.0,
+          "expectancy": -7.861635220125785,
+          "max_drawdown": 1.0,
+          "trade_count": 1272.0,
+          "final_equity": 1.0844508471551055e-55
+        },
+        {
+          "symbol": "ETH/USDT",
+          "strategy": "RSI Mean Reversion",
+          "win_rate": 0.0012722646310432,
+          "profit_factor": 1.1549155599630129e-49,
+          "expectancy": -6.361323155216287,
+          "max_drawdown": 1.0,
+          "trade_count": 1572.0,
+          "final_equity": 8.779476218862215e-70
+        },
+        {
+          "symbol": "ETH/USDT",
+          "strategy": "Trend Pullback",
+          "win_rate": 0.0,
+          "profit_factor": 0.0,
+          "expectancy": -37.03703703702165,
+          "max_drawdown": 0.9999999999995844,
+          "trade_count": 270.0,
+          "final_equity": 4.156023629362155e-09
+        }
+      ]
+    }
+  ]
+}
