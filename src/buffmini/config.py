@@ -25,6 +25,12 @@ _REQUIRED_SCHEMA: dict[str, tuple[str, ...]] = {
 }
 
 
+STAGE06_DEFAULTS = {
+    "window_months": 36,
+    "end_mode": "latest",
+}
+
+
 def load_config(path: str | Path) -> ConfigDict:
     """Load a YAML config file and validate its shape and values."""
 
@@ -75,6 +81,22 @@ def validate_config(config: ConfigDict) -> None:
     evaluation = config["evaluation"]
     if not isinstance(evaluation["stage0_enabled"], bool):
         raise ValueError("evaluation.stage0_enabled must be bool")
+
+    stage06 = evaluation.get("stage06", STAGE06_DEFAULTS)
+    if not isinstance(stage06, dict):
+        raise ValueError("evaluation.stage06 must be a mapping")
+
+    if "window_months" not in stage06:
+        stage06["window_months"] = STAGE06_DEFAULTS["window_months"]
+    if "end_mode" not in stage06:
+        stage06["end_mode"] = STAGE06_DEFAULTS["end_mode"]
+
+    if int(stage06["window_months"]) < 1:
+        raise ValueError("evaluation.stage06.window_months must be >= 1")
+    if stage06["end_mode"] != "latest":
+        raise ValueError("evaluation.stage06.end_mode must be 'latest'")
+
+    evaluation["stage06"] = stage06
 
 
 def compute_config_hash(config: ConfigDict) -> str:

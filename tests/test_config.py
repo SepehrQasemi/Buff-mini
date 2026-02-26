@@ -12,6 +12,8 @@ def test_load_config_success() -> None:
     assert "universe" in config
     assert config["universe"]["timeframe"] == "1h"
     assert config["evaluation"]["stage0_enabled"] is True
+    assert config["evaluation"]["stage06"]["window_months"] == 36
+    assert config["evaluation"]["stage06"]["end_mode"] == "latest"
 
 
 def test_compute_config_hash_is_deterministic() -> None:

@@ -16,8 +16,13 @@ FEATURE_COLUMNS = [
     "rsi_14",
     "atr_14",
     "atr_14_sma_50",
+    "bb_mid_20",
+    "bb_upper_20_2",
+    "bb_lower_20_2",
     "donchian_high_20",
     "donchian_low_20",
+    "donchian_high_55",
+    "donchian_low_55",
 ]
 
 

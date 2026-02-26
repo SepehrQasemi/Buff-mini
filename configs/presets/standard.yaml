@@ -1,26 +1,25 @@
-﻿universe:
+universe:
   symbols:
-    - BTC/USDT
-    - ETH/USDT
-    - SOL/USDT
+  - BTC/USDT
+  - ETH/USDT
+  - SOL/USDT
   timeframe: 1h
-  start: "2022-01-01T00:00:00Z"
+  start: '2022-01-01T00:00:00Z'
   end: null
-
 costs:
   round_trip_cost_pct: 0.1
   slippage_pct: 0.0005
   funding_pct_per_day: 0.0
-
 risk:
   risk_per_trade_pct: 0.01
   max_drawdown_pct: 0.25
   max_daily_loss_pct: 0.05
   max_concurrent_positions: 1
-
 search:
   candidates: 200
   seed: 42
-
 evaluation:
   stage0_enabled: true
+  stage06:
+    window_months: 36
+    end_mode: latest

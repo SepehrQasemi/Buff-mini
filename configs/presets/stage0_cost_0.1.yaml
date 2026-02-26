@@ -19,3 +19,6 @@ search:
   seed: 42
 evaluation:
   stage0_enabled: true
+  stage06:
+    window_months: 36
+    end_mode: latest

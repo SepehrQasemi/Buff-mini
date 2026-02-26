@@ -1,4 +1,4 @@
-﻿"""Run Stage-0 baseline strategies and persist artifacts."""
+﻿"""Run Stage-0 baselines and Stage-0.5/0.6 feasibility suites."""
 
 from __future__ import annotations
 
@@ -13,12 +13,13 @@ import pandas as pd
 import yaml
 
 from buffmini.backtest.engine import run_backtest
-from buffmini.baselines.stage0 import generate_signals, stage0_strategies
+from buffmini.baselines.stage0 import generate_signals, stage0_strategies, stage06_strategies
 from buffmini.config import compute_config_hash, load_config
 from buffmini.constants import DEFAULT_CONFIG_PATH, RAW_DATA_DIR, RUNS_DIR
 from buffmini.data.features import calculate_features
 from buffmini.data.loader import fetch_ohlcv
 from buffmini.data.storage import load_parquet, save_parquet
+from buffmini.data.window import slice_last_n_months
 from buffmini.types import ConfigDict
 from buffmini.utils.logging import get_logger
 from buffmini.utils.time import parse_utc_timestamp, utc_now_compact
@@ -32,7 +33,7 @@ def parse_args() -> argparse.Namespace:
 
     parser = argparse.ArgumentParser(description="Run Stage-0 baselines")
     parser.add_argument("--config", type=Path, default=DEFAULT_CONFIG_PATH)
-    parser.add_argument("--dry-run", action="store_true", help="Run full Stage-0 pipeline on synthetic data.")
+    parser.add_argument("--dry-run", action="store_true", help="Run full pipeline on synthetic data.")
     parser.add_argument("--run-id", type=str, default=None, help="Optional fixed run ID for reproducibility.")
     parser.add_argument("--runs-dir", type=Path, default=RUNS_DIR, help="Output directory for run artifacts.")
     parser.add_argument(
@@ -50,7 +51,24 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument(
         "--stage05",
         action="store_true",
-        help="Enable Stage-0.5 filters (ATR volatility gate + optional regime gate).",
+        help="Enable Stage-0.5 filters over Stage-0 strategy set.",
+    )
+    parser.add_argument(
+        "--stage06",
+        action="store_true",
+        help="Run Stage-0.6 expanded suite (5 strategies + configurable window).",
+    )
+    parser.add_argument(
+        "--window-months",
+        type=int,
+        default=None,
+        help="Override evaluation.stage06.window_months when using --stage06.",
+    )
+    parser.add_argument(
+        "--gating",
+        choices=["none", "vol", "vol+regime"],
+        default=None,
+        help="Signal gating mode. Default: none for Stage-0, vol+regime for Stage-0.5/0.6.",
     )
     return parser.parse_args()
 
@@ -60,16 +78,42 @@ def run_stage0(
     config_path: Path,
     dry_run: bool = False,
     stage05: bool = False,
+    stage06: bool = False,
+    gating_mode: str | None = None,
+    window_months_override: int | None = None,
     run_id: str | None = None,
     runs_dir: Path = RUNS_DIR,
     data_dir: Path = RAW_DATA_DIR,
     synthetic_bars: int = 360,
 ) -> Path:
-    """Execute Stage-0 for all configured symbols and strategies."""
+    """Execute Stage-0/0.5/0.6 for all configured symbols and strategies."""
+
+    if stage05 and stage06:
+        raise ValueError("Use only one of --stage05 or --stage06")
 
     if not config["evaluation"]["stage0_enabled"]:
         logger.info("Stage-0 is disabled in config. Exiting.")
         return runs_dir
+
+    if stage06:
+        stage_version = "stage0.6"
+        strategies = stage06_strategies()
+        resolved_gating = gating_mode or "vol+regime"
+        stage06_cfg = config.get("evaluation", {}).get("stage06", {})
+        window_months = int(window_months_override or stage06_cfg.get("window_months", 36))
+        end_mode = str(stage06_cfg.get("end_mode", "latest"))
+    elif stage05:
+        stage_version = "stage0.5"
+        strategies = stage0_strategies()
+        resolved_gating = gating_mode or "vol+regime"
+        window_months = None
+        end_mode = "latest"
+    else:
+        stage_version = "stage0"
+        strategies = stage0_strategies()
+        resolved_gating = gating_mode or "none"
+        window_months = None
+        end_mode = "latest"
 
     seed = int(config["search"]["seed"])
     np.random.seed(seed)
@@ -81,7 +125,6 @@ def run_stage0(
     with (run_dir / "config.yaml").open("w", encoding="utf-8") as handle:
         yaml.safe_dump(config, handle, sort_keys=False)
 
-    strategies = stage0_strategies()
     serialized_strategies = [
         {
             "name": strategy.name,
@@ -103,7 +146,8 @@ def run_stage0(
     costs = config["costs"]
     risk = config["risk"]
 
-    summary_rows: list[dict[str, float | str]] = []
+    summary_rows: list[dict[str, float | str | int | None]] = []
+    date_ranges_by_symbol: dict[str, str] = {}
 
     for symbol in symbols:
         raw = _load_symbol_data(
@@ -120,10 +164,25 @@ def run_stage0(
             logger.warning("Skipping %s due to empty data.", symbol)
             continue
 
-        features = calculate_features(raw)
+        raw = raw.sort_values("timestamp").reset_index(drop=True)
+
+        if stage_version == "stage0.6":
+            sliced, date_range = slice_last_n_months(raw, window_months=window_months or 36, end_mode=end_mode)
+        else:
+            sliced = raw
+            timestamps = pd.to_datetime(sliced["timestamp"], utc=True)
+            date_range = f"{timestamps.iloc[0].isoformat()}..{timestamps.iloc[-1].isoformat()}"
+
+        date_ranges_by_symbol[symbol] = date_range
+        if sliced.empty:
+            logger.warning("Skipping %s after window slicing due to empty data.", symbol)
+            continue
+
+        features = calculate_features(sliced)
+
         for strategy in strategies:
             strategy_df = features.copy()
-            strategy_df["signal"] = generate_signals(strategy_df, strategy, stage05=stage05)
+            strategy_df["signal"] = generate_signals(strategy_df, strategy, gating_mode=resolved_gating)
 
             result = run_backtest(
                 frame=strategy_df,
@@ -137,7 +196,7 @@ def run_stage0(
                 initial_capital=10_000.0 * float(risk["max_concurrent_positions"]),
             )
 
-            sanitized = strategy.name.lower().replace(" ", "_")
+            sanitized = strategy.name.lower().replace(" ", "_").replace("/", "-")
             symbol_key = symbol.replace("/", "-")
             trades_path = run_dir / f"trades_{symbol_key}_{sanitized}.csv"
             equity_path = run_dir / f"equity_{symbol_key}_{sanitized}.csv"
@@ -145,9 +204,13 @@ def run_stage0(
             result.trades.to_csv(trades_path, index=False)
             result.equity_curve.to_csv(equity_path, index=False)
 
-            metrics_row: dict[str, float | str] = {
+            metrics_row: dict[str, float | str | int | None] = {
                 "symbol": symbol,
                 "strategy": strategy.name,
+                "stage_version": stage_version,
+                "gating_mode": resolved_gating,
+                "window_months": window_months,
+                "date_range": date_range,
                 "final_equity": float(result.equity_curve["equity"].iloc[-1]) if not result.equity_curve.empty else 0.0,
                 **result.metrics,
             }
@@ -174,6 +237,12 @@ def run_stage0(
         "seed": seed,
         "dry_run": dry_run,
         "stage05": stage05,
+        "stage06": stage06,
+        "stage_version": stage_version,
+        "gating_mode": resolved_gating,
+        "window_months": window_months,
+        "end_mode": end_mode,
+        "date_ranges_by_symbol": date_ranges_by_symbol,
         "symbol_count": len(symbols),
         "strategy_count": len(strategies),
         "total_combinations": len(symbols) * len(strategies),
@@ -190,12 +259,18 @@ def run_stage0(
         "config_path": str(config_path),
         "dry_run": dry_run,
         "stage05": stage05,
+        "stage06": stage06,
+        "stage_version": stage_version,
+        "gating_mode": resolved_gating,
+        "window_months": window_months,
+        "end_mode": end_mode,
+        "date_ranges_by_symbol": date_ranges_by_symbol,
     }
     with (run_dir / "meta.json").open("w", encoding="utf-8") as handle:
         json.dump(meta, handle, indent=2)
 
     if leaderboard.empty:
-        logger.warning("No Stage-0 results were produced.")
+        logger.warning("No results were produced.")
     else:
         print(leaderboard.to_string(index=False))
     logger.info("Saved run artifacts to %s", run_dir)
@@ -278,6 +353,9 @@ def main() -> None:
         config_path=args.config,
         dry_run=bool(args.dry_run),
         stage05=bool(args.stage05),
+        stage06=bool(args.stage06),
+        gating_mode=args.gating,
+        window_months_override=args.window_months,
         run_id=args.run_id,
         runs_dir=args.runs_dir,
         data_dir=args.data_dir,

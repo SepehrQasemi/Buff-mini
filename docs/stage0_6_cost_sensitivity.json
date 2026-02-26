@@ -1,0 +1,361 @@
+{
+  "runs": [
+    {
+      "round_trip_cost_pct": 1.0,
+      "run_id": "20260226_103106_6fb682b4fd9e",
+      "stage_version": "stage0.6",
+      "gating_mode": "vol+regime",
+      "window_months": 36,
+      "results": [
+        {
+          "symbol": "BTC/USDT",
+          "strategy": "Bollinger Mean Reversion",
+          "gating_mode": "vol+regime",
+          "profit_factor": 0.1565072186229346,
+          "expectancy": -12.561231917322464,
+          "max_drawdown": 0.9998752435923738,
+          "trade_count": 796.0,
+          "final_equity": 1.2593938113205327,
+          "date_range": "2023-02-26T09:00:00+00:00..2026-02-26T09:00:00+00:00"
+        },
+        {
+          "symbol": "BTC/USDT",
+          "strategy": "Donchian Breakout",
+          "gating_mode": "vol+regime",
+          "profit_factor": 0.3070472350493926,
+          "expectancy": -23.656049020289327,
+          "max_drawdown": 0.9894843494863068,
+          "trade_count": 418.0,
+          "final_equity": 111.77150951906322,
+          "date_range": "2023-02-26T09:00:00+00:00..2026-02-26T09:00:00+00:00"
+        },
+        {
+          "symbol": "BTC/USDT",
+          "strategy": "RSI Mean Reversion",
+          "gating_mode": "vol+regime",
+          "profit_factor": 0.2093760097857801,
+          "expectancy": -27.147771250338707,
+          "max_drawdown": 0.9802220816302056,
+          "trade_count": 361.0,
+          "final_equity": 199.65457862773383,
+          "date_range": "2023-02-26T09:00:00+00:00..2026-02-26T09:00:00+00:00"
+        },
+        {
+          "symbol": "BTC/USDT",
+          "strategy": "Range Breakout w/ EMA Trend Filter",
+          "gating_mode": "vol+regime",
+          "profit_factor": 0.3066279597944267,
+          "expectancy": -28.23726650854447,
+          "max_drawdown": 0.9810266882750264,
+          "trade_count": 347.0,
+          "final_equity": 201.6685215350694,
+          "date_range": "2023-02-26T09:00:00+00:00..2026-02-26T09:00:00+00:00"
+        },
+        {
+          "symbol": "BTC/USDT",
+          "strategy": "Trend Pullback",
+          "gating_mode": "vol+regime",
+          "profit_factor": 0.1814302630895403,
+          "expectancy": -72.79252804266429,
+          "max_drawdown": 0.57699401411248,
+          "trade_count": 78.0,
+          "final_equity": 4322.182812672187,
+          "date_range": "2023-02-26T09:00:00+00:00..2026-02-26T09:00:00+00:00"
+        },
+        {
+          "symbol": "ETH/USDT",
+          "strategy": "Bollinger Mean Reversion",
+          "gating_mode": "vol+regime",
+          "profit_factor": 0.2471838389929423,
+          "expectancy": -11.777832019206556,
+          "max_drawdown": 0.9999389275466184,
+          "trade_count": 849.0,
+          "final_equity": 0.6206156936281613,
+          "date_range": "2023-02-26T09:00:00+00:00..2026-02-26T09:00:00+00:00"
+        },
+        {
+          "symbol": "ETH/USDT",
+          "strategy": "Donchian Breakout",
+          "gating_mode": "vol+regime",
+          "profit_factor": 0.2820080172486851,
+          "expectancy": -24.48604510790576,
+          "max_drawdown": 0.982111103314438,
+          "trade_count": 401.0,
+          "final_equity": 181.09591172979464,
+          "date_range": "2023-02-26T09:00:00+00:00..2026-02-26T09:00:00+00:00"
+        },
+        {
+          "symbol": "ETH/USDT",
+          "strategy": "RSI Mean Reversion",
+          "gating_mode": "vol+regime",
+          "profit_factor": 0.2567675276838663,
+          "expectancy": -25.28788282002617,
+          "max_drawdown": 0.9786656504224968,
+          "trade_count": 387.0,
+          "final_equity": 213.58934864987967,
+          "date_range": "2023-02-26T09:00:00+00:00..2026-02-26T09:00:00+00:00"
+        },
+        {
+          "symbol": "ETH/USDT",
+          "strategy": "Range Breakout w/ EMA Trend Filter",
+          "gating_mode": "vol+regime",
+          "profit_factor": 0.3572042107409022,
+          "expectancy": -28.431107794971087,
+          "max_drawdown": 0.9530591079326058,
+          "trade_count": 335.0,
+          "final_equity": 475.5788886846774,
+          "date_range": "2023-02-26T09:00:00+00:00..2026-02-26T09:00:00+00:00"
+        },
+        {
+          "symbol": "ETH/USDT",
+          "strategy": "Trend Pullback",
+          "gating_mode": "vol+regime",
+          "profit_factor": 0.2604117579222669,
+          "expectancy": -76.90246844909136,
+          "max_drawdown": 0.5982416907259367,
+          "trade_count": 75.0,
+          "final_equity": 4232.314866318153,
+          "date_range": "2023-02-26T09:00:00+00:00..2026-02-26T09:00:00+00:00"
+        }
+      ]
+    },
+    {
+      "round_trip_cost_pct": 0.2,
+      "run_id": "20260226_103123_b7885c9618cb",
+      "stage_version": "stage0.6",
+      "gating_mode": "vol+regime",
+      "window_months": 36,
+      "results": [
+        {
+          "symbol": "BTC/USDT",
+          "strategy": "Bollinger Mean Reversion",
+          "gating_mode": "vol+regime",
+          "profit_factor": 0.5870556616903531,
+          "expectancy": -11.596028682449122,
+          "max_drawdown": 0.9240607696980536,
+          "trade_count": 796.0,
+          "final_equity": 769.5611687705007,
+          "date_range": "2023-02-26T09:00:00+00:00..2026-02-26T09:00:00+00:00"
+        },
+        {
+          "symbol": "BTC/USDT",
+          "strategy": "Donchian Breakout",
+          "gating_mode": "vol+regime",
+          "profit_factor": 0.7388970557788826,
+          "expectancy": -16.15655862343796,
+          "max_drawdown": 0.7054809223108739,
+          "trade_count": 418.0,
+          "final_equity": 3246.55849540292,
+          "date_range": "2023-02-26T09:00:00+00:00..2026-02-26T09:00:00+00:00"
+        },
+        {
+          "symbol": "BTC/USDT",
+          "strategy": "RSI Mean Reversion",
+          "gating_mode": "vol+regime",
+          "profit_factor": 0.6652432139439886,
+          "expectancy": -17.566694332477713,
+          "max_drawdown": 0.6399398196258187,
+          "trade_count": 361.0,
+          "final_equity": 3658.423345975541,
+          "date_range": "2023-02-26T09:00:00+00:00..2026-02-26T09:00:00+00:00"
+        },
+        {
+          "symbol": "BTC/USDT",
+          "strategy": "Range Breakout w/ EMA Trend Filter",
+          "gating_mode": "vol+regime",
+          "profit_factor": 0.6961342959607336,
+          "expectancy": -19.272157278498288,
+          "max_drawdown": 0.7054284870840154,
+          "trade_count": 347.0,
+          "final_equity": 3312.561424361091,
+          "date_range": "2023-02-26T09:00:00+00:00..2026-02-26T09:00:00+00:00"
+        },
+        {
+          "symbol": "BTC/USDT",
+          "strategy": "Trend Pullback",
+          "gating_mode": "vol+regime",
+          "profit_factor": 0.6426416709665219,
+          "expectancy": -24.376946344507918,
+          "max_drawdown": 0.2272562760146651,
+          "trade_count": 78.0,
+          "final_equity": 8098.5981851283805,
+          "date_range": "2023-02-26T09:00:00+00:00..2026-02-26T09:00:00+00:00"
+        },
+        {
+          "symbol": "ETH/USDT",
+          "strategy": "Bollinger Mean Reversion",
+          "gating_mode": "vol+regime",
+          "profit_factor": 0.7025723384817569,
+          "expectancy": -11.09355462130897,
+          "max_drawdown": 0.9436551208915512,
+          "trade_count": 849.0,
+          "final_equity": 581.5721265086937,
+          "date_range": "2023-02-26T09:00:00+00:00..2026-02-26T09:00:00+00:00"
+        },
+        {
+          "symbol": "ETH/USDT",
+          "strategy": "Donchian Breakout",
+          "gating_mode": "vol+regime",
+          "profit_factor": 0.8039269387350261,
+          "expectancy": -13.534618476208468,
+          "max_drawdown": 0.5955840725774805,
+          "trade_count": 401.0,
+          "final_equity": 4572.617991040408,
+          "date_range": "2023-02-26T09:00:00+00:00..2026-02-26T09:00:00+00:00"
+        },
+        {
+          "symbol": "ETH/USDT",
+          "strategy": "RSI Mean Reversion",
+          "gating_mode": "vol+regime",
+          "profit_factor": 0.7889156107728486,
+          "expectancy": -13.44579472169851,
+          "max_drawdown": 0.6015247808533725,
+          "trade_count": 387.0,
+          "final_equity": 4796.477442702665,
+          "date_range": "2023-02-26T09:00:00+00:00..2026-02-26T09:00:00+00:00"
+        },
+        {
+          "symbol": "ETH/USDT",
+          "strategy": "Range Breakout w/ EMA Trend Filter",
+          "gating_mode": "vol+regime",
+          "profit_factor": 0.8997364031839891,
+          "expectancy": -8.82665120766243,
+          "max_drawdown": 0.4400011176844574,
+          "trade_count": 335.0,
+          "final_equity": 7043.071845433075,
+          "date_range": "2023-02-26T09:00:00+00:00..2026-02-26T09:00:00+00:00"
+        },
+        {
+          "symbol": "ETH/USDT",
+          "strategy": "Trend Pullback",
+          "gating_mode": "vol+regime",
+          "profit_factor": 0.6760294288956896,
+          "expectancy": -30.013645441659143,
+          "max_drawdown": 0.278556421437829,
+          "trade_count": 75.0,
+          "final_equity": 7748.976591875567,
+          "date_range": "2023-02-26T09:00:00+00:00..2026-02-26T09:00:00+00:00"
+        }
+      ]
+    },
+    {
+      "round_trip_cost_pct": 0.1,
+      "run_id": "20260226_103140_d86d3a51b822",
+      "stage_version": "stage0.6",
+      "gating_mode": "vol+regime",
+      "window_months": 36,
+      "results": [
+        {
+          "symbol": "BTC/USDT",
+          "strategy": "Bollinger Mean Reversion",
+          "gating_mode": "vol+regime",
+          "profit_factor": 0.6946361955795155,
+          "expectancy": -10.41490267783552,
+          "max_drawdown": 0.8316153421535836,
+          "trade_count": 796.0,
+          "final_equity": 1709.737468442933,
+          "date_range": "2023-02-26T09:00:00+00:00..2026-02-26T09:00:00+00:00"
+        },
+        {
+          "symbol": "BTC/USDT",
+          "strategy": "Donchian Breakout",
+          "gating_mode": "vol+regime",
+          "profit_factor": 0.824444310277674,
+          "expectancy": -12.11189690115454,
+          "max_drawdown": 0.5766927278703197,
+          "trade_count": 418.0,
+          "final_equity": 4937.227095317409,
+          "date_range": "2023-02-26T09:00:00+00:00..2026-02-26T09:00:00+00:00"
+        },
+        {
+          "symbol": "BTC/USDT",
+          "strategy": "RSI Mean Reversion",
+          "gating_mode": "vol+regime",
+          "profit_factor": 0.7686167491466855,
+          "expectancy": -13.1479036797217,
+          "max_drawdown": 0.4837044568772259,
+          "trade_count": 361.0,
+          "final_equity": 5253.606771620463,
+          "date_range": "2023-02-26T09:00:00+00:00..2026-02-26T09:00:00+00:00"
+        },
+        {
+          "symbol": "BTC/USDT",
+          "strategy": "Range Breakout w/ EMA Trend Filter",
+          "gating_mode": "vol+regime",
+          "profit_factor": 0.776142329871309,
+          "expectancy": -15.294982041263609,
+          "max_drawdown": 0.5955833604632366,
+          "trade_count": 347.0,
+          "final_equity": 4692.641231681544,
+          "date_range": "2023-02-26T09:00:00+00:00..2026-02-26T09:00:00+00:00"
+        },
+        {
+          "symbol": "BTC/USDT",
+          "strategy": "Trend Pullback",
+          "gating_mode": "vol+regime",
+          "profit_factor": 0.7541574260323746,
+          "expectancy": -15.93875165765996,
+          "max_drawdown": 0.1710121080256991,
+          "trade_count": 78.0,
+          "final_equity": 8756.777370702532,
+          "date_range": "2023-02-26T09:00:00+00:00..2026-02-26T09:00:00+00:00"
+        },
+        {
+          "symbol": "ETH/USDT",
+          "strategy": "Bollinger Mean Reversion",
+          "gating_mode": "vol+regime",
+          "profit_factor": 0.7882997151209578,
+          "expectancy": -10.173510603480862,
+          "max_drawdown": 0.868371161287854,
+          "trade_count": 849.0,
+          "final_equity": 1362.689497644772,
+          "date_range": "2023-02-26T09:00:00+00:00..2026-02-26T09:00:00+00:00"
+        },
+        {
+          "symbol": "ETH/USDT",
+          "strategy": "Donchian Breakout",
+          "gating_mode": "vol+regime",
+          "profit_factor": 0.9006877967707536,
+          "expectancy": -7.896043619316033,
+          "max_drawdown": 0.4641517768478587,
+          "trade_count": 401.0,
+          "final_equity": 6833.686508654269,
+          "date_range": "2023-02-26T09:00:00+00:00..2026-02-26T09:00:00+00:00"
+        },
+        {
+          "symbol": "ETH/USDT",
+          "strategy": "RSI Mean Reversion",
+          "gating_mode": "vol+regime",
+          "profit_factor": 0.8948315456572455,
+          "expectancy": -7.58539860418136,
+          "max_drawdown": 0.4800062642568429,
+          "trade_count": 387.0,
+          "final_equity": 7064.450740181819,
+          "date_range": "2023-02-26T09:00:00+00:00..2026-02-26T09:00:00+00:00"
+        },
+        {
+          "symbol": "ETH/USDT",
+          "strategy": "Range Breakout w/ EMA Trend Filter",
+          "gating_mode": "vol+regime",
+          "profit_factor": 0.995492417425669,
+          "expectancy": -0.4489286062360128,
+          "max_drawdown": 0.3878620670904235,
+          "trade_count": 335.0,
+          "final_equity": 9849.60891691094,
+          "date_range": "2023-02-26T09:00:00+00:00..2026-02-26T09:00:00+00:00"
+        },
+        {
+          "symbol": "ETH/USDT",
+          "strategy": "Trend Pullback",
+          "gating_mode": "vol+regime",
+          "profit_factor": 0.7586197646233017,
+          "expectancy": -21.937777477632437,
+          "max_drawdown": 0.2365454230912489,
+          "trade_count": 75.0,
+          "final_equity": 8354.666689177566,
+          "date_range": "2023-02-26T09:00:00+00:00..2026-02-26T09:00:00+00:00"
+        }
+      ]
+    }
+  ]
+}
