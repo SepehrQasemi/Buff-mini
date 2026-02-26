@@ -1,0 +1,34 @@
+[build-system]
+requires = ["setuptools>=68", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "buff-mini"
+version = "0.1.0"
+description = "Auto Crypto Strategy Discovery Engine - MVP Phase 1"
+readme = "README.md"
+requires-python = ">=3.11,<3.12"
+license = { text = "MIT" }
+authors = [
+  { name = "Buff-mini Contributors" }
+]
+dependencies = [
+  "streamlit",
+  "pandas",
+  "numpy",
+  "pyyaml",
+  "pyarrow",
+  "plotly",
+  "ccxt",
+  "pytest"
+]
+
+[tool.setuptools]
+package-dir = { "" = "src" }
+
+[tool.setuptools.packages.find]
+where = ["src"]
+
+[tool.pytest.ini_options]
+pythonpath = ["src"]
+testpaths = ["tests"]
