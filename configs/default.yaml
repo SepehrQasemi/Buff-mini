@@ -38,6 +38,12 @@ evaluation:
     split_mode: "60_20_20"
     min_holdout_trades: 50
     recent_weight: 2.0
+    target_trades_per_month_holdout: 8
+    low_signal_penalty_weight: 1.0
+    min_trades_per_month_floor: 2
+    allow_rare_if_high_expectancy: true
+    rare_expectancy_threshold: 3.0
+    rare_penalty_relief: 0.5
     walkforward_splits: 3
     early_stop_patience: 1000
     min_stage_a_evals: 1000

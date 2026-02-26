@@ -60,6 +60,9 @@ class CandidateEval:
     metrics_holdout: dict[str, float | str] | None = None
     metrics_combined: dict[str, float | str] | None = None
     cagr_approx_holdout: float = 0.0
+    trades_per_month_holdout: float = 0.0
+    low_signal_penalty: float = 0.0
+    penalty_relief_applied: bool = False
 
     def to_row(self, rank: int | None = None) -> dict[str, Any]:
         row = {
@@ -96,6 +99,9 @@ class CandidateEval:
         if self.metrics_combined is not None:
             row["max_drawdown_combined"] = float(self.metrics_combined["max_drawdown"])
         row["cagr_approx_holdout"] = float(self.cagr_approx_holdout)
+        row["trades_per_month_holdout"] = float(self.trades_per_month_holdout)
+        row["low_signal_penalty"] = float(self.low_signal_penalty)
+        row["penalty_relief_applied"] = bool(self.penalty_relief_applied)
         return row
 
 
@@ -135,6 +141,12 @@ def run_stage1_optimization(
     min_holdout_trades = int(stage1["min_holdout_trades"])
     recent_weight = float(stage1["recent_weight"])
     small_expectancy_threshold = float(stage1.get("small_expectancy_threshold", DEFAULT_SMALL_EXPECTANCY_THRESHOLD))
+    target_trades_per_month_holdout = float(stage1["target_trades_per_month_holdout"])
+    low_signal_penalty_weight = float(stage1["low_signal_penalty_weight"])
+    min_trades_per_month_floor = float(stage1["min_trades_per_month_floor"])
+    allow_rare_if_high_expectancy = bool(stage1["allow_rare_if_high_expectancy"])
+    rare_expectancy_threshold = float(stage1["rare_expectancy_threshold"])
+    rare_penalty_relief = float(stage1["rare_penalty_relief"])
 
     costs = config["costs"]
     round_trip_cost_pct = float(cost_pct if cost_pct is not None else costs["round_trip_cost_pct"])
@@ -181,6 +193,12 @@ def run_stage1_optimization(
         "min_holdout_trades": min_holdout_trades,
         "recent_weight": recent_weight,
         "small_expectancy_threshold": small_expectancy_threshold,
+        "target_trades_per_month_holdout": target_trades_per_month_holdout,
+        "low_signal_penalty_weight": low_signal_penalty_weight,
+        "min_trades_per_month_floor": min_trades_per_month_floor,
+        "allow_rare_if_high_expectancy": allow_rare_if_high_expectancy,
+        "rare_expectancy_threshold": rare_expectancy_threshold,
+        "rare_penalty_relief": rare_penalty_relief,
         "round_trip_cost_pct": round_trip_cost_pct,
         "slippage_pct": slippage_pct,
         "weights": weights,
@@ -324,10 +342,25 @@ def run_stage1_optimization(
         holdout_metrics = temporal_metrics["holdout"]
         combined_metrics = temporal_metrics["combined"]
 
+        trades_per_month_holdout = _compute_trades_per_month(
+            trade_count=float(holdout_metrics["trade_count"]),
+            duration_days=float(holdout_metrics["duration_days"]),
+        )
+        low_signal_penalty, penalty_relief_applied = _compute_low_signal_penalty(
+            trades_per_month_holdout=trades_per_month_holdout,
+            target_trades_per_month_holdout=target_trades_per_month_holdout,
+            expectancy_holdout=float(holdout_metrics["expectancy"]),
+            allow_rare_if_high_expectancy=allow_rare_if_high_expectancy,
+            rare_expectancy_threshold=rare_expectancy_threshold,
+            rare_penalty_relief=rare_penalty_relief,
+        )
+
         rejection_reason = _candidate_rejection_reason(
             holdout_metrics=holdout_metrics,
-            min_holdout_trades=min_holdout_trades,
-            small_expectancy_threshold=small_expectancy_threshold,
+            trades_per_month_holdout=trades_per_month_holdout,
+            min_trades_per_month_floor=min_trades_per_month_floor,
+            allow_rare_if_high_expectancy=allow_rare_if_high_expectancy,
+            rare_expectancy_threshold=rare_expectancy_threshold,
         )
         rejected = bool(rejection_reason)
 
@@ -339,6 +372,8 @@ def run_stage1_optimization(
             complexity=complexity_penalty(candidate),
             instability=0.0,
             recent_weight=recent_weight,
+            low_signal_penalty=low_signal_penalty,
+            low_signal_penalty_weight=low_signal_penalty_weight,
         )
 
         instability = 0.0
@@ -353,6 +388,11 @@ def run_stage1_optimization(
                 slippage_pct=slippage_pct,
                 initial_capital=initial_capital,
                 recent_weight=recent_weight,
+                target_trades_per_month_holdout=target_trades_per_month_holdout,
+                low_signal_penalty_weight=low_signal_penalty_weight,
+                allow_rare_if_high_expectancy=allow_rare_if_high_expectancy,
+                rare_expectancy_threshold=rare_expectancy_threshold,
+                rare_penalty_relief=rare_penalty_relief,
             )
             score = _compute_temporal_score(
                 expectancy_validation=float(validation_metrics["expectancy"]),
@@ -362,6 +402,8 @@ def run_stage1_optimization(
                 complexity=complexity_penalty(candidate),
                 instability=instability,
                 recent_weight=recent_weight,
+                low_signal_penalty=low_signal_penalty,
+                low_signal_penalty_weight=low_signal_penalty_weight,
             )
 
         stage_c_results.append(
@@ -384,6 +426,9 @@ def run_stage1_optimization(
                 metrics_holdout=holdout_metrics,
                 metrics_combined=combined_metrics,
                 cagr_approx_holdout=_cagr_from_metrics(holdout_metrics),
+                trades_per_month_holdout=trades_per_month_holdout,
+                low_signal_penalty=low_signal_penalty,
+                penalty_relief_applied=penalty_relief_applied,
             )
         )
 
@@ -431,6 +476,9 @@ def run_stage1_optimization(
                     "expectancy": item.expectancy,
                     "max_drawdown": float(item.metrics_combined["max_drawdown"]) if item.metrics_combined else item.max_drawdown,
                     "trade_count": item.trade_count,
+                    "trades_per_month": item.trades_per_month_holdout,
+                    "low_signal_penalty": item.low_signal_penalty,
+                    "penalty_relief_applied": item.penalty_relief_applied,
                     "final_equity": item.final_equity,
                     "return_pct": item.return_pct,
                     "date_range": item.date_range,
@@ -446,6 +494,49 @@ def run_stage1_optimization(
 
     with (run_dir / "strategies.json").open("w", encoding="utf-8") as handle:
         json.dump(strategies_payload, handle, indent=2)
+
+    stage_a_trade_counts = [float(row.trade_count) for row in stage_a_results]
+    stage_b_trade_counts = [float(row.trade_count) for row in stage_b_results]
+    stage_c_trade_counts = [
+        float(row.metrics_combined["trade_count"]) if row.metrics_combined else float(row.trade_count)
+        for row in stage_c_results
+    ]
+    diagnostics = {
+        "run_id": resolved_run_id,
+        "seed": resolved_seed,
+        "split_mode": split_mode,
+        "stages": {
+            "A": _build_stage_diagnostics(stage_a_trade_counts),
+            "B": _build_stage_diagnostics(stage_b_trade_counts),
+            "C": _build_stage_diagnostics(stage_c_trade_counts),
+        },
+    }
+    stage_a_warning = diagnostics["stages"]["A"]["avg_trades_per_candidate"] < 30.0
+    diagnostics["warnings"] = []
+    if stage_a_warning:
+        diagnostics["warnings"].append("Search space too restrictive; insufficient trade sampling.")
+
+    with (run_dir / "diagnostics.json").open("w", encoding="utf-8") as handle:
+        json.dump(diagnostics, handle, indent=2)
+
+    best_accepted_payload: dict[str, Any] | None = None
+    if accepted:
+        best_acc = accepted[0]
+        best_acc_spec = candidate_to_strategy_spec(best_acc.candidate)
+        best_accepted_payload = {
+            "candidate_id": best_acc.candidate.candidate_id,
+            "family": best_acc.candidate.family,
+            "strategy_name": best_acc_spec.name,
+            "gating_mode": best_acc.candidate.gating_mode,
+            "exit_mode": best_acc.candidate.exit_mode,
+            "metrics_holdout": {
+                "profit_factor": float(best_acc.profit_factor),
+                "expectancy": float(best_acc.expectancy),
+                "trade_count": float(best_acc.trade_count),
+                "trades_per_month": float(best_acc.trades_per_month_holdout),
+                "low_signal_penalty": float(best_acc.low_signal_penalty),
+            },
+        }
 
     duration_sec = time.time() - started_at
     summary = {
@@ -469,8 +560,15 @@ def run_stage1_optimization(
         "split_mode": split_mode,
         "min_holdout_trades": min_holdout_trades,
         "recent_weight": recent_weight,
+        "target_trades_per_month_holdout": target_trades_per_month_holdout,
+        "low_signal_penalty_weight": low_signal_penalty_weight,
+        "min_trades_per_month_floor": min_trades_per_month_floor,
+        "allow_rare_if_high_expectancy": allow_rare_if_high_expectancy,
+        "rare_expectancy_threshold": rare_expectancy_threshold,
+        "rare_penalty_relief": rare_penalty_relief,
         "runtime_seconds": duration_sec,
         "dry_run": dry_run,
+        "diagnostics": diagnostics,
         "any_holdout_pf_expectancy_positive_raw": any(
             row.metrics_holdout is not None
             and float(row.metrics_holdout["profit_factor"]) > 1.0
@@ -485,6 +583,7 @@ def run_stage1_optimization(
             for row in stage_c_sorted
         ),
         "best": strategies_payload[0] if strategies_payload else None,
+        "best_accepted": best_accepted_payload,
     }
     with (run_dir / "summary.json").open("w", encoding="utf-8") as handle:
         json.dump(summary, handle, indent=2)
@@ -503,6 +602,14 @@ def run_stage1_optimization(
         docs_md_path=docs_base.parent / "stage1_real_data_report.md",
         docs_json_path=docs_base.parent / "stage1_real_data_report.json",
     )
+    _write_stage1_diagnostics_report(
+        run_dir=run_dir,
+        diagnostics=diagnostics,
+        docs_md_path=docs_base.parent / "stage1_diagnostics.md",
+    )
+
+    if stage_a_warning:
+        logger.warning("Search space too restrictive; insufficient trade sampling.")
 
     if strategies_payload:
         best = strategies_payload[0]
@@ -513,6 +620,16 @@ def run_stage1_optimization(
             float(best_holdout["profit_factor"]),
             float(best_holdout["expectancy"]),
             float(best_holdout["max_drawdown"]),
+        )
+    if best_accepted_payload is not None:
+        best_acc_holdout = best_accepted_payload["metrics_holdout"]
+        logger.info(
+            "Stage-1 best accepted: %s | PF_holdout=%.4f | expectancy_holdout=%.4f | tpm_holdout=%.4f | low_signal_penalty=%.4f",
+            best_accepted_payload["candidate_id"],
+            float(best_acc_holdout["profit_factor"]),
+            float(best_acc_holdout["expectancy"]),
+            float(best_acc_holdout["trades_per_month"]),
+            float(best_acc_holdout["low_signal_penalty"]),
         )
     logger.info("Saved Stage-1 artifacts to %s", run_dir)
     return run_dir
@@ -608,16 +725,49 @@ def _split_symbol_60_20_20(frame: pd.DataFrame) -> tuple[pd.DataFrame, pd.DataFr
 
 def _candidate_rejection_reason(
     holdout_metrics: dict[str, float | str],
-    min_holdout_trades: int,
-    small_expectancy_threshold: float,
+    trades_per_month_holdout: float,
+    min_trades_per_month_floor: float,
+    allow_rare_if_high_expectancy: bool,
+    rare_expectancy_threshold: float,
 ) -> str:
-    if float(holdout_metrics["trade_count"]) < float(min_holdout_trades):
-        return "min_holdout_trades"
-    if float(holdout_metrics["profit_factor"]) < 0.9:
-        return "holdout_profit_factor_below_0.9"
-    if float(holdout_metrics["expectancy"]) < -abs(float(small_expectancy_threshold)):
-        return "holdout_expectancy_too_negative"
+    expectancy_holdout = float(holdout_metrics["expectancy"])
+    extremely_high_expectancy = (
+        allow_rare_if_high_expectancy and expectancy_holdout >= float(rare_expectancy_threshold)
+    )
+    if float(trades_per_month_holdout) < float(min_trades_per_month_floor) and not extremely_high_expectancy:
+        return "degenerate_low_trades_per_month"
     return ""
+
+
+def _compute_trades_per_month(
+    trade_count: float,
+    duration_days: float,
+) -> float:
+    days = float(duration_days)
+    if days <= 0:
+        return 0.0
+    return float(trade_count) / (days / 30.0)
+
+
+def _compute_low_signal_penalty(
+    trades_per_month_holdout: float,
+    target_trades_per_month_holdout: float,
+    expectancy_holdout: float,
+    allow_rare_if_high_expectancy: bool,
+    rare_expectancy_threshold: float,
+    rare_penalty_relief: float,
+) -> tuple[float, bool]:
+    target = max(float(target_trades_per_month_holdout), 1e-9)
+    tpm = float(trades_per_month_holdout)
+    if tpm >= target:
+        return 0.0, False
+
+    penalty = (target - tpm) / target
+    relief_applied = False
+    if allow_rare_if_high_expectancy and float(expectancy_holdout) >= float(rare_expectancy_threshold):
+        penalty *= float(rare_penalty_relief)
+        relief_applied = True
+    return float(max(0.0, penalty)), relief_applied
 
 
 def _compute_temporal_score(
@@ -628,6 +778,8 @@ def _compute_temporal_score(
     complexity: float,
     instability: float,
     recent_weight: float,
+    low_signal_penalty: float,
+    low_signal_penalty_weight: float,
 ) -> float:
     exp_val = _finite_or_default(expectancy_validation, default=-1_000.0)
     exp_holdout = _finite_or_default(expectancy_holdout, default=-1_000.0)
@@ -643,6 +795,7 @@ def _compute_temporal_score(
         - 1.0 * dd_combined
         - complexity_v
         - instability_v
+        - float(low_signal_penalty_weight) * float(max(0.0, low_signal_penalty))
     )
 
 
@@ -655,6 +808,11 @@ def _instability_penalty_temporal(
     slippage_pct: float,
     initial_capital: float,
     recent_weight: float,
+    target_trades_per_month_holdout: float,
+    low_signal_penalty_weight: float,
+    allow_rare_if_high_expectancy: bool,
+    rare_expectancy_threshold: float,
+    rare_penalty_relief: float,
 ) -> float:
     perturbed = perturb_candidate(candidate=candidate, search_space=search_space, pct=0.1)
     if not perturbed:
@@ -677,6 +835,18 @@ def _instability_penalty_temporal(
             complexity=complexity_penalty(variant),
             instability=0.0,
             recent_weight=recent_weight,
+            low_signal_penalty=_compute_low_signal_penalty(
+                trades_per_month_holdout=_compute_trades_per_month(
+                    trade_count=float(temporal["holdout"]["trade_count"]),
+                    duration_days=float(temporal["holdout"]["duration_days"]),
+                ),
+                target_trades_per_month_holdout=target_trades_per_month_holdout,
+                expectancy_holdout=float(temporal["holdout"]["expectancy"]),
+                allow_rare_if_high_expectancy=allow_rare_if_high_expectancy,
+                rare_expectancy_threshold=rare_expectancy_threshold,
+                rare_penalty_relief=rare_penalty_relief,
+            )[0],
+            low_signal_penalty_weight=low_signal_penalty_weight,
         )
         variant_scores.append(score)
 
@@ -945,6 +1115,93 @@ def _generate_synthetic_ohlcv(symbol: str, start: str | None, bars: int, seed: i
     )
 
 
+def _build_stage_diagnostics(trade_counts: list[float]) -> dict[str, Any]:
+    counts = [float(max(0.0, value)) for value in trade_counts]
+    total_candidates = len(counts)
+    total_trades = float(np.sum(counts)) if counts else 0.0
+    avg_trades = (total_trades / float(total_candidates)) if total_candidates > 0 else 0.0
+    median_trades = float(np.median(counts)) if counts else 0.0
+    min_trades = float(np.min(counts)) if counts else 0.0
+    max_trades = float(np.max(counts)) if counts else 0.0
+    zero_trade_count = int(sum(1 for value in counts if value <= 0.0))
+    percent_zero_trade = (
+        (100.0 * float(zero_trade_count) / float(total_candidates)) if total_candidates > 0 else 0.0
+    )
+
+    histogram = {
+        "0": 0,
+        "1-10": 0,
+        "11-50": 0,
+        "51-200": 0,
+        ">200": 0,
+    }
+    for value in counts:
+        if value <= 0.0:
+            histogram["0"] += 1
+        elif value <= 10.0:
+            histogram["1-10"] += 1
+        elif value <= 50.0:
+            histogram["11-50"] += 1
+        elif value <= 200.0:
+            histogram["51-200"] += 1
+        else:
+            histogram[">200"] += 1
+
+    return {
+        "total_candidates_evaluated": int(total_candidates),
+        "total_trades_evaluated": float(total_trades),
+        "avg_trades_per_candidate": float(avg_trades),
+        "median_trades_per_candidate": float(median_trades),
+        "min_trades": float(min_trades),
+        "max_trades": float(max_trades),
+        "zero_trade_candidate_count": int(zero_trade_count),
+        "percent_zero_trade": float(percent_zero_trade),
+        "trade_count_histogram": histogram,
+    }
+
+
+def _write_stage1_diagnostics_report(
+    run_dir: Path,
+    diagnostics: dict[str, Any],
+    docs_md_path: Path,
+) -> None:
+    stage_a = diagnostics["stages"]["A"]
+    warning = stage_a["avg_trades_per_candidate"] < 30.0
+
+    lines: list[str] = []
+    lines.append("# Stage-1 Diagnostics")
+    lines.append("")
+    lines.append(f"- run_id: `{diagnostics['run_id']}`")
+    lines.append(f"- seed: `{diagnostics['seed']}`")
+    lines.append(f"- split_mode: `{diagnostics['split_mode']}`")
+    lines.append("")
+
+    for stage_name in ["A", "B", "C"]:
+        stage = diagnostics["stages"][stage_name]
+        lines.append(f"## Stage {stage_name}")
+        lines.append(f"- total_candidates_evaluated: `{stage['total_candidates_evaluated']}`")
+        lines.append(f"- total_trades_evaluated: `{stage['total_trades_evaluated']:.2f}`")
+        lines.append(f"- avg_trades_per_candidate: `{stage['avg_trades_per_candidate']:.2f}`")
+        lines.append(f"- median_trades_per_candidate: `{stage['median_trades_per_candidate']:.2f}`")
+        lines.append(f"- min_trades: `{stage['min_trades']:.2f}`")
+        lines.append(f"- max_trades: `{stage['max_trades']:.2f}`")
+        lines.append(f"- zero_trade_candidate_count: `{stage['zero_trade_candidate_count']}`")
+        lines.append(f"- percent_zero_trade: `{stage['percent_zero_trade']:.2f}`")
+        lines.append("- trade_count_histogram:")
+        for bucket in ["0", "1-10", "11-50", "51-200", ">200"]:
+            lines.append(f"  - {bucket}: `{stage['trade_count_histogram'][bucket]}`")
+        lines.append("")
+
+    if warning:
+        lines.append("WARNING: Search space too restrictive; insufficient trade sampling.")
+        lines.append("")
+
+    md_text = "\n".join(lines).strip() + "\n"
+    docs_md_path.parent.mkdir(parents=True, exist_ok=True)
+    docs_md_path.write_text(md_text, encoding="utf-8")
+    (run_dir / "stage1_diagnostics.md").write_text(md_text, encoding="utf-8")
+
+
 def _write_stage1_report(
     run_dir: Path,
     summary: dict[str, Any],
@@ -980,8 +1237,11 @@ def _write_stage1_report(
             report_lines.append(
                 "- Holdout metrics: "
                 f"trade_count={metrics['trade_count']:.0f}, "
+                f"tpm={metrics.get('trades_per_month', 0.0):.4f}, "
                 f"PF={metrics['profit_factor']:.4f}, "
                 f"expectancy={metrics['expectancy']:.4f}, "
+                f"low_signal_penalty={metrics.get('low_signal_penalty', 0.0):.4f}, "
+                f"penalty_relief={bool(metrics.get('penalty_relief_applied', False))}, "
                 f"max_dd={metrics['max_drawdown']:.4f}, "
                 f"return_pct={metrics['return_pct']:.4f}"
             )
@@ -1028,6 +1288,9 @@ def _write_stage1_real_data_reports(
                 "max_drawdown_combined": float(combined.get("max_drawdown", 0.0)),
                 "return_pct_holdout": float(holdout.get("return_pct", 0.0)),
                 "cagr_approx_holdout": float(row.cagr_approx_holdout),
+                "trades_per_month_holdout": float(row.trades_per_month_holdout),
+                "low_signal_penalty": float(row.low_signal_penalty),
+                "penalty_relief_applied": bool(row.penalty_relief_applied),
                 "validation_range": str(validation.get("date_range", "n/a")),
                 "holdout_range": str(holdout.get("date_range", "n/a")),
                 "combined_range": str(combined.get("date_range", "n/a")),
@@ -1045,6 +1308,16 @@ def _write_stage1_real_data_reports(
         item["pf_holdout"] > 1.0 and item["expectancy_holdout"] > 0.0 and not item["rejected"]
         for item in payload_candidates
     )
+    accepted_candidates = [item for item in payload_candidates if not item["rejected"]]
+    accepted_top10 = accepted_candidates[:10]
+    accepted_tpm_values = [float(item["trades_per_month_holdout"]) for item in accepted_top10]
+    accepted_tpm_stats = {
+        "count": int(len(accepted_tpm_values)),
+        "min": float(np.min(accepted_tpm_values)) if accepted_tpm_values else 0.0,
+        "median": float(np.median(accepted_tpm_values)) if accepted_tpm_values else 0.0,
+        "max": float(np.max(accepted_tpm_values)) if accepted_tpm_values else 0.0,
+    }
+    best_accepted = accepted_candidates[0] if accepted_candidates else None
 
     report_payload = {
         "run_id": summary["run_id"],
@@ -1055,6 +1328,8 @@ def _write_stage1_real_data_reports(
         "round_trip_cost_pct": summary["round_trip_cost_pct"],
         "any_pf_holdout_gt_1_and_expectancy_holdout_gt_0": any_profitable_raw,
         "any_accepted_pf_holdout_gt_1_and_expectancy_holdout_gt_0": any_profitable_accepted,
+        "best_accepted_candidate": best_accepted,
+        "accepted_top10_tpm_distribution": accepted_tpm_stats,
         "top_5_candidates": payload_candidates,
     }
 
@@ -1069,17 +1344,22 @@ def _write_stage1_real_data_reports(
     lines.append(f"- split_mode: `{summary['split_mode']}`")
     lines.append(f"- recent_weight: `{summary['recent_weight']}`")
     lines.append(f"- min_holdout_trades: `{summary['min_holdout_trades']}`")
+    lines.append(f"- target_trades_per_month_holdout: `{summary['target_trades_per_month_holdout']}`")
+    lines.append(f"- low_signal_penalty_weight: `{summary['low_signal_penalty_weight']}`")
+    lines.append(f"- min_trades_per_month_floor: `{summary['min_trades_per_month_floor']}`")
     lines.append(f"- round_trip_cost_pct: `{summary['round_trip_cost_pct']}`")
     lines.append("")
     lines.append("## Top 5 Candidates")
     lines.append(
-        "| rank | strategy | gating | exit | val_trades | hold_trades | PF_val | PF_hold | exp_val | exp_hold | max_dd_combined | return_hold | CAGR_hold | rejected |"
+        "| rank | strategy | gating | exit | val_trades | hold_trades | tpm_hold | penalty | relief | PF_val | PF_hold | exp_val | exp_hold | max_dd_combined | return_hold | CAGR_hold | rejected |"
     )
-    lines.append("| --- | --- | --- | --- | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | --- |")
+    lines.append("| --- | --- | --- | --- | ---: | ---: | ---: | ---: | --- | ---: | ---: | ---: | ---: | ---: | ---: | ---: | --- |")
     for item in payload_candidates:
         lines.append(
             f"| {item['rank']} | {item['strategy_name']} | {item['gating']} | {item['exit_mode']} | "
             f"{item['trade_count_validation']:.0f} | {item['trade_count_holdout']:.0f} | "
+            f"{item['trades_per_month_holdout']:.4f} | {item['low_signal_penalty']:.4f} | "
+            f"{'yes' if item['penalty_relief_applied'] else 'no'} | "
             f"{item['pf_validation']:.4f} | {item['pf_holdout']:.4f} | "
             f"{item['expectancy_validation']:.4f} | {item['expectancy_holdout']:.4f} | "
             f"{item['max_drawdown_combined']:.4f} | {item['return_pct_holdout']:.4f} | "
@@ -1087,12 +1367,32 @@ def _write_stage1_real_data_reports(
             f"{'yes' if item['rejected'] else 'no'} |"
         )
     lines.append("")
+    lines.append("## Accepted Summary")
+    if best_accepted is None:
+        lines.append("- Best ACCEPTED candidate: none")
+    else:
+        lines.append(
+            "- Best ACCEPTED candidate: "
+            f"`{best_accepted['strategy_name']}` "
+            f"(PF_holdout={best_accepted['pf_holdout']:.4f}, "
+            f"expectancy_holdout={best_accepted['expectancy_holdout']:.4f}, "
+            f"tpm_holdout={best_accepted['trades_per_month_holdout']:.4f}, "
+            f"penalty={best_accepted['low_signal_penalty']:.4f})"
+        )
+    lines.append(
+        "- Top 10 accepted candidates tpm distribution: "
+        f"min={accepted_tpm_stats['min']:.4f}, "
+        f"median={accepted_tpm_stats['median']:.4f}, "
+        f"max={accepted_tpm_stats['max']:.4f} "
+        f"(count={accepted_tpm_stats['count']})"
+    )
+    lines.append("")
     lines.append(
         "Does any candidate satisfy PF_holdout > 1 and expectancy_holdout > 0? "
         f"**{'YES' if any_profitable_raw else 'NO'}**"
     )
     lines.append(
-        "Accepted candidates only (after min_holdout_trades / rejection filters): "
+        "Accepted candidates only (after low-signal degeneracy filter): "
         f"**{'YES' if any_profitable_accepted else 'NO'}**"
     )
     lines.append("")

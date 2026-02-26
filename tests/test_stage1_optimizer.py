@@ -8,7 +8,14 @@ from pathlib import Path
 import numpy as np
 
 from buffmini.config import load_config
-from buffmini.discovery.funnel import run_stage1_optimization
+from buffmini.discovery.funnel import (
+    _build_stage_diagnostics,
+    _candidate_rejection_reason,
+    _compute_low_signal_penalty,
+    _compute_temporal_score,
+    _compute_trades_per_month,
+    run_stage1_optimization,
+)
 from buffmini.discovery.generator import candidate_within_search_space, sample_candidate
 
 
@@ -61,9 +68,11 @@ def test_funnel_reduces_candidate_count_and_writes_artifacts(tmp_path: Path) -> 
         "leaderboard.csv",
         "strategies.json",
         "summary.json",
+        "diagnostics.json",
         "stage1_report.md",
         "stage1_real_data_report.md",
         "stage1_real_data_report.json",
+        "stage1_diagnostics.md",
     ]
     for name in required:
         assert (run_dir / name).exists(), f"missing artifact {name}"
@@ -73,6 +82,23 @@ def test_funnel_reduces_candidate_count_and_writes_artifacts(tmp_path: Path) -> 
     assert summary["candidate_count_stage_b"] >= summary["candidate_count_stage_c"]
     assert summary["candidate_count_stage_b"] <= config["evaluation"]["stage1"]["top_k"]
     assert summary["candidate_count_stage_c"] <= config["evaluation"]["stage1"]["top_m"]
+
+    diagnostics = json.loads((run_dir / "diagnostics.json").read_text(encoding="utf-8"))
+    for stage in ["A", "B", "C"]:
+        assert stage in diagnostics["stages"]
+        keys = {
+            "total_candidates_evaluated",
+            "total_trades_evaluated",
+            "avg_trades_per_candidate",
+            "median_trades_per_candidate",
+            "min_trades",
+            "max_trades",
+            "zero_trade_candidate_count",
+            "percent_zero_trade",
+            "trade_count_histogram",
+        }
+        assert keys.issubset(diagnostics["stages"][stage].keys())
+    assert diagnostics["stages"]["A"]["total_trades_evaluated"] > 0.0
 
 
 def test_stage1_reproducibility_same_seed_same_top3(tmp_path: Path) -> None:
@@ -128,3 +154,77 @@ def test_stage1_reproducibility_same_seed_same_top3(tmp_path: Path) -> None:
     ]
 
     assert slim_a == slim_b
+
+
+def test_zero_trade_diagnostics_detection() -> None:
+    diagnostics = _build_stage_diagnostics([0.0, 0.0, 3.0, 25.0, 500.0])
+    assert diagnostics["zero_trade_candidate_count"] == 2
+    assert diagnostics["percent_zero_trade"] == 40.0
+    histogram = diagnostics["trade_count_histogram"]
+    assert histogram["0"] == 2
+    assert histogram["1-10"] == 1
+    assert histogram["11-50"] == 1
+    assert histogram[">200"] == 1
+
+
+def test_low_signal_penalty_reduces_score_when_tpm_low() -> None:
+    base_score = _compute_temporal_score(
+        expectancy_validation=5.0,
+        expectancy_holdout=4.0,
+        profit_factor_validation=1.5,
+        max_drawdown_combined=0.2,
+        complexity=0.5,
+        instability=0.1,
+        recent_weight=2.0,
+        low_signal_penalty=0.0,
+        low_signal_penalty_weight=1.0,
+    )
+    penalized_score = _compute_temporal_score(
+        expectancy_validation=5.0,
+        expectancy_holdout=4.0,
+        profit_factor_validation=1.5,
+        max_drawdown_combined=0.2,
+        complexity=0.5,
+        instability=0.1,
+        recent_weight=2.0,
+        low_signal_penalty=0.8,
+        low_signal_penalty_weight=1.0,
+    )
+    assert penalized_score < base_score
+
+
+def test_penalty_relief_triggers_when_expectancy_high() -> None:
+    penalty_low_exp, relief_low_exp = _compute_low_signal_penalty(
+        trades_per_month_holdout=2.0,
+        target_trades_per_month_holdout=8.0,
+        expectancy_holdout=1.0,
+        allow_rare_if_high_expectancy=True,
+        rare_expectancy_threshold=3.0,
+        rare_penalty_relief=0.5,
+    )
+    penalty_high_exp, relief_high_exp = _compute_low_signal_penalty(
+        trades_per_month_holdout=2.0,
+        target_trades_per_month_holdout=8.0,
+        expectancy_holdout=5.0,
+        allow_rare_if_high_expectancy=True,
+        rare_expectancy_threshold=3.0,
+        rare_penalty_relief=0.5,
+    )
+    assert relief_low_exp is False
+    assert relief_high_exp is True
+    assert penalty_high_exp < penalty_low_exp
+
+
+def test_degenerate_rejection_triggers_below_tpm_floor() -> None:
+    holdout_metrics = {
+        "expectancy": 1.0,
+    }
+    tpm = _compute_trades_per_month(trade_count=1.0, duration_days=60.0)
+    reason = _candidate_rejection_reason(
+        holdout_metrics=holdout_metrics,
+        trades_per_month_holdout=tpm,
+        min_trades_per_month_floor=2.0,
+        allow_rare_if_high_expectancy=True,
+        rare_expectancy_threshold=3.0,
+    )
+    assert reason == "degenerate_low_trades_per_month"
