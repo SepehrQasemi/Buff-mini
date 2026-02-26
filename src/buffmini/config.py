@@ -51,6 +51,7 @@ STAGE1_DEFAULTS = {
     "allow_rare_if_high_expectancy": False,
     "rare_expectancy_threshold": 3.0,
     "rare_penalty_relief": 0.1,
+    "promotion_holdout_months": [3, 6, 9, 12],
     "walkforward_splits": 3,
     "early_stop_patience": 1000,
     "min_stage_a_evals": 1000,
@@ -220,6 +221,12 @@ def _validate_stage1(stage1: dict[str, Any]) -> None:
     float(stage1["rare_expectancy_threshold"])
     if not 0 <= float(stage1["rare_penalty_relief"]) <= 1:
         raise ValueError("evaluation.stage1.rare_penalty_relief must be between 0 and 1")
+    promotion_months = stage1["promotion_holdout_months"]
+    if not isinstance(promotion_months, list) or not promotion_months:
+        raise ValueError("evaluation.stage1.promotion_holdout_months must be a non-empty list")
+    for value in promotion_months:
+        if int(value) < 1:
+            raise ValueError("evaluation.stage1.promotion_holdout_months values must be >= 1")
 
     if int(stage1["top_k"]) > int(stage1["candidate_count"]):
         raise ValueError("evaluation.stage1.top_k must be <= candidate_count")

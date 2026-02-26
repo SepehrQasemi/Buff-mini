@@ -25,6 +25,7 @@ def test_load_config_success() -> None:
     assert config["evaluation"]["stage1"]["allow_rare_if_high_expectancy"] is False
     assert config["evaluation"]["stage1"]["rare_expectancy_threshold"] == 3.0
     assert config["evaluation"]["stage1"]["rare_penalty_relief"] == 0.1
+    assert config["evaluation"]["stage1"]["promotion_holdout_months"] == [3, 6, 9, 12]
 
 
 def test_compute_config_hash_is_deterministic() -> None:

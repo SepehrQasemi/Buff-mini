@@ -1,6 +1,6 @@
 # Stage-1 Diagnostics
 
-- run_id: `20260226_181107_dd4955695aad_stage1`
+- run_id: `20260226_192036_d518b36605f0_stage1`
 - seed: `42`
 - split_mode: `60_20_20`
 
@@ -37,17 +37,17 @@
   - >200: `1`
 
 ## Stage C
-- total_candidates_evaluated: `20`
-- total_trades_evaluated: `205.00`
-- avg_trades_per_candidate: `10.25`
-- median_trades_per_candidate: `5.00`
+- total_candidates_evaluated: `50`
+- total_trades_evaluated: `855.00`
+- avg_trades_per_candidate: `17.10`
+- median_trades_per_candidate: `8.50`
 - min_trades: `1.00`
-- max_trades: `34.00`
+- max_trades: `130.00`
 - zero_trade_candidate_count: `0`
 - percent_zero_trade: `0.00`
 - trade_count_histogram:
   - 0: `0`
-  - 1-10: `13`
-  - 11-50: `7`
-  - 51-200: `0`
+  - 1-10: `30`
+  - 11-50: `17`
+  - 51-200: `3`
   - >200: `0`

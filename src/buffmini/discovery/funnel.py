@@ -70,8 +70,9 @@ class CandidateEval:
     exposure_ratio: float = 0.0
     exposure_penalty: float = 0.0
     validation_exposure_ratio: float = 0.0
-    validation_active_days: float = 0.0
+    validation_active_days: int = 0
     validation_evidence_passed: bool = False
+    holdout_months_used: int = 0
 
     def to_row(self, rank: int | None = None) -> dict[str, Any]:
         row = {
@@ -117,8 +118,9 @@ class CandidateEval:
         row["exposure_ratio"] = float(self.exposure_ratio)
         row["exposure_penalty"] = float(self.exposure_penalty)
         row["validation_exposure_ratio"] = float(self.validation_exposure_ratio)
-        row["validation_active_days"] = float(self.validation_active_days)
+        row["validation_active_days"] = int(self.validation_active_days)
         row["validation_evidence_passed"] = bool(self.validation_evidence_passed)
+        row["holdout_months_used"] = int(self.holdout_months_used)
         return row
 
 
@@ -151,7 +153,16 @@ def run_stage1_optimization(
     resolved_top_m = int(stage1["top_m"])
     resolved_stage_a_months = int(stage_a_months if stage_a_months is not None else stage1["stage_a_months"])
     resolved_stage_b_months = int(stage_b_months if stage_b_months is not None else stage1["stage_b_months"])
-    resolved_holdout_months = int(holdout_months if holdout_months is not None else stage1["holdout_months"])
+    configured_promotion_months = [
+        int(value)
+        for value in stage1.get("promotion_holdout_months", [int(stage1["holdout_months"])])
+    ]
+    if holdout_months is not None:
+        configured_promotion_months = [int(holdout_months)]
+    promotion_holdout_months = sorted(set(configured_promotion_months))
+    if not promotion_holdout_months:
+        promotion_holdout_months = [int(stage1["holdout_months"])]
+    resolved_holdout_months = int(max(promotion_holdout_months))
     early_stop_patience = int(stage1["early_stop_patience"])
     min_stage_a_evals = int(stage1["min_stage_a_evals"])
     split_mode = str(stage1["split_mode"])
@@ -166,6 +177,7 @@ def run_stage1_optimization(
     allow_rare_if_high_expectancy = bool(stage1["allow_rare_if_high_expectancy"])
     rare_expectancy_threshold = float(stage1["rare_expectancy_threshold"])
     rare_penalty_relief = float(stage1["rare_penalty_relief"])
+    stage_c_pool_top_k = 50
 
     costs = config["costs"]
     round_trip_cost_pct = float(cost_pct if cost_pct is not None else costs["round_trip_cost_pct"])
@@ -206,6 +218,8 @@ def run_stage1_optimization(
         "stage_a_months": resolved_stage_a_months,
         "stage_b_months": resolved_stage_b_months,
         "holdout_months": resolved_holdout_months,
+        "promotion_holdout_months": promotion_holdout_months,
+        "stage_c_pool_top_k": stage_c_pool_top_k,
         "early_stop_patience": early_stop_patience,
         "min_stage_a_evals": min_stage_a_evals,
         "split_mode": split_mode,
@@ -242,7 +256,14 @@ def run_stage1_optimization(
         symbol: frame.copy().sort_values("timestamp").reset_index(drop=True)
         for symbol, frame in feature_data.items()
     }
-    stage_c_splits = _build_temporal_splits(stage_c_data=stage_c_data, split_mode=split_mode)
+    stage_c_splits_by_holdout = {
+        months: _build_temporal_splits_with_holdout_months(
+            stage_c_data=stage_c_data,
+            split_mode=split_mode,
+            holdout_months=months,
+        )
+        for months in promotion_holdout_months
+    }
 
     rng = np.random.default_rng(resolved_seed)
     leaderboard_rows: list[dict[str, Any]] = []
@@ -344,28 +365,34 @@ def run_stage1_optimization(
         )
 
     stage_b_sorted = sorted(stage_b_results, key=lambda x: x.score, reverse=True)
-    top_m_candidates = [row.candidate for row in stage_b_sorted[:resolved_top_m]]
+    stage_c_candidate_pool = [row.candidate for row in stage_b_sorted[: min(stage_c_pool_top_k, len(stage_b_sorted))]]
 
     for rank, item in enumerate(stage_b_sorted[:resolved_top_m], start=1):
         leaderboard_rows.append(item.to_row(rank=rank))
 
     # Stage C: robust temporal evaluation (60/20/20 split).
     stage_c_results: list[CandidateEval] = []
-    for candidate in top_m_candidates:
-        temporal_metrics = _evaluate_temporal_candidate_metrics(
+    promoted_counts: dict[int, int] = {months: 0 for months in promotion_holdout_months[1:]}
+    for candidate in stage_c_candidate_pool:
+        temporal_metrics, holdout_months_used = _evaluate_with_holdout_promotion(
             candidate=candidate,
-            splits=stage_c_splits,
+            splits_by_holdout=stage_c_splits_by_holdout,
+            promotion_holdout_months=promotion_holdout_months,
+            min_trades_per_month_floor=min_trades_per_month_floor,
+            exposure_threshold=0.02,
             round_trip_cost_pct=round_trip_cost_pct,
             slippage_pct=slippage_pct,
             initial_capital=initial_capital,
         )
+        if holdout_months_used in promoted_counts:
+            promoted_counts[holdout_months_used] += 1
         validation_metrics = temporal_metrics["validation"]
         holdout_metrics = temporal_metrics["holdout"]
         combined_metrics = temporal_metrics["combined"]
         holdout_symbol_metrics = temporal_metrics["holdout_by_symbol"]
 
         validation_exposure_ratio = float(validation_metrics["exposure_ratio"])
-        validation_active_days = float(validation_metrics["active_days"])
+        validation_active_days = int(validation_metrics["active_days"])
         validation_evidence_passed = _passes_validation_evidence(
             validation_exposure_ratio=validation_exposure_ratio,
             validation_active_days=validation_active_days,
@@ -399,12 +426,13 @@ def run_stage1_optimization(
         exposure_penalty = _compute_exposure_penalty(exposure_ratio)
 
         rejection_reason = _candidate_rejection_reason(
-            holdout_metrics=holdout_metrics,
             trades_per_month_holdout=trades_per_month_holdout,
             min_trades_per_month_floor=min_trades_per_month_floor,
             allow_rare_if_high_expectancy=allow_rare_if_high_expectancy,
             rare_expectancy_threshold=rare_expectancy_threshold,
             validation_evidence_passed=validation_evidence_passed,
+            exp_lcb_holdout=exp_lcb_holdout,
+            effective_edge=effective_edge,
         )
         rejected = bool(rejection_reason)
 
@@ -422,7 +450,7 @@ def run_stage1_optimization(
             instability = _instability_penalty_temporal(
                 candidate=candidate,
                 base_score=base_score,
-                splits=stage_c_splits,
+                splits=stage_c_splits_by_holdout[holdout_months_used],
                 search_space=search_space,
                 round_trip_cost_pct=round_trip_cost_pct,
                 slippage_pct=slippage_pct,
@@ -468,6 +496,7 @@ def run_stage1_optimization(
                 validation_exposure_ratio=validation_exposure_ratio,
                 validation_active_days=validation_active_days,
                 validation_evidence_passed=validation_evidence_passed,
+                holdout_months_used=holdout_months_used,
             )
         )
 
@@ -496,6 +525,7 @@ def run_stage1_optimization(
                 "strategy_name": spec.name,
                 "gating_mode": item.candidate.gating_mode,
                 "exit_mode": item.candidate.exit_mode,
+                "holdout_months_used": int(item.holdout_months_used),
                 "rules": {
                     "entry": spec.entry_rules,
                     "exit": spec.exit_rules,
@@ -508,13 +538,16 @@ def run_stage1_optimization(
                     "expectancy": float(item.metrics_validation["expectancy"]) if item.metrics_validation else 0.0,
                     "trade_count": float(item.metrics_validation["trade_count"]) if item.metrics_validation else 0.0,
                     "exposure_ratio": float(item.metrics_validation["exposure_ratio"]) if item.metrics_validation else 0.0,
-                    "active_days": float(item.metrics_validation["active_days"]) if item.metrics_validation else 0.0,
+                    "active_days": int(item.metrics_validation["active_days"]) if item.metrics_validation else 0,
                     "evidence_passed": bool(item.validation_evidence_passed),
                     "date_range": str(item.metrics_validation["date_range"]) if item.metrics_validation else "n/a",
                 },
                 "validation_evidence": {
                     "exposure_ratio": float(item.validation_exposure_ratio),
-                    "active_days": float(item.validation_active_days),
+                    "active_days": int(item.validation_active_days),
+                    "exposure_passed": bool(item.validation_exposure_ratio >= min_validation_exposure_ratio),
+                    "active_days_passed": bool(item.validation_active_days >= int(min_validation_active_days)),
+                    "rule": "exposure_ratio>=min_validation_exposure_ratio OR active_days>=min_validation_active_days",
                     "passed": bool(item.validation_evidence_passed),
                 },
                 "metrics_holdout": {
@@ -531,6 +564,9 @@ def run_stage1_optimization(
                     "exposure_penalty": item.exposure_penalty,
                     "low_signal_penalty": item.low_signal_penalty,
                     "penalty_relief_applied": item.penalty_relief_applied,
+                    "exp_lcb_positive": bool(item.exp_lcb_holdout > 0.0),
+                    "effective_edge_positive": bool(item.effective_edge > 0.0),
+                    "accepted": bool(not item.rejected),
                     "final_equity": item.final_equity,
                     "return_pct": item.return_pct,
                     "date_range": item.date_range,
@@ -582,10 +618,14 @@ def run_stage1_optimization(
             "strategy_name": best_acc_spec.name,
             "gating_mode": best_acc.candidate.gating_mode,
             "exit_mode": best_acc.candidate.exit_mode,
+            "holdout_months_used": int(best_acc.holdout_months_used),
             "score": float(best_acc.score),
             "validation_evidence": {
                 "exposure_ratio": float(best_acc.validation_exposure_ratio),
-                "active_days": float(best_acc.validation_active_days),
+                "active_days": int(best_acc.validation_active_days),
+                "exposure_passed": bool(best_acc.validation_exposure_ratio >= min_validation_exposure_ratio),
+                "active_days_passed": bool(best_acc.validation_active_days >= int(min_validation_active_days)),
+                "rule": "exposure_ratio>=min_validation_exposure_ratio OR active_days>=min_validation_active_days",
                 "passed": bool(best_acc.validation_evidence_passed),
             },
             "metrics_holdout": {
@@ -594,6 +634,9 @@ def run_stage1_optimization(
                 "expectancy": float(best_acc.expectancy),
                 "exp_lcb": float(best_acc.exp_lcb_holdout),
                 "effective_edge": float(best_acc.effective_edge),
+                "exp_lcb_positive": bool(best_acc.exp_lcb_holdout > 0.0),
+                "effective_edge_positive": bool(best_acc.effective_edge > 0.0),
+                "accepted": bool(not best_acc.rejected),
                 "trade_count": float(best_acc.trade_count),
                 "trades_per_month": float(best_acc.trades_per_month_holdout),
                 "exposure_ratio": float(best_acc.exposure_ratio),
@@ -620,11 +663,14 @@ def run_stage1_optimization(
         ),
         "top_k": resolved_top_k,
         "top_m": resolved_top_m,
+        "stage_c_pool_top_k": stage_c_pool_top_k,
         "top_n": len(top_three),
         "round_trip_cost_pct": round_trip_cost_pct,
         "stage_a_months": resolved_stage_a_months,
         "stage_b_months": resolved_stage_b_months,
         "holdout_months": resolved_holdout_months,
+        "promotion_holdout_months": promotion_holdout_months,
+        "promotion_counts": {str(key): int(value) for key, value in promoted_counts.items()},
         "split_mode": split_mode,
         "min_holdout_trades": min_holdout_trades,
         "recent_weight": recent_weight,
@@ -694,8 +740,9 @@ def run_stage1_optimization(
     if best_accepted_payload is not None:
         best_acc_holdout = best_accepted_payload["metrics_holdout"]
         logger.info(
-            "Stage-1 best accepted: %s | pf_adj_holdout=%.4f | exp_lcb_holdout=%.4f | tpm_holdout=%.4f | exposure_ratio=%.4f | score=%.4f",
+            "Stage-1 best accepted: %s | holdout_months_used=%s | pf_adj_holdout=%.4f | exp_lcb_holdout=%.4f | tpm_holdout=%.4f | exposure_ratio=%.4f | score=%.4f",
             best_accepted_payload["candidate_id"],
+            best_accepted_payload["holdout_months_used"],
             float(best_acc_holdout["pf_adj"]),
             float(best_acc_holdout["exp_lcb"]),
             float(best_acc_holdout["trades_per_month"]),
@@ -744,6 +791,43 @@ def _evaluate_temporal_candidate_metrics(
     }
 
 
+def _evaluate_with_holdout_promotion(
+    candidate: Candidate,
+    splits_by_holdout: dict[int, dict[str, dict[str, pd.DataFrame]]],
+    promotion_holdout_months: list[int],
+    min_trades_per_month_floor: float,
+    exposure_threshold: float,
+    round_trip_cost_pct: float,
+    slippage_pct: float,
+    initial_capital: float,
+) -> tuple[dict[str, dict[str, float | str]], int]:
+    selected_temporal: dict[str, dict[str, float | str]] | None = None
+    selected_months = int(promotion_holdout_months[-1])
+
+    for holdout_months in promotion_holdout_months:
+        temporal_metrics = _evaluate_temporal_candidate_metrics(
+            candidate=candidate,
+            splits=splits_by_holdout[int(holdout_months)],
+            round_trip_cost_pct=round_trip_cost_pct,
+            slippage_pct=slippage_pct,
+            initial_capital=initial_capital,
+        )
+        holdout = temporal_metrics["holdout"]
+        trades_per_month_holdout = _compute_trades_per_month(
+            trade_count=float(holdout["trade_count"]),
+            duration_days=float(holdout["duration_days"]),
+        )
+        exposure_ratio = float(holdout["exposure_ratio"])
+        selected_temporal = temporal_metrics
+        selected_months = int(holdout_months)
+        if trades_per_month_holdout >= float(min_trades_per_month_floor) and exposure_ratio >= float(exposure_threshold):
+            break
+
+    if selected_temporal is None:
+        raise ValueError("No temporal metrics computed during holdout promotion")
+    return selected_temporal, selected_months
+
+
 def _build_temporal_splits(
     stage_c_data: dict[str, pd.DataFrame],
     split_mode: str,
@@ -769,6 +853,69 @@ def _build_temporal_splits(
         "holdout": holdout,
         "combined": combined,
     }
+
+
+def _build_temporal_splits_with_holdout_months(
+    stage_c_data: dict[str, pd.DataFrame],
+    split_mode: str,
+    holdout_months: int,
+) -> dict[str, dict[str, pd.DataFrame]]:
+    if split_mode != "60_20_20":
+        raise ValueError(f"Unsupported stage1 split_mode: {split_mode}")
+
+    train: dict[str, pd.DataFrame] = {}
+    validation: dict[str, pd.DataFrame] = {}
+    holdout: dict[str, pd.DataFrame] = {}
+    combined: dict[str, pd.DataFrame] = {}
+
+    for symbol, frame in stage_c_data.items():
+        train_frame, validation_frame, holdout_frame = _split_symbol_with_fixed_holdout(
+            frame=frame,
+            holdout_months=holdout_months,
+        )
+        train[symbol] = train_frame
+        validation[symbol] = validation_frame
+        holdout[symbol] = holdout_frame
+        combined[symbol] = pd.concat([validation_frame, holdout_frame], axis=0, ignore_index=True)
+
+    return {
+        "train": train,
+        "validation": validation,
+        "holdout": holdout,
+        "combined": combined,
+    }
+
+
+def _split_symbol_with_fixed_holdout(
+    frame: pd.DataFrame,
+    holdout_months: int,
+) -> tuple[pd.DataFrame, pd.DataFrame, pd.DataFrame]:
+    data = frame.copy().sort_values("timestamp").reset_index(drop=True)
+    if data.empty:
+        return data.copy(), data.copy(), data.copy()
+
+    holdout, _ = slice_last_n_months(data, window_months=int(holdout_months), end_mode="latest")
+    if holdout.empty:
+        return _split_symbol_60_20_20(data)
+
+    holdout_timestamps = pd.to_datetime(holdout["timestamp"], utc=True)
+    holdout_start = holdout_timestamps.iloc[0]
+
+    timestamps = pd.to_datetime(data["timestamp"], utc=True)
+    pre_holdout = data.loc[timestamps < holdout_start].reset_index(drop=True)
+    if len(pre_holdout) < 2:
+        return _split_symbol_60_20_20(data)
+
+    validation_size = int(math.floor(len(pre_holdout) * 0.25))
+    validation_size = max(1, min(validation_size, len(pre_holdout) - 1))
+    split_idx = len(pre_holdout) - validation_size
+
+    train = pre_holdout.iloc[:split_idx].reset_index(drop=True)
+    validation = pre_holdout.iloc[split_idx:].reset_index(drop=True)
+
+    if validation.empty or holdout.empty:
+        return _split_symbol_60_20_20(data)
+    return train, validation, holdout.reset_index(drop=True)
 
 
 def _split_symbol_60_20_20(frame: pd.DataFrame) -> tuple[pd.DataFrame, pd.DataFrame, pd.DataFrame]:
@@ -798,19 +945,24 @@ def _split_symbol_60_20_20(frame: pd.DataFrame) -> tuple[pd.DataFrame, pd.DataFr
 
 
 def _candidate_rejection_reason(
-    holdout_metrics: dict[str, float | str],
     trades_per_month_holdout: float,
     min_trades_per_month_floor: float,
     allow_rare_if_high_expectancy: bool,
     rare_expectancy_threshold: float,
     validation_evidence_passed: bool,
+    exp_lcb_holdout: float,
+    effective_edge: float,
 ) -> str:
     if not validation_evidence_passed:
         return "insufficient_validation_evidence"
 
-    expectancy_holdout = float(holdout_metrics["expectancy"])
+    if float(exp_lcb_holdout) <= 0.0:
+        return "non_positive_exp_lcb_holdout"
+    if float(effective_edge) <= 0.0:
+        return "non_positive_effective_edge"
+
     extremely_high_expectancy = (
-        allow_rare_if_high_expectancy and expectancy_holdout >= float(rare_expectancy_threshold)
+        allow_rare_if_high_expectancy and float(exp_lcb_holdout) >= float(rare_expectancy_threshold)
     )
     if float(trades_per_month_holdout) < float(min_trades_per_month_floor) and not extremely_high_expectancy:
         return "degenerate_low_trades_per_month"
@@ -990,6 +1142,7 @@ def _evaluate_candidate_metrics(
     final_equity_list: list[float] = []
     total_bars_in_position = 0.0
     total_bars = 0.0
+    active_calendar_days: set[str] = set()
     symbol_metrics: dict[str, dict[str, float | str]] = {}
     min_ts: pd.Timestamp | None = None
     max_ts: pd.Timestamp | None = None
@@ -1042,6 +1195,16 @@ def _evaluate_candidate_metrics(
             trade_pnl_values.extend(result.trades["pnl"].astype(float).tolist())
             if "bars_held" in result.trades.columns:
                 total_bars_in_position += float(result.trades["bars_held"].astype(float).clip(lower=0).sum())
+            if {"entry_time", "exit_time"}.issubset(result.trades.columns):
+                entry_times = pd.to_datetime(result.trades["entry_time"], utc=True, errors="coerce")
+                exit_times = pd.to_datetime(result.trades["exit_time"], utc=True, errors="coerce")
+                for entry_time, exit_time in zip(entry_times, exit_times, strict=False):
+                    if pd.isna(entry_time) or pd.isna(exit_time):
+                        continue
+                    start_day = min(entry_time.normalize(), exit_time.normalize())
+                    end_day = max(entry_time.normalize(), exit_time.normalize())
+                    for day in pd.date_range(start=start_day, end=end_day, freq="D", tz="UTC"):
+                        active_calendar_days.add(day.date().isoformat())
 
         if not result.equity_curve.empty:
             final_equity_list.append(float(result.equity_curve["equity"].iloc[-1]))
@@ -1081,7 +1244,7 @@ def _evaluate_candidate_metrics(
     )
     expectancy_std = float(np.std(trade_pnl_values, ddof=0)) if trade_pnl_values else 0.0
     exposure_ratio = (float(total_bars_in_position) / float(total_bars)) if total_bars > 0 else 0.0
-    active_days = float(total_bars_in_position / 24.0)
+    active_days = int(len(active_calendar_days))
 
     return {
         "expectancy": expectancy_mean,
@@ -1095,7 +1258,7 @@ def _evaluate_candidate_metrics(
         "exposure_ratio": exposure_ratio,
         "total_bars_in_position": float(total_bars_in_position),
         "total_bars": float(total_bars),
-        "active_days": active_days,
+        "active_days": int(active_days),
         "symbol_metrics": symbol_metrics,
         "date_range": date_range,
     }
@@ -1374,6 +1537,7 @@ def _write_stage1_report(
             report_lines.append(f"- Strategy: `{item['strategy_name']}`")
             report_lines.append(f"- Gating: `{item['gating_mode']}`")
             report_lines.append(f"- Exit mode: `{item['exit_mode']}`")
+            report_lines.append(f"- Holdout months used: `{item.get('holdout_months_used', 0)}`")
             report_lines.append(f"- Entry rules: {item['rules']['entry']}")
             report_lines.append(f"- Exit rules: {item['rules']['exit']}")
             report_lines.append(f"- Parameters: `{json.dumps(item['parameters'], sort_keys=True)}`")
@@ -1417,6 +1581,8 @@ def _write_stage1_real_data_reports(
         validation = row.metrics_validation or {}
         holdout = row.metrics_holdout or {}
         combined = row.metrics_combined or {}
+        validation_exposure_passed = bool(row.validation_exposure_ratio >= float(summary["min_validation_exposure_ratio"]))
+        validation_active_days_passed = bool(row.validation_active_days >= int(summary["min_validation_active_days"]))
         payload_candidates.append(
             {
                 "rank": idx,
@@ -1426,6 +1592,7 @@ def _write_stage1_real_data_reports(
                 "parameters": row.candidate.params,
                 "gating": row.candidate.gating_mode,
                 "exit_mode": row.candidate.exit_mode,
+                "holdout_months_used": int(row.holdout_months_used),
                 "trade_count_validation": float(validation.get("trade_count", 0.0)),
                 "trade_count_holdout": float(holdout.get("trade_count", 0.0)),
                 "pf_validation": float(validation.get("profit_factor", 0.0)),
@@ -1445,14 +1612,20 @@ def _write_stage1_real_data_reports(
                 "low_signal_penalty": float(row.low_signal_penalty),
                 "penalty_relief_applied": bool(row.penalty_relief_applied),
                 "validation_exposure_ratio": float(row.validation_exposure_ratio),
-                "validation_active_days": float(row.validation_active_days),
+                "validation_active_days": int(row.validation_active_days),
+                "validation_exposure_passed": validation_exposure_passed,
+                "validation_active_days_passed": validation_active_days_passed,
+                "validation_evidence_rule": "validation_exposure_ratio >= min_validation_exposure_ratio OR validation_active_days >= min_validation_active_days",
                 "validation_evidence_passed": bool(row.validation_evidence_passed),
                 "holdout_by_symbol": row.holdout_symbol_metrics or {},
                 "validation_range": str(validation.get("date_range", "n/a")),
                 "holdout_range": str(holdout.get("date_range", "n/a")),
                 "combined_range": str(combined.get("date_range", "n/a")),
                 "rejected": bool(row.rejected),
+                "accepted": bool(not row.rejected),
                 "rejection_reason": row.rejection_reason,
+                "exp_lcb_positive": bool(row.exp_lcb_holdout > 0.0),
+                "effective_edge_positive": bool(row.effective_edge > 0.0),
                 "score": float(row.score),
             }
         )
@@ -1484,20 +1657,31 @@ def _write_stage1_real_data_reports(
             best_accepted_flat = {
                 "candidate_id": best_accepted.get("candidate_id"),
                 "strategy_name": best_accepted.get("strategy_name"),
+                "holdout_months_used": int(best_accepted.get("holdout_months_used", 0)),
                 "score": float(best_accepted.get("score", 0.0)),
                 "pf_adj_holdout": float(metrics_holdout.get("pf_adj", 0.0)),
                 "exp_lcb_holdout": float(metrics_holdout.get("exp_lcb", 0.0)),
+                "effective_edge": float(metrics_holdout.get("effective_edge", 0.0)),
                 "trades_per_month_holdout": float(metrics_holdout.get("trades_per_month", 0.0)),
                 "exposure_ratio": float(metrics_holdout.get("exposure_ratio", 0.0)),
                 "validation_exposure_ratio": float(
                     (best_accepted.get("validation_evidence", {}) or {}).get("exposure_ratio", 0.0)
                 ),
-                "validation_active_days": float(
+                "validation_active_days": int(
                     (best_accepted.get("validation_evidence", {}) or {}).get("active_days", 0.0)
+                ),
+                "validation_exposure_passed": bool(
+                    (best_accepted.get("validation_evidence", {}) or {}).get("exposure_passed", False)
+                ),
+                "validation_active_days_passed": bool(
+                    (best_accepted.get("validation_evidence", {}) or {}).get("active_days_passed", False)
                 ),
                 "validation_evidence_passed": bool(
                     (best_accepted.get("validation_evidence", {}) or {}).get("passed", False)
                 ),
+                "exp_lcb_positive": bool(metrics_holdout.get("exp_lcb", 0.0) > 0.0),
+                "effective_edge_positive": bool(metrics_holdout.get("effective_edge", 0.0) > 0.0),
+                "accepted": bool(metrics_holdout.get("accepted", True)),
             }
         else:
             best_accepted_flat = best_accepted
@@ -1508,8 +1692,12 @@ def _write_stage1_real_data_reports(
         "split_mode": summary["split_mode"],
         "recent_weight": summary["recent_weight"],
         "min_holdout_trades": summary["min_holdout_trades"],
+        "promotion_holdout_months": summary["promotion_holdout_months"],
+        "promotion_counts": summary["promotion_counts"],
         "min_validation_exposure_ratio": summary["min_validation_exposure_ratio"],
         "min_validation_active_days": summary["min_validation_active_days"],
+        "validation_evidence_rule": "validation_exposure_ratio >= min_validation_exposure_ratio OR validation_active_days >= min_validation_active_days",
+        "acceptance_rule": "exp_lcb_holdout > 0 AND effective_edge > 0 AND validation_evidence_passed",
         "rejected_due_validation_evidence_count": summary["rejected_due_validation_evidence_count"],
         "round_trip_cost_pct": summary["round_trip_cost_pct"],
         "any_pf_holdout_gt_1_and_expectancy_holdout_gt_0": any_profitable_raw,
@@ -1530,8 +1718,15 @@ def _write_stage1_real_data_reports(
     lines.append(f"- split_mode: `{summary['split_mode']}`")
     lines.append(f"- recent_weight: `{summary['recent_weight']}`")
     lines.append(f"- min_holdout_trades: `{summary['min_holdout_trades']}`")
+    lines.append(f"- promotion_holdout_months: `{summary['promotion_holdout_months']}`")
+    lines.append(f"- promotion_counts: `{summary['promotion_counts']}`")
     lines.append(f"- min_validation_exposure_ratio: `{summary['min_validation_exposure_ratio']}`")
     lines.append(f"- min_validation_active_days: `{summary['min_validation_active_days']}`")
+    lines.append(
+        "- validation_evidence_rule: "
+        "`validation_exposure_ratio >= min_validation_exposure_ratio OR validation_active_days >= min_validation_active_days`"
+    )
+    lines.append("- acceptance_rule: `exp_lcb_holdout > 0 AND effective_edge > 0 AND validation_evidence_passed`")
     lines.append(f"- rejected_due_validation_evidence_count: `{summary['rejected_due_validation_evidence_count']}`")
     lines.append(f"- target_trades_per_month_holdout: `{summary['target_trades_per_month_holdout']}`")
     lines.append(f"- low_signal_penalty_weight: `{summary['low_signal_penalty_weight']}`")
@@ -1540,21 +1735,24 @@ def _write_stage1_real_data_reports(
     lines.append("")
     lines.append("## Top 5 Candidates")
     lines.append(
-        "| rank | strategy | gating | exit | val_trades | hold_trades | tpm_hold | pf_adj | exp_lcb | effective_edge | exposure | PF_val | PF_hold | exp_val | exp_hold | max_dd_hold | return_hold | CAGR_hold | score | rejected |"
+        "| rank | strategy | gating | exit | holdout_m | val_trades | hold_trades | tpm_hold | pf_adj | exp_lcb | edge | exp_lcb>0 | edge>0 | accepted | exposure | PF_val | PF_hold | exp_val | exp_hold | max_dd_hold | return_hold | CAGR_hold | score |"
     )
-    lines.append("| --- | --- | --- | --- | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | --- |")
+    lines.append("| --- | --- | --- | --- | ---: | ---: | ---: | ---: | ---: | ---: | ---: | --- | --- | --- | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: |")
     for item in payload_candidates:
         lines.append(
             f"| {item['rank']} | {item['strategy_name']} | {item['gating']} | {item['exit_mode']} | "
+            f"{item['holdout_months_used']} | "
             f"{item['trade_count_validation']:.0f} | {item['trade_count_holdout']:.0f} | "
             f"{item['trades_per_month_holdout']:.4f} | {item['pf_adj_holdout']:.4f} | "
             f"{item['exp_lcb_holdout']:.4f} | {item['effective_edge']:.4f} | "
+            f"{'yes' if item['exp_lcb_positive'] else 'no'} | "
+            f"{'yes' if item['effective_edge_positive'] else 'no'} | "
+            f"{'yes' if item['accepted'] else 'no'} | "
             f"{item['exposure_ratio']:.4f} | "
             f"{item['pf_validation']:.4f} | {item['pf_holdout']:.4f} | "
             f"{item['expectancy_validation']:.4f} | {item['expectancy_holdout']:.4f} | "
             f"{item['max_drawdown_holdout']:.4f} | {item['return_pct_holdout']:.4f} | "
-            f"{item['cagr_approx_holdout']:.4f} | {item['score']:.4f} | "
-            f"{'yes' if item['rejected'] else 'no'} |"
+            f"{item['cagr_approx_holdout']:.4f} | {item['score']:.4f} |"
         )
     lines.append("")
     lines.append("### Holdout By Symbol (Top Candidates)")
@@ -1574,6 +1772,17 @@ def _write_stage1_real_data_reports(
             f"trades={float(eth.get('trade_count', 0.0)):.0f})"
         )
     lines.append("")
+    lines.append("### Validation Evidence (OR Rule)")
+    for item in payload_candidates:
+        lines.append(
+            f"- Rank {item['rank']} {item['strategy_name']}: "
+            f"exposure={item['validation_exposure_ratio']:.4f} "
+            f"(pass={'yes' if item['validation_exposure_passed'] else 'no'}), "
+            f"active_days={item['validation_active_days']} "
+            f"(pass={'yes' if item['validation_active_days_passed'] else 'no'}), "
+            f"OR_passed={'yes' if item['validation_evidence_passed'] else 'no'}"
+        )
+    lines.append("")
     lines.append("## Accepted Summary")
     if best_accepted_flat is None:
         lines.append("- Best ACCEPTED candidate: none")
@@ -1581,12 +1790,14 @@ def _write_stage1_real_data_reports(
         lines.append(
             "- Best ACCEPTED candidate: "
             f"`{best_accepted_flat['strategy_name']}` "
-            f"(pf_adj_holdout={best_accepted_flat['pf_adj_holdout']:.4f}, "
+            f"(holdout_months_used={best_accepted_flat.get('holdout_months_used', 0)}, "
+            f"pf_adj_holdout={best_accepted_flat['pf_adj_holdout']:.4f}, "
             f"exp_lcb_holdout={best_accepted_flat['exp_lcb_holdout']:.4f}, "
+            f"effective_edge={best_accepted_flat.get('effective_edge', 0.0):.4f}, "
             f"tpm_holdout={best_accepted_flat['trades_per_month_holdout']:.4f}, "
             f"exposure_ratio={best_accepted_flat['exposure_ratio']:.4f}, "
             f"validation_exposure={best_accepted_flat.get('validation_exposure_ratio', 0.0):.4f}, "
-            f"validation_active_days={best_accepted_flat.get('validation_active_days', 0.0):.2f}, "
+            f"validation_active_days={best_accepted_flat.get('validation_active_days', 0)}, "
             f"score={best_accepted_flat['score']:.4f})"
         )
     lines.append(
@@ -1602,7 +1813,7 @@ def _write_stage1_real_data_reports(
         f"**{'YES' if any_profitable_raw else 'NO'}**"
     )
     lines.append(
-        "Accepted candidates only (after low-signal degeneracy filter): "
+        "Accepted candidates only (after validation evidence + exp_lcb/effective_edge + degeneracy filters): "
         f"**{'YES' if any_profitable_accepted else 'NO'}**"
     )
     lines.append("")

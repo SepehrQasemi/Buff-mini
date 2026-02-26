@@ -85,7 +85,15 @@ def test_funnel_reduces_candidate_count_and_writes_artifacts(tmp_path: Path) -> 
     assert summary["candidate_count_stage_a"] >= summary["candidate_count_stage_b"]
     assert summary["candidate_count_stage_b"] >= summary["candidate_count_stage_c"]
     assert summary["candidate_count_stage_b"] <= config["evaluation"]["stage1"]["top_k"]
-    assert summary["candidate_count_stage_c"] <= config["evaluation"]["stage1"]["top_m"]
+    assert summary["candidate_count_stage_c"] <= min(50, config["evaluation"]["stage1"]["top_k"])
+    assert summary["promotion_holdout_months"] == [3, 6, 9, 12]
+    assert set(summary["promotion_counts"].keys()) == {"6", "9", "12"}
+
+    top_strategies = json.loads((run_dir / "strategies.json").read_text(encoding="utf-8"))
+    for row in top_strategies:
+        assert int(row["holdout_months_used"]) in {3, 6, 9, 12}
+        validation = row["validation_evidence"]
+        assert isinstance(validation["active_days"], int)
 
     diagnostics = json.loads((run_dir / "diagnostics.json").read_text(encoding="utf-8"))
     for stage in ["A", "B", "C"]:
@@ -231,35 +239,55 @@ def test_penalty_relief_triggers_when_expectancy_high() -> None:
 
 
 def test_degenerate_rejection_triggers_below_tpm_floor() -> None:
-    holdout_metrics = {
-        "expectancy": 1.0,
-    }
     tpm = _compute_trades_per_month(trade_count=1.0, duration_days=60.0)
     reason = _candidate_rejection_reason(
-        holdout_metrics=holdout_metrics,
         trades_per_month_holdout=tpm,
         min_trades_per_month_floor=2.0,
         allow_rare_if_high_expectancy=True,
         rare_expectancy_threshold=3.0,
         validation_evidence_passed=True,
+        exp_lcb_holdout=1.0,
+        effective_edge=0.5,
     )
     assert reason == "degenerate_low_trades_per_month"
 
 
 def test_degenerate_rejection_relief_with_extremely_high_expectancy() -> None:
-    holdout_metrics = {
-        "expectancy": 10.0,
-    }
     tpm = _compute_trades_per_month(trade_count=1.0, duration_days=60.0)
     reason = _candidate_rejection_reason(
-        holdout_metrics=holdout_metrics,
         trades_per_month_holdout=tpm,
         min_trades_per_month_floor=2.0,
         allow_rare_if_high_expectancy=True,
         rare_expectancy_threshold=3.0,
         validation_evidence_passed=True,
+        exp_lcb_holdout=10.0,
+        effective_edge=5.0,
     )
     assert reason == ""
+
+
+def test_rejection_requires_positive_exp_lcb_and_effective_edge() -> None:
+    reason_lcb = _candidate_rejection_reason(
+        trades_per_month_holdout=5.0,
+        min_trades_per_month_floor=2.0,
+        allow_rare_if_high_expectancy=False,
+        rare_expectancy_threshold=3.0,
+        validation_evidence_passed=True,
+        exp_lcb_holdout=0.0,
+        effective_edge=1.0,
+    )
+    assert reason_lcb == "non_positive_exp_lcb_holdout"
+
+    reason_edge = _candidate_rejection_reason(
+        trades_per_month_holdout=5.0,
+        min_trades_per_month_floor=2.0,
+        allow_rare_if_high_expectancy=False,
+        rare_expectancy_threshold=3.0,
+        validation_evidence_passed=True,
+        exp_lcb_holdout=1.0,
+        effective_edge=0.0,
+    )
+    assert reason_edge == "non_positive_effective_edge"
 
 
 def test_validation_evidence_gate_requires_exposure_or_active_days() -> None:
