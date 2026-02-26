@@ -55,15 +55,15 @@ def validate_config(config: ConfigDict) -> None:
         raise ValueError("Only 1h timeframe is supported in MVP Phase 1")
 
     costs = config["costs"]
-    _validate_pct(costs["round_trip_cost_pct"], "costs.round_trip_cost_pct")
-    _validate_pct(costs["slippage_pct"], "costs.slippage_pct")
-    if costs["funding_pct_per_day"] < 0:
+    _validate_percent_value(costs["round_trip_cost_pct"], "costs.round_trip_cost_pct")
+    _validate_fraction(costs["slippage_pct"], "costs.slippage_pct")
+    if float(costs["funding_pct_per_day"]) < 0:
         raise ValueError("costs.funding_pct_per_day must be >= 0")
 
     risk = config["risk"]
-    _validate_pct(risk["risk_per_trade_pct"], "risk.risk_per_trade_pct")
-    _validate_pct(risk["max_drawdown_pct"], "risk.max_drawdown_pct")
-    _validate_pct(risk["max_daily_loss_pct"], "risk.max_daily_loss_pct")
+    _validate_fraction(risk["risk_per_trade_pct"], "risk.risk_per_trade_pct")
+    _validate_fraction(risk["max_drawdown_pct"], "risk.max_drawdown_pct")
+    _validate_fraction(risk["max_daily_loss_pct"], "risk.max_daily_loss_pct")
     if int(risk["max_concurrent_positions"]) < 1:
         raise ValueError("risk.max_concurrent_positions must be >= 1")
 
@@ -83,7 +83,13 @@ def compute_config_hash(config: ConfigDict) -> str:
     return stable_hash(config)
 
 
-def _validate_pct(value: Any, name: str) -> None:
+def _validate_fraction(value: Any, name: str) -> None:
     numeric = float(value)
     if not 0 <= numeric <= 1:
         raise ValueError(f"{name} must be between 0 and 1")
+
+
+def _validate_percent_value(value: Any, name: str) -> None:
+    numeric = float(value)
+    if not 0 <= numeric <= 100:
+        raise ValueError(f"{name} must be between 0 and 100 (percent units)")

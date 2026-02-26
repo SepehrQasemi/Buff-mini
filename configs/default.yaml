@@ -7,7 +7,8 @@
   end: null
 
 costs:
-  round_trip_cost_pct: 0.001
+  # Percent units: 0.1 means 0.1% round-trip.
+  round_trip_cost_pct: 0.1
   slippage_pct: 0.0005
   funding_pct_per_day: 0.0
 

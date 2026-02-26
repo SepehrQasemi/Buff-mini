@@ -36,6 +36,8 @@ streamlit run src/buffmini/ui/app.py
 
 For offline validation (no exchange download), use `python scripts/run_stage0.py --dry-run`.
 
+Config note: `costs.round_trip_cost_pct` is interpreted as a percent value (`0.1` means `0.1%`, `1.0` means `1.0%`).
+
 ## Stage-0 Purpose
 
 Stage-0 is a feasibility gate that runs three transparent baseline strategies on shared data and identical execution rules. It is intended to test whether any signal survives basic costs and risk constraints before any strategy discovery workflow is considered.

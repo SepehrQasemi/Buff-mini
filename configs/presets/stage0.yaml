@@ -6,7 +6,7 @@
   end: null
 
 costs:
-  round_trip_cost_pct: 0.001
+  round_trip_cost_pct: 0.1
   slippage_pct: 0.0005
   funding_pct_per_day: 0.0
 
