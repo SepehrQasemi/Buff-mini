@@ -30,8 +30,11 @@ Auto Crypto Strategy Discovery Engine (MVP Phase 1).
 pip install -e .
 python scripts/update_data.py
 python scripts/run_stage0.py
+python scripts/run_stage0.py --dry-run
 streamlit run src/buffmini/ui/app.py
 ```
+
+For offline validation (no exchange download), use `python scripts/run_stage0.py --dry-run`.
 
 ## Stage-0 Purpose
 
@@ -39,11 +42,16 @@ Stage-0 is a feasibility gate that runs three transparent baseline strategies on
 
 No guarantee of profitability. Designed to prevent overfitting.
 
+`scripts/run_discovery.py` is a placeholder in MVP Phase 1 and does not run discovery generation yet.
+
 ## Output Structure
 
 - Raw market data: `data/raw/*.parquet`
 - Run artifacts: `runs/<timestamp>_<config_hash>/`
   - `config.yaml`
+  - `summary.json`
+  - `leaderboard.csv`
+  - `strategies.json`
   - `meta.json`
   - `summary.csv`
   - strategy-level `trades_*.csv` and `equity_*.csv`
