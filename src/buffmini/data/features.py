@@ -1,4 +1,4 @@
-﻿"""Feature calculation for Stage-0 indicators."""
+﻿"""Feature calculation for Stage-0 and Stage-0.5 indicators."""
 
 from __future__ import annotations
 
@@ -7,7 +7,7 @@ import pandas as pd
 
 
 def calculate_features(frame: pd.DataFrame) -> pd.DataFrame:
-    """Calculate EMA/RSI/ATR/Donchian features without future leakage."""
+    """Calculate EMA/RSI/ATR/Donchian and ATR-SMA features without leakage."""
 
     required = {"timestamp", "open", "high", "low", "close", "volume"}
     missing = required.difference(frame.columns)
@@ -45,6 +45,7 @@ def calculate_features(frame: pd.DataFrame) -> pd.DataFrame:
     )
     true_range = tr_components.max(axis=1)
     data["atr_14"] = true_range.rolling(window=14, min_periods=14).mean()
+    data["atr_14_sma_50"] = data["atr_14"].rolling(window=50, min_periods=50).mean()
 
     # Shift Donchian channels by one bar to avoid using current candle breakout level.
     data["donchian_high_20"] = high.rolling(window=20, min_periods=20).max().shift(1)

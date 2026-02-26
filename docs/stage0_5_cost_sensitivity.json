@@ -1,0 +1,184 @@
+{
+  "runs": [
+    {
+      "round_trip_cost_pct": 1.0,
+      "run_id": "20260226_100556_85a7f2023b3a",
+      "results": [
+        {
+          "symbol": "BTC/USDT",
+          "strategy": "Donchian Breakout",
+          "profit_factor": 0.3237003314922339,
+          "expectancy": -22.657462730111774,
+          "max_drawdown": 0.9901311213058848,
+          "trade_count": 437.0,
+          "final_equity": 98.68878694115357
+        },
+        {
+          "symbol": "BTC/USDT",
+          "strategy": "RSI Mean Reversion",
+          "profit_factor": 0.22208577315716,
+          "expectancy": -26.00521125687775,
+          "max_drawdown": 0.9833709355542188,
+          "trade_count": 378.0,
+          "final_equity": 170.03014490021684
+        },
+        {
+          "symbol": "BTC/USDT",
+          "strategy": "Trend Pullback",
+          "profit_factor": 0.1793108830493078,
+          "expectancy": -71.21268125398858,
+          "max_drawdown": 0.5997812847813909,
+          "trade_count": 83.0,
+          "final_equity": 4089.34745591895
+        },
+        {
+          "symbol": "ETH/USDT",
+          "strategy": "Donchian Breakout",
+          "profit_factor": 0.252538627027181,
+          "expectancy": -23.59036276511777,
+          "max_drawdown": 0.986077163581923,
+          "trade_count": 418.0,
+          "final_equity": 139.22836418076966
+        },
+        {
+          "symbol": "ETH/USDT",
+          "strategy": "RSI Mean Reversion",
+          "profit_factor": 0.2730630446570444,
+          "expectancy": -23.87414757799211,
+          "max_drawdown": 0.983886187058294,
+          "trade_count": 412.0,
+          "final_equity": 163.8511978672578
+        },
+        {
+          "symbol": "ETH/USDT",
+          "strategy": "Trend Pullback",
+          "profit_factor": 0.2846597903824709,
+          "expectancy": -72.1090436408511,
+          "max_drawdown": 0.5995821921038098,
+          "trade_count": 79.0,
+          "final_equity": 4303.385552372763
+        }
+      ]
+    },
+    {
+      "round_trip_cost_pct": 0.2,
+      "run_id": "20260226_100607_5bf3d8b4c424",
+      "results": [
+        {
+          "symbol": "BTC/USDT",
+          "strategy": "Donchian Breakout",
+          "profit_factor": 0.7608411138746488,
+          "expectancy": -15.242035443761104,
+          "max_drawdown": 0.7054809223108736,
+          "trade_count": 437.0,
+          "final_equity": 3339.230511076395
+        },
+        {
+          "symbol": "BTC/USDT",
+          "strategy": "RSI Mean Reversion",
+          "profit_factor": 0.6768833724361373,
+          "expectancy": -17.0031135008798,
+          "max_drawdown": 0.6601686072513737,
+          "trade_count": 378.0,
+          "final_equity": 3572.823096667443
+        },
+        {
+          "symbol": "BTC/USDT",
+          "strategy": "Trend Pullback",
+          "profit_factor": 0.64172827650428,
+          "expectancy": -24.36376939668444,
+          "max_drawdown": 0.2441810528803289,
+          "trade_count": 83.0,
+          "final_equity": 7977.807140075192
+        },
+        {
+          "symbol": "ETH/USDT",
+          "strategy": "Donchian Breakout",
+          "profit_factor": 0.7734790729926602,
+          "expectancy": -14.277121205786136,
+          "max_drawdown": 0.6361626997559412,
+          "trade_count": 418.0,
+          "final_equity": 4032.163335981396
+        },
+        {
+          "symbol": "ETH/USDT",
+          "strategy": "RSI Mean Reversion",
+          "profit_factor": 0.7856912746285252,
+          "expectancy": -13.34327279530299,
+          "max_drawdown": 0.64896895813982,
+          "trade_count": 412.0,
+          "final_equity": 4502.571608335176
+        },
+        {
+          "symbol": "ETH/USDT",
+          "strategy": "Trend Pullback",
+          "profit_factor": 0.7443291113709889,
+          "expectancy": -23.60715727856025,
+          "max_drawdown": 0.2785564214378294,
+          "trade_count": 79.0,
+          "final_equity": 8135.034574993737
+        }
+      ]
+    },
+    {
+      "round_trip_cost_pct": 0.1,
+      "run_id": "20260226_100618_30dbdc5f9765",
+      "results": [
+        {
+          "symbol": "BTC/USDT",
+          "strategy": "Donchian Breakout",
+          "profit_factor": 0.8463345079399825,
+          "expectancy": -11.039979042916867,
+          "max_drawdown": 0.5766927278703204,
+          "trade_count": 437.0,
+          "final_equity": 5175.529158245318
+        },
+        {
+          "symbol": "BTC/USDT",
+          "strategy": "RSI Mean Reversion",
+          "profit_factor": 0.7794661127512843,
+          "expectancy": -12.648526249104057,
+          "max_drawdown": 0.5053211125852732,
+          "trade_count": 378.0,
+          "final_equity": 5218.8570778386775
+        },
+        {
+          "symbol": "BTC/USDT",
+          "strategy": "Trend Pullback",
+          "profit_factor": 0.7527350361758017,
+          "expectancy": -16.02906720378723,
+          "max_drawdown": 0.1858996444231558,
+          "trade_count": 83.0,
+          "final_equity": 8669.587422085655
+        },
+        {
+          "symbol": "ETH/USDT",
+          "strategy": "Donchian Breakout",
+          "profit_factor": 0.8728395743280685,
+          "expectancy": -9.259103675572836,
+          "max_drawdown": 0.5091462658339613,
+          "trade_count": 418.0,
+          "final_equity": 6129.694663610548
+        },
+        {
+          "symbol": "ETH/USDT",
+          "strategy": "RSI Mean Reversion",
+          "profit_factor": 0.8906370595613345,
+          "expectancy": -7.766358657021491,
+          "max_drawdown": 0.5343846021575868,
+          "trade_count": 412.0,
+          "final_equity": 6800.260233307138
+        },
+        {
+          "symbol": "ETH/USDT",
+          "strategy": "Trend Pullback",
+          "profit_factor": 0.8337886759781965,
+          "expectancy": -15.115702181622908,
+          "max_drawdown": 0.2365454230912489,
+          "trade_count": 79.0,
+          "final_equity": 8805.859527651786
+        }
+      ]
+    }
+  ]
+}

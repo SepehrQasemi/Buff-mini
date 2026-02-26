@@ -47,6 +47,11 @@ def parse_args() -> argparse.Namespace:
         default=360,
         help="Number of hourly bars to generate in dry-run mode.",
     )
+    parser.add_argument(
+        "--stage05",
+        action="store_true",
+        help="Enable Stage-0.5 filters (ATR volatility gate + optional regime gate).",
+    )
     return parser.parse_args()
 
 
@@ -54,6 +59,7 @@ def run_stage0(
     config: ConfigDict,
     config_path: Path,
     dry_run: bool = False,
+    stage05: bool = False,
     run_id: str | None = None,
     runs_dir: Path = RUNS_DIR,
     data_dir: Path = RAW_DATA_DIR,
@@ -117,7 +123,7 @@ def run_stage0(
         features = calculate_features(raw)
         for strategy in strategies:
             strategy_df = features.copy()
-            strategy_df["signal"] = generate_signals(strategy_df, strategy)
+            strategy_df["signal"] = generate_signals(strategy_df, strategy, stage05=stage05)
 
             result = run_backtest(
                 frame=strategy_df,
@@ -167,6 +173,7 @@ def run_stage0(
         "config_hash": config_hash,
         "seed": seed,
         "dry_run": dry_run,
+        "stage05": stage05,
         "symbol_count": len(symbols),
         "strategy_count": len(strategies),
         "total_combinations": len(symbols) * len(strategies),
@@ -182,6 +189,7 @@ def run_stage0(
         "config_hash": config_hash,
         "config_path": str(config_path),
         "dry_run": dry_run,
+        "stage05": stage05,
     }
     with (run_dir / "meta.json").open("w", encoding="utf-8") as handle:
         json.dump(meta, handle, indent=2)
@@ -269,6 +277,7 @@ def main() -> None:
         config=config,
         config_path=args.config,
         dry_run=bool(args.dry_run),
+        stage05=bool(args.stage05),
         run_id=args.run_id,
         runs_dir=args.runs_dir,
         data_dir=args.data_dir,
