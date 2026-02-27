@@ -17,6 +17,28 @@ risk:
   max_drawdown_pct: 0.25
   max_daily_loss_pct: 0.05
   max_concurrent_positions: 1
+  max_gross_exposure: 5.0
+  max_net_exposure_per_symbol: 5.0
+  max_open_positions: 10
+  sizing:
+    mode: risk_budget
+    risk_per_trade_pct: 1.0
+    fixed_fraction_pct: 10.0
+  killswitch:
+    enabled: true
+    max_daily_loss_pct: 5.0
+    max_peak_to_valley_dd_pct: 20.0
+    max_consecutive_losses: 8
+    cool_down_bars: 48
+  reeval:
+    cadence: weekly
+    min_new_bars: 168
+
+execution:
+  mode: net
+  per_symbol_netting: true
+  allow_opposite_signals: false
+  symbol_scope: per_symbol
 
 search:
   candidates: 100
@@ -150,3 +172,11 @@ evaluation:
         - 24
         - 48
         - 96
+  stage4:
+    source_stage2_run_id: ""
+    source_stage3_3_run_id: ""
+    default_method: equal
+    default_leverage: 1.0
+    output:
+      write_docs_summary: true
+      write_run_artifacts: true

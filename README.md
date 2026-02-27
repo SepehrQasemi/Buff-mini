@@ -46,6 +46,39 @@ No guarantee of profitability. Designed to prevent overfitting.
 
 `scripts/run_discovery.py` is a placeholder in MVP Phase 1 and does not run discovery generation yet.
 
+## Stage-4 Execution Layer
+
+Stage-4 converts selected research outputs into an execution-ready specification with configurable policy and risk controls.
+
+Supported execution modes:
+
+- `net`
+- `hedge`
+- `isolated`
+
+Generate trading spec from existing Stage-2/Stage-3.3 artifacts:
+
+```bash
+python scripts/run_stage4_spec.py \
+  --stage2-run-id 20260227_015806_3cb775eb81a0_stage2 \
+  --stage3-3-run-id 20260227_113410_aca9cf2325a2_stage3_3_selector
+```
+
+Run offline paper-execution simulation:
+
+```bash
+python scripts/run_stage4_simulate.py \
+  --stage2-run-id 20260227_015806_3cb775eb81a0_stage2 \
+  --stage3-3-run-id 20260227_113410_aca9cf2325a2_stage3_3_selector \
+  --days 90
+```
+
+Outputs:
+
+- `docs/trading_spec.md`
+- `docs/paper_trading_checklist.md`
+- `runs/<timestamp>_*_stage4_sim/` execution diagnostics
+
 ## Output Structure
 
 - Raw market data: `data/raw/*.parquet`

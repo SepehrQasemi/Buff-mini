@@ -63,6 +63,16 @@ def test_load_config_success() -> None:
     assert selector["constraints"]["min_return_p05"] == 0.0
     assert selector["utility"]["objective"] == "expected_log_growth"
     assert selector["utility"]["epsilon"] == 1e-12
+    assert config["execution"]["mode"] == "net"
+    assert config["execution"]["per_symbol_netting"] is True
+    assert config["risk"]["max_gross_exposure"] == 5.0
+    assert config["risk"]["max_net_exposure_per_symbol"] == 5.0
+    assert config["risk"]["sizing"]["mode"] == "risk_budget"
+    assert config["risk"]["sizing"]["risk_per_trade_pct"] == 1.0
+    assert config["risk"]["killswitch"]["enabled"] is True
+    assert config["risk"]["killswitch"]["cool_down_bars"] == 48
+    assert config["evaluation"]["stage4"]["default_method"] == "equal"
+    assert config["evaluation"]["stage4"]["default_leverage"] == 1.0
 
 
 def test_validate_config_accepts_legacy_flat_result_thresholds() -> None:

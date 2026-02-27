@@ -35,6 +35,46 @@ DATA_DEFAULTS = {
     "backend": "parquet",
 }
 
+EXECUTION_DEFAULTS = {
+    "mode": "net",
+    "per_symbol_netting": True,
+    "allow_opposite_signals": False,
+    "symbol_scope": "per_symbol",
+}
+
+RISK_STAGE4_DEFAULTS = {
+    "max_gross_exposure": 5.0,
+    "max_net_exposure_per_symbol": 5.0,
+    "max_open_positions": 10,
+    "sizing": {
+        "mode": "risk_budget",
+        "risk_per_trade_pct": 1.0,
+        "fixed_fraction_pct": 10.0,
+    },
+    "killswitch": {
+        "enabled": True,
+        "max_daily_loss_pct": 5.0,
+        "max_peak_to_valley_dd_pct": 20.0,
+        "max_consecutive_losses": 8,
+        "cool_down_bars": 48,
+    },
+    "reeval": {
+        "cadence": "weekly",
+        "min_new_bars": 168,
+    },
+}
+
+STAGE4_DEFAULTS = {
+    "source_stage2_run_id": "",
+    "source_stage3_3_run_id": "",
+    "default_method": "equal",
+    "default_leverage": 1.0,
+    "output": {
+        "write_docs_summary": True,
+        "write_run_artifacts": True,
+    },
+}
+
 PORTFOLIO_DEFAULTS = {
     "walkforward": {
         "min_usable_windows": 3,
@@ -195,6 +235,55 @@ def validate_config(config: ConfigDict) -> None:
     _validate_fraction(risk["max_daily_loss_pct"], "risk.max_daily_loss_pct")
     if int(risk["max_concurrent_positions"]) < 1:
         raise ValueError("risk.max_concurrent_positions must be >= 1")
+    risk = _merge_defaults(RISK_STAGE4_DEFAULTS, risk)
+    if float(risk["max_gross_exposure"]) <= 0:
+        raise ValueError("risk.max_gross_exposure must be > 0")
+    if float(risk["max_net_exposure_per_symbol"]) <= 0:
+        raise ValueError("risk.max_net_exposure_per_symbol must be > 0")
+    if int(risk["max_open_positions"]) < 1:
+        raise ValueError("risk.max_open_positions must be >= 1")
+
+    sizing = risk["sizing"]
+    if str(sizing["mode"]) not in {"risk_budget", "fixed_fraction"}:
+        raise ValueError("risk.sizing.mode must be 'risk_budget' or 'fixed_fraction'")
+    _validate_percent_value(sizing["risk_per_trade_pct"], "risk.sizing.risk_per_trade_pct")
+    if float(sizing["risk_per_trade_pct"]) <= 0:
+        raise ValueError("risk.sizing.risk_per_trade_pct must be > 0")
+    _validate_percent_value(sizing["fixed_fraction_pct"], "risk.sizing.fixed_fraction_pct")
+    if float(sizing["fixed_fraction_pct"]) <= 0:
+        raise ValueError("risk.sizing.fixed_fraction_pct must be > 0")
+
+    killswitch = risk["killswitch"]
+    if not isinstance(killswitch["enabled"], bool):
+        raise ValueError("risk.killswitch.enabled must be bool")
+    _validate_percent_value(killswitch["max_daily_loss_pct"], "risk.killswitch.max_daily_loss_pct")
+    if float(killswitch["max_daily_loss_pct"]) <= 0:
+        raise ValueError("risk.killswitch.max_daily_loss_pct must be > 0")
+    _validate_percent_value(killswitch["max_peak_to_valley_dd_pct"], "risk.killswitch.max_peak_to_valley_dd_pct")
+    if float(killswitch["max_peak_to_valley_dd_pct"]) <= 0:
+        raise ValueError("risk.killswitch.max_peak_to_valley_dd_pct must be > 0")
+    if int(killswitch["max_consecutive_losses"]) < 1:
+        raise ValueError("risk.killswitch.max_consecutive_losses must be >= 1")
+    if int(killswitch["cool_down_bars"]) < 1:
+        raise ValueError("risk.killswitch.cool_down_bars must be >= 1")
+
+    reeval = risk["reeval"]
+    if str(reeval["cadence"]) not in {"daily", "weekly", "monthly"}:
+        raise ValueError("risk.reeval.cadence must be one of: daily, weekly, monthly")
+    if int(reeval["min_new_bars"]) < 1:
+        raise ValueError("risk.reeval.min_new_bars must be >= 1")
+    config["risk"] = risk
+
+    execution = _merge_defaults(EXECUTION_DEFAULTS, config.get("execution", {}))
+    if str(execution["mode"]) not in {"net", "hedge", "isolated"}:
+        raise ValueError("execution.mode must be one of: net, hedge, isolated")
+    if not isinstance(execution["per_symbol_netting"], bool):
+        raise ValueError("execution.per_symbol_netting must be bool")
+    if not isinstance(execution["allow_opposite_signals"], bool):
+        raise ValueError("execution.allow_opposite_signals must be bool")
+    if str(execution["symbol_scope"]) != "per_symbol":
+        raise ValueError("execution.symbol_scope must be 'per_symbol'")
+    config["execution"] = execution
 
     search = config["search"]
     if int(search["candidates"]) < 1:
@@ -285,6 +374,21 @@ def validate_config(config: ConfigDict) -> None:
     stage1 = _merge_defaults(STAGE1_DEFAULTS, evaluation.get("stage1", {}))
     _validate_stage1(stage1)
     evaluation["stage1"] = stage1
+    stage4 = _merge_defaults(STAGE4_DEFAULTS, evaluation.get("stage4", {}))
+    if not isinstance(stage4["source_stage2_run_id"], str):
+        raise ValueError("evaluation.stage4.source_stage2_run_id must be string")
+    if not isinstance(stage4["source_stage3_3_run_id"], str):
+        raise ValueError("evaluation.stage4.source_stage3_3_run_id must be string")
+    if str(stage4["default_method"]) not in {"equal", "vol", "corr-min"}:
+        raise ValueError("evaluation.stage4.default_method must be one of: equal, vol, corr-min")
+    if float(stage4["default_leverage"]) <= 0:
+        raise ValueError("evaluation.stage4.default_leverage must be > 0")
+    output_cfg = stage4["output"]
+    if not isinstance(output_cfg["write_docs_summary"], bool):
+        raise ValueError("evaluation.stage4.output.write_docs_summary must be bool")
+    if not isinstance(output_cfg["write_run_artifacts"], bool):
+        raise ValueError("evaluation.stage4.output.write_run_artifacts must be bool")
+    evaluation["stage4"] = stage4
 
 
 def compute_config_hash(config: ConfigDict) -> str:
