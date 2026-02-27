@@ -5,6 +5,7 @@
   timeframe: 1h
   start: "2023-01-01T00:00:00Z"
   end: null
+  resolved_end_ts: null
 
 costs:
   # Percent units: 0.1 means 0.1% round-trip.

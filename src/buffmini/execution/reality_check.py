@@ -46,6 +46,7 @@ def run_reality_check(
     run_id: str,
     runs_dir: Path = RUNS_DIR,
     cfg: RealityCheckConfig | None = None,
+    policy_snapshot_path: Path | None = None,
 ) -> Path:
     """Run Stage-4.5 on one pipeline run and persist artifacts."""
 
@@ -57,6 +58,22 @@ def run_reality_check(
     summary_ui = _read_json(run_dir / "ui_bundle" / "summary_ui.json")
     if not summary_ui:
         raise FileNotFoundError(f"missing ui_bundle summary: {run_dir / 'ui_bundle' / 'summary_ui.json'}")
+    pipeline_summary = _read_json(run_dir / "pipeline_summary.json")
+
+    resolved_policy_snapshot_path = _resolve_policy_snapshot_path(
+        run_dir=run_dir,
+        runs_dir=Path(runs_dir),
+        summary_ui=summary_ui,
+        pipeline_summary=pipeline_summary,
+        explicit_path=policy_snapshot_path,
+    )
+    policy_snapshot = _read_json(resolved_policy_snapshot_path)
+    if not policy_snapshot:
+        raise FileNotFoundError(f"missing or invalid policy snapshot: {resolved_policy_snapshot_path}")
+
+    mismatches = _policy_binding_mismatches(summary_ui=summary_ui, policy_snapshot=policy_snapshot)
+    if mismatches:
+        raise ValueError("policy snapshot mismatch: " + "; ".join(mismatches))
 
     equity_df = _read_csv(run_dir / "ui_bundle" / "equity_curve.csv")
     if equity_df.empty:
@@ -140,6 +157,8 @@ def run_reality_check(
             "config_hash": summary_ui.get("config_hash"),
             "data_hash": summary_ui.get("data_hash"),
             "seed_source": summary_ui.get("seed"),
+            "policy_snapshot_path": str(resolved_policy_snapshot_path),
+            "policy_binding_validated": True,
         },
         rolling_forward=rolling_df,
         perturbation=perturb_df,
@@ -576,6 +595,89 @@ def _read_json(path: Path) -> dict[str, Any]:
     except Exception:
         return {}
     return payload if isinstance(payload, dict) else {}
+
+
+def _resolve_policy_snapshot_path(
+    run_dir: Path,
+    runs_dir: Path,
+    summary_ui: dict[str, Any],
+    pipeline_summary: dict[str, Any],
+    explicit_path: Path | None,
+) -> Path:
+    if explicit_path is not None:
+        return Path(explicit_path)
+
+    stage4_run_id = str(
+        summary_ui.get("stages", {}).get("stage4_run_id")
+        or pipeline_summary.get("stage4_run_id")
+        or ""
+    ).strip()
+    if stage4_run_id:
+        return runs_dir / stage4_run_id / "policy_snapshot.json"
+
+    fallback = run_dir / "policy_snapshot.json"
+    if fallback.exists():
+        return fallback
+    raise FileNotFoundError("Stage-4 policy snapshot could not be resolved from run metadata")
+
+
+def _policy_binding_mismatches(summary_ui: dict[str, Any], policy_snapshot: dict[str, Any]) -> list[str]:
+    mismatches: list[str] = []
+    ui_policy = summary_ui.get("policy_snapshot")
+    if not isinstance(ui_policy, dict):
+        return ["summary_ui.policy_snapshot missing"]
+
+    top_checks = [
+        ("chosen_leverage", ("leverage",)),
+        ("execution_mode", ("execution_mode",)),
+    ]
+    for ui_key, snap_path in top_checks:
+        ui_val = summary_ui.get(ui_key)
+        snap_val = _nested_get(policy_snapshot, *snap_path)
+        if not _values_equal(ui_val, snap_val):
+            mismatches.append(f"{ui_key} != policy_snapshot.{'.'.join(snap_path)}")
+
+    nested_checks = [
+        ("leverage",),
+        ("execution_mode",),
+        ("caps", "max_gross_exposure"),
+        ("caps", "max_net_exposure_per_symbol"),
+        ("caps", "max_open_positions"),
+        ("costs", "round_trip_cost_pct"),
+        ("costs", "slippage_pct"),
+        ("costs", "funding_pct_per_day"),
+        ("kill_switch", "enabled"),
+        ("kill_switch", "max_daily_loss_pct"),
+        ("kill_switch", "max_peak_to_valley_dd_pct"),
+        ("kill_switch", "max_consecutive_losses"),
+        ("kill_switch", "cool_down_bars"),
+    ]
+    for path in nested_checks:
+        ui_val = _nested_get(ui_policy, *path)
+        snap_val = _nested_get(policy_snapshot, *path)
+        if not _values_equal(ui_val, snap_val):
+            joined = ".".join(path)
+            mismatches.append(f"summary_ui.policy_snapshot.{joined} != policy_snapshot.{joined}")
+
+    return mismatches
+
+
+def _nested_get(payload: dict[str, Any], *path: str) -> Any:
+    current: Any = payload
+    for key in path:
+        if not isinstance(current, dict):
+            return None
+        current = current.get(key)
+    return current
+
+
+def _values_equal(left: Any, right: Any) -> bool:
+    try:
+        left_num = float(left)
+        right_num = float(right)
+        return abs(left_num - right_num) <= 1e-12
+    except Exception:
+        return left == right
 
 
 def _read_csv(path: Path) -> pd.DataFrame:

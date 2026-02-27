@@ -11,7 +11,7 @@ from typing import Any
 import numpy as np
 import pandas as pd
 
-from buffmini.config import compute_config_hash, validate_config
+from buffmini.config import compute_config_hash, get_universe_end, validate_config
 from buffmini.constants import (
     DEFAULT_TIMEFRAME,
     DEFAULT_WALKFORWARD_FORWARD_DAYS,
@@ -795,7 +795,7 @@ def _load_raw_data(config: dict[str, Any], data_dir: Path) -> dict[str, pd.DataF
     )
     timeframe = str(config["universe"].get("timeframe", DEFAULT_TIMEFRAME))
     start = config["universe"].get("start")
-    end = config["universe"].get("end")
+    end = get_universe_end(config)
     return {
         str(symbol): store.load_ohlcv(symbol=str(symbol), timeframe=timeframe, start=start, end=end)
         for symbol in config["universe"]["symbols"]

@@ -193,8 +193,14 @@ with reports_tab:
     stage2_report = Path(reports.get("stage2_report", Path(RUNS_DIR) / str(pipeline_summary.get("stage2_run_id", "")) / "portfolio_report.md"))
     render_markdown_file(stage2_report, title="Stage-2 Portfolio Report", fallback="Stage-2 report unavailable")
 
-    render_markdown_file(PROJECT_ROOT / "docs" / "trading_spec.md", title="Trading Spec", fallback="trading_spec.md not found")
-    render_markdown_file(PROJECT_ROOT / "docs" / "paper_trading_checklist.md", title="Paper Trading Checklist", fallback="paper_trading_checklist.md not found")
+    trading_spec_report = Path(
+        reports.get("trading_spec", stage4_dir / "spec" / "trading_spec.md")
+    )
+    checklist_report = Path(
+        reports.get("paper_checklist", stage4_dir / "spec" / "paper_trading_checklist.md")
+    )
+    render_markdown_file(trading_spec_report, title="Trading Spec", fallback="trading_spec.md not found")
+    render_markdown_file(checklist_report, title="Paper Trading Checklist", fallback="paper_trading_checklist.md not found")
 
     if not generic_curves.get("equity_curve", pd.DataFrame()).empty:
         st.subheader("Equity Curve (generic artifact)")

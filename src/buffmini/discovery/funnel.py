@@ -15,7 +15,7 @@ import yaml
 
 from buffmini.backtest.engine import run_backtest
 from buffmini.baselines.stage0 import generate_signals
-from buffmini.config import compute_config_hash
+from buffmini.config import compute_config_hash, get_universe_end
 from buffmini.constants import RAW_DATA_DIR, RUNS_DIR
 from buffmini.data.features import calculate_features
 from buffmini.data.store import DataStore, build_data_store
@@ -202,7 +202,7 @@ def run_stage1_optimization(
         store=store,
         dry_run=dry_run,
         start=config["universe"]["start"],
-        end=config["universe"]["end"],
+        end=get_universe_end(config),
         seed=resolved_seed,
     )
     feature_data = {symbol: calculate_features(frame) for symbol, frame in raw_data.items()}

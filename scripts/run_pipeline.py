@@ -16,11 +16,13 @@ from dataclasses import dataclass
 from pathlib import Path
 from typing import Any
 
+import pandas as pd
 import yaml
 
 from buffmini.config import compute_config_hash, load_config
-from buffmini.constants import DEFAULT_CONFIG_PATH, PROJECT_ROOT, RUNS_DIR
+from buffmini.constants import DEFAULT_CONFIG_PATH, PROJECT_ROOT, RAW_DATA_DIR, RUNS_DIR
 from buffmini.data.storage import parquet_path
+from buffmini.data.store import build_data_store
 from buffmini.ui_bundle.builder import build_ui_bundle_from_pipeline
 from buffmini.ui.components.run_lock import release_lock
 from buffmini.utils.hashing import stable_hash
@@ -95,11 +97,12 @@ def main() -> None:
     stage4_run_id: str | None = None
     stage4_sim_run_id: str | None = None
     resolved_candidate_count = 0
+    resolved_end_ts: str | None = None
     config: dict[str, Any] = {}
 
     try:
         config = load_config(args.config)
-        config, resolved_candidate_count = _prepare_config(config=config, args=args, symbols=symbols)
+        config, resolved_candidate_count, resolved_end_ts = _prepare_config(config=config, args=args, symbols=symbols)
         pipeline_cfg_path.write_text(yaml.safe_dump(config, sort_keys=False), encoding="utf-8")
 
         _run_data_validate(
@@ -240,8 +243,14 @@ def main() -> None:
         overall = selector_summary.get("overall_choice", {}) if selector_summary else {}
         chosen_method = overall.get("method") or config["evaluation"]["stage4"]["default_method"]
         chosen_leverage = float(overall.get("chosen_leverage") or config["evaluation"]["stage4"]["default_leverage"])
+        if not stage1_run_id:
+            raise RuntimeError("Pipeline summary generation requires non-empty stage1_run_id.")
 
         stage1_summary = _safe_json(Path(args.runs_dir) / stage1_run_id / "summary.json")
+        stage4_run_dir = Path(args.runs_dir) / str(stage4_run_id)
+        stage4_spec_path = stage4_run_dir / "spec" / "trading_spec.md"
+        stage4_checklist_path = stage4_run_dir / "spec" / "paper_trading_checklist.md"
+        stage4_policy_snapshot = stage4_run_dir / "policy_snapshot.json"
 
         summary_payload = {
             "run_id": run_id,
@@ -259,12 +268,14 @@ def main() -> None:
             "stage4_sim_run_id": stage4_sim_run_id,
             "chosen_method": chosen_method,
             "chosen_leverage": chosen_leverage,
+            "resolved_end_ts": resolved_end_ts,
             "reports": {
                 "stage1_report": str(Path(args.runs_dir) / stage1_run_id / "stage1_real_data_report.md"),
                 "stage2_report": str(Path(args.runs_dir) / stage2_run_id / "portfolio_report.md"),
                 "stage3_3_report": str(Path(args.runs_dir) / stage3_run_id / "selector_report.md"),
-                "trading_spec": str(PROJECT_ROOT / "docs" / "trading_spec.md"),
-                "paper_checklist": str(PROJECT_ROOT / "docs" / "paper_trading_checklist.md"),
+                "trading_spec": str(stage4_spec_path),
+                "paper_checklist": str(stage4_checklist_path),
+                "policy_snapshot": str(stage4_policy_snapshot),
                 "stage4_sim_metrics": (
                     str(Path(args.runs_dir) / stage4_sim_run_id / "execution_metrics.json")
                     if stage4_sim_run_id
@@ -303,6 +314,7 @@ def main() -> None:
                 "stage3_3_run_id": stage3_run_id,
                 "stage4_run_id": stage4_run_id,
                 "stage4_sim_run_id": stage4_sim_run_id,
+                "resolved_end_ts": resolved_end_ts,
             },
         )
         try:
@@ -337,6 +349,7 @@ def main() -> None:
                 "stage3_3_run_id": stage3_run_id,
                 "stage4_run_id": stage4_run_id,
                 "stage4_sim_run_id": stage4_sim_run_id,
+                "resolved_end_ts": resolved_end_ts,
                 "config_hash": compute_config_hash(config) if config else "",
                 "seed": int(args.seed),
             },
@@ -364,7 +377,7 @@ def main() -> None:
         release_lock(run_id=run_id, runs_dir=Path(args.runs_dir))
 
 
-def _prepare_config(config: dict[str, Any], args: argparse.Namespace, symbols: list[str]) -> tuple[dict[str, Any], int]:
+def _prepare_config(config: dict[str, Any], args: argparse.Namespace, symbols: list[str]) -> tuple[dict[str, Any], int, str]:
     cfg = deepcopy(config)
 
     ui_stage5 = cfg.get("ui", {}).get("stage5", {})
@@ -387,6 +400,9 @@ def _prepare_config(config: dict[str, Any], args: argparse.Namespace, symbols: l
 
     cfg["universe"]["symbols"] = symbols
     cfg["universe"]["timeframe"] = str(args.timeframe)
+    resolved_end_ts = _resolve_universe_end_ts(cfg, symbols=symbols, timeframe=str(args.timeframe))
+    cfg["universe"]["resolved_end_ts"] = resolved_end_ts
+    cfg["universe"]["end"] = resolved_end_ts
     cfg["search"]["seed"] = int(args.seed)
     cfg["execution"]["mode"] = str(args.execution_mode)
 
@@ -412,7 +428,37 @@ def _prepare_config(config: dict[str, Any], args: argparse.Namespace, symbols: l
     cfg["evaluation"]["stage4"]["default_method"] = "equal"
     cfg["evaluation"]["stage4"]["default_leverage"] = 1.0
 
-    return cfg, resolved_candidate_count
+    return cfg, resolved_candidate_count, resolved_end_ts
+
+
+def _resolve_universe_end_ts(config: dict[str, Any], symbols: list[str], timeframe: str) -> str:
+    configured = (config.get("universe", {}) or {}).get("resolved_end_ts") or (config.get("universe", {}) or {}).get("end")
+    if configured:
+        return _as_utc_iso_timestamp(configured)
+
+    store = build_data_store(
+        backend=str(config.get("data", {}).get("backend", "parquet")),
+        data_dir=RAW_DATA_DIR,
+    )
+    end_timestamps: list[pd.Timestamp] = []
+    for symbol in symbols:
+        coverage = store.coverage(symbol=symbol, timeframe=timeframe)
+        if not bool(coverage.get("exists")) or not coverage.get("end"):
+            raise FileNotFoundError(
+                f"Cannot resolve universe end timestamp from local data for {symbol} {timeframe}."
+            )
+        end_timestamps.append(pd.Timestamp(_as_utc_iso_timestamp(coverage["end"])))
+
+    return min(end_timestamps).isoformat()
+
+
+def _as_utc_iso_timestamp(value: Any) -> str:
+    ts = pd.Timestamp(value)
+    if ts.tzinfo is None:
+        ts = ts.tz_localize("UTC")
+    else:
+        ts = ts.tz_convert("UTC")
+    return ts.isoformat()
 
 
 def _run_data_validate(

@@ -45,6 +45,13 @@ def build_ui_bundle(run_id: str, source_paths: dict[str, Any], out_dir: Path) ->
     stage3_3_run_id = str(pipeline_summary.get("stage3_3_run_id") or "")
     stage4_run_id = str(pipeline_summary.get("stage4_run_id") or "")
     stage4_sim_run_id = str(pipeline_summary.get("stage4_sim_run_id") or "")
+    status = str(pipeline_summary.get("status") or progress.get("status") or "unknown")
+    _validate_lineage_fields(
+        status=status,
+        stage1_run_id=stage1_run_id,
+        stage2_run_id=stage2_run_id,
+        stage3_3_run_id=stage3_3_run_id,
+    )
 
     stage2_summary = _safe_json(RUNS_DIR / stage2_run_id / "portfolio_summary.json") if stage2_run_id else {}
     stage3_summary = _safe_json(RUNS_DIR / stage3_3_run_id / "selector_summary.json") if stage3_3_run_id else {}
@@ -65,8 +72,19 @@ def build_ui_bundle(run_id: str, source_paths: dict[str, Any], out_dir: Path) ->
     timeframe = str((pipeline_cfg.get("universe", {}) or {}).get("timeframe", "1h"))
     evaluation_window_months = int((pipeline_cfg.get("evaluation", {}).get("stage1", {}) or {}).get("holdout_months", 0) or 0)
     seed = int((pipeline_cfg.get("search", {}) or {}).get("seed", 42) or 42)
-
-    status = str(pipeline_summary.get("status") or progress.get("status") or "unknown")
+    resolved_end_ts = str(
+        pipeline_summary.get("resolved_end_ts")
+        or (pipeline_cfg.get("universe", {}) or {}).get("resolved_end_ts")
+        or (pipeline_cfg.get("universe", {}) or {}).get("end")
+        or ""
+    )
+    policy_snapshot = _load_policy_snapshot(
+        stage4_run_id=stage4_run_id,
+        pipeline_cfg=pipeline_cfg,
+        chosen_method=chosen_method,
+        chosen_leverage=chosen_leverage,
+        warnings=warnings,
+    )
 
     key_metrics = {
         "pf": None,
@@ -132,8 +150,10 @@ def build_ui_bundle(run_id: str, source_paths: dict[str, Any], out_dir: Path) ->
         "config_hash": config_hash,
         "data_hash": data_hash,
         "seed": seed,
+        "resolved_end_ts": resolved_end_ts,
         "run_window_start_ts": window_start_ts,
         "run_window_end_ts": window_end_ts,
+        "policy_snapshot": policy_snapshot,
         "bundle_build_warnings": warnings,
     }
     _write_json_atomic(out_dir / "summary_ui.json", summary_ui)
@@ -278,6 +298,59 @@ def _safe_json(path: Path) -> dict[str, Any]:
     except Exception:
         return {}
     return payload if isinstance(payload, dict) else {}
+
+
+def _load_policy_snapshot(
+    stage4_run_id: str,
+    pipeline_cfg: dict[str, Any],
+    chosen_method: str,
+    chosen_leverage: float,
+    warnings: list[str],
+) -> dict[str, Any]:
+    if stage4_run_id:
+        snapshot_path = RUNS_DIR / stage4_run_id / "policy_snapshot.json"
+        payload = _safe_json(snapshot_path)
+        if payload:
+            return payload
+        warnings.append(f"policy snapshot missing for stage4_run_id: {stage4_run_id}")
+
+    risk_cfg = pipeline_cfg.get("risk", {}) if isinstance(pipeline_cfg, dict) else {}
+    costs_cfg = pipeline_cfg.get("costs", {}) if isinstance(pipeline_cfg, dict) else {}
+    execution_cfg = pipeline_cfg.get("execution", {}) if isinstance(pipeline_cfg, dict) else {}
+    return {
+        "selected_method": str(chosen_method),
+        "leverage": float(chosen_leverage),
+        "execution_mode": str(execution_cfg.get("mode", "net")),
+        "caps": {
+            "max_gross_exposure": float(risk_cfg.get("max_gross_exposure", 0.0)),
+            "max_net_exposure_per_symbol": float(risk_cfg.get("max_net_exposure_per_symbol", 0.0)),
+            "max_open_positions": int(risk_cfg.get("max_open_positions", 0)),
+        },
+        "costs": {
+            "round_trip_cost_pct": float(costs_cfg.get("round_trip_cost_pct", 0.0)),
+            "slippage_pct": float(costs_cfg.get("slippage_pct", 0.0)),
+            "funding_pct_per_day": float(costs_cfg.get("funding_pct_per_day", 0.0)),
+        },
+        "kill_switch": dict(risk_cfg.get("killswitch", {})),
+        "source": "ui_bundle_fallback",
+    }
+
+
+def _validate_lineage_fields(status: str, stage1_run_id: str, stage2_run_id: str, stage3_3_run_id: str) -> None:
+    if str(status).lower() != "success":
+        return
+
+    missing: list[str] = []
+    if not str(stage1_run_id).strip():
+        missing.append("stage1_run_id")
+    if not str(stage2_run_id).strip():
+        missing.append("stage2_run_id")
+    if not str(stage3_3_run_id).strip():
+        missing.append("stage3_3_run_id")
+
+    if missing:
+        joined = ", ".join(missing)
+        raise ValueError(f"ui_bundle lineage validation failed: missing required field(s): {joined}")
 
 
 def _safe_yaml(path: Path) -> dict[str, Any]:

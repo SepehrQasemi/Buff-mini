@@ -10,6 +10,8 @@ import streamlit as st
 from buffmini.config import load_config
 from buffmini.execution.simulator import resolve_stage4_method_and_leverage, run_stage4_simulation
 from buffmini.spec.trading_spec import generate_trading_spec
+from buffmini.utils.hashing import stable_hash
+from buffmini.utils.time import utc_now_compact
 
 
 root = Path(__file__).resolve().parents[4]
@@ -67,6 +69,7 @@ cfg["risk"]["killswitch"]["cool_down_bars"] = int(st.number_input("Cooldown bars
 
 days = int(st.number_input("Simulation days", min_value=1, value=90, step=1))
 seed = int(st.number_input("Simulation seed", min_value=0, value=42, step=1))
+export_global_docs = st.checkbox("Export generated spec to docs/ (explicit)", value=False)
 
 stage3_summary = None
 if stage3_run_id.strip():
@@ -107,14 +110,67 @@ if st.button("Generate Trading Spec"):
                     "weight": float(weight),
                 }
             )
+        run_id_payload = {
+            "stage2_run_id": stage2_run_id.strip(),
+            "stage3_run_id": stage3_run_id.strip(),
+            "method": selected_method,
+            "leverage": float(selected_leverage),
+            "seed": int(seed),
+        }
+        stage4_run_id = f"{utc_now_compact()}_{stable_hash(run_id_payload, length=12)}_stage4"
+        stage4_run_dir = runs_dir / stage4_run_id
+        output_path = stage4_run_dir / "spec" / "trading_spec.md"
         outputs = generate_trading_spec(
             cfg=cfg,
             stage2_metadata=stage2_summary,
             stage3_3_choice=stage3_summary,
             selected_candidates=selected_candidates,
-            output_path=root / "docs" / "trading_spec.md",
+            output_path=output_path,
         )
+        policy_snapshot = {
+            "selected_method": selected_method,
+            "leverage": float(selected_leverage),
+            "execution_mode": str(cfg["execution"]["mode"]),
+            "caps": {
+                "max_gross_exposure": float(cfg["risk"]["max_gross_exposure"]),
+                "max_net_exposure_per_symbol": float(cfg["risk"]["max_net_exposure_per_symbol"]),
+                "max_open_positions": int(cfg["risk"]["max_open_positions"]),
+            },
+            "costs": {
+                "round_trip_cost_pct": float(cfg["costs"]["round_trip_cost_pct"]),
+                "slippage_pct": float(cfg["costs"]["slippage_pct"]),
+                "funding_pct_per_day": float(cfg["costs"]["funding_pct_per_day"]),
+            },
+            "kill_switch": dict(cfg["risk"]["killswitch"]),
+        }
+        stage4_run_dir.mkdir(parents=True, exist_ok=True)
+        (stage4_run_dir / "policy_snapshot.json").write_text(
+            json.dumps(policy_snapshot, indent=2),
+            encoding="utf-8",
+        )
+        (stage4_run_dir / "spec_summary.json").write_text(
+            json.dumps(
+                {
+                    "run_id": stage4_run_id,
+                    "stage2_run_id": stage2_run_id.strip(),
+                    "stage3_3_run_id": stage3_run_id.strip() or None,
+                    "selected_method": selected_method,
+                    "selected_leverage": float(selected_leverage),
+                    "trading_spec_path": str(outputs["trading_spec_path"]),
+                    "paper_checklist_path": str(outputs["paper_checklist_path"]),
+                    "policy_snapshot_path": str(stage4_run_dir / "policy_snapshot.json"),
+                },
+                indent=2,
+            ),
+            encoding="utf-8",
+        )
+        if export_global_docs:
+            spec_text = outputs["trading_spec_path"].read_text(encoding="utf-8")
+            checklist_text = outputs["paper_checklist_path"].read_text(encoding="utf-8")
+            (root / "docs" / "trading_spec.md").write_text(spec_text, encoding="utf-8")
+            (root / "docs" / "paper_trading_checklist.md").write_text(checklist_text, encoding="utf-8")
         st.success("Trading spec generated.")
+        st.write(f"Stage-4 run id: `{stage4_run_id}`")
         st.write(f"Trading spec: `{outputs['trading_spec_path']}`")
         st.write(f"Paper checklist: `{outputs['paper_checklist_path']}`")
         preview = outputs["trading_spec_path"].read_text(encoding="utf-8").splitlines()[:60]
@@ -138,4 +194,3 @@ if st.button("Run Paper Simulation"):
         st.success(f"Simulation completed: {run_dir.name}")
         st.json(metrics["metrics"])
         st.write(f"Artifacts: `{run_dir}`")
-

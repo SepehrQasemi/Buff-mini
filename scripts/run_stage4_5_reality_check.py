@@ -16,6 +16,7 @@ def parse_args() -> argparse.Namespace:
     parser = argparse.ArgumentParser(description="Run Stage-4.5 reality check")
     parser.add_argument("--run-id", type=str, default=None, help="Pipeline run id (defaults to latest completed)")
     parser.add_argument("--seed", type=int, default=42)
+    parser.add_argument("--policy-snapshot", type=Path, default=None, help="Optional explicit policy_snapshot.json path")
     parser.add_argument("--runs-dir", type=Path, default=RUNS_DIR)
     return parser.parse_args()
 
@@ -34,6 +35,7 @@ def main() -> None:
         run_id=run_id,
         runs_dir=args.runs_dir,
         cfg=RealityCheckConfig(seed=int(args.seed)),
+        policy_snapshot_path=args.policy_snapshot,
     )
 
     summary_path = rc_dir / "reality_check_summary.json"

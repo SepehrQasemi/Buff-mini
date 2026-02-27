@@ -69,6 +69,7 @@ def test_ui_bundle_builder_creates_required_outputs(tmp_path, monkeypatch) -> No
                 "status": "success",
                 "config_hash": "cfg123",
                 "data_hash": "data123",
+                "stage1_run_id": "stage1_a",
                 "stage2_run_id": "stage2_a",
                 "stage3_3_run_id": "stage3_3_a",
                 "stage4_sim_run_id": "stage4_sim_a",
@@ -135,3 +136,48 @@ def test_ui_bundle_builder_handles_missing_sources_with_warnings(tmp_path, monke
     assert summary["status"] == "failed"
     assert isinstance(summary["bundle_build_warnings"], list)
     assert summary["bundle_build_warnings"]
+
+
+def test_pipeline_requires_stage1_lineage(tmp_path, monkeypatch) -> None:
+    runs_dir = tmp_path / "runs"
+    runs_dir.mkdir(parents=True, exist_ok=True)
+    pipeline_run = runs_dir / "pipeline_success_missing_lineage"
+    pipeline_run.mkdir(parents=True, exist_ok=True)
+
+    (pipeline_run / "pipeline_summary.json").write_text(
+        json.dumps(
+            {
+                "run_id": "pipeline_success_missing_lineage",
+                "status": "success",
+                "stage2_run_id": "stage2_a",
+                "stage3_3_run_id": "stage3_3_a",
+            }
+        ),
+        encoding="utf-8",
+    )
+    (pipeline_run / "pipeline_config.yaml").write_text(
+        """
+universe:
+  symbols: [BTC/USDT]
+  timeframe: 1h
+search:
+  seed: 42
+evaluation:
+  stage1:
+    holdout_months: 12
+execution:
+  mode: net
+""".strip(),
+        encoding="utf-8",
+    )
+
+    monkeypatch.setattr(builder, "RUNS_DIR", runs_dir)
+    monkeypatch.setattr(discover, "RUNS_DIR", runs_dir)
+    monkeypatch.setattr(discover, "PROJECT_ROOT", tmp_path)
+
+    try:
+        builder.build_ui_bundle_from_pipeline(pipeline_run)
+    except ValueError as exc:
+        assert "stage1_run_id" in str(exc)
+    else:
+        raise AssertionError("Expected lineage validation failure for missing stage1_run_id")

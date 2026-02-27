@@ -13,6 +13,7 @@ from pandas.errors import EmptyDataError
 
 from buffmini.backtest.engine import run_backtest
 from buffmini.baselines.stage0 import generate_signals
+from buffmini.config import get_universe_end
 from buffmini.constants import RAW_DATA_DIR, RUNS_DIR
 from buffmini.data.features import calculate_features
 from buffmini.data.store import build_data_store
@@ -734,7 +735,7 @@ def _load_feature_data(config: ConfigDict, data_dir: Path) -> dict[str, pd.DataF
     )
     timeframe = str(config["universe"]["timeframe"])
     start = config["universe"].get("start")
-    end = config["universe"].get("end")
+    end = get_universe_end(config)
     feature_data: dict[str, pd.DataFrame] = {}
     for symbol in config["universe"]["symbols"]:
         frame = store.load_ohlcv(symbol=symbol, timeframe=timeframe, start=start, end=end)

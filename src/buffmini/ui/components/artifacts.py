@@ -39,9 +39,23 @@ def load_stage4_artifacts(run_dir: Path, project_root: Path = PROJECT_ROOT) -> t
 
     warnings: list[str] = []
     docs_dir = Path(project_root) / "docs"
+    trading_spec_path = _first_existing(
+        [
+            run_dir / "spec" / "trading_spec.md",
+            run_dir / "trading_spec.md",
+            docs_dir / "trading_spec.md",
+        ]
+    )
+    checklist_path = _first_existing(
+        [
+            run_dir / "spec" / "paper_trading_checklist.md",
+            run_dir / "paper_trading_checklist.md",
+            docs_dir / "paper_trading_checklist.md",
+        ]
+    )
     payload: dict[str, Any] = {
-        "trading_spec": _safe_text(docs_dir / "trading_spec.md", warnings, "docs/trading_spec.md"),
-        "paper_checklist": _safe_text(docs_dir / "paper_trading_checklist.md", warnings, "docs/paper_trading_checklist.md"),
+        "trading_spec": _safe_text(trading_spec_path, warnings, "stage4/trading_spec.md"),
+        "paper_checklist": _safe_text(checklist_path, warnings, "stage4/paper_trading_checklist.md"),
         "execution_metrics": _first_json([run_dir / "execution_metrics.json"], warnings, "execution_metrics"),
         "exposure_timeseries": _first_csv([run_dir / "exposure_timeseries.csv"], warnings, "exposure_timeseries"),
         "orders": _first_csv([run_dir / "orders.csv"], warnings, "orders"),
@@ -106,3 +120,9 @@ def _safe_text(path: Path, warnings: list[str], label: str) -> str:
         warnings.append(f"{label}: failed to read: {exc}")
         return ""
 
+
+def _first_existing(candidates: list[Path]) -> Path:
+    for path in candidates:
+        if path.exists():
+            return path
+    return candidates[0]

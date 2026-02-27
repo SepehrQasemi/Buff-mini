@@ -42,14 +42,6 @@ def find_best_report_files(run_dir: Path) -> list[Path]:
         for candidate in sorted(stage_dir.glob("*.md")):
             reports.append(candidate.resolve())
 
-    docs_candidates = [
-        PROJECT_ROOT / "docs" / "trading_spec.md",
-        PROJECT_ROOT / "docs" / "paper_trading_checklist.md",
-    ]
-    for candidate in docs_candidates:
-        if candidate.exists():
-            reports.append(candidate.resolve())
-
     unique: list[Path] = []
     seen: set[str] = set()
     for path in reports:

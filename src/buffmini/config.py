@@ -10,6 +10,7 @@ import yaml
 
 from buffmini.types import ConfigDict
 from buffmini.utils.hashing import stable_hash
+from buffmini.utils.time import parse_utc_timestamp
 
 
 _REQUIRED_SCHEMA: dict[str, tuple[str, ...]] = {
@@ -238,6 +239,16 @@ def validate_config(config: ConfigDict) -> None:
         raise ValueError("universe.symbols must be non-empty")
     if universe["timeframe"] != "1h":
         raise ValueError("Only 1h timeframe is supported in MVP Phase 1")
+    if universe.get("resolved_end_ts") is not None and str(universe.get("resolved_end_ts")).strip() != "":
+        try:
+            resolved_end_ts = parse_utc_timestamp(str(universe["resolved_end_ts"]))
+        except Exception as exc:
+            raise ValueError(f"universe.resolved_end_ts must be a valid UTC timestamp: {exc}") from exc
+        end_value = universe.get("end")
+        if end_value is not None and str(end_value).strip() != "":
+            parsed_end = parse_utc_timestamp(str(end_value))
+            if resolved_end_ts != parsed_end:
+                raise ValueError("universe.end and universe.resolved_end_ts must match when both are set")
 
     costs = config["costs"]
     _validate_percent_value(costs["round_trip_cost_pct"], "costs.round_trip_cost_pct")
@@ -430,6 +441,19 @@ def compute_config_hash(config: ConfigDict) -> str:
     """Compute deterministic short hash for config payload."""
 
     return stable_hash(config)
+
+
+def get_universe_end(config: ConfigDict) -> str | None:
+    """Return effective universe end timestamp, preferring pinned resolved_end_ts."""
+
+    universe = config.get("universe", {}) if isinstance(config, dict) else {}
+    resolved = universe.get("resolved_end_ts")
+    if resolved is not None and str(resolved).strip() != "":
+        return str(resolved)
+    end = universe.get("end")
+    if end is None or str(end).strip() == "":
+        return None
+    return str(end)
 
 
 def _validate_fraction(value: Any, name: str) -> None:

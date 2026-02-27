@@ -7,6 +7,7 @@ from pathlib import Path
 import pandas as pd
 from pandas.testing import assert_frame_equal
 
+from buffmini.config import get_universe_end
 from buffmini.data.storage import load_parquet
 from buffmini.data.store import ParquetStore, build_data_store
 
@@ -51,3 +52,45 @@ def test_build_data_store_parquet_matches_storage_load(tmp_path: Path) -> None:
     loaded_direct = load_parquet(symbol="ETH/USDT", timeframe="1h", data_dir=raw_dir)
 
     assert_frame_equal(loaded_store.reset_index(drop=True), loaded_direct.reset_index(drop=True), check_dtype=False)
+
+
+def test_run_reproducible_with_pinned_end_date(tmp_path: Path) -> None:
+    raw_dir = tmp_path / "raw"
+    store = ParquetStore(data_dir=raw_dir)
+    base = _sample_ohlcv()
+    symbol = "BTC/USDT"
+    timeframe = "1h"
+    store.save_ohlcv(symbol=symbol, timeframe=timeframe, df=base)
+
+    pinned_end = pd.Timestamp(base["timestamp"].iloc[2]).tz_convert("UTC").isoformat()
+    config = {
+        "universe": {
+            "start": pd.Timestamp(base["timestamp"].iloc[0]).tz_convert("UTC").isoformat(),
+            "end": None,
+            "resolved_end_ts": pinned_end,
+        }
+    }
+    end = get_universe_end(config)
+    first = store.load_ohlcv(symbol=symbol, timeframe=timeframe, start=config["universe"]["start"], end=end)
+
+    extended = pd.concat(
+        [
+            base,
+            pd.DataFrame(
+                {
+                    "timestamp": pd.date_range("2025-01-01T05:00:00Z", periods=3, freq="h", tz="UTC"),
+                    "open": [105.0, 106.0, 107.0],
+                    "high": [106.0, 107.0, 108.0],
+                    "low": [104.0, 105.0, 106.0],
+                    "close": [105.5, 106.5, 107.5],
+                    "volume": [15.0, 16.0, 17.0],
+                }
+            ),
+        ],
+        ignore_index=True,
+    )
+    store.save_ohlcv(symbol=symbol, timeframe=timeframe, df=extended)
+    second = store.load_ohlcv(symbol=symbol, timeframe=timeframe, start=config["universe"]["start"], end=end)
+
+    assert_frame_equal(first.reset_index(drop=True), second.reset_index(drop=True), check_dtype=False)
+    assert pd.to_datetime(second["timestamp"], utc=True).max() <= pd.Timestamp(pinned_end).tz_convert("UTC")
