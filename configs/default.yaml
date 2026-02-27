@@ -32,6 +32,27 @@ portfolio:
     min_forward_exposure: 0.01
     pf_clip_max: 5.0
     stability_metric: exp_lcb
+  leverage_selector:
+    methods: ["equal", "vol"]
+    leverage_levels: [1, 2, 3, 5, 10, 15, 20, 25, 50]
+    bootstrap: block
+    block_size_trades: 10
+    n_paths: 20000
+    seed: 42
+    initial_equity: 10000
+    ruin_dd_threshold: 0.5
+    constraints:
+      max_p_ruin: 0.01
+      max_dd_p95: 0.25
+      min_return_p05: 0.0
+    utility:
+      objective: expected_log_growth
+      epsilon: 1.0e-12
+      use_final_equity: true
+      penalize_dd: false
+    reporting:
+      include_per_leverage_tables: true
+      include_binding_constraints: true
 
 evaluation:
   stage0_enabled: true

@@ -3,6 +3,8 @@
 from copy import deepcopy
 from pathlib import Path
 
+import pytest
+
 from buffmini.config import compute_config_hash, load_config, validate_config
 
 
@@ -47,6 +49,20 @@ def test_load_config_success() -> None:
     assert config["portfolio"]["walkforward"]["min_forward_exposure"] == 0.01
     assert config["portfolio"]["walkforward"]["pf_clip_max"] == 5.0
     assert config["portfolio"]["walkforward"]["stability_metric"] == "exp_lcb"
+    selector = config["portfolio"]["leverage_selector"]
+    assert selector["methods"] == ["equal", "vol"]
+    assert selector["leverage_levels"] == [1, 2, 3, 5, 10, 15, 20, 25, 50]
+    assert selector["bootstrap"] == "block"
+    assert selector["block_size_trades"] == 10
+    assert selector["n_paths"] == 20000
+    assert selector["seed"] == 42
+    assert selector["initial_equity"] == 10000
+    assert selector["ruin_dd_threshold"] == 0.5
+    assert selector["constraints"]["max_p_ruin"] == 0.01
+    assert selector["constraints"]["max_dd_p95"] == 0.25
+    assert selector["constraints"]["min_return_p05"] == 0.0
+    assert selector["utility"]["objective"] == "expected_log_growth"
+    assert selector["utility"]["epsilon"] == 1e-12
 
 
 def test_validate_config_accepts_legacy_flat_result_thresholds() -> None:
@@ -76,3 +92,12 @@ def test_compute_config_hash_is_deterministic() -> None:
     config = load_config(root / "configs" / "default.yaml")
 
     assert compute_config_hash(config) == compute_config_hash(config)
+
+
+def test_validate_config_rejects_unsorted_leverage_levels() -> None:
+    root = Path(__file__).resolve().parents[1]
+    config = load_config(root / "configs" / "default.yaml")
+    config["portfolio"]["leverage_selector"]["leverage_levels"] = [1, 3, 2]
+
+    with pytest.raises(ValueError, match="strictly increasing"):
+        validate_config(config)

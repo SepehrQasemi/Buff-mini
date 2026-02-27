@@ -42,7 +42,32 @@ PORTFOLIO_DEFAULTS = {
         "min_forward_exposure": 0.01,
         "pf_clip_max": 5.0,
         "stability_metric": "exp_lcb",
-    }
+    },
+    "leverage_selector": {
+        "methods": ["equal", "vol"],
+        "leverage_levels": [1, 2, 3, 5, 10, 15, 20, 25, 50],
+        "bootstrap": "block",
+        "block_size_trades": 10,
+        "n_paths": 20000,
+        "seed": 42,
+        "initial_equity": 10000,
+        "ruin_dd_threshold": 0.5,
+        "constraints": {
+            "max_p_ruin": 0.01,
+            "max_dd_p95": 0.25,
+            "min_return_p05": 0.0,
+        },
+        "utility": {
+            "objective": "expected_log_growth",
+            "epsilon": 1e-12,
+            "use_final_equity": True,
+            "penalize_dd": False,
+        },
+        "reporting": {
+            "include_per_leverage_tables": True,
+            "include_binding_constraints": True,
+        },
+    },
 }
 
 RESULT_THRESHOLD_DEFAULTS = {
@@ -192,6 +217,58 @@ def validate_config(config: ConfigDict) -> None:
         raise ValueError("portfolio.walkforward.pf_clip_max must be > 0")
     if str(portfolio["walkforward"]["stability_metric"]) not in {"exp_lcb", "effective_edge", "pf_clipped"}:
         raise ValueError("portfolio.walkforward.stability_metric must be one of: exp_lcb, effective_edge, pf_clipped")
+
+    leverage_selector = portfolio["leverage_selector"]
+    methods = leverage_selector["methods"]
+    if not isinstance(methods, list) or not methods:
+        raise ValueError("portfolio.leverage_selector.methods must be a non-empty list")
+    for method in methods:
+        if str(method) not in {"equal", "vol", "corr-min"}:
+            raise ValueError("portfolio.leverage_selector.methods values must be in: equal, vol, corr-min")
+
+    leverage_levels = leverage_selector["leverage_levels"]
+    if not isinstance(leverage_levels, list) or not leverage_levels:
+        raise ValueError("portfolio.leverage_selector.leverage_levels must be a non-empty list")
+    parsed_levels = [float(value) for value in leverage_levels]
+    if any(level <= 0 for level in parsed_levels):
+        raise ValueError("portfolio.leverage_selector.leverage_levels values must be > 0")
+    if any(right <= left for left, right in zip(parsed_levels[:-1], parsed_levels[1:], strict=False)):
+        raise ValueError("portfolio.leverage_selector.leverage_levels must be strictly increasing")
+    if str(leverage_selector["bootstrap"]) not in {"iid", "block"}:
+        raise ValueError("portfolio.leverage_selector.bootstrap must be 'iid' or 'block'")
+    if int(leverage_selector["block_size_trades"]) < 1:
+        raise ValueError("portfolio.leverage_selector.block_size_trades must be >= 1")
+    if int(leverage_selector["n_paths"]) < 1000:
+        raise ValueError("portfolio.leverage_selector.n_paths must be >= 1000")
+    int(leverage_selector["seed"])
+    if float(leverage_selector["initial_equity"]) <= 0:
+        raise ValueError("portfolio.leverage_selector.initial_equity must be > 0")
+    if not 0 < float(leverage_selector["ruin_dd_threshold"]) < 1:
+        raise ValueError("portfolio.leverage_selector.ruin_dd_threshold must be between 0 and 1")
+
+    constraints = leverage_selector["constraints"]
+    if not 0 <= float(constraints["max_p_ruin"]) <= 1:
+        raise ValueError("portfolio.leverage_selector.constraints.max_p_ruin must be between 0 and 1")
+    if float(constraints["max_dd_p95"]) < 0:
+        raise ValueError("portfolio.leverage_selector.constraints.max_dd_p95 must be >= 0")
+    float(constraints["min_return_p05"])
+
+    utility = leverage_selector["utility"]
+    if str(utility["objective"]) != "expected_log_growth":
+        raise ValueError("portfolio.leverage_selector.utility.objective must be 'expected_log_growth'")
+    if float(utility["epsilon"]) <= 0:
+        raise ValueError("portfolio.leverage_selector.utility.epsilon must be > 0")
+    if not isinstance(utility["use_final_equity"], bool):
+        raise ValueError("portfolio.leverage_selector.utility.use_final_equity must be bool")
+    if not isinstance(utility["penalize_dd"], bool):
+        raise ValueError("portfolio.leverage_selector.utility.penalize_dd must be bool")
+
+    reporting = leverage_selector["reporting"]
+    if not isinstance(reporting["include_per_leverage_tables"], bool):
+        raise ValueError("portfolio.leverage_selector.reporting.include_per_leverage_tables must be bool")
+    if not isinstance(reporting["include_binding_constraints"], bool):
+        raise ValueError("portfolio.leverage_selector.reporting.include_binding_constraints must be bool")
+
     config["portfolio"] = portfolio
 
     evaluation = config["evaluation"]
