@@ -180,3 +180,14 @@ evaluation:
     output:
       write_docs_summary: true
       write_run_artifacts: true
+
+ui:
+  stage5:
+    presets:
+      quick:
+        candidate_count: 1000
+        run_stage4_simulate: 0
+      full:
+        candidate_count: 5000
+        run_stage4_simulate: 0
+    window_months_options: [3, 6, 12, 36]

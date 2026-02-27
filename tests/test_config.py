@@ -73,6 +73,9 @@ def test_load_config_success() -> None:
     assert config["risk"]["killswitch"]["cool_down_bars"] == 48
     assert config["evaluation"]["stage4"]["default_method"] == "equal"
     assert config["evaluation"]["stage4"]["default_leverage"] == 1.0
+    assert config["ui"]["stage5"]["presets"]["quick"]["candidate_count"] == 1000
+    assert config["ui"]["stage5"]["presets"]["full"]["candidate_count"] == 5000
+    assert config["ui"]["stage5"]["window_months_options"] == [3, 6, 12, 36]
 
 
 def test_validate_config_accepts_legacy_flat_result_thresholds() -> None:

@@ -79,6 +79,39 @@ Outputs:
 - `docs/paper_trading_checklist.md`
 - `runs/<timestamp>_*_stage4_sim/` execution diagnostics
 
+## Stage-5 Product UI
+
+Stage-5 adds a product-style Streamlit workflow with:
+
+- Strategy Lab (safe one-page runner with presets)
+- Run Monitor (live stage progress/logs + cancel + reconnect)
+- Results Studio (artifact-driven summary/charts/reports + library export)
+- Strategy Library (save/reuse compact strategy packages)
+
+Start UI:
+
+```bash
+streamlit run src/buffmini/ui/app.py
+```
+
+Run Stage-5 pipeline from CLI:
+
+```bash
+python scripts/run_pipeline.py \
+  --symbols BTC/USDT,ETH/USDT \
+  --timeframe 1h \
+  --window-months 12 \
+  --mode quick \
+  --execution-mode net \
+  --seed 42
+```
+
+Export any completed pipeline run into `library/`:
+
+```bash
+python scripts/export_to_library.py --run-id <pipeline_run_id>
+```
+
 ## Output Structure
 
 - Raw market data: `data/raw/*.parquet`

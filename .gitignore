@@ -16,6 +16,7 @@ env/
 # IDE / editor
 .vscode/
 .idea/
+.VSCodeCounter/
 
 # OS files
 .DS_Store

@@ -1,0 +1,17 @@
+{
+  "strategies": [
+    {
+      "strategy_id": "equal_1h_b48e964d3d",
+      "display_name": "EQUAL 1.0x",
+      "method": "equal",
+      "leverage": 1.0,
+      "symbols": [
+        "BTC/USDT",
+        "ETH/USDT"
+      ],
+      "timeframe": "1h",
+      "execution_mode": "net",
+      "origin_run_id": "20260227_122446_45e4a8ac7157_stage4"
+    }
+  ]
+}

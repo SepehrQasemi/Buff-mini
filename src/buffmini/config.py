@@ -75,6 +75,20 @@ STAGE4_DEFAULTS = {
     },
 }
 
+UI_STAGE5_DEFAULTS = {
+    "presets": {
+        "quick": {
+            "candidate_count": 1000,
+            "run_stage4_simulate": 0,
+        },
+        "full": {
+            "candidate_count": 5000,
+            "run_stage4_simulate": 0,
+        },
+    },
+    "window_months_options": [3, 6, 12, 36],
+}
+
 PORTFOLIO_DEFAULTS = {
     "walkforward": {
         "min_usable_windows": 3,
@@ -389,6 +403,25 @@ def validate_config(config: ConfigDict) -> None:
     if not isinstance(output_cfg["write_run_artifacts"], bool):
         raise ValueError("evaluation.stage4.output.write_run_artifacts must be bool")
     evaluation["stage4"] = stage4
+
+    ui = _merge_defaults(UI_STAGE5_DEFAULTS, config.get("ui", {}))
+    stage5_ui = ui["stage5"]
+    presets = stage5_ui["presets"]
+    for preset_name in ["quick", "full"]:
+        preset = presets[preset_name]
+        if int(preset["candidate_count"]) < 1:
+            raise ValueError(f"ui.stage5.presets.{preset_name}.candidate_count must be >= 1")
+        if int(preset["run_stage4_simulate"]) not in {0, 1}:
+            raise ValueError(f"ui.stage5.presets.{preset_name}.run_stage4_simulate must be 0 or 1")
+
+    options = stage5_ui["window_months_options"]
+    if not isinstance(options, list) or not options:
+        raise ValueError("ui.stage5.window_months_options must be a non-empty list")
+    allowed_options = {3, 6, 12, 36}
+    parsed_options = {int(value) for value in options}
+    if not parsed_options.issubset(allowed_options):
+        raise ValueError("ui.stage5.window_months_options values must be a subset of [3, 6, 12, 36]")
+    config["ui"] = ui
 
 
 def compute_config_hash(config: ConfigDict) -> str:

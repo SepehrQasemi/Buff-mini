@@ -1,0 +1,10 @@
+{
+  "method": "equal",
+  "leverage": 1.0,
+  "symbols": [
+    "BTC/USDT",
+    "ETH/USDT"
+  ],
+  "timeframe": "1h",
+  "execution_mode": "net"
+}
