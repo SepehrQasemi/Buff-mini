@@ -53,6 +53,8 @@ with st.form("strategy_lab_form"):
 
     exec_mode_display = st.selectbox("Execution mode", options=["Auto", "Net", "Hedge", "Isolated"], index=0)
     mode_preset = st.selectbox("Preset", options=["Quick", "Full"], index=0)
+    autosave_to_library = st.checkbox("Auto-save best result to Library", value=False)
+    autosave_display_name = st.text_input("Auto-save display name (optional)", value="")
 
     with st.expander("Advanced"):
         seed = st.number_input("Seed", min_value=0, value=int(config["search"]["seed"]), step=1)
@@ -102,6 +104,11 @@ if submitted:
             st.error(f"Failed to start pipeline: {exc}")
         else:
             st.session_state["last_pipeline_run_id"] = run_id
+            if autosave_to_library:
+                targets = st.session_state.setdefault("stage5_autosave_targets", {})
+                targets[run_id] = {
+                    "display_name": autosave_display_name.strip() or "",
+                }
             st.success(f"Started run `{run_id}` (pid={pid}).")
             if hasattr(st, "switch_page"):
                 st.switch_page("pages/21_run_monitor.py")

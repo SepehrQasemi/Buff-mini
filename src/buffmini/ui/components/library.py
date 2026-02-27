@@ -83,11 +83,25 @@ def export_run_to_library(
         raise FileNotFoundError(f"Run folder not found: {run_id}")
 
     pipeline_summary = _safe_json(run_dir / "pipeline_summary.json")
+    ui_bundle_summary = _safe_json(run_dir / "ui_bundle" / "summary_ui.json")
     stage3_run_id = str(pipeline_summary.get("stage3_3_run_id", "") or "")
     stage2_run_id = str(pipeline_summary.get("stage2_run_id", "") or "")
     stage1_run_id = str(pipeline_summary.get("stage1_run_id", "") or "")
-    chosen_method = str(pipeline_summary.get("chosen_method", "equal"))
-    chosen_leverage = float(pipeline_summary.get("chosen_leverage", 1.0))
+    chosen_method = str(
+        ui_bundle_summary.get("chosen_method")
+        or pipeline_summary.get("chosen_method")
+        or "equal"
+    )
+    chosen_leverage = float(
+        ui_bundle_summary.get("chosen_leverage")
+        or pipeline_summary.get("chosen_leverage")
+        or 1.0
+    )
+    execution_mode = str(
+        ui_bundle_summary.get("execution_mode")
+        or _safe_json(PROJECT_ROOT / "configs" / "default.yaml").get("execution", {}).get("mode", "net")
+    )
+    key_metrics = dict(ui_bundle_summary.get("key_metrics", {})) if isinstance(ui_bundle_summary, dict) else {}
 
     selector_summary = {}
     if stage3_run_id:
@@ -101,10 +115,16 @@ def export_run_to_library(
             stage1_run_id = str(selector_summary.get("stage1_run_id", stage1_run_id))
 
     stage2_summary = _safe_json(Path(runs_dir) / stage2_run_id / "portfolio_summary.json") if stage2_run_id else {}
-    symbols = list((stage2_summary.get("universe") or {}).get("symbols", []))
+    symbols = list(ui_bundle_summary.get("symbols", []) if isinstance(ui_bundle_summary, dict) else [])
+    if not symbols:
+        symbols = list((stage2_summary.get("universe") or {}).get("symbols", []))
     if not symbols:
         symbols = ["BTC/USDT", "ETH/USDT"]
-    timeframe = str((stage2_summary.get("universe") or {}).get("timeframe", "1h"))
+    timeframe = str(
+        ui_bundle_summary.get("timeframe")
+        if isinstance(ui_bundle_summary, dict) and ui_bundle_summary.get("timeframe")
+        else (stage2_summary.get("universe") or {}).get("timeframe", "1h")
+    )
     date_label = datetime.now(timezone.utc).strftime("%Y%m%d")
     strategy_id = generate_strategy_id(
         method=chosen_method,
@@ -116,16 +136,7 @@ def export_run_to_library(
     strategy_dir = Path(library_dir) / "strategies" / strategy_id
     strategy_dir.mkdir(parents=True, exist_ok=True)
 
-    docs_candidates = [
-        PROJECT_ROOT / "docs" / "trading_spec.md",
-        run_dir / "trading_spec.md",
-    ]
-    checklist_candidates = [
-        PROJECT_ROOT / "docs" / "paper_trading_checklist.md",
-        run_dir / "paper_trading_checklist.md",
-    ]
-    spec_src = _first_existing(docs_candidates)
-    checklist_src = _first_existing(checklist_candidates)
+    spec_src, checklist_src = _resolve_spec_and_checklist_sources(run_dir=run_dir)
     if spec_src:
         shutil.copyfile(spec_src, strategy_dir / "strategy_spec.md")
     else:
@@ -153,31 +164,44 @@ def export_run_to_library(
         "leverage": float(chosen_leverage),
         "symbols": symbols,
         "timeframe": timeframe,
-        "execution_mode": str(_safe_json(PROJECT_ROOT / "configs" / "default.yaml").get("execution", {}).get("mode", "net")),
+        "execution_mode": execution_mode,
+        "key_metrics": key_metrics,
     }
     (strategy_dir / "params.json").write_text(json.dumps(params, indent=2), encoding="utf-8")
 
+    created_at = datetime.now(timezone.utc).isoformat()
     origin = {
         "run_id": str(run_id),
         "stage1_run_id": stage1_run_id,
         "stage2_run_id": stage2_run_id,
         "stage3_3_run_id": stage3_run_id,
-        "created_at": datetime.now(timezone.utc).isoformat(),
+        "created_at": created_at,
     }
-    if selector_summary:
-        origin["config_hash"] = selector_summary.get("config_hash")
-        origin["data_hash"] = selector_summary.get("data_hash")
+    origin["config_hash"] = (
+        ui_bundle_summary.get("config_hash")
+        if isinstance(ui_bundle_summary, dict)
+        else None
+    ) or selector_summary.get("config_hash")
+    origin["data_hash"] = (
+        ui_bundle_summary.get("data_hash")
+        if isinstance(ui_bundle_summary, dict)
+        else None
+    ) or selector_summary.get("data_hash")
     (strategy_dir / "origin.json").write_text(json.dumps(origin, indent=2), encoding="utf-8")
 
     display = display_name.strip() if display_name and display_name.strip() else f"{chosen_method.upper()} {chosen_leverage}x"
     strategy_card = {
         "strategy_id": strategy_id,
         "display_name": display,
+        "created_at": created_at,
         "method": chosen_method,
         "leverage": float(chosen_leverage),
         "symbols": symbols,
         "timeframe": timeframe,
-        "execution_mode": params["execution_mode"],
+        "execution_mode": execution_mode,
+        "key_metrics": key_metrics,
+        "config_hash": origin.get("config_hash"),
+        "data_hash": origin.get("data_hash"),
         "origin_run_id": str(run_id),
     }
     (strategy_dir / "strategy_card.json").write_text(json.dumps(strategy_card, indent=2), encoding="utf-8")
@@ -222,3 +246,30 @@ def _first_existing(candidates: list[Path]) -> Path | None:
             return path
     return None
 
+
+def _resolve_spec_and_checklist_sources(run_dir: Path) -> tuple[Path | None, Path | None]:
+    reports_index = _safe_json(run_dir / "ui_bundle" / "reports_index.json")
+    indexed_reports = reports_index.get("reports", []) if isinstance(reports_index, dict) else []
+
+    indexed_paths: list[Path] = []
+    for item in indexed_reports:
+        try:
+            path = Path(str(item))
+        except Exception:
+            continue
+        if path.exists():
+            indexed_paths.append(path)
+
+    spec_candidates = [
+        path for path in indexed_paths if "trading_spec" in path.name.lower()
+    ] + [
+        run_dir / "trading_spec.md",
+        PROJECT_ROOT / "docs" / "trading_spec.md",
+    ]
+    checklist_candidates = [
+        path for path in indexed_paths if "paper_trading_checklist" in path.name.lower()
+    ] + [
+        run_dir / "paper_trading_checklist.md",
+        PROJECT_ROOT / "docs" / "paper_trading_checklist.md",
+    ]
+    return _first_existing(spec_candidates), _first_existing(checklist_candidates)

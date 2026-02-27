@@ -8,7 +8,7 @@ from pathlib import Path
 import streamlit as st
 
 from buffmini.constants import RUNS_DIR
-from buffmini.ui.components.run_exec import cancel_run
+from buffmini.ui.components.run_exec import cancel_run, run_export_to_library
 from buffmini.ui.components.run_index import scan_runs
 from buffmini.ui.components.run_lock import get_active_run
 
@@ -131,7 +131,31 @@ with col2:
         st.switch_page("pages/22_results_studio.py")
 
 if status in {"done", "success"}:
+    autosave_targets = st.session_state.setdefault("stage5_autosave_targets", {})
+    autosave_done = st.session_state.setdefault("stage5_autosave_done", {})
+    autosave_errors = st.session_state.setdefault("stage5_autosave_errors", {})
+
+    if run_id in autosave_targets and run_id not in autosave_done and run_id not in autosave_errors:
+        display_name = str((autosave_targets.get(run_id) or {}).get("display_name", "")).strip() or None
+        try:
+            card = run_export_to_library(run_id=run_id, display_name=display_name)
+        except Exception as exc:
+            autosave_errors[run_id] = str(exc)
+        else:
+            autosave_done[run_id] = card
+            autosave_targets.pop(run_id, None)
+
     st.success("Run completed.")
+    if run_id in autosave_done:
+        card = autosave_done[run_id]
+        st.info(
+            "Auto-saved to Library: "
+            f"`{card.get('strategy_id')}` ({card.get('display_name')})"
+        )
+        if st.button("Open Library") and hasattr(st, "switch_page"):
+            st.switch_page("pages/23_strategy_library.py")
+    if run_id in autosave_errors:
+        st.warning(f"Auto-save failed: {autosave_errors[run_id]}")
     if st.button("Open Results") and hasattr(st, "switch_page"):
         st.switch_page("pages/22_results_studio.py")
 elif status == "running":

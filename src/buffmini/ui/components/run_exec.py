@@ -7,6 +7,7 @@ import re
 import signal
 import subprocess
 import sys
+import json
 from pathlib import Path
 from typing import Any
 
@@ -187,6 +188,47 @@ def cancel_run(run_id: str, runs_dir: Path = RUNS_DIR) -> None:
     if pid <= 0:
         return
     _terminate_pid(pid)
+
+
+def run_export_to_library(
+    run_id: str,
+    display_name: str | None = None,
+    runs_dir: Path = RUNS_DIR,
+    library_dir: Path = PROJECT_ROOT / "library",
+) -> dict[str, Any]:
+    """Run export_to_library script synchronously and return strategy card payload."""
+
+    script = validate_whitelisted_script("scripts/export_to_library.py")
+    args = [
+        sys.executable,
+        script,
+        "--run-id",
+        str(run_id),
+        "--runs-dir",
+        str(Path(runs_dir)),
+        "--library-dir",
+        str(Path(library_dir)),
+    ]
+    if display_name is not None and str(display_name).strip():
+        args.extend(["--display-name", str(display_name).strip()])
+
+    result = subprocess.run(
+        args,
+        cwd=PROJECT_ROOT,
+        capture_output=True,
+        text=True,
+        check=False,
+        shell=False,
+    )
+    if result.returncode != 0:
+        raise RuntimeError(result.stderr.strip() or result.stdout.strip() or "export_to_library failed")
+    try:
+        payload = json.loads(result.stdout)
+    except Exception as exc:
+        raise RuntimeError(f"Failed to parse export_to_library output: {exc}") from exc
+    if not isinstance(payload, dict):
+        raise RuntimeError("export_to_library output is not a JSON object")
+    return payload
 
 
 def _terminate_pid(pid: int) -> None:

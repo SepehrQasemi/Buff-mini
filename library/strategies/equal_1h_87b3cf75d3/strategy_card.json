@@ -1,0 +1,22 @@
+{
+  "strategy_id": "equal_1h_87b3cf75d3",
+  "display_name": "SuperRun Auto Saved",
+  "created_at": "2026-02-27T14:00:03.637908+00:00",
+  "method": "equal",
+  "leverage": 5.0,
+  "symbols": [
+    "BTC/USDT",
+    "ETH/USDT"
+  ],
+  "timeframe": "1h",
+  "execution_mode": "net",
+  "key_metrics": {
+    "pf": 1.4717292740694712,
+    "maxdd": 0.017429386713125102,
+    "p_ruin": 0.0,
+    "expected_log_growth": 0.29163665718708437
+  },
+  "config_hash": "manual",
+  "data_hash": "manual",
+  "origin_run_id": "stage5_2_manual_ui"
+}
