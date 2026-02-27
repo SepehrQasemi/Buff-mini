@@ -34,6 +34,12 @@ python scripts/run_stage0.py --dry-run
 streamlit run src/buffmini/ui/app.py
 ```
 
+One-click local launch (no CLI after clone):
+
+- Windows: double-click `start_buffmini.bat`
+- macOS/Linux: `./start_buffmini.sh`
+- Details: [docs/quick_start_one_click.md](docs/quick_start_one_click.md)
+
 For offline validation (no exchange download), use `python scripts/run_stage0.py --dry-run`.
 
 Config note: `costs.round_trip_cost_pct` is interpreted as a percent value (`0.1` means `0.1%`, `1.0` means `1.0%`).
@@ -75,8 +81,9 @@ python scripts/run_stage4_simulate.py \
 
 Outputs:
 
-- `docs/trading_spec.md`
-- `docs/paper_trading_checklist.md`
+- `runs/<timestamp>_*_stage4/spec/trading_spec.md`
+- `runs/<timestamp>_*_stage4/spec/paper_trading_checklist.md`
+- `runs/<timestamp>_*_stage4/policy_snapshot.json`
 - `runs/<timestamp>_*_stage4_sim/` execution diagnostics
 
 ## Stage-5 Product UI
@@ -95,6 +102,11 @@ Start UI:
 ```bash
 streamlit run src/buffmini/ui/app.py
 ```
+
+or use the Stage-5.7 one-click launcher:
+
+- Windows: `start_buffmini.bat`
+- macOS/Linux: `start_buffmini.sh`
 
 Run Stage-5 pipeline from CLI:
 
