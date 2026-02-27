@@ -38,6 +38,10 @@ DATA_DEFAULTS = {
 PORTFOLIO_DEFAULTS = {
     "walkforward": {
         "min_usable_windows": 3,
+        "min_forward_trades": 10,
+        "min_forward_exposure": 0.01,
+        "pf_clip_max": 5.0,
+        "stability_metric": "exp_lcb",
     }
 }
 
@@ -180,6 +184,14 @@ def validate_config(config: ConfigDict) -> None:
     portfolio = _merge_defaults(PORTFOLIO_DEFAULTS, config.get("portfolio", {}))
     if int(portfolio["walkforward"]["min_usable_windows"]) < 1:
         raise ValueError("portfolio.walkforward.min_usable_windows must be >= 1")
+    if int(portfolio["walkforward"]["min_forward_trades"]) < 0:
+        raise ValueError("portfolio.walkforward.min_forward_trades must be >= 0")
+    if float(portfolio["walkforward"]["min_forward_exposure"]) < 0:
+        raise ValueError("portfolio.walkforward.min_forward_exposure must be >= 0")
+    if float(portfolio["walkforward"]["pf_clip_max"]) <= 0:
+        raise ValueError("portfolio.walkforward.pf_clip_max must be > 0")
+    if str(portfolio["walkforward"]["stability_metric"]) not in {"exp_lcb", "effective_edge", "pf_clipped"}:
+        raise ValueError("portfolio.walkforward.stability_metric must be one of: exp_lcb, effective_edge, pf_clipped")
     config["portfolio"] = portfolio
 
     evaluation = config["evaluation"]

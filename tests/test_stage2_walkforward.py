@@ -42,10 +42,14 @@ def _window(name: str, kind: str, start: str, end: str) -> WindowSpec:
 def _evaluation(window: WindowSpec, profit_factor: float, max_drawdown: float) -> MethodWindowEvaluation:
     metrics = {
         "profit_factor": profit_factor,
+        "profit_factor_numeric": profit_factor,
+        "profit_factor_clipped": min(float(profit_factor), 5.0),
+        "raw_profit_factor": profit_factor,
         "expectancy": 1.0,
         "exp_lcb": 0.5,
         "trade_count_total": 10.0,
         "trades_per_month": 5.0,
+        "effective_edge": 2.5,
         "exposure_ratio": 0.1,
         "return_pct": 0.02,
         "max_drawdown": max_drawdown,
@@ -53,6 +57,7 @@ def _evaluation(window: WindowSpec, profit_factor: float, max_drawdown: float) -
         "Sortino_ratio": 1.0,
         "Calmar_ratio": 1.0,
         "CAGR_approx": 0.1,
+        "CAGR": 0.1,
         "duration_days": 30.0,
         "window_name": window.name,
         "window_kind": window.kind,
@@ -64,6 +69,10 @@ def _evaluation(window: WindowSpec, profit_factor: float, max_drawdown: float) -
         "actual_end": window.actual_end.isoformat() if window.actual_end is not None else None,
         "bar_count": window.bar_count,
         "enough_data": window.enough_data,
+        "non_finite_metric_keys": [],
+        "usable": True if window.kind == "holdout" else True,
+        "exclusion_reasons": [],
+        "exclusion_reason": "",
     }
     return MethodWindowEvaluation(
         window=window,
@@ -222,8 +231,12 @@ def test_degradation_ratio_computation_correctness() -> None:
         _evaluation(_window("Forward_2", "forward", "2025-03-03T00:00:00Z", "2025-04-01T23:00:00Z"), 1.0, 0.15),
         _evaluation(_window("Forward_3", "forward", "2025-04-02T00:00:00Z", "2025-05-01T23:00:00Z"), 1.25, 0.14),
     ]
-    stability = compute_stability_summary(evaluations)
-    assert stability.pf_forward_mean == 1.25
+    evaluations[0].metrics["exp_lcb"] = 2.0
+    evaluations[1].metrics["exp_lcb"] = 1.5
+    evaluations[2].metrics["exp_lcb"] = 1.0
+    evaluations[3].metrics["exp_lcb"] = 1.25
+    stability = compute_stability_summary(evaluations, stability_metric="exp_lcb")
+    assert stability.forward_median == 1.25
     assert stability.degradation_ratio == 0.625
     assert stability.classification == "UNSTABLE"
 
@@ -237,7 +250,7 @@ def test_classification_requires_minimum_usable_windows() -> None:
     assert stability.usable_windows == 1
     assert stability.min_usable_windows == 3
     assert stability.classification == "INSUFFICIENT_DATA"
-    assert stability.recommendation == "DO NOT proceed to leverage modeling"
+    assert stability.recommendation == "Improve discovery/search space/exits before leverage"
 
 
 def test_classification_logic_correctness_with_three_windows() -> None:

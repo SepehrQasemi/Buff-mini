@@ -1,4 +1,4 @@
-"""Stage-2.5 walk-forward page."""
+"""Stage-2.7 walk-forward page."""
 
 from __future__ import annotations
 
@@ -22,7 +22,7 @@ def _latest_stage2_run_id() -> str:
     return candidates[0].name if candidates else ""
 
 
-st.title("Stage-2.5 Walk-Forward")
+st.title("Stage-2.7 Walk-Forward")
 st.write("Run rolling walk-forward validation on an existing Stage-2 portfolio run using cached local data.")
 
 stage2_run_id = st.text_input("Stage-2 run id", value=_latest_stage2_run_id())
@@ -37,7 +37,7 @@ reserve_forward_days = st.number_input(
 )
 seed = st.number_input("Seed", min_value=0, value=42, step=1)
 
-if st.button("Run Stage-2.5"):
+if st.button("Run Stage-2.7"):
     if not stage2_run_id:
         st.error("Stage-2 run id is required.")
     else:
@@ -67,17 +67,20 @@ if st.button("Run Stage-2.5"):
             table_rows.append(
                 {
                     "method": method_key,
-                    "pf_holdout": stability["pf_holdout"],
-                    "pf_forward_mean": stability["pf_forward_mean"],
+                    "stability_metric": stability["stability_metric"],
+                    "holdout_metric": stability["holdout_metric"],
+                    "forward_median": stability["forward_median"],
                     "degradation_ratio": stability["degradation_ratio"],
-                    "worst_forward_pf": stability["worst_forward_pf"],
+                    "worst_forward_value": stability["worst_forward_value"],
                     "dd_growth_ratio": stability["dd_growth_ratio"],
                     "usable_windows": stability["usable_windows"],
+                    "excluded_windows": stability["excluded_windows"],
+                    "confidence_score": stability["confidence_score"],
                     "classification": stability["classification"],
                 }
             )
 
-        st.success(f"Stage-2.5 completed: {summary['run_id']}")
+        st.success(f"Stage-2.7 completed: {summary['run_id']}")
         st.write(f"Recommendation: `{summary['overall_recommendation']}`")
         st.dataframe(pd.DataFrame(table_rows))
         st.write("Artifacts")

@@ -1,4 +1,4 @@
-"""Run Stage-2.5 rolling walk-forward portfolio validation."""
+"""Run Stage-2.7 audit-grade walk-forward portfolio validation."""
 
 from __future__ import annotations
 
@@ -20,7 +20,7 @@ logger = get_logger(__name__)
 
 
 def parse_args() -> argparse.Namespace:
-    parser = argparse.ArgumentParser(description="Run Stage-2.5 walk-forward portfolio validation")
+    parser = argparse.ArgumentParser(description="Run Stage-2.7 walk-forward portfolio validation")
     parser.add_argument("--stage2-run-id", type=str, required=True)
     parser.add_argument("--forward-days", type=int, default=DEFAULT_WALKFORWARD_FORWARD_DAYS)
     parser.add_argument("--num-windows", type=int, default=DEFAULT_WALKFORWARD_NUM_WINDOWS)
@@ -53,30 +53,32 @@ def main() -> None:
 
     summary_path = run_dir / "walkforward_summary.json"
     if not summary_path.exists():
-        logger.warning("Stage-2.5 completed but walkforward_summary.json not found at %s", summary_path)
+        logger.warning("Stage-2.7 completed but walkforward_summary.json not found at %s", summary_path)
         return
 
     summary = json.loads(summary_path.read_text(encoding="utf-8"))
-    print(f"Stage-2.5 run_id: {summary['run_id']}")
+    print(f"Stage-2.7 run_id: {summary['run_id']}")
     print(f"recommendation: {summary['overall_recommendation']}")
+    print(f"stability_metric: {summary['walkforward_config']['stability_metric']}")
     for method_key in ["equal", "vol", "corr-min"]:
         payload = summary["method_summaries"].get(method_key)
         if payload is None:
             continue
         stability = payload["stability"]
         forward_pf_list = [
-            float(item["metrics"]["profit_factor"])
+            item["metrics"]["raw_profit_factor"]
             for item in payload["window_metrics"]
             if str(item["window"]).startswith("Forward")
         ]
         print(
-            f"{method_key}: pf_holdout={float(stability['pf_holdout']):.4f}, "
-            f"pf_forward_mean={float(stability['pf_forward_mean']):.4f}, "
+            f"{method_key}: usable_windows={int(stability['usable_windows'])}, "
+            f"excluded_windows={int(stability['excluded_windows'])}, "
+            f"forward_median={float(stability['forward_median']):.4f}, "
+            f"worst_forward_value={float(stability['worst_forward_value']):.4f}, "
             f"degradation_ratio={float(stability['degradation_ratio']):.4f}, "
-            f"worst_forward_pf={float(stability['worst_forward_pf']):.4f}, "
             f"dd_growth_ratio={float(stability['dd_growth_ratio']):.4f}, "
-            f"usable_windows={int(stability['usable_windows'])}, "
             f"classification={stability['classification']}, "
+            f"confidence_score={float(stability['confidence_score']):.4f}, "
             f"forward_pfs={forward_pf_list}"
         )
     print(f"walkforward_report: {run_dir / 'walkforward_report.md'}")

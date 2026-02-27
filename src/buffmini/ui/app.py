@@ -17,10 +17,10 @@ if hasattr(st.sidebar, "page_link"):
     st.sidebar.page_link("pages/3_run.py", label="Run")
     st.sidebar.page_link("pages/4_results.py", label="Results")
     st.sidebar.page_link("pages/5_auto_optimize.py", label="Auto Optimize")
-    st.sidebar.page_link("pages/6_stage2_5_walkforward.py", label="Stage-2.5 Walk-Forward")
+    st.sidebar.page_link("pages/6_stage2_5_walkforward.py", label="Stage-2.7 Walk-Forward")
 
 st.markdown(
-    "Use the sidebar pages to inspect data, review settings, execute Stage-0, run Stage-1 optimization, validate Stage-2.5 walk-forward robustness, and view run results."
+    "Use the sidebar pages to inspect data, review settings, execute Stage-0, run Stage-1 optimization, validate Stage-2.7 walk-forward robustness, and view run results."
 )
 
 st.info("Stage-1 Auto Optimize is available in the dedicated page. Live trading is out of scope.")

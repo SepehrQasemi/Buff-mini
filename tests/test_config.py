@@ -43,6 +43,10 @@ def test_load_config_success() -> None:
     assert config["evaluation"]["stage1"]["promotion_holdout_months"] == [3, 6, 9, 12]
     assert config["data"]["backend"] == "parquet"
     assert config["portfolio"]["walkforward"]["min_usable_windows"] == 3
+    assert config["portfolio"]["walkforward"]["min_forward_trades"] == 10
+    assert config["portfolio"]["walkforward"]["min_forward_exposure"] == 0.01
+    assert config["portfolio"]["walkforward"]["pf_clip_max"] == 5.0
+    assert config["portfolio"]["walkforward"]["stability_metric"] == "exp_lcb"
 
 
 def test_validate_config_accepts_legacy_flat_result_thresholds() -> None:

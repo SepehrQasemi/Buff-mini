@@ -28,6 +28,10 @@ data:
 portfolio:
   walkforward:
     min_usable_windows: 3
+    min_forward_trades: 10
+    min_forward_exposure: 0.01
+    pf_clip_max: 5.0
+    stability_metric: exp_lcb
 
 evaluation:
   stage0_enabled: true
