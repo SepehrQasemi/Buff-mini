@@ -220,20 +220,38 @@ def test_degradation_ratio_computation_correctness() -> None:
         _evaluation(_window("Holdout", "holdout", "2025-01-01T00:00:00Z", "2025-01-31T23:00:00Z"), 2.0, 0.10),
         _evaluation(_window("Forward_1", "forward", "2025-02-01T00:00:00Z", "2025-03-02T23:00:00Z"), 1.5, 0.12),
         _evaluation(_window("Forward_2", "forward", "2025-03-03T00:00:00Z", "2025-04-01T23:00:00Z"), 1.0, 0.15),
+        _evaluation(_window("Forward_3", "forward", "2025-04-02T00:00:00Z", "2025-05-01T23:00:00Z"), 1.25, 0.14),
     ]
     stability = compute_stability_summary(evaluations)
     assert stability.pf_forward_mean == 1.25
     assert stability.degradation_ratio == 0.625
+    assert stability.classification == "UNSTABLE"
 
 
-def test_classification_logic_correctness() -> None:
+def test_classification_requires_minimum_usable_windows() -> None:
+    insufficient_evaluations = [
+        _evaluation(_window("Holdout", "holdout", "2025-01-01T00:00:00Z", "2025-01-31T23:00:00Z"), 1.2, 0.10),
+        _evaluation(_window("Forward_1", "forward", "2025-02-01T00:00:00Z", "2025-03-02T23:00:00Z"), 1.1, 0.12),
+    ]
+    stability = compute_stability_summary(insufficient_evaluations)
+    assert stability.usable_windows == 1
+    assert stability.min_usable_windows == 3
+    assert stability.classification == "INSUFFICIENT_DATA"
+    assert stability.recommendation == "DO NOT proceed to leverage modeling"
+
+
+def test_classification_logic_correctness_with_three_windows() -> None:
     stable_evaluations = [
         _evaluation(_window("Holdout", "holdout", "2025-01-01T00:00:00Z", "2025-01-31T23:00:00Z"), 1.2, 0.10),
         _evaluation(_window("Forward_1", "forward", "2025-02-01T00:00:00Z", "2025-03-02T23:00:00Z"), 1.1, 0.12),
+        _evaluation(_window("Forward_2", "forward", "2025-03-03T00:00:00Z", "2025-04-01T23:00:00Z"), 1.3, 0.11),
+        _evaluation(_window("Forward_3", "forward", "2025-04-02T00:00:00Z", "2025-05-01T23:00:00Z"), 1.0, 0.09),
     ]
     unstable_evaluations = [
         _evaluation(_window("Holdout", "holdout", "2025-01-01T00:00:00Z", "2025-01-31T23:00:00Z"), 1.5, 0.10),
         _evaluation(_window("Forward_1", "forward", "2025-02-01T00:00:00Z", "2025-03-02T23:00:00Z"), 0.8, 0.30),
+        _evaluation(_window("Forward_2", "forward", "2025-03-03T00:00:00Z", "2025-04-01T23:00:00Z"), 0.9, 0.25),
+        _evaluation(_window("Forward_3", "forward", "2025-04-02T00:00:00Z", "2025-05-01T23:00:00Z"), 1.1, 0.22),
     ]
     assert compute_stability_summary(stable_evaluations).classification == "STABLE"
     assert compute_stability_summary(unstable_evaluations).classification == "UNSTABLE"
@@ -257,12 +275,40 @@ def test_weights_sum_to_one_and_correlation_matrix_symmetric(tmp_path: Path) -> 
     assert matrix.equals(matrix.T)
 
 
+def test_reserve_forward_days_prevents_holdout_from_consuming_tail(tmp_path: Path) -> None:
+    runs_dir, data_dir = _prepare_stage_runs(tmp_path)
+    stage2_summary_path = runs_dir / "stage2_synth" / "portfolio_summary.json"
+    stage2_summary = json.loads(stage2_summary_path.read_text(encoding="utf-8"))
+    late_holdout_range = "2024-08-15T00:00:00+00:00..2024-10-10T23:00:00+00:00"
+    for payload in stage2_summary["portfolio_methods"].values():
+        payload["holdout"]["date_range"] = late_holdout_range
+    stage2_summary_path.write_text(json.dumps(stage2_summary, indent=2), encoding="utf-8")
+
+    run_dir = run_stage2_walkforward(
+        stage2_run_id="stage2_synth",
+        forward_days=7,
+        num_windows=3,
+        reserve_forward_days=21,
+        seed=42,
+        runs_dir=runs_dir,
+        data_dir=Path(data_dir),
+        run_id="wf_reserve",
+    )
+
+    summary = json.loads((run_dir / "walkforward_summary.json").read_text(encoding="utf-8"))
+    holdout = summary["holdout_window"]
+    forward_1 = summary["forward_windows"][0]
+    assert holdout["actual_end"] != holdout["expected_end"]
+    assert pd.Timestamp(holdout["actual_end"]) < pd.Timestamp(forward_1["expected_start"])
+
+
 def test_deterministic_output_with_same_seed_on_synthetic_data(tmp_path: Path) -> None:
     runs_dir, data_dir = _prepare_stage_runs(tmp_path)
     run_a = run_stage2_walkforward(
         stage2_run_id="stage2_synth",
-        forward_days=30,
+        forward_days=7,
         num_windows=3,
+        reserve_forward_days=21,
         seed=42,
         runs_dir=runs_dir,
         data_dir=Path(data_dir),
@@ -270,8 +316,9 @@ def test_deterministic_output_with_same_seed_on_synthetic_data(tmp_path: Path) -
     )
     run_b = run_stage2_walkforward(
         stage2_run_id="stage2_synth",
-        forward_days=30,
+        forward_days=7,
         num_windows=3,
+        reserve_forward_days=21,
         seed=42,
         runs_dir=runs_dir,
         data_dir=Path(data_dir),

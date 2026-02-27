@@ -42,6 +42,7 @@ def test_load_config_success() -> None:
     assert thresholds["NearMiss"]["min_exp_lcb_holdout"] == -5
     assert config["evaluation"]["stage1"]["promotion_holdout_months"] == [3, 6, 9, 12]
     assert config["data"]["backend"] == "parquet"
+    assert config["portfolio"]["walkforward"]["min_usable_windows"] == 3
 
 
 def test_validate_config_accepts_legacy_flat_result_thresholds() -> None:

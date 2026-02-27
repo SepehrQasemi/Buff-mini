@@ -35,6 +35,12 @@ DATA_DEFAULTS = {
     "backend": "parquet",
 }
 
+PORTFOLIO_DEFAULTS = {
+    "walkforward": {
+        "min_usable_windows": 3,
+    }
+}
+
 RESULT_THRESHOLD_DEFAULTS = {
     "TierA": {
         "min_exp_lcb_holdout": 0.0,
@@ -170,6 +176,11 @@ def validate_config(config: ConfigDict) -> None:
     if str(data["backend"]) not in {"parquet", "duckdb"}:
         raise ValueError("data.backend must be 'parquet' or 'duckdb'")
     config["data"] = data
+
+    portfolio = _merge_defaults(PORTFOLIO_DEFAULTS, config.get("portfolio", {}))
+    if int(portfolio["walkforward"]["min_usable_windows"]) < 1:
+        raise ValueError("portfolio.walkforward.min_usable_windows must be >= 1")
+    config["portfolio"] = portfolio
 
     evaluation = config["evaluation"]
     if not isinstance(evaluation["stage0_enabled"], bool):

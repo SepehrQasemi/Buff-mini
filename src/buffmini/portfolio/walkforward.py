@@ -11,8 +11,16 @@ from typing import Any
 import numpy as np
 import pandas as pd
 
-from buffmini.config import compute_config_hash
-from buffmini.constants import DEFAULT_TIMEFRAME, OHLCV_COLUMNS, RAW_DATA_DIR, RUNS_DIR
+from buffmini.config import compute_config_hash, validate_config
+from buffmini.constants import (
+    DEFAULT_TIMEFRAME,
+    DEFAULT_WALKFORWARD_FORWARD_DAYS,
+    DEFAULT_WALKFORWARD_MIN_USABLE_WINDOWS,
+    DEFAULT_WALKFORWARD_NUM_WINDOWS,
+    OHLCV_COLUMNS,
+    RAW_DATA_DIR,
+    RUNS_DIR,
+)
 from buffmini.data.features import calculate_features
 from buffmini.data.store import build_data_store
 from buffmini.portfolio.builder import (
@@ -63,7 +71,10 @@ class MethodStability:
     degradation_ratio: float
     worst_forward_pf: float
     dd_growth_ratio: float
+    usable_windows: int
+    min_usable_windows: int
     classification: str
+    recommendation: str
     failed_criteria: list[str]
 
 
@@ -81,9 +92,10 @@ class MethodWindowEvaluation:
 
 def run_stage2_walkforward(
     stage2_run_id: str,
-    forward_days: int = 30,
-    num_windows: int = 3,
+    forward_days: int = DEFAULT_WALKFORWARD_FORWARD_DAYS,
+    num_windows: int = DEFAULT_WALKFORWARD_NUM_WINDOWS,
     seed: int = 42,
+    reserve_forward_days: int | None = None,
     runs_dir: Path = RUNS_DIR,
     data_dir: Path = RAW_DATA_DIR,
     run_id: str | None = None,
@@ -95,6 +107,11 @@ def run_stage2_walkforward(
         raise ValueError("forward_days must be >= 1")
     if int(num_windows) < 1:
         raise ValueError("num_windows must be >= 1")
+    resolved_reserve_forward_days = (
+        int(forward_days) * int(num_windows) if reserve_forward_days is None else int(reserve_forward_days)
+    )
+    if resolved_reserve_forward_days < 0:
+        raise ValueError("reserve_forward_days must be >= 0")
 
     stage2_run_dir = runs_dir / stage2_run_id
     if not stage2_run_dir.exists():
@@ -108,6 +125,7 @@ def run_stage2_walkforward(
 
     stage1_summary = _load_json(stage1_run_dir / "summary.json")
     config = _load_stage1_config(stage1_run_dir)
+    validate_config(config)
     candidate_records = {
         record.candidate_id: record
         for record in load_stage1_candidates(stage1_run_dir)
@@ -132,8 +150,12 @@ def run_stage2_walkforward(
     data_hash = _compute_input_data_hash(raw_data)
     config_hash = compute_config_hash(config)
 
-    holdout_window = _build_holdout_window(stage2_summary)
     available_end = min(pd.to_datetime(frame["timestamp"], utc=True).max() for frame in raw_data.values() if not frame.empty)
+    holdout_window = _build_holdout_window(
+        stage2_summary=stage2_summary,
+        available_end=available_end,
+        reserve_forward_days=resolved_reserve_forward_days,
+    )
     forward_windows = build_forward_windows(
         holdout_end=holdout_window.actual_end or holdout_window.expected_end,
         available_end=available_end,
@@ -185,8 +207,16 @@ def run_stage2_walkforward(
             method_evaluations[method_key].append(evaluation)
             window_rows.append(_window_row(method_key=method_key, evaluation=evaluation))
 
+    min_usable_windows = int(
+        config.get("portfolio", {})
+        .get("walkforward", {})
+        .get("min_usable_windows", DEFAULT_WALKFORWARD_MIN_USABLE_WINDOWS)
+    )
     stability_by_method = {
-        method_key: compute_stability_summary(evaluations)
+        method_key: compute_stability_summary(
+            evaluations,
+            min_usable_windows=min_usable_windows,
+        )
         for method_key, evaluations in method_evaluations.items()
     }
     sanity_checks = build_sanity_checks(
@@ -195,10 +225,13 @@ def run_stage2_walkforward(
         method_payloads=stage2_summary["portfolio_methods"],
         correlation_matrices=correlation_matrices,
     )
+    overall_recommendation = _build_overall_recommendation(stability_by_method)
 
     command = cli_command or (
         "python scripts/run_stage2_walkforward.py "
-        f"--stage2-run-id {stage2_run_id} --forward-days {int(forward_days)} --num-windows {int(num_windows)} --seed {int(seed)}"
+        f"--stage2-run-id {stage2_run_id} --forward-days {int(forward_days)} "
+        f"--num-windows {int(num_windows)} --seed {int(seed)} "
+        f"--reserve-forward-days {int(resolved_reserve_forward_days)}"
     )
     summary_payload = {
         "stage2_run_id": stage2_run_id,
@@ -206,6 +239,8 @@ def run_stage2_walkforward(
         "seed": int(seed),
         "forward_days": int(forward_days),
         "num_windows": int(num_windows),
+        "reserve_forward_days": int(resolved_reserve_forward_days),
+        "min_usable_windows": int(min_usable_windows),
         "command": command,
         "config_hash": config_hash,
         "config_hash_stage1_reference": stage1_summary.get("config_hash"),
@@ -234,6 +269,7 @@ def run_stage2_walkforward(
             }
             for method_key, payload in stage2_summary["portfolio_methods"].items()
         },
+        "overall_recommendation": overall_recommendation,
         "sanity_checks": sanity_checks,
     }
 
@@ -266,8 +302,8 @@ def run_stage2_walkforward(
 def build_forward_windows(
     holdout_end: pd.Timestamp,
     available_end: pd.Timestamp,
-    forward_days: int = 30,
-    num_windows: int = 3,
+    forward_days: int = DEFAULT_WALKFORWARD_FORWARD_DAYS,
+    num_windows: int = DEFAULT_WALKFORWARD_NUM_WINDOWS,
 ) -> list[WindowSpec]:
     """Build sequential, non-overlapping forward windows after holdout end."""
 
@@ -412,7 +448,10 @@ def evaluate_portfolio_method_for_window(
     )
 
 
-def compute_stability_summary(evaluations: list[MethodWindowEvaluation]) -> MethodStability:
+def compute_stability_summary(
+    evaluations: list[MethodWindowEvaluation],
+    min_usable_windows: int = DEFAULT_WALKFORWARD_MIN_USABLE_WINDOWS,
+) -> MethodStability:
     """Compute Stage-2.5 stability statistics for one method."""
 
     holdout_eval = next(evaluation for evaluation in evaluations if evaluation.window.kind == "holdout")
@@ -440,17 +479,25 @@ def compute_stability_summary(evaluations: list[MethodWindowEvaluation]) -> Meth
     else:
         dd_growth_ratio = 0.0 if max_forward_dd == 0 else math.inf
 
+    usable_windows = int(len(usable))
     failures: list[str] = []
-    if not usable:
-        failures.append("insufficient forward windows with enough data")
-    if degradation_ratio < 0.7:
-        failures.append("degradation_ratio < 0.7")
-    if worst_forward_pf < 1.0:
-        failures.append("worst_forward_pf < 1.0")
-    if dd_growth_ratio > 2.0:
-        failures.append("dd_growth_ratio > 2.0")
-
-    classification = "STABLE" if not failures else "UNSTABLE"
+    if usable_windows < int(min_usable_windows):
+        failures.append(f"usable_windows < min_usable_windows ({usable_windows} < {int(min_usable_windows)})")
+        classification = "INSUFFICIENT_DATA"
+        recommendation = "DO NOT proceed to leverage modeling"
+    else:
+        if degradation_ratio < 0.7:
+            failures.append("degradation_ratio < 0.7")
+        if worst_forward_pf < 1.0:
+            failures.append("worst_forward_pf < 1.0")
+        if dd_growth_ratio > 2.0:
+            failures.append("dd_growth_ratio > 2.0")
+        classification = "STABLE" if not failures else "UNSTABLE"
+        recommendation = (
+            "Proceed to leverage modeling"
+            if classification == "STABLE"
+            else "Improve discovery/search space/exits before leverage"
+        )
     return MethodStability(
         pf_holdout=pf_holdout,
         pf_forward_mean=pf_forward_mean,
@@ -458,7 +505,10 @@ def compute_stability_summary(evaluations: list[MethodWindowEvaluation]) -> Meth
         degradation_ratio=degradation_ratio,
         worst_forward_pf=worst_forward_pf,
         dd_growth_ratio=dd_growth_ratio,
+        usable_windows=usable_windows,
+        min_usable_windows=int(min_usable_windows),
         classification=classification,
+        recommendation=recommendation,
         failed_criteria=failures,
     )
 
@@ -474,21 +524,25 @@ def build_sanity_checks(
     overlap_checks: list[dict[str, Any]] = []
     if forward_windows:
         first_forward = forward_windows[0]
+        holdout_end = holdout_window.actual_end or holdout_window.expected_end
+        first_start = first_forward.actual_start or first_forward.expected_start
         overlap_checks.append(
             {
                 "name": "holdout_before_forward_1",
-                "passed": bool((holdout_window.actual_end or holdout_window.expected_end) < first_forward.expected_start),
-                "detail": f"{(holdout_window.actual_end or holdout_window.expected_end).isoformat()} < {first_forward.expected_start.isoformat()}",
+                "passed": bool(holdout_end < first_start),
+                "detail": f"{holdout_end.isoformat()} < {first_start.isoformat()}",
             }
         )
     for index in range(len(forward_windows) - 1):
         current = forward_windows[index]
         nxt = forward_windows[index + 1]
+        current_end = current.actual_end or current.expected_end
+        next_start = nxt.actual_start or nxt.expected_start
         overlap_checks.append(
             {
                 "name": f"{current.name}_before_{nxt.name}",
-                "passed": bool(current.expected_end < nxt.expected_start),
-                "detail": f"{current.expected_end.isoformat()} < {nxt.expected_start.isoformat()}",
+                "passed": bool(current_end < next_start),
+                "detail": f"{current_end.isoformat()} < {next_start.isoformat()}",
             }
         )
 
@@ -528,7 +582,11 @@ def build_sanity_checks(
     }
 
 
-def _build_holdout_window(stage2_summary: dict[str, Any]) -> WindowSpec:
+def _build_holdout_window(
+    stage2_summary: dict[str, Any],
+    available_end: pd.Timestamp,
+    reserve_forward_days: int,
+) -> WindowSpec:
     available_methods = [payload for payload in stage2_summary["portfolio_methods"].values() if "holdout" in payload]
     if not available_methods:
         raise ValueError("Stage-2 summary does not contain holdout metrics")
@@ -536,18 +594,35 @@ def _build_holdout_window(stage2_summary: dict[str, Any]) -> WindowSpec:
     start_text, end_text = holdout_range.split("..", 1)
     start = _ensure_utc(start_text)
     end = _ensure_utc(end_text)
-    bar_count = int(((end - start) / BAR_DELTA) + 1)
+    actual_end = end
+    truncated = False
+    note = ""
+    if int(reserve_forward_days) > 0:
+        reserved_tail_start = _ensure_utc(available_end) - pd.Timedelta(days=int(reserve_forward_days)) + BAR_DELTA
+        reserved_holdout_end = reserved_tail_start - BAR_DELTA
+        if reserved_holdout_end < actual_end:
+            actual_end = reserved_holdout_end
+            truncated = True
+            note = (
+                "Holdout truncated to reserve the local data tail for non-overlapping forward windows "
+                f"({int(reserve_forward_days)} days reserved)."
+            )
+
+    enough_data = bool(actual_end >= start + BAR_DELTA)
+    actual_start = start if actual_end >= start else None
+    resolved_actual_end = actual_end
+    bar_count = int(((actual_end - start) / BAR_DELTA) + 1) if enough_data else 0
     return WindowSpec(
         name="Holdout",
         kind="holdout",
         expected_start=start,
         expected_end=end,
-        actual_start=start,
-        actual_end=end,
-        truncated=False,
+        actual_start=actual_start,
+        actual_end=resolved_actual_end,
+        truncated=truncated,
         enough_data=bool(bar_count >= 2),
         bar_count=bar_count,
-        note="",
+        note=note if enough_data else "Insufficient local history after reserving the forward-data tail.",
     )
 
 
@@ -611,6 +686,14 @@ def _combine_weighted_trade_pnls(
     return combined["portfolio_pnl"].astype(float)
 
 
+def _build_overall_recommendation(stability_by_method: dict[str, MethodStability]) -> str:
+    if any(item.classification == "STABLE" for item in stability_by_method.values()):
+        return "Proceed to leverage modeling"
+    if any(item.classification == "INSUFFICIENT_DATA" for item in stability_by_method.values()):
+        return "DO NOT proceed to leverage modeling"
+    return "Improve discovery/search space/exits before leverage"
+
+
 def _write_weight_csvs(
     run_dir: Path,
     stage2_summary: dict[str, Any],
@@ -667,12 +750,17 @@ def _write_walkforward_report(
     lines.append(f"- Stage-1 run_id referenced by Stage-2: `{summary['stage1_run_id']}`")
     lines.append(f"- Exact CLI command used: `{summary['command']}`")
     lines.append(f"- seed: `{summary['seed']}`")
+    lines.append(f"- reserve_forward_days: `{summary['reserve_forward_days']}`")
+    lines.append(f"- min_usable_windows required: `{summary['min_usable_windows']}`")
     lines.append(f"- config hash: `{summary['config_hash']}`")
     lines.append(f"- config hash (Stage-1 reference): `{summary['config_hash_stage1_reference']}`")
     lines.append(f"- data hash: `{summary['data_hash']}`")
     lines.append(f"- data hash (Stage-1 reference): `{summary['data_hash_stage1_reference']}`")
     lines.append(
-        f"- Holdout timestamps: `{summary['holdout_window']['actual_start']}` .. `{summary['holdout_window']['actual_end']}`"
+        f"- Holdout from Stage-2 artifacts: `{summary['holdout_window']['expected_start']}` .. `{summary['holdout_window']['expected_end']}`"
+    )
+    lines.append(
+        f"- Holdout timestamps used here: `{summary['holdout_window']['actual_start']}` .. `{summary['holdout_window']['actual_end']}`"
     )
     for window in summary["forward_windows"]:
         lines.append(
@@ -715,22 +803,32 @@ def _write_walkforward_report(
         if not evaluations:
             continue
         lines.append(f"### {method_key}")
-        lines.append("| window | PF | expectancy | exp_lcb | trade_count | tpm | exposure | return_pct | max_dd | Sharpe | Sortino | Calmar | avg_corr |")
-        lines.append("| --- | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: |")
+        lines.append(
+            "| window | status | PF | expectancy | exp_lcb | trade_count | tpm | exposure | return_pct | max_dd | Sharpe | Sortino | Calmar | avg_corr |"
+        )
+        lines.append(
+            "| --- | --- | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: |"
+        )
         for evaluation in evaluations:
             metrics = evaluation.metrics
             calmar = metrics["Calmar_ratio"]
             cagr = metrics["CAGR_approx"]
             calmar_text = f"{float(calmar):.4f}" if math.isfinite(float(calmar)) else "inf"
             cagr_text = f"{float(cagr):.4f}" if cagr is not None else "N/A"
+            if evaluation.window.actual_start is None or evaluation.window.actual_end is None:
+                status = "missing"
+            elif evaluation.window.truncated:
+                status = "truncated"
+            else:
+                status = "full"
             lines.append(
-                f"| {evaluation.window.name} | {float(metrics['profit_factor']):.4f} | {float(metrics['expectancy']):.4f} | "
+                f"| {evaluation.window.name} | {status} | {float(metrics['profit_factor']):.4f} | {float(metrics['expectancy']):.4f} | "
                 f"{float(metrics['exp_lcb']):.4f} | {float(metrics['trade_count_total']):.0f} | {float(metrics['trades_per_month']):.4f} | "
                 f"{float(metrics['exposure_ratio']):.4f} | {float(metrics['return_pct']):.4f} | {float(metrics['max_drawdown']):.4f} | "
                 f"{float(metrics['Sharpe_ratio']):.4f} | {float(metrics['Sortino_ratio']):.4f} | {calmar_text} | {evaluation.avg_corr:.4f} |"
             )
             lines.append(f"  CAGR_approx: `{cagr_text}`")
-            if evaluation.window.truncated:
+            if evaluation.window.note:
                 lines.append(f"  Note: {evaluation.window.note}")
         lines.append("")
 
@@ -746,8 +844,17 @@ def _write_walkforward_report(
         lines.append(f"- degradation_ratio: `{stability['degradation_ratio']:.4f}`")
         lines.append(f"- worst_forward_pf: `{stability['worst_forward_pf']:.4f}`")
         lines.append(f"- dd_growth_ratio: `{stability['dd_growth_ratio']:.4f}`")
+        lines.append(
+            f"- usable_windows: `{stability['usable_windows']}` / required `{stability['min_usable_windows']}`"
+        )
         lines.append(f"- classification: `{stability['classification']}`")
-        if stability["classification"] == "UNSTABLE":
+        lines.append(f"- recommendation: `{stability['recommendation']}`")
+        if stability["classification"] == "INSUFFICIENT_DATA":
+            lines.append(
+                f"- insufficiency detail: available `{stability['usable_windows']}` usable forward windows, "
+                f"required `{stability['min_usable_windows']}`"
+            )
+        if stability["failed_criteria"]:
             lines.append(f"- failed criteria: {', '.join(stability['failed_criteria'])}")
         else:
             lines.append("- failed criteria: none")
@@ -776,11 +883,20 @@ def _write_walkforward_report(
         lines.append(f"- Best STABLE method by pf_forward_mean: `{best_method}` ({float(best_payload['pf_forward_mean']):.4f})")
         lines.append("- Recommendation: Proceed to leverage modeling")
     else:
+        insufficient_methods = [
+            method_key
+            for method_key, payload in summary["method_summaries"].items()
+            if payload["stability"]["classification"] == "INSUFFICIENT_DATA"
+        ]
         lines.append("- Any STABLE method: `NO`")
         lines.append("- Best method by pf_forward_mean with stability constraints: none")
-        lines.append("- Recommendation: Improve discovery/search space/exits before leverage")
+        if insufficient_methods:
+            lines.append("- Recommendation: DO NOT proceed to leverage modeling")
+            lines.append(f"- Why: insufficient usable forward windows for `{insufficient_methods}`")
+        else:
+            lines.append("- Recommendation: Improve discovery/search space/exits before leverage")
     usable_counts = {
-        method_key: sum(1 for item in payload["window_metrics"] if item["window"].startswith("Forward") and item["metrics"]["enough_data"])
+        method_key: int(payload["stability"]["usable_windows"])
         for method_key, payload in summary["method_summaries"].items()
     }
     lines.append(f"- usable forward windows per method: `{usable_counts}`")

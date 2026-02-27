@@ -25,6 +25,10 @@ search:
 data:
   backend: parquet
 
+portfolio:
+  walkforward:
+    min_usable_windows: 3
+
 evaluation:
   stage0_enabled: true
   stage06:
