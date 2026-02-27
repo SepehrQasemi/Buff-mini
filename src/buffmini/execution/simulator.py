@@ -292,6 +292,8 @@ def run_stage4_simulation(
     trades_df = _orders_to_trade_events(orders_df)
     trades_df.to_csv(run_dir / "trades.csv", index=False)
     killswitch_df.to_csv(run_dir / "killswitch_events.csv", index=False)
+    playback_df = _build_playback_state(exposure_df=exposure_df, orders_df=orders_df, killswitch_df=killswitch_df)
+    playback_df.to_csv(run_dir / "playback_state.csv", index=False)
     logger.info("Saved Stage-4 simulation artifacts to %s", run_dir)
     return run_dir
 
@@ -377,3 +379,78 @@ def _orders_to_trade_events(orders_df: pd.DataFrame) -> pd.DataFrame:
         if column not in frame.columns:
             frame[column] = ""
     return frame[columns].copy()
+
+
+def _build_playback_state(
+    exposure_df: pd.DataFrame,
+    orders_df: pd.DataFrame,
+    killswitch_df: pd.DataFrame,
+) -> pd.DataFrame:
+    """Build per-bar playback contract for Stage-5 paper trading UI."""
+
+    if exposure_df.empty:
+        return pd.DataFrame(
+            columns=["timestamp", "symbol", "action", "exposure", "reason", "equity"]
+        )
+
+    exposure = exposure_df.copy()
+    exposure["timestamp"] = pd.to_datetime(exposure["ts"], utc=True, errors="coerce")
+    exposure = exposure.dropna(subset=["timestamp"]).sort_values("timestamp")
+
+    rows: list[dict[str, Any]] = []
+    order_frame = orders_df.copy() if not orders_df.empty else pd.DataFrame()
+    if not order_frame.empty:
+        order_frame["timestamp"] = pd.to_datetime(order_frame["ts"], utc=True, errors="coerce")
+
+    kill_frame = killswitch_df.copy() if not killswitch_df.empty else pd.DataFrame()
+    if not kill_frame.empty:
+        kill_frame["timestamp"] = pd.to_datetime(kill_frame["ts"], utc=True, errors="coerce")
+
+    for row in exposure.to_dict(orient="records"):
+        ts = pd.to_datetime(row.get("timestamp"), utc=True, errors="coerce")
+        if pd.isna(ts):
+            continue
+        rows.append(
+            {
+                "timestamp": ts.isoformat(),
+                "symbol": "ALL",
+                "action": "hold",
+                "exposure": float(row.get("gross_exposure", 0.0) or 0.0),
+                "reason": "",
+                "equity": float(row.get("equity", 0.0) or 0.0),
+            }
+        )
+
+        if not order_frame.empty:
+            orders_now = order_frame[order_frame["timestamp"] == ts]
+            for order in orders_now.to_dict(orient="records"):
+                rows.append(
+                    {
+                        "timestamp": ts.isoformat(),
+                        "symbol": str(order.get("symbol", "UNKNOWN")),
+                        "action": "open",
+                        "exposure": float(order.get("notional_fraction_of_equity", 0.0) or 0.0),
+                        "reason": str(order.get("notes", "")),
+                        "equity": float(row.get("equity", 0.0) or 0.0),
+                    }
+                )
+
+        if not kill_frame.empty:
+            kills_now = kill_frame[kill_frame["timestamp"] == ts]
+            for event in kills_now.to_dict(orient="records"):
+                rows.append(
+                    {
+                        "timestamp": ts.isoformat(),
+                        "symbol": "ALL",
+                        "action": "close",
+                        "exposure": float(row.get("gross_exposure", 0.0) or 0.0),
+                        "reason": str(event.get("reason", "killswitch")),
+                        "equity": float(row.get("equity", 0.0) or 0.0),
+                    }
+                )
+
+    playback = pd.DataFrame(rows)
+    if playback.empty:
+        return playback
+    playback = playback.sort_values(["timestamp", "symbol", "action"]).reset_index(drop=True)
+    return playback

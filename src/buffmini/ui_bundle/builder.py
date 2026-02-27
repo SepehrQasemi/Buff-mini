@@ -261,6 +261,14 @@ def _copy_trades_and_events(
         else:
             warnings.append(f"events source exists but empty: {events_source}")
 
+    playback_source = source_dir / "playback_state.csv"
+    if playback_source.exists():
+        playback = _safe_csv(playback_source)
+        if not playback.empty:
+            playback.to_csv(out_dir / "playback_state.csv", index=False)
+        else:
+            warnings.append(f"playback source exists but empty: {playback_source}")
+
 
 def _safe_json(path: Path) -> dict[str, Any]:
     if not path.exists():

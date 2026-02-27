@@ -87,6 +87,8 @@ Stage-5 adds a product-style Streamlit workflow with:
 - Run Monitor (live stage progress/logs + cancel + reconnect)
 - Results Studio (artifact-driven summary/charts/reports + library export)
 - Strategy Library (save/reuse compact strategy packages)
+- Run Compare (side-by-side run analysis)
+- Paper Trading Playback (bar-by-bar UI from bundled artifacts)
 
 Start UI:
 
@@ -111,6 +113,8 @@ Export any completed pipeline run into `library/`:
 ```bash
 python scripts/export_to_library.py --run-id <pipeline_run_id>
 ```
+
+Super Run: enable auto-save in Strategy Lab, then Run Monitor exports to library automatically on successful completion.
 
 ## Output Structure
 

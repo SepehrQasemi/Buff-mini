@@ -18,6 +18,10 @@ streamlit run src/buffmini/ui/app.py
 : Artifact-driven result analysis (summary, charts, trade map, exposure/risk, report viewer) and library export.
 - `23_strategy_library.py`
 : Browse reusable strategy cards, preview specs, and load params back into Strategy Lab.
+- `24_run_compare.py`
+: Side-by-side run comparison with metrics, equity overlays, and leverage-curve overlays.
+- `25_paper_trading.py`
+: Bar-by-bar paper trading playback from `ui_bundle/playback_state.csv`.
 
 ## One-Active-Run Lock
 
@@ -56,6 +60,22 @@ Exports copy only compact metadata/docs:
 - optional `weights.csv`
 
 Large run artifacts are not copied to the library.
+
+## Super Run Auto-save
+
+In Strategy Lab, enable `Auto-save best result to Library`.
+When the run finishes, Run Monitor automatically executes `scripts/export_to_library.py` and stores the resulting `strategy_id`.
+
+## Playback Contract
+
+`ui_bundle/playback_state.csv` columns:
+
+- `timestamp`
+- `symbol`
+- `action` (`open|close|hold`)
+- `exposure`
+- `reason`
+- `equity`
 
 ## Offline Safety Notes
 
