@@ -21,6 +21,7 @@ import yaml
 from buffmini.config import compute_config_hash, load_config
 from buffmini.constants import DEFAULT_CONFIG_PATH, PROJECT_ROOT, RUNS_DIR
 from buffmini.data.storage import parquet_path
+from buffmini.ui_bundle.builder import build_ui_bundle_from_pipeline
 from buffmini.ui.components.run_lock import release_lock
 from buffmini.utils.hashing import stable_hash
 from buffmini.utils.time import utc_now_compact
@@ -88,6 +89,13 @@ def main() -> None:
 
     stage_results: dict[str, StageResult] = {}
     pipeline_cfg_path = run_dir / "pipeline_config.yaml"
+    stage1_run_id: str | None = None
+    stage2_run_id: str | None = None
+    stage3_run_id: str | None = None
+    stage4_run_id: str | None = None
+    stage4_sim_run_id: str | None = None
+    resolved_candidate_count = 0
+    config: dict[str, Any] = {}
 
     try:
         config = load_config(args.config)
@@ -202,7 +210,7 @@ def main() -> None:
         stage4_run_id = _detect_new_run_id(Path(args.runs_dir), before_stage4, "_stage4")
         stage_results["stage4_spec"].run_id = stage4_run_id
 
-        stage4_sim_run_id: str | None = None
+        stage4_sim_run_id = None
         if int(args.run_stage4_simulate) == 1:
             before_stage4_sim = _snapshot_suffix_runs(Path(args.runs_dir), "_stage4_sim")
             stage_results["stage4_sim"] = _run_stage_command(
@@ -265,6 +273,7 @@ def main() -> None:
             },
         }
         _write_json_atomic(run_dir / "pipeline_summary.json", summary_payload)
+        build_ui_bundle_from_pipeline(run_dir)
 
         _update_progress(
             path=run_dir / "progress.json",
@@ -289,8 +298,17 @@ def main() -> None:
                 "status": "cancelled",
                 "error": str(exc),
                 "elapsed_seconds": round(time.time() - started_at, 3),
+                "stage1_run_id": stage1_run_id,
+                "stage2_run_id": stage2_run_id,
+                "stage3_3_run_id": stage3_run_id,
+                "stage4_run_id": stage4_run_id,
+                "stage4_sim_run_id": stage4_sim_run_id,
             },
         )
+        try:
+            build_ui_bundle_from_pipeline(run_dir)
+        except Exception:
+            pass
         _update_progress(
             path=run_dir / "progress.json",
             stage="cancelled",
@@ -314,8 +332,19 @@ def main() -> None:
                 "status": "failed",
                 "error": str(exc),
                 "elapsed_seconds": round(time.time() - started_at, 3),
+                "stage1_run_id": stage1_run_id,
+                "stage2_run_id": stage2_run_id,
+                "stage3_3_run_id": stage3_run_id,
+                "stage4_run_id": stage4_run_id,
+                "stage4_sim_run_id": stage4_sim_run_id,
+                "config_hash": compute_config_hash(config) if config else "",
+                "seed": int(args.seed),
             },
         )
+        try:
+            build_ui_bundle_from_pipeline(run_dir)
+        except Exception:
+            pass
         _update_progress(
             path=run_dir / "progress.json",
             stage="failed",
