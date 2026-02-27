@@ -1,8 +1,9 @@
-﻿"""Tests for configuration loading and hashing."""
+"""Tests for configuration loading and hashing."""
 
+from copy import deepcopy
 from pathlib import Path
 
-from buffmini.config import compute_config_hash, load_config
+from buffmini.config import compute_config_hash, load_config, validate_config
 
 
 def test_load_config_success() -> None:
@@ -25,14 +26,44 @@ def test_load_config_success() -> None:
     assert config["evaluation"]["stage1"]["allow_rare_if_high_expectancy"] is False
     assert config["evaluation"]["stage1"]["rare_expectancy_threshold"] == 3.0
     assert config["evaluation"]["stage1"]["rare_penalty_relief"] == 0.1
-    assert config["evaluation"]["stage1"]["result_thresholds"]["min_exp_lcb_holdout"] == 0
-    assert config["evaluation"]["stage1"]["result_thresholds"]["min_effective_edge"] == 0
-    assert config["evaluation"]["stage1"]["result_thresholds"]["min_trades_per_month_holdout"] == 5
-    assert config["evaluation"]["stage1"]["result_thresholds"]["min_pf_adj_holdout"] == 1.1
-    assert config["evaluation"]["stage1"]["result_thresholds"]["max_drawdown_holdout"] == 0.15
-    assert config["evaluation"]["stage1"]["result_thresholds"]["min_exposure_ratio"] == 0.02
+    thresholds = config["evaluation"]["stage1"]["result_thresholds"]
+    assert thresholds["TierA"]["min_exp_lcb_holdout"] == 0
+    assert thresholds["TierA"]["min_effective_edge"] == 0
+    assert thresholds["TierA"]["min_trades_per_month_holdout"] == 5
+    assert thresholds["TierA"]["min_pf_adj_holdout"] == 1.1
+    assert thresholds["TierA"]["max_drawdown_holdout"] == 0.15
+    assert thresholds["TierA"]["min_exposure_ratio"] == 0.02
+    assert thresholds["TierB"]["min_exp_lcb_holdout"] == 0
+    assert thresholds["TierB"]["min_effective_edge"] == 0
+    assert thresholds["TierB"]["min_trades_per_month_holdout"] == 2
+    assert thresholds["TierB"]["min_pf_adj_holdout"] == 1.05
+    assert thresholds["TierB"]["max_drawdown_holdout"] == 0.20
+    assert thresholds["TierB"]["min_exposure_ratio"] == 0.02
+    assert thresholds["NearMiss"]["min_exp_lcb_holdout"] == -5
     assert config["evaluation"]["stage1"]["promotion_holdout_months"] == [3, 6, 9, 12]
     assert config["data"]["backend"] == "parquet"
+
+
+def test_validate_config_accepts_legacy_flat_result_thresholds() -> None:
+    root = Path(__file__).resolve().parents[1]
+    config = load_config(root / "configs" / "default.yaml")
+
+    legacy_config = deepcopy(config)
+    legacy_config["evaluation"]["stage1"]["result_thresholds"] = {
+        "min_exp_lcb_holdout": 0,
+        "min_effective_edge": 0,
+        "min_trades_per_month_holdout": 5,
+        "min_pf_adj_holdout": 1.1,
+        "max_drawdown_holdout": 0.15,
+        "min_exposure_ratio": 0.02,
+    }
+
+    validate_config(legacy_config)
+
+    thresholds = legacy_config["evaluation"]["stage1"]["result_thresholds"]
+    assert thresholds["TierA"]["min_trades_per_month_holdout"] == 5
+    assert thresholds["TierB"]["min_trades_per_month_holdout"] == 2
+    assert thresholds["NearMiss"]["min_exp_lcb_holdout"] == -5
 
 
 def test_compute_config_hash_is_deterministic() -> None:

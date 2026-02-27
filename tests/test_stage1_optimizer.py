@@ -10,9 +10,11 @@ import numpy as np
 from buffmini.config import load_config
 from buffmini.data.features import calculate_features
 from buffmini.discovery.funnel import (
+    CandidateEval,
     _build_candidate_signal_cache,
     _build_stage_diagnostics,
     _build_temporal_splits_with_holdout_months,
+    _candidate_result_tier,
     _candidate_rejection_reason,
     _compute_expectancy_lcb,
     _compute_exposure_penalty,
@@ -26,7 +28,7 @@ from buffmini.discovery.funnel import (
     _passes_validation_evidence,
     run_stage1_optimization,
 )
-from buffmini.discovery.generator import candidate_within_search_space, sample_candidate
+from buffmini.discovery.generator import Candidate, candidate_within_search_space, sample_candidate
 
 
 def _small_stage1_config(root: Path) -> dict:
@@ -45,6 +47,43 @@ def _small_stage1_config(root: Path) -> dict:
     stage1["min_holdout_trades"] = 1
     stage1["recent_weight"] = 2.0
     return config
+
+
+def _make_candidate_eval(
+    *,
+    exp_lcb_holdout: float,
+    effective_edge: float,
+    trades_per_month_holdout: float,
+    pf_adj_holdout: float,
+    max_drawdown_holdout: float,
+    exposure_ratio: float,
+) -> CandidateEval:
+    return CandidateEval(
+        candidate=Candidate(
+            candidate_id="cand_test",
+            family="TrendPullback",
+            gating_mode="vol+regime",
+            exit_mode="fixed_atr",
+            params={},
+        ),
+        stage="C",
+        score=0.0,
+        expectancy=0.0,
+        profit_factor=1.0,
+        max_drawdown=max_drawdown_holdout,
+        trade_count=10.0,
+        final_equity=10_100.0,
+        return_pct=0.01,
+        complexity_penalty=0.0,
+        instability_penalty=0.0,
+        date_range="2025-01-01 -> 2025-03-31",
+        metrics_holdout={"max_drawdown": max_drawdown_holdout},
+        exp_lcb_holdout=exp_lcb_holdout,
+        effective_edge=effective_edge,
+        trades_per_month_holdout=trades_per_month_holdout,
+        pf_adj_holdout=pf_adj_holdout,
+        exposure_ratio=exposure_ratio,
+    )
 
 
 def test_candidate_generation_stays_inside_search_space() -> None:
@@ -99,6 +138,7 @@ def test_funnel_reduces_candidate_count_and_writes_artifacts(tmp_path: Path) -> 
     assert set(summary["promotion_counts"].keys()) == {"6", "9", "12"}
     assert "candidate_artifact_paths" in summary
     assert "result_thresholds" in summary
+    assert set(summary["result_thresholds"].keys()) == {"TierA", "TierB", "NearMiss"}
 
     top_strategies = json.loads((run_dir / "strategies.json").read_text(encoding="utf-8"))
     for row in top_strategies:
@@ -219,6 +259,49 @@ def test_zero_trade_diagnostics_detection() -> None:
     assert histogram["1-10"] == 1
     assert histogram["11-50"] == 1
     assert histogram[">200"] == 1
+
+
+def test_tier_b_classification_is_distinct_from_tier_a() -> None:
+    thresholds = {
+        "TierA": {
+            "min_exp_lcb_holdout": 0.0,
+            "min_effective_edge": 0.0,
+            "min_trades_per_month_holdout": 5.0,
+            "min_pf_adj_holdout": 1.1,
+            "max_drawdown_holdout": 0.15,
+            "min_exposure_ratio": 0.02,
+        },
+        "TierB": {
+            "min_exp_lcb_holdout": 0.0,
+            "min_effective_edge": 0.0,
+            "min_trades_per_month_holdout": 2.0,
+            "min_pf_adj_holdout": 1.05,
+            "max_drawdown_holdout": 0.20,
+            "min_exposure_ratio": 0.02,
+        },
+        "NearMiss": {
+            "min_exp_lcb_holdout": -5.0,
+        },
+    }
+    tier_a_row = _make_candidate_eval(
+        exp_lcb_holdout=1.0,
+        effective_edge=1.0,
+        trades_per_month_holdout=5.0,
+        pf_adj_holdout=1.1,
+        max_drawdown_holdout=0.15,
+        exposure_ratio=0.02,
+    )
+    tier_b_row = _make_candidate_eval(
+        exp_lcb_holdout=1.0,
+        effective_edge=1.0,
+        trades_per_month_holdout=2.5,
+        pf_adj_holdout=1.06,
+        max_drawdown_holdout=0.19,
+        exposure_ratio=0.02,
+    )
+
+    assert _candidate_result_tier(row=tier_a_row, thresholds=thresholds) == "Tier A"
+    assert _candidate_result_tier(row=tier_b_row, thresholds=thresholds) == "Tier B"
 
 
 def test_pf_adjusted_downweights_low_trade_spikes() -> None:

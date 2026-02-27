@@ -1,6 +1,6 @@
 {
-  "run_id": "20260226_234139_b78b63b21ba0_stage1",
-  "timestamp_utc": "20260227_000741",
+  "run_id": "20260227_010451_3ab7b86b23c2_stage1",
+  "timestamp_utc": "20260227_012914",
   "split_mode": "60_20_20",
   "recent_weight": 2.0,
   "min_holdout_trades": 50,
@@ -16,23 +16,36 @@
     "12": 43
   },
   "result_thresholds": {
-    "min_exp_lcb_holdout": 0,
-    "min_effective_edge": 0,
-    "min_trades_per_month_holdout": 5,
-    "min_pf_adj_holdout": 1.1,
-    "max_drawdown_holdout": 0.15,
-    "min_exposure_ratio": 0.02
+    "TierA": {
+      "min_exp_lcb_holdout": 0,
+      "min_effective_edge": 0,
+      "min_trades_per_month_holdout": 5,
+      "min_pf_adj_holdout": 1.1,
+      "max_drawdown_holdout": 0.15,
+      "min_exposure_ratio": 0.02
+    },
+    "TierB": {
+      "min_exp_lcb_holdout": 0,
+      "min_effective_edge": 0,
+      "min_trades_per_month_holdout": 2.0,
+      "min_pf_adj_holdout": 1.05,
+      "max_drawdown_holdout": 0.2,
+      "min_exposure_ratio": 0.02
+    },
+    "NearMiss": {
+      "min_exp_lcb_holdout": -5
+    }
   },
   "min_validation_exposure_ratio": 0.01,
   "min_validation_active_days": 10.0,
   "validation_evidence_rule": "validation_exposure_ratio >= min_validation_exposure_ratio OR validation_active_days >= min_validation_active_days",
-  "tier_A_rule": "All result_thresholds satisfied",
-  "tier_B_rule": "exp_lcb_holdout > 0 AND trades_per_month_holdout >= 3",
+  "tier_A_rule": "exp_lcb_holdout >= 0 AND effective_edge >= 0 AND trades_per_month_holdout >= 5 AND pf_adj_holdout >= 1.1 AND max_drawdown_holdout <= 0.15 AND exposure_ratio >= 0.02",
+  "tier_B_rule": "exp_lcb_holdout >= 0 AND effective_edge >= 0 AND trades_per_month_holdout >= 2 AND pf_adj_holdout >= 1.05 AND max_drawdown_holdout <= 0.2 AND exposure_ratio >= 0.02",
   "near_miss_rule": "exp_lcb_holdout > -5",
   "rejected_due_validation_evidence_count": 37,
   "tier_A_count": 1,
-  "tier_B_count": 0,
-  "near_miss_count": 29,
+  "tier_B_count": 6,
+  "near_miss_count": 23,
   "candidate_artifact_paths": {
     "candidates_dir": "candidates",
     "tier_A_csv": "tier_A_candidates.csv",
@@ -43,20 +56,20 @@
       "candidates\\strategy_02_cand_000637_42edc0b1.json",
       "candidates\\strategy_03_cand_001264_848f658f.json",
       "candidates\\strategy_04_cand_001139_d55f8520.json",
-      "candidates\\strategy_05_cand_000574_79a0305f.json",
-      "candidates\\strategy_06_cand_001606_0bb0538b.json",
-      "candidates\\strategy_07_cand_000743_1fc927ae.json",
-      "candidates\\strategy_08_cand_000906_e1b3bcf2.json",
-      "candidates\\strategy_09_cand_001044_fad04120.json",
-      "candidates\\strategy_10_cand_001674_4d2aff0a.json",
-      "candidates\\strategy_11_cand_001012_dbec7b03.json",
-      "candidates\\strategy_12_cand_000073_cf825852.json",
-      "candidates\\strategy_13_cand_001506_17117851.json",
-      "candidates\\strategy_14_cand_000258_7db0c562.json",
-      "candidates\\strategy_15_cand_001093_cb5294d8.json",
-      "candidates\\strategy_16_cand_001603_418d4b75.json",
-      "candidates\\strategy_17_cand_000479_b1601f01.json",
-      "candidates\\strategy_18_cand_001147_0131018a.json",
+      "candidates\\strategy_05_cand_001012_dbec7b03.json",
+      "candidates\\strategy_06_cand_001603_418d4b75.json",
+      "candidates\\strategy_07_cand_001147_0131018a.json",
+      "candidates\\strategy_08_cand_000574_79a0305f.json",
+      "candidates\\strategy_09_cand_001606_0bb0538b.json",
+      "candidates\\strategy_10_cand_000743_1fc927ae.json",
+      "candidates\\strategy_11_cand_000906_e1b3bcf2.json",
+      "candidates\\strategy_12_cand_001044_fad04120.json",
+      "candidates\\strategy_13_cand_001674_4d2aff0a.json",
+      "candidates\\strategy_14_cand_000073_cf825852.json",
+      "candidates\\strategy_15_cand_001506_17117851.json",
+      "candidates\\strategy_16_cand_000258_7db0c562.json",
+      "candidates\\strategy_17_cand_001093_cb5294d8.json",
+      "candidates\\strategy_18_cand_000479_b1601f01.json",
       "candidates\\strategy_19_cand_000014_f5923ea9.json",
       "candidates\\strategy_20_cand_001464_7338bf9b.json",
       "candidates\\strategy_21_cand_001246_22bd0bcc.json",
@@ -72,258 +85,258 @@
     ]
   },
   "timings": {
-    "stage_a_seconds": 660.9252910614014,
-    "stage_b_seconds": 349.16540813446045,
-    "stage_c_seconds": 551.4964067935944,
+    "stage_a_seconds": 663.8634781837463,
+    "stage_b_seconds": 348.0226664543152,
+    "stage_c_seconds": 449.9001681804657,
     "stage_c_per_candidate_seconds": [
       {
         "candidate_id": "cand_000743_1fc927ae",
-        "seconds": 9.241846561431885,
+        "seconds": 9.376887321472168,
         "holdout_months_used": 12
       },
       {
         "candidate_id": "cand_000479_b1601f01",
-        "seconds": 9.319486618041992,
+        "seconds": 9.555512189865112,
         "holdout_months_used": 12
       },
       {
         "candidate_id": "cand_001464_7338bf9b",
-        "seconds": 9.261054992675781,
+        "seconds": 9.258782863616943,
         "holdout_months_used": 12
       },
       {
         "candidate_id": "cand_000014_f5923ea9",
-        "seconds": 9.36350965499878,
+        "seconds": 9.348110914230347,
         "holdout_months_used": 12
       },
       {
         "candidate_id": "cand_000906_e1b3bcf2",
-        "seconds": 9.369943380355835,
+        "seconds": 9.374978065490723,
         "holdout_months_used": 12
       },
       {
         "candidate_id": "cand_001093_cb5294d8",
-        "seconds": 9.294906616210938,
+        "seconds": 9.28515887260437,
         "holdout_months_used": 12
       },
       {
         "candidate_id": "cand_001606_0bb0538b",
-        "seconds": 9.320736408233643,
+        "seconds": 9.193004369735718,
         "holdout_months_used": 12
       },
       {
         "candidate_id": "cand_000337_c26663c1",
-        "seconds": 9.329144477844238,
+        "seconds": 9.034331798553467,
         "holdout_months_used": 12
       },
       {
         "candidate_id": "cand_001044_fad04120",
-        "seconds": 9.188222646713257,
+        "seconds": 9.446295499801636,
         "holdout_months_used": 12
       },
       {
         "candidate_id": "cand_000637_42edc0b1",
-        "seconds": 5.687760353088379,
+        "seconds": 5.488271713256836,
         "holdout_months_used": 3
       },
       {
         "candidate_id": "cand_001506_17117851",
-        "seconds": 9.39530348777771,
+        "seconds": 9.290585279464722,
         "holdout_months_used": 12
       },
       {
         "candidate_id": "cand_000869_243873e1",
-        "seconds": 9.268404483795166,
+        "seconds": 9.37685489654541,
         "holdout_months_used": 12
       },
       {
         "candidate_id": "cand_000839_134b1afb",
-        "seconds": 9.444998025894165,
+        "seconds": 9.463948011398315,
         "holdout_months_used": 12
       },
       {
         "candidate_id": "cand_001260_6a1c2d79",
-        "seconds": 9.810940742492676,
+        "seconds": 9.383755922317505,
         "holdout_months_used": 12
       },
       {
         "candidate_id": "cand_000301_46539359",
-        "seconds": 9.30554986000061,
+        "seconds": 9.212071180343628,
         "holdout_months_used": 12
       },
       {
         "candidate_id": "cand_001139_d55f8520",
-        "seconds": 5.7986860275268555,
+        "seconds": 5.462547302246094,
         "holdout_months_used": 3
       },
       {
         "candidate_id": "cand_001241_31519798",
-        "seconds": 9.459694385528564,
+        "seconds": 9.343994140625,
         "holdout_months_used": 12
       },
       {
         "candidate_id": "cand_000073_cf825852",
-        "seconds": 9.383631229400635,
+        "seconds": 9.429574251174927,
         "holdout_months_used": 12
       },
       {
         "candidate_id": "cand_001354_ed1ad04c",
-        "seconds": 9.384202241897583,
+        "seconds": 9.078773975372314,
         "holdout_months_used": 12
       },
       {
         "candidate_id": "cand_001103_6403ff89",
-        "seconds": 9.15125036239624,
+        "seconds": 9.212193489074707,
         "holdout_months_used": 12
       },
       {
         "candidate_id": "cand_000802_06f52b45",
-        "seconds": 9.177785873413086,
+        "seconds": 9.197940111160278,
         "holdout_months_used": 12
       },
       {
         "candidate_id": "cand_001012_dbec7b03",
-        "seconds": 11.836699962615967,
+        "seconds": 11.9508376121521,
         "holdout_months_used": 9
       },
       {
         "candidate_id": "cand_000455_b5533efa",
-        "seconds": 1.9914896488189697,
+        "seconds": 1.8730320930480957,
         "holdout_months_used": 3
       },
       {
         "candidate_id": "cand_001193_941a769c",
-        "seconds": 9.291800498962402,
+        "seconds": 9.142112970352173,
         "holdout_months_used": 12
       },
       {
         "candidate_id": "cand_001623_ff20fbd6",
-        "seconds": 10.916004419326782,
+        "seconds": 9.341781377792358,
         "holdout_months_used": 12
       },
       {
         "candidate_id": "cand_001147_0131018a",
-        "seconds": 19.0976722240448,
+        "seconds": 15.150907754898071,
         "holdout_months_used": 12
       },
       {
         "candidate_id": "cand_001106_0220dce2",
-        "seconds": 10.397028923034668,
+        "seconds": 5.740474224090576,
         "holdout_months_used": 3
       },
       {
         "candidate_id": "cand_001264_848f658f",
-        "seconds": 13.375932455062866,
+        "seconds": 5.568210601806641,
         "holdout_months_used": 3
       },
       {
         "candidate_id": "cand_001674_4d2aff0a",
-        "seconds": 21.83912706375122,
+        "seconds": 9.53080153465271,
         "holdout_months_used": 12
       },
       {
         "candidate_id": "cand_000338_4dbd0955",
-        "seconds": 14.15941596031189,
+        "seconds": 9.250920057296753,
         "holdout_months_used": 12
       },
       {
         "candidate_id": "cand_001203_fd1dc644",
-        "seconds": 10.8529531955719,
+        "seconds": 9.393685340881348,
         "holdout_months_used": 12
       },
       {
         "candidate_id": "cand_001246_22bd0bcc",
-        "seconds": 10.879176378250122,
+        "seconds": 9.274647235870361,
         "holdout_months_used": 12
       },
       {
         "candidate_id": "cand_000574_79a0305f",
-        "seconds": 20.664711475372314,
+        "seconds": 9.35484766960144,
         "holdout_months_used": 12
       },
       {
         "candidate_id": "cand_000258_7db0c562",
-        "seconds": 10.994050741195679,
+        "seconds": 9.526973962783813,
         "holdout_months_used": 12
       },
       {
         "candidate_id": "cand_000176_1c8e6a98",
-        "seconds": 10.805442094802856,
+        "seconds": 9.08531379699707,
         "holdout_months_used": 12
       },
       {
         "candidate_id": "cand_000844_2536f02c",
-        "seconds": 10.918843746185303,
+        "seconds": 9.293187141418457,
         "holdout_months_used": 12
       },
       {
         "candidate_id": "cand_000404_5671415b",
-        "seconds": 11.226528882980347,
+        "seconds": 9.155914545059204,
         "holdout_months_used": 12
       },
       {
         "candidate_id": "cand_000732_209255d0",
-        "seconds": 20.8083336353302,
+        "seconds": 9.195720195770264,
         "holdout_months_used": 12
       },
       {
         "candidate_id": "cand_001292_6b718ab3",
-        "seconds": 11.321286678314209,
+        "seconds": 9.320400476455688,
         "holdout_months_used": 12
       },
       {
         "candidate_id": "cand_001603_418d4b75",
-        "seconds": 18.07591938972473,
+        "seconds": 15.168156385421753,
         "holdout_months_used": 12
       },
       {
         "candidate_id": "cand_000013_2194fa75",
-        "seconds": 10.980022192001343,
+        "seconds": 9.235962152481079,
         "holdout_months_used": 12
       },
       {
         "candidate_id": "cand_001220_0d2c6573",
-        "seconds": 10.917004585266113,
+        "seconds": 9.273520708084106,
         "holdout_months_used": 12
       },
       {
         "candidate_id": "cand_000809_c007f79e",
-        "seconds": 11.34461259841919,
+        "seconds": 9.563270568847656,
         "holdout_months_used": 12
       },
       {
         "candidate_id": "cand_001243_e3725da7",
-        "seconds": 16.777586221694946,
+        "seconds": 9.34935188293457,
         "holdout_months_used": 12
       },
       {
         "candidate_id": "cand_001222_3b4c39df",
-        "seconds": 14.43048644065857,
+        "seconds": 9.351068496704102,
         "holdout_months_used": 12
       },
       {
         "candidate_id": "cand_000205_f59f9ee9",
-        "seconds": 11.523497819900513,
+        "seconds": 9.19615912437439,
         "holdout_months_used": 12
       },
       {
         "candidate_id": "cand_000039_09eda689",
-        "seconds": 13.393003463745117,
+        "seconds": 9.25661325454712,
         "holdout_months_used": 12
       },
       {
         "candidate_id": "cand_000957_252cee9e",
-        "seconds": 11.000885009765625,
+        "seconds": 9.347667694091797,
         "holdout_months_used": 12
       },
       {
         "candidate_id": "cand_001562_daefde29",
-        "seconds": 10.569715976715088,
+        "seconds": 9.339545249938965,
         "holdout_months_used": 12
       },
       {
         "candidate_id": "cand_000930_b5e47a30",
-        "seconds": 2.143545389175415,
+        "seconds": 1.8485820293426514,
         "holdout_months_used": 3
       }
     ]
@@ -422,11 +435,10 @@
       "score": 296.68138894820925
     }
   ],
-  "tier_B_candidates": [],
-  "near_miss_candidates": [
+  "tier_B_candidates": [
     {
       "rank": 1,
-      "result_tier": "Near Miss",
+      "result_tier": "Tier B",
       "candidate_id": "cand_000637_42edc0b1",
       "strategy_name": "Trend Pullback",
       "strategy_family": "TrendPullback",
@@ -498,7 +510,7 @@
     },
     {
       "rank": 2,
-      "result_tier": "Near Miss",
+      "result_tier": "Tier B",
       "candidate_id": "cand_001264_848f658f",
       "strategy_name": "Trend Pullback",
       "strategy_family": "TrendPullback",
@@ -570,7 +582,7 @@
     },
     {
       "rank": 3,
-      "result_tier": "Near Miss",
+      "result_tier": "Tier B",
       "candidate_id": "cand_001139_d55f8520",
       "strategy_name": "Trend Pullback",
       "strategy_family": "TrendPullback",
@@ -642,6 +654,224 @@
     },
     {
       "rank": 4,
+      "result_tier": "Tier B",
+      "candidate_id": "cand_001012_dbec7b03",
+      "strategy_name": "Trend Pullback",
+      "strategy_family": "TrendPullback",
+      "parameters": {
+        "channel_period": 55,
+        "ema_fast": 20,
+        "ema_slow": 200,
+        "rsi_long_entry": 36,
+        "rsi_short_entry": 80,
+        "bollinger_period": 20,
+        "bollinger_std": 2.5,
+        "atr_sl_multiplier": 1.5257538029504538,
+        "atr_tp_multiplier": 2.6419882504839536,
+        "trailing_atr_k": 1.8045079545810143,
+        "max_holding_bars": 48,
+        "regime_gate_long": true,
+        "regime_gate_short": false
+      },
+      "gating": "none",
+      "exit_mode": "fixed_atr",
+      "holdout_months_used": 9,
+      "trade_count_validation": 24.0,
+      "trade_count_holdout": 23.0,
+      "pf_validation": 0.8211297064270733,
+      "pf_holdout": 2.58222503133996,
+      "pf_adj_holdout": 1.4985092564495766,
+      "expectancy_validation": -20.263256303966234,
+      "expectancy_holdout": 39.09195742857321,
+      "exp_lcb_holdout": 14.657544103580129,
+      "effective_edge": 36.643860258950326,
+      "max_drawdown_combined": 0.05786703697506073,
+      "max_drawdown_holdout": 0.01770113836486869,
+      "return_pct_holdout": 0.04495575104285927,
+      "cagr_approx_holdout": 0.05992120370237619,
+      "trades_per_month_holdout": 2.5,
+      "exposure_ratio": 0.020452830188679244,
+      "exposure_penalty": 0.0,
+      "low_signal_penalty": 0.6875,
+      "penalty_relief_applied": false,
+      "validation_exposure_ratio": 0.023583111449220234,
+      "validation_active_days": 27,
+      "validation_exposure_passed": true,
+      "validation_active_days_passed": true,
+      "validation_evidence_rule": "validation_exposure_ratio >= min_validation_exposure_ratio OR validation_active_days >= min_validation_active_days",
+      "validation_evidence_passed": true,
+      "holdout_by_symbol": {
+        "BTC/USDT": {
+          "profit_factor": 1.138956446678874,
+          "return_pct": 0.007871723518857107,
+          "max_drawdown": 0.020728244839892933,
+          "trade_count": 14.0
+        },
+        "ETH/USDT": {
+          "profit_factor": 4.025493616001047,
+          "return_pct": 0.08203977856686143,
+          "max_drawdown": 0.014674031889844443,
+          "trade_count": 9.0
+        }
+      },
+      "validation_range": "2024-10-19T07:00:00+00:00..2025-05-26T08:00:00+00:00",
+      "holdout_range": "2025-05-26T09:00:00+00:00..2026-02-26T09:00:00+00:00",
+      "combined_range": "2024-10-19T07:00:00+00:00..2026-02-26T09:00:00+00:00",
+      "rejected": false,
+      "accepted": true,
+      "rejection_reason": "",
+      "exp_lcb_positive": true,
+      "effective_edge_positive": true,
+      "score": 10.41401838574913
+    },
+    {
+      "rank": 5,
+      "result_tier": "Tier B",
+      "candidate_id": "cand_001603_418d4b75",
+      "strategy_name": "Trend Pullback",
+      "strategy_family": "TrendPullback",
+      "parameters": {
+        "channel_period": 20,
+        "ema_fast": 20,
+        "ema_slow": 200,
+        "rsi_long_entry": 40,
+        "rsi_short_entry": 74,
+        "bollinger_period": 20,
+        "bollinger_std": 2.0,
+        "atr_sl_multiplier": 1.7393367369055839,
+        "atr_tp_multiplier": 4.143311836720374,
+        "trailing_atr_k": 2.488709421453188,
+        "max_holding_bars": 96,
+        "regime_gate_long": false,
+        "regime_gate_short": false
+      },
+      "gating": "vol+regime",
+      "exit_mode": "breakeven_1r",
+      "holdout_months_used": 12,
+      "trade_count_validation": 10.0,
+      "trade_count_holdout": 26.0,
+      "pf_validation": 0.4692886963443235,
+      "pf_holdout": 1.8315753687262024,
+      "pf_adj_holdout": 1.2844863103537008,
+      "expectancy_validation": -48.48578327867712,
+      "expectancy_holdout": 62.73074769048344,
+      "exp_lcb_holdout": 12.266313224273276,
+      "effective_edge": 26.21294332858399,
+      "max_drawdown_combined": 0.07374628650237336,
+      "max_drawdown_holdout": 0.04659204504336585,
+      "return_pct_holdout": 0.08154997199762838,
+      "cagr_approx_holdout": 0.08160804773186703,
+      "trades_per_month_holdout": 2.136986301369863,
+      "exposure_ratio": 0.021801164250656316,
+      "exposure_penalty": 0.0,
+      "low_signal_penalty": 0.7328767123287672,
+      "penalty_relief_applied": false,
+      "validation_exposure_ratio": 0.01947502116850127,
+      "validation_active_days": 16,
+      "validation_exposure_passed": true,
+      "validation_active_days_passed": true,
+      "validation_evidence_rule": "validation_exposure_ratio >= min_validation_exposure_ratio OR validation_active_days >= min_validation_active_days",
+      "validation_evidence_passed": true,
+      "holdout_by_symbol": {
+        "BTC/USDT": {
+          "profit_factor": 0.8743478012867812,
+          "return_pct": -0.006974115696900117,
+          "max_drawdown": 0.041658860764950074,
+          "trade_count": 14.0
+        },
+        "ETH/USDT": {
+          "profit_factor": 2.7888029361656237,
+          "return_pct": 0.1700740596921569,
+          "max_drawdown": 0.05152522932178163,
+          "trade_count": 12.0
+        }
+      },
+      "validation_range": "2024-08-13T13:00:00+00:00..2025-02-26T08:00:00+00:00",
+      "holdout_range": "2025-02-26T09:00:00+00:00..2026-02-26T09:00:00+00:00",
+      "combined_range": "2024-08-13T13:00:00+00:00..2026-02-26T09:00:00+00:00",
+      "rejected": false,
+      "accepted": true,
+      "rejection_reason": "",
+      "exp_lcb_positive": true,
+      "effective_edge_positive": true,
+      "score": 14.155101174367438
+    },
+    {
+      "rank": 6,
+      "result_tier": "Tier B",
+      "candidate_id": "cand_001147_0131018a",
+      "strategy_name": "Trend Pullback",
+      "strategy_family": "TrendPullback",
+      "parameters": {
+        "channel_period": 100,
+        "ema_fast": 50,
+        "ema_slow": 200,
+        "rsi_long_entry": 40,
+        "rsi_short_entry": 73,
+        "bollinger_period": 20,
+        "bollinger_std": 2.5,
+        "atr_sl_multiplier": 2.147676407956741,
+        "atr_tp_multiplier": 3.6592030620597913,
+        "trailing_atr_k": 2.3413488748426987,
+        "max_holding_bars": 24,
+        "regime_gate_long": true,
+        "regime_gate_short": true
+      },
+      "gating": "vol",
+      "exit_mode": "fixed_atr",
+      "holdout_months_used": 12,
+      "trade_count_validation": 10.0,
+      "trade_count_holdout": 27.0,
+      "pf_validation": 1.3338005076424817,
+      "pf_holdout": 1.6722807987654493,
+      "pf_adj_holdout": 1.2357348255411316,
+      "expectancy_validation": 23.862303577826165,
+      "expectancy_holdout": 54.900478486660816,
+      "exp_lcb_holdout": 9.1897301291663,
+      "effective_edge": 20.393647683903296,
+      "max_drawdown_combined": 0.07041700015165403,
+      "max_drawdown_holdout": 0.0554156013213495,
+      "return_pct_holdout": 0.07411564595699238,
+      "cagr_approx_holdout": 0.07416824776821329,
+      "trades_per_month_holdout": 2.219178082191781,
+      "exposure_ratio": 0.023684510900582125,
+      "exposure_penalty": 0.0,
+      "low_signal_penalty": 0.7226027397260274,
+      "penalty_relief_applied": false,
+      "validation_exposure_ratio": 0.0138653683319221,
+      "validation_active_days": 13,
+      "validation_exposure_passed": true,
+      "validation_active_days_passed": true,
+      "validation_evidence_rule": "validation_exposure_ratio >= min_validation_exposure_ratio OR validation_active_days >= min_validation_active_days",
+      "validation_evidence_passed": true,
+      "holdout_by_symbol": {
+        "BTC/USDT": {
+          "profit_factor": 1.3050803362020638,
+          "return_pct": 0.02542495374890914,
+          "max_drawdown": 0.060128401713575474,
+          "trade_count": 14.0
+        },
+        "ETH/USDT": {
+          "profit_factor": 2.039481261328835,
+          "return_pct": 0.12280633816507543,
+          "max_drawdown": 0.05070280092912352,
+          "trade_count": 13.0
+        }
+      },
+      "validation_range": "2024-08-13T13:00:00+00:00..2025-02-26T08:00:00+00:00",
+      "holdout_range": "2025-02-26T09:00:00+00:00..2026-02-26T09:00:00+00:00",
+      "combined_range": "2024-08-13T13:00:00+00:00..2026-02-26T09:00:00+00:00",
+      "rejected": false,
+      "accepted": true,
+      "rejection_reason": "",
+      "exp_lcb_positive": true,
+      "effective_edge_positive": true,
+      "score": 19.808558210784998
+    }
+  ],
+  "near_miss_candidates": [
+    {
+      "rank": 1,
       "result_tier": "Near Miss",
       "candidate_id": "cand_000574_79a0305f",
       "strategy_name": "Trend Pullback",
@@ -713,7 +943,7 @@
       "score": -1000000000.0
     },
     {
-      "rank": 5,
+      "rank": 2,
       "result_tier": "Near Miss",
       "candidate_id": "cand_001606_0bb0538b",
       "strategy_name": "Trend Pullback",
@@ -785,7 +1015,7 @@
       "score": -1000000000.0
     },
     {
-      "rank": 6,
+      "rank": 3,
       "result_tier": "Near Miss",
       "candidate_id": "cand_000743_1fc927ae",
       "strategy_name": "Trend Pullback",
@@ -857,7 +1087,7 @@
       "score": -1000000000.0
     },
     {
-      "rank": 7,
+      "rank": 4,
       "result_tier": "Near Miss",
       "candidate_id": "cand_000906_e1b3bcf2",
       "strategy_name": "Trend Pullback",
@@ -929,7 +1159,7 @@
       "score": -1000000000.0
     },
     {
-      "rank": 8,
+      "rank": 5,
       "result_tier": "Near Miss",
       "candidate_id": "cand_001044_fad04120",
       "strategy_name": "Trend Pullback",
@@ -1001,7 +1231,7 @@
       "score": -1000000000.0
     },
     {
-      "rank": 9,
+      "rank": 6,
       "result_tier": "Near Miss",
       "candidate_id": "cand_001674_4d2aff0a",
       "strategy_name": "Trend Pullback",
@@ -1073,79 +1303,7 @@
       "score": -1000000000.0
     },
     {
-      "rank": 10,
-      "result_tier": "Near Miss",
-      "candidate_id": "cand_001012_dbec7b03",
-      "strategy_name": "Trend Pullback",
-      "strategy_family": "TrendPullback",
-      "parameters": {
-        "channel_period": 55,
-        "ema_fast": 20,
-        "ema_slow": 200,
-        "rsi_long_entry": 36,
-        "rsi_short_entry": 80,
-        "bollinger_period": 20,
-        "bollinger_std": 2.5,
-        "atr_sl_multiplier": 1.5257538029504538,
-        "atr_tp_multiplier": 2.6419882504839536,
-        "trailing_atr_k": 1.8045079545810143,
-        "max_holding_bars": 48,
-        "regime_gate_long": true,
-        "regime_gate_short": false
-      },
-      "gating": "none",
-      "exit_mode": "fixed_atr",
-      "holdout_months_used": 9,
-      "trade_count_validation": 24.0,
-      "trade_count_holdout": 23.0,
-      "pf_validation": 0.8211297064270733,
-      "pf_holdout": 2.58222503133996,
-      "pf_adj_holdout": 1.4985092564495766,
-      "expectancy_validation": -20.263256303966234,
-      "expectancy_holdout": 39.09195742857321,
-      "exp_lcb_holdout": 14.657544103580129,
-      "effective_edge": 36.643860258950326,
-      "max_drawdown_combined": 0.05786703697506073,
-      "max_drawdown_holdout": 0.01770113836486869,
-      "return_pct_holdout": 0.04495575104285927,
-      "cagr_approx_holdout": 0.05992120370237619,
-      "trades_per_month_holdout": 2.5,
-      "exposure_ratio": 0.020452830188679244,
-      "exposure_penalty": 0.0,
-      "low_signal_penalty": 0.6875,
-      "penalty_relief_applied": false,
-      "validation_exposure_ratio": 0.023583111449220234,
-      "validation_active_days": 27,
-      "validation_exposure_passed": true,
-      "validation_active_days_passed": true,
-      "validation_evidence_rule": "validation_exposure_ratio >= min_validation_exposure_ratio OR validation_active_days >= min_validation_active_days",
-      "validation_evidence_passed": true,
-      "holdout_by_symbol": {
-        "BTC/USDT": {
-          "profit_factor": 1.138956446678874,
-          "return_pct": 0.007871723518857107,
-          "max_drawdown": 0.020728244839892933,
-          "trade_count": 14.0
-        },
-        "ETH/USDT": {
-          "profit_factor": 4.025493616001047,
-          "return_pct": 0.08203977856686143,
-          "max_drawdown": 0.014674031889844443,
-          "trade_count": 9.0
-        }
-      },
-      "validation_range": "2024-10-19T07:00:00+00:00..2025-05-26T08:00:00+00:00",
-      "holdout_range": "2025-05-26T09:00:00+00:00..2026-02-26T09:00:00+00:00",
-      "combined_range": "2024-10-19T07:00:00+00:00..2026-02-26T09:00:00+00:00",
-      "rejected": false,
-      "accepted": true,
-      "rejection_reason": "",
-      "exp_lcb_positive": true,
-      "effective_edge_positive": true,
-      "score": 10.41401838574913
-    },
-    {
-      "rank": 11,
+      "rank": 7,
       "result_tier": "Near Miss",
       "candidate_id": "cand_000073_cf825852",
       "strategy_name": "Trend Pullback",
@@ -1217,7 +1375,7 @@
       "score": -1000000000.0
     },
     {
-      "rank": 12,
+      "rank": 8,
       "result_tier": "Near Miss",
       "candidate_id": "cand_001506_17117851",
       "strategy_name": "Trend Pullback",
@@ -1289,7 +1447,7 @@
       "score": -1000000000.0
     },
     {
-      "rank": 13,
+      "rank": 9,
       "result_tier": "Near Miss",
       "candidate_id": "cand_000258_7db0c562",
       "strategy_name": "Trend Pullback",
@@ -1361,7 +1519,7 @@
       "score": -1000000000.0
     },
     {
-      "rank": 14,
+      "rank": 10,
       "result_tier": "Near Miss",
       "candidate_id": "cand_001093_cb5294d8",
       "strategy_name": "Trend Pullback",
@@ -1433,79 +1591,7 @@
       "score": -1000000000.0
     },
     {
-      "rank": 15,
-      "result_tier": "Near Miss",
-      "candidate_id": "cand_001603_418d4b75",
-      "strategy_name": "Trend Pullback",
-      "strategy_family": "TrendPullback",
-      "parameters": {
-        "channel_period": 20,
-        "ema_fast": 20,
-        "ema_slow": 200,
-        "rsi_long_entry": 40,
-        "rsi_short_entry": 74,
-        "bollinger_period": 20,
-        "bollinger_std": 2.0,
-        "atr_sl_multiplier": 1.7393367369055839,
-        "atr_tp_multiplier": 4.143311836720374,
-        "trailing_atr_k": 2.488709421453188,
-        "max_holding_bars": 96,
-        "regime_gate_long": false,
-        "regime_gate_short": false
-      },
-      "gating": "vol+regime",
-      "exit_mode": "breakeven_1r",
-      "holdout_months_used": 12,
-      "trade_count_validation": 10.0,
-      "trade_count_holdout": 26.0,
-      "pf_validation": 0.4692886963443235,
-      "pf_holdout": 1.8315753687262024,
-      "pf_adj_holdout": 1.2844863103537008,
-      "expectancy_validation": -48.48578327867712,
-      "expectancy_holdout": 62.73074769048344,
-      "exp_lcb_holdout": 12.266313224273276,
-      "effective_edge": 26.21294332858399,
-      "max_drawdown_combined": 0.07374628650237336,
-      "max_drawdown_holdout": 0.04659204504336585,
-      "return_pct_holdout": 0.08154997199762838,
-      "cagr_approx_holdout": 0.08160804773186703,
-      "trades_per_month_holdout": 2.136986301369863,
-      "exposure_ratio": 0.021801164250656316,
-      "exposure_penalty": 0.0,
-      "low_signal_penalty": 0.7328767123287672,
-      "penalty_relief_applied": false,
-      "validation_exposure_ratio": 0.01947502116850127,
-      "validation_active_days": 16,
-      "validation_exposure_passed": true,
-      "validation_active_days_passed": true,
-      "validation_evidence_rule": "validation_exposure_ratio >= min_validation_exposure_ratio OR validation_active_days >= min_validation_active_days",
-      "validation_evidence_passed": true,
-      "holdout_by_symbol": {
-        "BTC/USDT": {
-          "profit_factor": 0.8743478012867812,
-          "return_pct": -0.006974115696900117,
-          "max_drawdown": 0.041658860764950074,
-          "trade_count": 14.0
-        },
-        "ETH/USDT": {
-          "profit_factor": 2.7888029361656237,
-          "return_pct": 0.1700740596921569,
-          "max_drawdown": 0.05152522932178163,
-          "trade_count": 12.0
-        }
-      },
-      "validation_range": "2024-08-13T13:00:00+00:00..2025-02-26T08:00:00+00:00",
-      "holdout_range": "2025-02-26T09:00:00+00:00..2026-02-26T09:00:00+00:00",
-      "combined_range": "2024-08-13T13:00:00+00:00..2026-02-26T09:00:00+00:00",
-      "rejected": false,
-      "accepted": true,
-      "rejection_reason": "",
-      "exp_lcb_positive": true,
-      "effective_edge_positive": true,
-      "score": 14.155101174367438
-    },
-    {
-      "rank": 16,
+      "rank": 11,
       "result_tier": "Near Miss",
       "candidate_id": "cand_000479_b1601f01",
       "strategy_name": "Trend Pullback",
@@ -1577,79 +1663,7 @@
       "score": -1000000000.0
     },
     {
-      "rank": 17,
-      "result_tier": "Near Miss",
-      "candidate_id": "cand_001147_0131018a",
-      "strategy_name": "Trend Pullback",
-      "strategy_family": "TrendPullback",
-      "parameters": {
-        "channel_period": 100,
-        "ema_fast": 50,
-        "ema_slow": 200,
-        "rsi_long_entry": 40,
-        "rsi_short_entry": 73,
-        "bollinger_period": 20,
-        "bollinger_std": 2.5,
-        "atr_sl_multiplier": 2.147676407956741,
-        "atr_tp_multiplier": 3.6592030620597913,
-        "trailing_atr_k": 2.3413488748426987,
-        "max_holding_bars": 24,
-        "regime_gate_long": true,
-        "regime_gate_short": true
-      },
-      "gating": "vol",
-      "exit_mode": "fixed_atr",
-      "holdout_months_used": 12,
-      "trade_count_validation": 10.0,
-      "trade_count_holdout": 27.0,
-      "pf_validation": 1.3338005076424817,
-      "pf_holdout": 1.6722807987654493,
-      "pf_adj_holdout": 1.2357348255411316,
-      "expectancy_validation": 23.862303577826165,
-      "expectancy_holdout": 54.900478486660816,
-      "exp_lcb_holdout": 9.1897301291663,
-      "effective_edge": 20.393647683903296,
-      "max_drawdown_combined": 0.07041700015165403,
-      "max_drawdown_holdout": 0.0554156013213495,
-      "return_pct_holdout": 0.07411564595699238,
-      "cagr_approx_holdout": 0.07416824776821329,
-      "trades_per_month_holdout": 2.219178082191781,
-      "exposure_ratio": 0.023684510900582125,
-      "exposure_penalty": 0.0,
-      "low_signal_penalty": 0.7226027397260274,
-      "penalty_relief_applied": false,
-      "validation_exposure_ratio": 0.0138653683319221,
-      "validation_active_days": 13,
-      "validation_exposure_passed": true,
-      "validation_active_days_passed": true,
-      "validation_evidence_rule": "validation_exposure_ratio >= min_validation_exposure_ratio OR validation_active_days >= min_validation_active_days",
-      "validation_evidence_passed": true,
-      "holdout_by_symbol": {
-        "BTC/USDT": {
-          "profit_factor": 1.3050803362020638,
-          "return_pct": 0.02542495374890914,
-          "max_drawdown": 0.060128401713575474,
-          "trade_count": 14.0
-        },
-        "ETH/USDT": {
-          "profit_factor": 2.039481261328835,
-          "return_pct": 0.12280633816507543,
-          "max_drawdown": 0.05070280092912352,
-          "trade_count": 13.0
-        }
-      },
-      "validation_range": "2024-08-13T13:00:00+00:00..2025-02-26T08:00:00+00:00",
-      "holdout_range": "2025-02-26T09:00:00+00:00..2026-02-26T09:00:00+00:00",
-      "combined_range": "2024-08-13T13:00:00+00:00..2026-02-26T09:00:00+00:00",
-      "rejected": false,
-      "accepted": true,
-      "rejection_reason": "",
-      "exp_lcb_positive": true,
-      "effective_edge_positive": true,
-      "score": 19.808558210784998
-    },
-    {
-      "rank": 18,
+      "rank": 12,
       "result_tier": "Near Miss",
       "candidate_id": "cand_000014_f5923ea9",
       "strategy_name": "Trend Pullback",
@@ -1721,7 +1735,7 @@
       "score": -1000000000.0
     },
     {
-      "rank": 19,
+      "rank": 13,
       "result_tier": "Near Miss",
       "candidate_id": "cand_001464_7338bf9b",
       "strategy_name": "Trend Pullback",
@@ -1793,7 +1807,7 @@
       "score": -1000000000.0
     },
     {
-      "rank": 20,
+      "rank": 14,
       "result_tier": "Near Miss",
       "candidate_id": "cand_001246_22bd0bcc",
       "strategy_name": "Trend Pullback",
@@ -1865,7 +1879,7 @@
       "score": -1000000000.0
     },
     {
-      "rank": 21,
+      "rank": 15,
       "result_tier": "Near Miss",
       "candidate_id": "cand_000869_243873e1",
       "strategy_name": "Trend Pullback",
@@ -1937,7 +1951,7 @@
       "score": -1000000000.0
     },
     {
-      "rank": 22,
+      "rank": 16,
       "result_tier": "Near Miss",
       "candidate_id": "cand_000839_134b1afb",
       "strategy_name": "Trend Pullback",
@@ -2009,7 +2023,7 @@
       "score": -1000000000.0
     },
     {
-      "rank": 23,
+      "rank": 17,
       "result_tier": "Near Miss",
       "candidate_id": "cand_001222_3b4c39df",
       "strategy_name": "Trend Pullback",
@@ -2081,7 +2095,7 @@
       "score": -1000000000.0
     },
     {
-      "rank": 24,
+      "rank": 18,
       "result_tier": "Near Miss",
       "candidate_id": "cand_001354_ed1ad04c",
       "strategy_name": "Trend Pullback",
@@ -2153,7 +2167,7 @@
       "score": -1000000000.0
     },
     {
-      "rank": 25,
+      "rank": 19,
       "result_tier": "Near Miss",
       "candidate_id": "cand_000176_1c8e6a98",
       "strategy_name": "Trend Pullback",
@@ -2225,7 +2239,7 @@
       "score": -1000000000.0
     },
     {
-      "rank": 26,
+      "rank": 20,
       "result_tier": "Near Miss",
       "candidate_id": "cand_000337_c26663c1",
       "strategy_name": "Trend Pullback",
@@ -2297,7 +2311,7 @@
       "score": -1000000000.0
     },
     {
-      "rank": 27,
+      "rank": 21,
       "result_tier": "Near Miss",
       "candidate_id": "cand_001103_6403ff89",
       "strategy_name": "Trend Pullback",
@@ -2369,7 +2383,7 @@
       "score": -1000000000.0
     },
     {
-      "rank": 28,
+      "rank": 22,
       "result_tier": "Near Miss",
       "candidate_id": "cand_001220_0d2c6573",
       "strategy_name": "Trend Pullback",
@@ -2441,7 +2455,7 @@
       "score": -1000000000.0
     },
     {
-      "rank": 29,
+      "rank": 23,
       "result_tier": "Near Miss",
       "candidate_id": "cand_000455_b5533efa",
       "strategy_name": "Trend Pullback",

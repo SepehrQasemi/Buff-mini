@@ -1602,22 +1602,30 @@ def _build_stage_diagnostics(trade_counts: list[float]) -> dict[str, Any]:
     }
 
 
-def _candidate_result_tier(row: CandidateEval, thresholds: dict[str, Any]) -> str | None:
+def _passes_result_thresholds(row: CandidateEval, thresholds: dict[str, Any]) -> bool:
     holdout_metrics = row.metrics_holdout or {}
     max_dd_holdout = float(holdout_metrics.get("max_drawdown", 1.0))
 
-    if (
+    return (
         float(row.exp_lcb_holdout) >= float(thresholds["min_exp_lcb_holdout"])
         and float(row.effective_edge) >= float(thresholds["min_effective_edge"])
         and float(row.trades_per_month_holdout) >= float(thresholds["min_trades_per_month_holdout"])
         and float(row.pf_adj_holdout) >= float(thresholds["min_pf_adj_holdout"])
         and float(max_dd_holdout) <= float(thresholds["max_drawdown_holdout"])
         and float(row.exposure_ratio) >= float(thresholds["min_exposure_ratio"])
-    ):
+    )
+
+
+def _candidate_result_tier(row: CandidateEval, thresholds: dict[str, Any]) -> str | None:
+    tier_a_thresholds = thresholds["TierA"]
+    tier_b_thresholds = thresholds["TierB"]
+    near_miss_thresholds = thresholds["NearMiss"]
+
+    if _passes_result_thresholds(row=row, thresholds=tier_a_thresholds):
         return "Tier A"
-    if float(row.exp_lcb_holdout) > 0.0 and float(row.trades_per_month_holdout) >= 3.0:
+    if _passes_result_thresholds(row=row, thresholds=tier_b_thresholds):
         return "Tier B"
-    if float(row.exp_lcb_holdout) > -5.0:
+    if float(row.exp_lcb_holdout) > float(near_miss_thresholds["min_exp_lcb_holdout"]):
         return "Near Miss"
     return None
 
@@ -1755,6 +1763,73 @@ def _candidate_artifact_payload(row: CandidateEval, collection: str, thresholds:
             "rejection_reason": row.rejection_reason,
         },
     }
+
+
+def _format_threshold_rule(thresholds: dict[str, Any]) -> str:
+    return (
+        f"exp_lcb_holdout >= {float(thresholds['min_exp_lcb_holdout']):g} AND "
+        f"effective_edge >= {float(thresholds['min_effective_edge']):g} AND "
+        f"trades_per_month_holdout >= {float(thresholds['min_trades_per_month_holdout']):g} AND "
+        f"pf_adj_holdout >= {float(thresholds['min_pf_adj_holdout']):g} AND "
+        f"max_drawdown_holdout <= {float(thresholds['max_drawdown_holdout']):g} AND "
+        f"exposure_ratio >= {float(thresholds['min_exposure_ratio']):g}"
+    )
+
+
+def _append_result_tier_section(lines: list[str], title: str, payload: list[dict[str, Any]]) -> None:
+    lines.append(f"## {title}")
+    lines.append(
+        "| rank | strategy | gating | exit | holdout_m | val_trades | hold_trades | tpm_hold | pf_adj | exp_lcb | edge | exposure | PF_val | PF_hold | exp_val | exp_hold | max_dd_hold | return_hold | CAGR_hold | score |"
+    )
+    lines.append("| --- | --- | --- | --- | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: |")
+    if not payload:
+        lines.append("| - | none | - | - | - | - | - | - | - | - | - | - | - | - | - | - | - | - | - | - |")
+    for item in payload:
+        lines.append(
+            f"| {item['rank']} | {item['strategy_name']} | {item['gating']} | {item['exit_mode']} | "
+            f"{item['holdout_months_used']} | "
+            f"{item['trade_count_validation']:.0f} | {item['trade_count_holdout']:.0f} | "
+            f"{item['trades_per_month_holdout']:.4f} | {item['pf_adj_holdout']:.4f} | "
+            f"{item['exp_lcb_holdout']:.4f} | {item['effective_edge']:.4f} | "
+            f"{item['exposure_ratio']:.4f} | "
+            f"{item['pf_validation']:.4f} | {item['pf_holdout']:.4f} | "
+            f"{item['expectancy_validation']:.4f} | {item['expectancy_holdout']:.4f} | "
+            f"{item['max_drawdown_holdout']:.4f} | {item['return_pct_holdout']:.4f} | "
+            f"{item['cagr_approx_holdout']:.4f} | {item['score']:.4f} |"
+        )
+    lines.append("")
+    lines.append(f"### Holdout By Symbol ({title})")
+    if not payload:
+        lines.append("- none")
+    for item in payload:
+        by_symbol = item.get("holdout_by_symbol", {})
+        btc = by_symbol.get("BTC/USDT", {})
+        eth = by_symbol.get("ETH/USDT", {})
+        lines.append(
+            f"- Rank {item['rank']} {item['strategy_name']}: "
+            f"BTC(PF={float(btc.get('profit_factor', 0.0)):.4f}, "
+            f"ret={float(btc.get('return_pct', 0.0)):.4f}, "
+            f"DD={float(btc.get('max_drawdown', 0.0)):.4f}, "
+            f"trades={float(btc.get('trade_count', 0.0)):.0f}) | "
+            f"ETH(PF={float(eth.get('profit_factor', 0.0)):.4f}, "
+            f"ret={float(eth.get('return_pct', 0.0)):.4f}, "
+            f"DD={float(eth.get('max_drawdown', 0.0)):.4f}, "
+            f"trades={float(eth.get('trade_count', 0.0)):.0f})"
+        )
+    lines.append("")
+    lines.append(f"### Validation Evidence ({title})")
+    if not payload:
+        lines.append("- none")
+    for item in payload:
+        lines.append(
+            f"- Rank {item['rank']} {item['strategy_name']}: "
+            f"exposure={item['validation_exposure_ratio']:.4f} "
+            f"(pass={'yes' if item['validation_exposure_passed'] else 'no'}), "
+            f"active_days={item['validation_active_days']} "
+            f"(pass={'yes' if item['validation_active_days_passed'] else 'no'}), "
+            f"OR_passed={'yes' if item['validation_evidence_passed'] else 'no'}"
+        )
+    lines.append("")
 
 
 def _write_stage1_diagnostics_report(
@@ -1998,9 +2073,11 @@ def _write_stage1_real_data_reports(
         "min_validation_exposure_ratio": summary["min_validation_exposure_ratio"],
         "min_validation_active_days": summary["min_validation_active_days"],
         "validation_evidence_rule": "validation_exposure_ratio >= min_validation_exposure_ratio OR validation_active_days >= min_validation_active_days",
-        "tier_A_rule": "All result_thresholds satisfied",
-        "tier_B_rule": "exp_lcb_holdout > 0 AND trades_per_month_holdout >= 3",
-        "near_miss_rule": "exp_lcb_holdout > -5",
+        "tier_A_rule": _format_threshold_rule(summary["result_thresholds"]["TierA"]),
+        "tier_B_rule": _format_threshold_rule(summary["result_thresholds"]["TierB"]),
+        "near_miss_rule": (
+            f"exp_lcb_holdout > {float(summary['result_thresholds']['NearMiss']['min_exp_lcb_holdout']):g}"
+        ),
         "rejected_due_validation_evidence_count": summary["rejected_due_validation_evidence_count"],
         "tier_A_count": summary["tier_A_count"],
         "tier_B_count": summary["tier_B_count"],
@@ -2036,9 +2113,12 @@ def _write_stage1_real_data_reports(
         "- validation_evidence_rule: "
         "`validation_exposure_ratio >= min_validation_exposure_ratio OR validation_active_days >= min_validation_active_days`"
     )
-    lines.append("- Tier A rule: `all result_thresholds satisfied`")
-    lines.append("- Tier B rule: `exp_lcb_holdout > 0 AND trades_per_month_holdout >= 3`")
-    lines.append("- Near Miss rule: `exp_lcb_holdout > -5`")
+    lines.append(f"- Tier A rule: `{_format_threshold_rule(summary['result_thresholds']['TierA'])}`")
+    lines.append(f"- Tier B rule: `{_format_threshold_rule(summary['result_thresholds']['TierB'])}`")
+    lines.append(
+        "- Near Miss rule: "
+        f"`exp_lcb_holdout > {float(summary['result_thresholds']['NearMiss']['min_exp_lcb_holdout']):g}`"
+    )
     lines.append(f"- rejected_due_validation_evidence_count: `{summary['rejected_due_validation_evidence_count']}`")
     lines.append(f"- Tier A count: `{summary['tier_A_count']}`")
     lines.append(f"- Tier B count: `{summary['tier_B_count']}`")
@@ -2053,55 +2133,8 @@ def _write_stage1_real_data_reports(
     lines.append(f"- min_trades_per_month_floor: `{summary['min_trades_per_month_floor']}`")
     lines.append(f"- round_trip_cost_pct: `{summary['round_trip_cost_pct']}`")
     lines.append("")
-    lines.append("## Tier A Candidates")
-    lines.append(
-        "| rank | strategy | gating | exit | holdout_m | val_trades | hold_trades | tpm_hold | pf_adj | exp_lcb | edge | exposure | PF_val | PF_hold | exp_val | exp_hold | max_dd_hold | return_hold | CAGR_hold | score |"
-    )
-    lines.append("| --- | --- | --- | --- | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: |")
-    if not tier_a_payload:
-        lines.append("| - | none | - | - | - | - | - | - | - | - | - | - | - | - | - | - | - | - | - | - |")
-    for item in tier_a_payload:
-        lines.append(
-            f"| {item['rank']} | {item['strategy_name']} | {item['gating']} | {item['exit_mode']} | "
-            f"{item['holdout_months_used']} | "
-            f"{item['trade_count_validation']:.0f} | {item['trade_count_holdout']:.0f} | "
-            f"{item['trades_per_month_holdout']:.4f} | {item['pf_adj_holdout']:.4f} | "
-            f"{item['exp_lcb_holdout']:.4f} | {item['effective_edge']:.4f} | "
-            f"{item['exposure_ratio']:.4f} | "
-            f"{item['pf_validation']:.4f} | {item['pf_holdout']:.4f} | "
-            f"{item['expectancy_validation']:.4f} | {item['expectancy_holdout']:.4f} | "
-            f"{item['max_drawdown_holdout']:.4f} | {item['return_pct_holdout']:.4f} | "
-            f"{item['cagr_approx_holdout']:.4f} | {item['score']:.4f} |"
-        )
-    lines.append("")
-    lines.append("### Holdout By Symbol (Tier A)")
-    for item in tier_a_payload:
-        by_symbol = item.get("holdout_by_symbol", {})
-        btc = by_symbol.get("BTC/USDT", {})
-        eth = by_symbol.get("ETH/USDT", {})
-        lines.append(
-            f"- Rank {item['rank']} {item['strategy_name']}: "
-            f"BTC(PF={float(btc.get('profit_factor', 0.0)):.4f}, "
-            f"ret={float(btc.get('return_pct', 0.0)):.4f}, "
-            f"DD={float(btc.get('max_drawdown', 0.0)):.4f}, "
-            f"trades={float(btc.get('trade_count', 0.0)):.0f}) | "
-            f"ETH(PF={float(eth.get('profit_factor', 0.0)):.4f}, "
-            f"ret={float(eth.get('return_pct', 0.0)):.4f}, "
-            f"DD={float(eth.get('max_drawdown', 0.0)):.4f}, "
-            f"trades={float(eth.get('trade_count', 0.0)):.0f})"
-        )
-    lines.append("")
-    lines.append("### Validation Evidence (Tier A)")
-    for item in tier_a_payload:
-        lines.append(
-            f"- Rank {item['rank']} {item['strategy_name']}: "
-            f"exposure={item['validation_exposure_ratio']:.4f} "
-            f"(pass={'yes' if item['validation_exposure_passed'] else 'no'}), "
-            f"active_days={item['validation_active_days']} "
-            f"(pass={'yes' if item['validation_active_days_passed'] else 'no'}), "
-            f"OR_passed={'yes' if item['validation_evidence_passed'] else 'no'}"
-        )
-    lines.append("")
+    _append_result_tier_section(lines, "Tier A Candidates", tier_a_payload)
+    _append_result_tier_section(lines, "Tier B Candidates", tier_b_payload)
     lines.append("## Tier Summary")
     if best_tier_a_flat is None:
         lines.append("- Best Tier A candidate: none")

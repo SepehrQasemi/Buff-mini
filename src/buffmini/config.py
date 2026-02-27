@@ -35,6 +35,28 @@ DATA_DEFAULTS = {
     "backend": "parquet",
 }
 
+RESULT_THRESHOLD_DEFAULTS = {
+    "TierA": {
+        "min_exp_lcb_holdout": 0.0,
+        "min_effective_edge": 0.0,
+        "min_trades_per_month_holdout": 5.0,
+        "min_pf_adj_holdout": 1.1,
+        "max_drawdown_holdout": 0.15,
+        "min_exposure_ratio": 0.02,
+    },
+    "TierB": {
+        "min_exp_lcb_holdout": 0.0,
+        "min_effective_edge": 0.0,
+        "min_trades_per_month_holdout": 2.0,
+        "min_pf_adj_holdout": 1.05,
+        "max_drawdown_holdout": 0.20,
+        "min_exposure_ratio": 0.02,
+    },
+    "NearMiss": {
+        "min_exp_lcb_holdout": -5.0,
+    },
+}
+
 
 STAGE1_DEFAULTS = {
     "enabled": True,
@@ -55,14 +77,7 @@ STAGE1_DEFAULTS = {
     "allow_rare_if_high_expectancy": False,
     "rare_expectancy_threshold": 3.0,
     "rare_penalty_relief": 0.1,
-    "result_thresholds": {
-        "min_exp_lcb_holdout": 0.0,
-        "min_effective_edge": 0.0,
-        "min_trades_per_month_holdout": 5.0,
-        "min_pf_adj_holdout": 1.1,
-        "max_drawdown_holdout": 0.15,
-        "min_exposure_ratio": 0.02,
-    },
+    "result_thresholds": RESULT_THRESHOLD_DEFAULTS,
     "promotion_holdout_months": [3, 6, 9, 12],
     "walkforward_splits": 3,
     "early_stop_patience": 1000,
@@ -245,17 +260,8 @@ def _validate_stage1(stage1: dict[str, Any]) -> None:
         if int(value) < 1:
             raise ValueError("evaluation.stage1.promotion_holdout_months values must be >= 1")
 
-    thresholds = stage1["result_thresholds"]
-    float(thresholds["min_exp_lcb_holdout"])
-    float(thresholds["min_effective_edge"])
-    if float(thresholds["min_trades_per_month_holdout"]) < 0:
-        raise ValueError("evaluation.stage1.result_thresholds.min_trades_per_month_holdout must be >= 0")
-    if float(thresholds["min_pf_adj_holdout"]) < 0:
-        raise ValueError("evaluation.stage1.result_thresholds.min_pf_adj_holdout must be >= 0")
-    if float(thresholds["max_drawdown_holdout"]) < 0:
-        raise ValueError("evaluation.stage1.result_thresholds.max_drawdown_holdout must be >= 0")
-    if float(thresholds["min_exposure_ratio"]) < 0:
-        raise ValueError("evaluation.stage1.result_thresholds.min_exposure_ratio must be >= 0")
+    stage1["result_thresholds"] = _normalize_result_thresholds(stage1["result_thresholds"])
+    _validate_result_thresholds(stage1["result_thresholds"])
 
     if int(stage1["top_k"]) > int(stage1["candidate_count"]):
         raise ValueError("evaluation.stage1.top_k must be <= candidate_count")
@@ -288,3 +294,39 @@ def _validate_stage1(stage1: dict[str, Any]) -> None:
     for lo_key, hi_key in float_ranges:
         if float(search_space[lo_key]) > float(search_space[hi_key]):
             raise ValueError(f"evaluation.stage1.search_space {lo_key} > {hi_key}")
+
+
+def _normalize_result_thresholds(thresholds: dict[str, Any]) -> dict[str, Any]:
+    if not isinstance(thresholds, dict):
+        raise ValueError("evaluation.stage1.result_thresholds must be a mapping")
+
+    has_nested_tiers = any(key in thresholds for key in RESULT_THRESHOLD_DEFAULTS)
+    if has_nested_tiers:
+        return _merge_defaults(RESULT_THRESHOLD_DEFAULTS, thresholds)
+
+    return _merge_defaults(RESULT_THRESHOLD_DEFAULTS, {"TierA": thresholds})
+
+
+def _validate_result_thresholds(thresholds: dict[str, Any]) -> None:
+    for tier_name in ["TierA", "TierB"]:
+        tier_thresholds = thresholds[tier_name]
+        float(tier_thresholds["min_exp_lcb_holdout"])
+        float(tier_thresholds["min_effective_edge"])
+        if float(tier_thresholds["min_trades_per_month_holdout"]) < 0:
+            raise ValueError(
+                f"evaluation.stage1.result_thresholds.{tier_name}.min_trades_per_month_holdout must be >= 0"
+            )
+        if float(tier_thresholds["min_pf_adj_holdout"]) < 0:
+            raise ValueError(
+                f"evaluation.stage1.result_thresholds.{tier_name}.min_pf_adj_holdout must be >= 0"
+            )
+        if float(tier_thresholds["max_drawdown_holdout"]) < 0:
+            raise ValueError(
+                f"evaluation.stage1.result_thresholds.{tier_name}.max_drawdown_holdout must be >= 0"
+            )
+        if float(tier_thresholds["min_exposure_ratio"]) < 0:
+            raise ValueError(
+                f"evaluation.stage1.result_thresholds.{tier_name}.min_exposure_ratio must be >= 0"
+            )
+
+    float(thresholds["NearMiss"]["min_exp_lcb_holdout"])
