@@ -1,11 +1,11 @@
 # Stage-1 Diagnostics
 
-- run_id: `20260226_223856_417c7a3f42c9_stage1`
+- run_id: `20260226_234139_b78b63b21ba0_stage1`
 - seed: `42`
 - split_mode: `60_20_20`
-- stage_a_seconds: `913.88`
-- stage_b_seconds: `619.65`
-- stage_c_seconds: `629.36`
+- stage_a_seconds: `660.93`
+- stage_b_seconds: `349.17`
+- stage_c_seconds: `551.50`
 
 ## Stage A
 - total_candidates_evaluated: `1743`

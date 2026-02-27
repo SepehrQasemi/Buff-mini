@@ -55,7 +55,14 @@ STAGE1_DEFAULTS = {
     "allow_rare_if_high_expectancy": False,
     "rare_expectancy_threshold": 3.0,
     "rare_penalty_relief": 0.1,
-    "near_miss_top_n": 20,
+    "result_thresholds": {
+        "min_exp_lcb_holdout": 0.0,
+        "min_effective_edge": 0.0,
+        "min_trades_per_month_holdout": 5.0,
+        "min_pf_adj_holdout": 1.1,
+        "max_drawdown_holdout": 0.15,
+        "min_exposure_ratio": 0.02,
+    },
     "promotion_holdout_months": [3, 6, 9, 12],
     "walkforward_splits": 3,
     "early_stop_patience": 1000,
@@ -226,8 +233,6 @@ def _validate_stage1(stage1: dict[str, Any]) -> None:
         raise ValueError("evaluation.stage1.low_signal_penalty_weight must be >= 0")
     if float(stage1["min_trades_per_month_floor"]) < 0:
         raise ValueError("evaluation.stage1.min_trades_per_month_floor must be >= 0")
-    if int(stage1["near_miss_top_n"]) < 0:
-        raise ValueError("evaluation.stage1.near_miss_top_n must be >= 0")
     if not isinstance(stage1["allow_rare_if_high_expectancy"], bool):
         raise ValueError("evaluation.stage1.allow_rare_if_high_expectancy must be bool")
     float(stage1["rare_expectancy_threshold"])
@@ -239,6 +244,18 @@ def _validate_stage1(stage1: dict[str, Any]) -> None:
     for value in promotion_months:
         if int(value) < 1:
             raise ValueError("evaluation.stage1.promotion_holdout_months values must be >= 1")
+
+    thresholds = stage1["result_thresholds"]
+    float(thresholds["min_exp_lcb_holdout"])
+    float(thresholds["min_effective_edge"])
+    if float(thresholds["min_trades_per_month_holdout"]) < 0:
+        raise ValueError("evaluation.stage1.result_thresholds.min_trades_per_month_holdout must be >= 0")
+    if float(thresholds["min_pf_adj_holdout"]) < 0:
+        raise ValueError("evaluation.stage1.result_thresholds.min_pf_adj_holdout must be >= 0")
+    if float(thresholds["max_drawdown_holdout"]) < 0:
+        raise ValueError("evaluation.stage1.result_thresholds.max_drawdown_holdout must be >= 0")
+    if float(thresholds["min_exposure_ratio"]) < 0:
+        raise ValueError("evaluation.stage1.result_thresholds.min_exposure_ratio must be >= 0")
 
     if int(stage1["top_k"]) > int(stage1["candidate_count"]):
         raise ValueError("evaluation.stage1.top_k must be <= candidate_count")

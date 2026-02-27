@@ -172,7 +172,7 @@ def run_stage1_optimization(
     target_trades_per_month_holdout = float(stage1["target_trades_per_month_holdout"])
     low_signal_penalty_weight = float(stage1["low_signal_penalty_weight"])
     min_trades_per_month_floor = float(stage1["min_trades_per_month_floor"])
-    near_miss_top_n = int(stage1["near_miss_top_n"])
+    result_thresholds = dict(stage1["result_thresholds"])
     min_validation_exposure_ratio = float(stage1["min_validation_exposure_ratio"])
     min_validation_active_days = float(stage1["min_validation_active_days"])
     allow_rare_if_high_expectancy = bool(stage1["allow_rare_if_high_expectancy"])
@@ -235,7 +235,7 @@ def run_stage1_optimization(
         "target_trades_per_month_holdout": target_trades_per_month_holdout,
         "low_signal_penalty_weight": low_signal_penalty_weight,
         "min_trades_per_month_floor": min_trades_per_month_floor,
-        "near_miss_top_n": near_miss_top_n,
+        "result_thresholds": result_thresholds,
         "min_validation_exposure_ratio": min_validation_exposure_ratio,
         "min_validation_active_days": min_validation_active_days,
         "allow_rare_if_high_expectancy": allow_rare_if_high_expectancy,
@@ -539,12 +539,13 @@ def run_stage1_optimization(
     logger.info("Stage C completed in %.2fs", stage_c_seconds)
 
     stage_c_sorted = sorted(stage_c_results, key=lambda x: x.score, reverse=True)
+    tier_rows = _classify_result_tiers(rows=stage_c_sorted, thresholds=result_thresholds)
+    tier_a_rows = tier_rows["tier_A"]
+    tier_b_rows = tier_rows["tier_B"]
+    near_miss_rows = tier_rows["near_miss"]
+    selected_rows = tier_a_rows + tier_b_rows + near_miss_rows
     accepted = [row for row in stage_c_sorted if not row.rejected]
     rejected_rows = [row for row in stage_c_sorted if row.rejected]
-    top_three = accepted[:3]
-    if len(top_three) < 3:
-        top_three.extend(rejected_rows[: 3 - len(top_three)])
-    top_five = stage_c_sorted[:5]
 
     for rank, item in enumerate(stage_c_sorted, start=1):
         leaderboard_rows.append(item.to_row(rank=rank))
@@ -553,11 +554,13 @@ def run_stage1_optimization(
     leaderboard.to_csv(run_dir / "leaderboard.csv", index=False)
 
     strategies_payload: list[dict[str, Any]] = []
-    for rank, item in enumerate(top_three, start=1):
+    for rank, item in enumerate(selected_rows, start=1):
         spec = candidate_to_strategy_spec(item.candidate)
+        result_tier = _candidate_result_tier(row=item, thresholds=result_thresholds)
         strategies_payload.append(
             {
                 "rank": rank,
+                "result_tier": result_tier,
                 "candidate_id": item.candidate.candidate_id,
                 "family": item.candidate.family,
                 "strategy_name": spec.name,
@@ -625,7 +628,7 @@ def run_stage1_optimization(
     candidate_artifacts = _persist_candidate_artifacts(
         run_dir=run_dir,
         rows=stage_c_sorted,
-        near_miss_top_n=near_miss_top_n,
+        thresholds=result_thresholds,
     )
 
     stage_a_trade_counts = [float(row.trade_count) for row in stage_a_results]
@@ -658,16 +661,17 @@ def run_stage1_optimization(
     with (run_dir / "diagnostics.json").open("w", encoding="utf-8") as handle:
         json.dump(diagnostics, handle, indent=2)
 
-    best_accepted_payload: dict[str, Any] | None = None
-    if accepted:
-        best_acc = accepted[0]
+    best_tier_a_payload: dict[str, Any] | None = None
+    if tier_a_rows:
+        best_acc = tier_a_rows[0]
         best_acc_spec = candidate_to_strategy_spec(best_acc.candidate)
-        best_accepted_payload = {
+        best_tier_a_payload = {
             "candidate_id": best_acc.candidate.candidate_id,
             "family": best_acc.candidate.family,
             "strategy_name": best_acc_spec.name,
             "gating_mode": best_acc.candidate.gating_mode,
             "exit_mode": best_acc.candidate.exit_mode,
+            "result_tier": "Tier A",
             "holdout_months_used": int(best_acc.holdout_months_used),
             "score": float(best_acc.score),
             "validation_evidence": {
@@ -714,14 +718,15 @@ def run_stage1_optimization(
         "top_k": resolved_top_k,
         "top_m": resolved_top_m,
         "stage_c_pool_top_k": stage_c_pool_top_k,
-        "top_n": len(top_three),
+        "top_n": len(selected_rows),
         "round_trip_cost_pct": round_trip_cost_pct,
         "stage_a_months": resolved_stage_a_months,
         "stage_b_months": resolved_stage_b_months,
         "holdout_months": resolved_holdout_months,
         "promotion_holdout_months": promotion_holdout_months,
         "promotion_counts": {str(key): int(value) for key, value in promoted_counts.items()},
-        "accepted_count": candidate_artifacts["accepted_count"],
+        "tier_A_count": candidate_artifacts["tier_A_count"],
+        "tier_B_count": candidate_artifacts["tier_B_count"],
         "near_miss_count": candidate_artifacts["near_miss_count"],
         "candidate_artifact_paths": candidate_artifacts["paths"],
         "split_mode": split_mode,
@@ -730,7 +735,7 @@ def run_stage1_optimization(
         "target_trades_per_month_holdout": target_trades_per_month_holdout,
         "low_signal_penalty_weight": low_signal_penalty_weight,
         "min_trades_per_month_floor": min_trades_per_month_floor,
-        "near_miss_top_n": near_miss_top_n,
+        "result_thresholds": result_thresholds,
         "min_validation_exposure_ratio": min_validation_exposure_ratio,
         "min_validation_active_days": min_validation_active_days,
         "allow_rare_if_high_expectancy": allow_rare_if_high_expectancy,
@@ -751,15 +756,14 @@ def run_stage1_optimization(
             and float(row.metrics_holdout["expectancy"]) > 0.0
             for row in stage_c_sorted
         ),
-        "any_holdout_pf_expectancy_positive_accepted": any(
+        "any_holdout_pf_expectancy_positive_tier_A": any(
             row.metrics_holdout is not None
             and float(row.metrics_holdout["profit_factor"]) > 1.0
             and float(row.metrics_holdout["expectancy"]) > 0.0
-            and not row.rejected
-            for row in stage_c_sorted
+            for row in tier_a_rows
         ),
         "best": strategies_payload[0] if strategies_payload else None,
-        "best_accepted": best_accepted_payload,
+        "best_tier_A": best_tier_a_payload,
     }
     with (run_dir / "summary.json").open("w", encoding="utf-8") as handle:
         json.dump(summary, handle, indent=2)
@@ -767,14 +771,16 @@ def run_stage1_optimization(
     _write_stage1_report(
         run_dir=run_dir,
         summary=summary,
-        top_three=strategies_payload,
+        selected_rows=strategies_payload,
         docs_report_path=docs_report_path,
     )
     docs_base = docs_report_path or (Path("docs") / "stage1_auto_optimization_report.md")
     _write_stage1_real_data_reports(
         run_dir=run_dir,
         summary=summary,
-        top_five_rows=top_five,
+        tier_a_rows=tier_a_rows,
+        tier_b_rows=tier_b_rows,
+        near_miss_rows=near_miss_rows,
         docs_md_path=docs_base.parent / "stage1_real_data_report.md",
         docs_json_path=docs_base.parent / "stage1_real_data_report.json",
     )
@@ -797,17 +803,17 @@ def run_stage1_optimization(
             float(best_holdout["expectancy"]),
             float(best_holdout["max_drawdown"]),
         )
-    if best_accepted_payload is not None:
-        best_acc_holdout = best_accepted_payload["metrics_holdout"]
+    if best_tier_a_payload is not None:
+        best_acc_holdout = best_tier_a_payload["metrics_holdout"]
         logger.info(
-            "Stage-1 best accepted: %s | holdout_months_used=%s | pf_adj_holdout=%.4f | exp_lcb_holdout=%.4f | tpm_holdout=%.4f | exposure_ratio=%.4f | score=%.4f",
-            best_accepted_payload["candidate_id"],
-            best_accepted_payload["holdout_months_used"],
+            "Stage-1 best Tier A: %s | holdout_months_used=%s | pf_adj_holdout=%.4f | exp_lcb_holdout=%.4f | tpm_holdout=%.4f | exposure_ratio=%.4f | score=%.4f",
+            best_tier_a_payload["candidate_id"],
+            best_tier_a_payload["holdout_months_used"],
             float(best_acc_holdout["pf_adj"]),
             float(best_acc_holdout["exp_lcb"]),
             float(best_acc_holdout["trades_per_month"]),
             float(best_acc_holdout["exposure_ratio"]),
-            float(best_accepted_payload["score"]),
+            float(best_tier_a_payload["score"]),
         )
     logger.info("Saved Stage-1 artifacts to %s", run_dir)
     return run_dir
@@ -1596,35 +1602,77 @@ def _build_stage_diagnostics(trade_counts: list[float]) -> dict[str, Any]:
     }
 
 
+def _candidate_result_tier(row: CandidateEval, thresholds: dict[str, Any]) -> str | None:
+    holdout_metrics = row.metrics_holdout or {}
+    max_dd_holdout = float(holdout_metrics.get("max_drawdown", 1.0))
+
+    if (
+        float(row.exp_lcb_holdout) >= float(thresholds["min_exp_lcb_holdout"])
+        and float(row.effective_edge) >= float(thresholds["min_effective_edge"])
+        and float(row.trades_per_month_holdout) >= float(thresholds["min_trades_per_month_holdout"])
+        and float(row.pf_adj_holdout) >= float(thresholds["min_pf_adj_holdout"])
+        and float(max_dd_holdout) <= float(thresholds["max_drawdown_holdout"])
+        and float(row.exposure_ratio) >= float(thresholds["min_exposure_ratio"])
+    ):
+        return "Tier A"
+    if float(row.exp_lcb_holdout) > 0.0 and float(row.trades_per_month_holdout) >= 3.0:
+        return "Tier B"
+    if float(row.exp_lcb_holdout) > -5.0:
+        return "Near Miss"
+    return None
+
+
+def _classify_result_tiers(
+    rows: list[CandidateEval],
+    thresholds: dict[str, Any],
+) -> dict[str, list[CandidateEval]]:
+    tier_a = [
+        row for row in rows
+        if _candidate_result_tier(row=row, thresholds=thresholds) == "Tier A"
+    ]
+    tier_b = [
+        row for row in rows
+        if _candidate_result_tier(row=row, thresholds=thresholds) == "Tier B"
+    ]
+    near_miss = [
+        row for row in rows
+        if _candidate_result_tier(row=row, thresholds=thresholds) == "Near Miss"
+    ]
+    tier_a = sorted(tier_a, key=lambda row: (row.effective_edge, row.score), reverse=True)
+    tier_b = sorted(tier_b, key=lambda row: (row.effective_edge, row.score), reverse=True)
+    near_miss = sorted(near_miss, key=lambda row: (row.effective_edge, row.score), reverse=True)
+    return {
+        "tier_A": tier_a,
+        "tier_B": tier_b,
+        "near_miss": near_miss,
+    }
+
+
 def _persist_candidate_artifacts(
     run_dir: Path,
     rows: list[CandidateEval],
-    near_miss_top_n: int,
+    thresholds: dict[str, Any],
 ) -> dict[str, Any]:
     candidates_dir = run_dir / "candidates"
     candidates_dir.mkdir(parents=True, exist_ok=True)
 
-    accepted_rows = [
-        row
-        for row in rows
-        if row.exp_lcb_holdout > 0.0 and row.effective_edge > 0.0 and bool(row.validation_evidence_passed)
-    ]
-    near_miss_rows = [
-        row
-        for row in rows
-        if row.exp_lcb_holdout > -5.0
-        and row.pf_adj_holdout > 1.1
-        and bool(row.validation_evidence_passed)
-        and not (row.exp_lcb_holdout > 0.0 and row.effective_edge > 0.0 and bool(row.validation_evidence_passed))
-    ][: int(near_miss_top_n)]
+    tiers = _classify_result_tiers(rows=rows, thresholds=thresholds)
+    tier_a_rows = tiers["tier_A"]
+    tier_b_rows = tiers["tier_B"]
+    near_miss_rows = tiers["near_miss"]
 
     artifact_paths: list[str] = []
-    accepted_csv_rows: list[dict[str, Any]] = []
+    tier_a_csv_rows: list[dict[str, Any]] = []
+    tier_b_csv_rows: list[dict[str, Any]] = []
     near_miss_csv_rows: list[dict[str, Any]] = []
 
-    ordered_rows = [("accepted", row) for row in accepted_rows] + [("near_miss", row) for row in near_miss_rows]
+    ordered_rows = (
+        [("Tier A", row) for row in tier_a_rows]
+        + [("Tier B", row) for row in tier_b_rows]
+        + [("Near Miss", row) for row in near_miss_rows]
+    )
     for rank, (collection, row) in enumerate(ordered_rows, start=1):
-        payload = _candidate_artifact_payload(row=row, collection=collection)
+        payload = _candidate_artifact_payload(row=row, collection=collection, thresholds=thresholds)
         path = candidates_dir / f"strategy_{rank:02d}_{row.candidate.candidate_id}.json"
         path.write_text(json.dumps(payload, indent=2), encoding="utf-8")
         artifact_rel = str(path.relative_to(run_dir))
@@ -1632,40 +1680,50 @@ def _persist_candidate_artifacts(
 
         csv_row = row.to_row(rank=rank)
         csv_row["artifact_path"] = artifact_rel
-        csv_row["collection"] = collection
-        csv_row["accepted_core"] = bool(collection == "accepted")
-        csv_row["near_miss"] = bool(collection == "near_miss")
-        if collection == "accepted":
-            accepted_csv_rows.append(csv_row)
+        csv_row["result_tier"] = collection
+        csv_row["tier_A"] = bool(collection == "Tier A")
+        csv_row["tier_B"] = bool(collection == "Tier B")
+        csv_row["near_miss"] = bool(collection == "Near Miss")
+        if collection == "Tier A":
+            tier_a_csv_rows.append(csv_row)
+        elif collection == "Tier B":
+            tier_b_csv_rows.append(csv_row)
         else:
             near_miss_csv_rows.append(csv_row)
 
-    accepted_df = pd.DataFrame(accepted_csv_rows)
+    tier_a_df = pd.DataFrame(tier_a_csv_rows)
+    tier_b_df = pd.DataFrame(tier_b_csv_rows)
     near_miss_df = pd.DataFrame(near_miss_csv_rows)
-    accepted_path = run_dir / "accepted_candidates.csv"
+    tier_a_path = run_dir / "tier_A_candidates.csv"
+    tier_b_path = run_dir / "tier_B_candidates.csv"
     near_miss_path = run_dir / "near_miss_candidates.csv"
-    accepted_df.to_csv(accepted_path, index=False)
+    tier_a_df.to_csv(tier_a_path, index=False)
+    tier_b_df.to_csv(tier_b_path, index=False)
     near_miss_df.to_csv(near_miss_path, index=False)
 
     return {
-        "accepted_count": int(len(accepted_rows)),
+        "tier_A_count": int(len(tier_a_rows)),
+        "tier_B_count": int(len(tier_b_rows)),
         "near_miss_count": int(len(near_miss_rows)),
         "paths": {
             "candidates_dir": str(candidates_dir.relative_to(run_dir)),
-            "accepted_csv": str(accepted_path.relative_to(run_dir)),
+            "tier_A_csv": str(tier_a_path.relative_to(run_dir)),
+            "tier_B_csv": str(tier_b_path.relative_to(run_dir)),
             "near_miss_csv": str(near_miss_path.relative_to(run_dir)),
             "candidate_json_files": artifact_paths,
         },
     }
 
 
-def _candidate_artifact_payload(row: CandidateEval, collection: str) -> dict[str, Any]:
+def _candidate_artifact_payload(row: CandidateEval, collection: str, thresholds: dict[str, Any]) -> dict[str, Any]:
     spec = candidate_to_strategy_spec(row.candidate)
     validation = row.metrics_validation or {}
     holdout = row.metrics_holdout or {}
+    result_tier = _candidate_result_tier(row=row, thresholds=thresholds)
     return {
         "candidate_id": row.candidate.candidate_id,
         "collection": collection,
+        "result_tier": result_tier,
         "strategy_name": spec.name,
         "strategy_family": row.candidate.family,
         "parameters": row.candidate.params,
@@ -1686,11 +1744,10 @@ def _candidate_artifact_payload(row: CandidateEval, collection: str) -> dict[str
         "per_symbol_metrics": row.holdout_symbol_metrics or {},
         "score": float(row.score),
         "acceptance_flags": {
-            "accepted_core": bool(
-                row.exp_lcb_holdout > 0.0 and row.effective_edge > 0.0 and bool(row.validation_evidence_passed)
-            ),
+            "tier_A": bool(result_tier == "Tier A"),
+            "tier_B": bool(result_tier == "Tier B"),
+            "near_miss": bool(result_tier == "Near Miss"),
             "accepted_ranked": bool(not row.rejected),
-            "near_miss": bool(collection == "near_miss"),
             "validation_evidence_passed": bool(row.validation_evidence_passed),
             "exp_lcb_positive": bool(row.exp_lcb_holdout > 0.0),
             "effective_edge_positive": bool(row.effective_edge > 0.0),
@@ -1749,7 +1806,7 @@ def _write_stage1_diagnostics_report(
 def _write_stage1_report(
     run_dir: Path,
     summary: dict[str, Any],
-    top_three: list[dict[str, Any]],
+    selected_rows: list[dict[str, Any]],
     docs_report_path: Path | None,
 ) -> None:
     report_lines: list[str] = []
@@ -1763,18 +1820,19 @@ def _write_stage1_report(
     report_lines.append(f"- data_hash: `{summary['data_hash']}`")
     report_lines.append(f"- cost(round_trip_cost_pct): `{summary['round_trip_cost_pct']}`")
     report_lines.append(f"- candidates A/B/C: `{summary['candidate_count_stage_a']}/{summary['candidate_count_stage_b']}/{summary['candidate_count_stage_c']}`")
-    report_lines.append(f"- accepted_count: `{summary.get('accepted_count', 0)}`")
+    report_lines.append(f"- Tier A count: `{summary.get('tier_A_count', 0)}`")
+    report_lines.append(f"- Tier B count: `{summary.get('tier_B_count', 0)}`")
     report_lines.append(f"- near_miss_count: `{summary.get('near_miss_count', 0)}`")
     report_lines.append(f"- stage_c_seconds: `{float(summary.get('timings', {}).get('stage_c_seconds', 0.0)):.2f}`")
     report_lines.append("")
 
-    report_lines.append("## Top 3 Candidates")
-    if not top_three:
-        report_lines.append("No candidates produced.")
+    report_lines.append("## Threshold-Selected Candidates")
+    if not selected_rows:
+        report_lines.append("No threshold-selected candidates produced.")
     else:
-        for item in top_three:
+        for item in selected_rows:
             metrics = item["metrics_holdout"]
-            report_lines.append(f"### Rank {item['rank']} - {item['family']}")
+            report_lines.append(f"### Rank {item['rank']} - {item['family']} ({item.get('result_tier', 'n/a')})")
             report_lines.append(f"- Strategy: `{item['strategy_name']}`")
             report_lines.append(f"- Gating: `{item['gating_mode']}`")
             report_lines.append(f"- Exit mode: `{item['exit_mode']}`")
@@ -1812,120 +1870,121 @@ def _write_stage1_report(
 def _write_stage1_real_data_reports(
     run_dir: Path,
     summary: dict[str, Any],
-    top_five_rows: list[CandidateEval],
+    tier_a_rows: list[CandidateEval],
+    tier_b_rows: list[CandidateEval],
+    near_miss_rows: list[CandidateEval],
     docs_md_path: Path,
     docs_json_path: Path,
 ) -> None:
-    payload_candidates: list[dict[str, Any]] = []
-    for idx, row in enumerate(top_five_rows, start=1):
-        spec = candidate_to_strategy_spec(row.candidate)
-        validation = row.metrics_validation or {}
-        holdout = row.metrics_holdout or {}
-        combined = row.metrics_combined or {}
-        validation_exposure_passed = bool(row.validation_exposure_ratio >= float(summary["min_validation_exposure_ratio"]))
-        validation_active_days_passed = bool(row.validation_active_days >= int(summary["min_validation_active_days"]))
-        payload_candidates.append(
-            {
-                "rank": idx,
-                "candidate_id": row.candidate.candidate_id,
-                "strategy_name": spec.name,
-                "strategy_family": row.candidate.family,
-                "parameters": row.candidate.params,
-                "gating": row.candidate.gating_mode,
-                "exit_mode": row.candidate.exit_mode,
-                "holdout_months_used": int(row.holdout_months_used),
-                "trade_count_validation": float(validation.get("trade_count", 0.0)),
-                "trade_count_holdout": float(holdout.get("trade_count", 0.0)),
-                "pf_validation": float(validation.get("profit_factor", 0.0)),
-                "pf_holdout": float(holdout.get("profit_factor", 0.0)),
-                "pf_adj_holdout": float(row.pf_adj_holdout),
-                "expectancy_validation": float(validation.get("expectancy", 0.0)),
-                "expectancy_holdout": float(holdout.get("expectancy", 0.0)),
-                "exp_lcb_holdout": float(row.exp_lcb_holdout),
-                "effective_edge": float(row.effective_edge),
-                "max_drawdown_combined": float(combined.get("max_drawdown", 0.0)),
-                "max_drawdown_holdout": float(holdout.get("max_drawdown", 0.0)),
-                "return_pct_holdout": float(holdout.get("return_pct", 0.0)),
-                "cagr_approx_holdout": float(row.cagr_approx_holdout),
-                "trades_per_month_holdout": float(row.trades_per_month_holdout),
-                "exposure_ratio": float(row.exposure_ratio),
-                "exposure_penalty": float(row.exposure_penalty),
-                "low_signal_penalty": float(row.low_signal_penalty),
-                "penalty_relief_applied": bool(row.penalty_relief_applied),
-                "validation_exposure_ratio": float(row.validation_exposure_ratio),
-                "validation_active_days": int(row.validation_active_days),
-                "validation_exposure_passed": validation_exposure_passed,
-                "validation_active_days_passed": validation_active_days_passed,
-                "validation_evidence_rule": "validation_exposure_ratio >= min_validation_exposure_ratio OR validation_active_days >= min_validation_active_days",
-                "validation_evidence_passed": bool(row.validation_evidence_passed),
-                "holdout_by_symbol": row.holdout_symbol_metrics or {},
-                "validation_range": str(validation.get("date_range", "n/a")),
-                "holdout_range": str(holdout.get("date_range", "n/a")),
-                "combined_range": str(combined.get("date_range", "n/a")),
-                "rejected": bool(row.rejected),
-                "accepted": bool(not row.rejected),
-                "rejection_reason": row.rejection_reason,
-                "exp_lcb_positive": bool(row.exp_lcb_holdout > 0.0),
-                "effective_edge_positive": bool(row.effective_edge > 0.0),
-                "score": float(row.score),
-            }
-        )
+    def _payload_rows(rows: list[CandidateEval], result_tier: str) -> list[dict[str, Any]]:
+        payload: list[dict[str, Any]] = []
+        for idx, row in enumerate(rows, start=1):
+            spec = candidate_to_strategy_spec(row.candidate)
+            validation = row.metrics_validation or {}
+            holdout = row.metrics_holdout or {}
+            combined = row.metrics_combined or {}
+            validation_exposure_passed = bool(
+                row.validation_exposure_ratio >= float(summary["min_validation_exposure_ratio"])
+            )
+            validation_active_days_passed = bool(
+                row.validation_active_days >= int(summary["min_validation_active_days"])
+            )
+            payload.append(
+                {
+                    "rank": idx,
+                    "result_tier": result_tier,
+                    "candidate_id": row.candidate.candidate_id,
+                    "strategy_name": spec.name,
+                    "strategy_family": row.candidate.family,
+                    "parameters": row.candidate.params,
+                    "gating": row.candidate.gating_mode,
+                    "exit_mode": row.candidate.exit_mode,
+                    "holdout_months_used": int(row.holdout_months_used),
+                    "trade_count_validation": float(validation.get("trade_count", 0.0)),
+                    "trade_count_holdout": float(holdout.get("trade_count", 0.0)),
+                    "pf_validation": float(validation.get("profit_factor", 0.0)),
+                    "pf_holdout": float(holdout.get("profit_factor", 0.0)),
+                    "pf_adj_holdout": float(row.pf_adj_holdout),
+                    "expectancy_validation": float(validation.get("expectancy", 0.0)),
+                    "expectancy_holdout": float(holdout.get("expectancy", 0.0)),
+                    "exp_lcb_holdout": float(row.exp_lcb_holdout),
+                    "effective_edge": float(row.effective_edge),
+                    "max_drawdown_combined": float(combined.get("max_drawdown", 0.0)),
+                    "max_drawdown_holdout": float(holdout.get("max_drawdown", 0.0)),
+                    "return_pct_holdout": float(holdout.get("return_pct", 0.0)),
+                    "cagr_approx_holdout": float(row.cagr_approx_holdout),
+                    "trades_per_month_holdout": float(row.trades_per_month_holdout),
+                    "exposure_ratio": float(row.exposure_ratio),
+                    "exposure_penalty": float(row.exposure_penalty),
+                    "low_signal_penalty": float(row.low_signal_penalty),
+                    "penalty_relief_applied": bool(row.penalty_relief_applied),
+                    "validation_exposure_ratio": float(row.validation_exposure_ratio),
+                    "validation_active_days": int(row.validation_active_days),
+                    "validation_exposure_passed": validation_exposure_passed,
+                    "validation_active_days_passed": validation_active_days_passed,
+                    "validation_evidence_rule": "validation_exposure_ratio >= min_validation_exposure_ratio OR validation_active_days >= min_validation_active_days",
+                    "validation_evidence_passed": bool(row.validation_evidence_passed),
+                    "holdout_by_symbol": row.holdout_symbol_metrics or {},
+                    "validation_range": str(validation.get("date_range", "n/a")),
+                    "holdout_range": str(holdout.get("date_range", "n/a")),
+                    "combined_range": str(combined.get("date_range", "n/a")),
+                    "rejected": bool(row.rejected),
+                    "accepted": bool(not row.rejected),
+                    "rejection_reason": row.rejection_reason,
+                    "exp_lcb_positive": bool(row.exp_lcb_holdout > 0.0),
+                    "effective_edge_positive": bool(row.effective_edge > 0.0),
+                    "score": float(row.score),
+                }
+            )
+        return payload
+
+    tier_a_payload = _payload_rows(tier_a_rows, "Tier A")
+    tier_b_payload = _payload_rows(tier_b_rows, "Tier B")
+    near_miss_payload = _payload_rows(near_miss_rows, "Near Miss")
+    all_payload = tier_a_payload + tier_b_payload + near_miss_payload
 
     any_profitable_raw = any(
         item["pf_holdout"] > 1.0 and item["expectancy_holdout"] > 0.0
-        for item in payload_candidates
+        for item in all_payload
     )
     any_profitable_accepted = any(
-        item["pf_holdout"] > 1.0 and item["expectancy_holdout"] > 0.0 and not item["rejected"]
-        for item in payload_candidates
+        item["pf_holdout"] > 1.0 and item["expectancy_holdout"] > 0.0 and item["result_tier"] == "Tier A"
+        for item in all_payload
     )
-    accepted_candidates = [item for item in payload_candidates if not item["rejected"]]
-    accepted_top10 = accepted_candidates[:10]
-    accepted_tpm_values = [float(item["trades_per_month_holdout"]) for item in accepted_top10]
-    accepted_tpm_stats = {
-        "count": int(len(accepted_tpm_values)),
-        "min": float(np.min(accepted_tpm_values)) if accepted_tpm_values else 0.0,
-        "median": float(np.median(accepted_tpm_values)) if accepted_tpm_values else 0.0,
-        "max": float(np.max(accepted_tpm_values)) if accepted_tpm_values else 0.0,
-    }
-    best_accepted = summary.get("best_accepted")
-    if best_accepted is None and accepted_candidates:
-        best_accepted = accepted_candidates[0]
-    best_accepted_flat: dict[str, Any] | None = None
-    if best_accepted is not None:
-        if "metrics_holdout" in best_accepted and "pf_adj_holdout" not in best_accepted:
-            metrics_holdout = best_accepted.get("metrics_holdout", {})
-            best_accepted_flat = {
-                "candidate_id": best_accepted.get("candidate_id"),
-                "strategy_name": best_accepted.get("strategy_name"),
-                "holdout_months_used": int(best_accepted.get("holdout_months_used", 0)),
-                "score": float(best_accepted.get("score", 0.0)),
+    best_tier_a = summary.get("best_tier_A")
+    best_tier_a_flat: dict[str, Any] | None = None
+    if best_tier_a is not None:
+        if "metrics_holdout" in best_tier_a and "pf_adj_holdout" not in best_tier_a:
+            metrics_holdout = best_tier_a.get("metrics_holdout", {})
+            best_tier_a_flat = {
+                "candidate_id": best_tier_a.get("candidate_id"),
+                "strategy_name": best_tier_a.get("strategy_name"),
+                "result_tier": best_tier_a.get("result_tier", "Tier A"),
+                "holdout_months_used": int(best_tier_a.get("holdout_months_used", 0)),
+                "score": float(best_tier_a.get("score", 0.0)),
                 "pf_adj_holdout": float(metrics_holdout.get("pf_adj", 0.0)),
                 "exp_lcb_holdout": float(metrics_holdout.get("exp_lcb", 0.0)),
                 "effective_edge": float(metrics_holdout.get("effective_edge", 0.0)),
                 "trades_per_month_holdout": float(metrics_holdout.get("trades_per_month", 0.0)),
                 "exposure_ratio": float(metrics_holdout.get("exposure_ratio", 0.0)),
                 "validation_exposure_ratio": float(
-                    (best_accepted.get("validation_evidence", {}) or {}).get("exposure_ratio", 0.0)
+                    (best_tier_a.get("validation_evidence", {}) or {}).get("exposure_ratio", 0.0)
                 ),
                 "validation_active_days": int(
-                    (best_accepted.get("validation_evidence", {}) or {}).get("active_days", 0.0)
+                    (best_tier_a.get("validation_evidence", {}) or {}).get("active_days", 0.0)
                 ),
                 "validation_exposure_passed": bool(
-                    (best_accepted.get("validation_evidence", {}) or {}).get("exposure_passed", False)
+                    (best_tier_a.get("validation_evidence", {}) or {}).get("exposure_passed", False)
                 ),
                 "validation_active_days_passed": bool(
-                    (best_accepted.get("validation_evidence", {}) or {}).get("active_days_passed", False)
+                    (best_tier_a.get("validation_evidence", {}) or {}).get("active_days_passed", False)
                 ),
                 "validation_evidence_passed": bool(
-                    (best_accepted.get("validation_evidence", {}) or {}).get("passed", False)
+                    (best_tier_a.get("validation_evidence", {}) or {}).get("passed", False)
                 ),
-                "exp_lcb_positive": bool(metrics_holdout.get("exp_lcb", 0.0) > 0.0),
-                "effective_edge_positive": bool(metrics_holdout.get("effective_edge", 0.0) > 0.0),
-                "accepted": bool(metrics_holdout.get("accepted", True)),
             }
         else:
-            best_accepted_flat = best_accepted
+            best_tier_a_flat = best_tier_a
 
     report_payload = {
         "run_id": summary["run_id"],
@@ -1935,21 +1994,26 @@ def _write_stage1_real_data_reports(
         "min_holdout_trades": summary["min_holdout_trades"],
         "promotion_holdout_months": summary["promotion_holdout_months"],
         "promotion_counts": summary["promotion_counts"],
+        "result_thresholds": summary["result_thresholds"],
         "min_validation_exposure_ratio": summary["min_validation_exposure_ratio"],
         "min_validation_active_days": summary["min_validation_active_days"],
         "validation_evidence_rule": "validation_exposure_ratio >= min_validation_exposure_ratio OR validation_active_days >= min_validation_active_days",
-        "acceptance_rule": "exp_lcb_holdout > 0 AND effective_edge > 0 AND validation_evidence_passed",
+        "tier_A_rule": "All result_thresholds satisfied",
+        "tier_B_rule": "exp_lcb_holdout > 0 AND trades_per_month_holdout >= 3",
+        "near_miss_rule": "exp_lcb_holdout > -5",
         "rejected_due_validation_evidence_count": summary["rejected_due_validation_evidence_count"],
-        "accepted_count": summary["accepted_count"],
+        "tier_A_count": summary["tier_A_count"],
+        "tier_B_count": summary["tier_B_count"],
         "near_miss_count": summary["near_miss_count"],
         "candidate_artifact_paths": summary["candidate_artifact_paths"],
         "timings": summary.get("timings", {}),
         "round_trip_cost_pct": summary["round_trip_cost_pct"],
         "any_pf_holdout_gt_1_and_expectancy_holdout_gt_0": any_profitable_raw,
-        "any_accepted_pf_holdout_gt_1_and_expectancy_holdout_gt_0": any_profitable_accepted,
-        "best_accepted_candidate": best_accepted_flat,
-        "accepted_top10_tpm_distribution": accepted_tpm_stats,
-        "top_5_candidates": payload_candidates,
+        "any_tier_A_pf_holdout_gt_1_and_expectancy_holdout_gt_0": any_profitable_accepted,
+        "best_tier_A_candidate": best_tier_a_flat,
+        "tier_A_candidates": tier_a_payload,
+        "tier_B_candidates": tier_b_payload,
+        "near_miss_candidates": near_miss_payload,
     }
 
     docs_json_path.parent.mkdir(parents=True, exist_ok=True)
@@ -1965,18 +2029,23 @@ def _write_stage1_real_data_reports(
     lines.append(f"- min_holdout_trades: `{summary['min_holdout_trades']}`")
     lines.append(f"- promotion_holdout_months: `{summary['promotion_holdout_months']}`")
     lines.append(f"- promotion_counts: `{summary['promotion_counts']}`")
+    lines.append(f"- result_thresholds: `{summary['result_thresholds']}`")
     lines.append(f"- min_validation_exposure_ratio: `{summary['min_validation_exposure_ratio']}`")
     lines.append(f"- min_validation_active_days: `{summary['min_validation_active_days']}`")
     lines.append(
         "- validation_evidence_rule: "
         "`validation_exposure_ratio >= min_validation_exposure_ratio OR validation_active_days >= min_validation_active_days`"
     )
-    lines.append("- acceptance_rule: `exp_lcb_holdout > 0 AND effective_edge > 0 AND validation_evidence_passed`")
+    lines.append("- Tier A rule: `all result_thresholds satisfied`")
+    lines.append("- Tier B rule: `exp_lcb_holdout > 0 AND trades_per_month_holdout >= 3`")
+    lines.append("- Near Miss rule: `exp_lcb_holdout > -5`")
     lines.append(f"- rejected_due_validation_evidence_count: `{summary['rejected_due_validation_evidence_count']}`")
-    lines.append(f"- accepted_count: `{summary['accepted_count']}`")
+    lines.append(f"- Tier A count: `{summary['tier_A_count']}`")
+    lines.append(f"- Tier B count: `{summary['tier_B_count']}`")
     lines.append(f"- near_miss_count: `{summary['near_miss_count']}`")
     lines.append(f"- candidates_dir: `{summary['candidate_artifact_paths']['candidates_dir']}`")
-    lines.append(f"- accepted_csv: `{summary['candidate_artifact_paths']['accepted_csv']}`")
+    lines.append(f"- tier_A_csv: `{summary['candidate_artifact_paths']['tier_A_csv']}`")
+    lines.append(f"- tier_B_csv: `{summary['candidate_artifact_paths']['tier_B_csv']}`")
     lines.append(f"- near_miss_csv: `{summary['candidate_artifact_paths']['near_miss_csv']}`")
     lines.append(f"- stage_c_seconds: `{summary.get('timings', {}).get('stage_c_seconds', 0.0):.2f}`")
     lines.append(f"- target_trades_per_month_holdout: `{summary['target_trades_per_month_holdout']}`")
@@ -1984,21 +2053,20 @@ def _write_stage1_real_data_reports(
     lines.append(f"- min_trades_per_month_floor: `{summary['min_trades_per_month_floor']}`")
     lines.append(f"- round_trip_cost_pct: `{summary['round_trip_cost_pct']}`")
     lines.append("")
-    lines.append("## Top 5 Candidates")
+    lines.append("## Tier A Candidates")
     lines.append(
-        "| rank | strategy | gating | exit | holdout_m | val_trades | hold_trades | tpm_hold | pf_adj | exp_lcb | edge | exp_lcb>0 | edge>0 | accepted | exposure | PF_val | PF_hold | exp_val | exp_hold | max_dd_hold | return_hold | CAGR_hold | score |"
+        "| rank | strategy | gating | exit | holdout_m | val_trades | hold_trades | tpm_hold | pf_adj | exp_lcb | edge | exposure | PF_val | PF_hold | exp_val | exp_hold | max_dd_hold | return_hold | CAGR_hold | score |"
     )
-    lines.append("| --- | --- | --- | --- | ---: | ---: | ---: | ---: | ---: | ---: | ---: | --- | --- | --- | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: |")
-    for item in payload_candidates:
+    lines.append("| --- | --- | --- | --- | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: |")
+    if not tier_a_payload:
+        lines.append("| - | none | - | - | - | - | - | - | - | - | - | - | - | - | - | - | - | - | - | - |")
+    for item in tier_a_payload:
         lines.append(
             f"| {item['rank']} | {item['strategy_name']} | {item['gating']} | {item['exit_mode']} | "
             f"{item['holdout_months_used']} | "
             f"{item['trade_count_validation']:.0f} | {item['trade_count_holdout']:.0f} | "
             f"{item['trades_per_month_holdout']:.4f} | {item['pf_adj_holdout']:.4f} | "
             f"{item['exp_lcb_holdout']:.4f} | {item['effective_edge']:.4f} | "
-            f"{'yes' if item['exp_lcb_positive'] else 'no'} | "
-            f"{'yes' if item['effective_edge_positive'] else 'no'} | "
-            f"{'yes' if item['accepted'] else 'no'} | "
             f"{item['exposure_ratio']:.4f} | "
             f"{item['pf_validation']:.4f} | {item['pf_holdout']:.4f} | "
             f"{item['expectancy_validation']:.4f} | {item['expectancy_holdout']:.4f} | "
@@ -2006,8 +2074,8 @@ def _write_stage1_real_data_reports(
             f"{item['cagr_approx_holdout']:.4f} | {item['score']:.4f} |"
         )
     lines.append("")
-    lines.append("### Holdout By Symbol (Top Candidates)")
-    for item in payload_candidates:
+    lines.append("### Holdout By Symbol (Tier A)")
+    for item in tier_a_payload:
         by_symbol = item.get("holdout_by_symbol", {})
         btc = by_symbol.get("BTC/USDT", {})
         eth = by_symbol.get("ETH/USDT", {})
@@ -2023,8 +2091,8 @@ def _write_stage1_real_data_reports(
             f"trades={float(eth.get('trade_count', 0.0)):.0f})"
         )
     lines.append("")
-    lines.append("### Validation Evidence (OR Rule)")
-    for item in payload_candidates:
+    lines.append("### Validation Evidence (Tier A)")
+    for item in tier_a_payload:
         lines.append(
             f"- Rank {item['rank']} {item['strategy_name']}: "
             f"exposure={item['validation_exposure_ratio']:.4f} "
@@ -2034,37 +2102,33 @@ def _write_stage1_real_data_reports(
             f"OR_passed={'yes' if item['validation_evidence_passed'] else 'no'}"
         )
     lines.append("")
-    lines.append("## Accepted Summary")
-    if best_accepted_flat is None:
-        lines.append("- Best ACCEPTED candidate: none")
+    lines.append("## Tier Summary")
+    if best_tier_a_flat is None:
+        lines.append("- Best Tier A candidate: none")
     else:
         lines.append(
-            "- Best ACCEPTED candidate: "
-            f"`{best_accepted_flat['strategy_name']}` "
-            f"(holdout_months_used={best_accepted_flat.get('holdout_months_used', 0)}, "
-            f"pf_adj_holdout={best_accepted_flat['pf_adj_holdout']:.4f}, "
-            f"exp_lcb_holdout={best_accepted_flat['exp_lcb_holdout']:.4f}, "
-            f"effective_edge={best_accepted_flat.get('effective_edge', 0.0):.4f}, "
-            f"tpm_holdout={best_accepted_flat['trades_per_month_holdout']:.4f}, "
-            f"exposure_ratio={best_accepted_flat['exposure_ratio']:.4f}, "
-            f"validation_exposure={best_accepted_flat.get('validation_exposure_ratio', 0.0):.4f}, "
-            f"validation_active_days={best_accepted_flat.get('validation_active_days', 0)}, "
-            f"score={best_accepted_flat['score']:.4f})"
+            "- Best Tier A candidate: "
+            f"`{best_tier_a_flat['strategy_name']}` "
+            f"(holdout_months_used={best_tier_a_flat.get('holdout_months_used', 0)}, "
+            f"pf_adj_holdout={best_tier_a_flat['pf_adj_holdout']:.4f}, "
+            f"exp_lcb_holdout={best_tier_a_flat['exp_lcb_holdout']:.4f}, "
+            f"effective_edge={best_tier_a_flat.get('effective_edge', 0.0):.4f}, "
+            f"tpm_holdout={best_tier_a_flat['trades_per_month_holdout']:.4f}, "
+            f"exposure_ratio={best_tier_a_flat['exposure_ratio']:.4f}, "
+            f"validation_exposure={best_tier_a_flat.get('validation_exposure_ratio', 0.0):.4f}, "
+            f"validation_active_days={best_tier_a_flat.get('validation_active_days', 0)}, "
+            f"score={best_tier_a_flat['score']:.4f})"
         )
-    lines.append(
-        "- Top 10 accepted candidates tpm distribution: "
-        f"min={accepted_tpm_stats['min']:.4f}, "
-        f"median={accepted_tpm_stats['median']:.4f}, "
-        f"max={accepted_tpm_stats['max']:.4f} "
-        f"(count={accepted_tpm_stats['count']})"
-    )
+    lines.append(f"- Tier A count: `{summary['tier_A_count']}`")
+    lines.append(f"- Tier B count: `{summary['tier_B_count']}`")
+    lines.append(f"- Near Miss count: `{summary['near_miss_count']}`")
     lines.append("")
     lines.append(
         "Does any candidate satisfy PF_holdout > 1 and expectancy_holdout > 0? "
         f"**{'YES' if any_profitable_raw else 'NO'}**"
     )
     lines.append(
-        "Accepted candidates only (after validation evidence + exp_lcb/effective_edge + degeneracy filters): "
+        "Tier A candidates only: "
         f"**{'YES' if any_profitable_accepted else 'NO'}**"
     )
     lines.append("")

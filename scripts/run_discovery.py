@@ -56,19 +56,29 @@ def main() -> None:
         logger.warning("Stage-1 completed but strategies.json not found at %s", strategies_path)
         return
 
-    top = json.loads(strategies_path.read_text(encoding="utf-8"))
-    if not top:
-        logger.warning("No top candidates found.")
+    summary_path = run_dir / "summary.json"
+    if not summary_path.exists():
+        logger.warning("Stage-1 completed but summary.json not found at %s", summary_path)
         return
 
-    print("Top 3 Stage-1 candidates")
-    for row in top:
-        metrics = row["metrics_holdout"]
+    summary = json.loads(summary_path.read_text(encoding="utf-8"))
+    best_tier_a = summary.get("best_tier_A")
+
+    print("Stage-1 Result Tiers")
+    print(f"Tier A: {summary.get('tier_A_count', 0)}")
+    print(f"Tier B: {summary.get('tier_B_count', 0)}")
+    print(f"Near Miss: {summary.get('near_miss_count', 0)}")
+    if best_tier_a is not None:
+        metrics = best_tier_a["metrics_holdout"]
         print(
-            f"#{row['rank']} | {row['family']} | exit={row['exit_mode']} | gating={row['gating_mode']} "
-            f"| PF={metrics['profit_factor']:.4f} | expectancy={metrics['expectancy']:.4f} "
-            f"| max_dd={metrics['max_drawdown']:.4f}"
+            "Best Tier A | "
+            f"{best_tier_a['strategy_name']} | "
+            f"edge={metrics['effective_edge']:.4f} | "
+            f"exp_lcb={metrics['exp_lcb']:.4f} | "
+            f"tpm={metrics['trades_per_month']:.4f}"
         )
+    else:
+        print("Best Tier A | none")
 
 
 if __name__ == "__main__":

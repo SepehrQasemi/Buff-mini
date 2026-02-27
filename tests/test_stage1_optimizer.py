@@ -83,7 +83,8 @@ def test_funnel_reduces_candidate_count_and_writes_artifacts(tmp_path: Path) -> 
         "stage1_real_data_report.md",
         "stage1_real_data_report.json",
         "stage1_diagnostics.md",
-        "accepted_candidates.csv",
+        "tier_A_candidates.csv",
+        "tier_B_candidates.csv",
         "near_miss_candidates.csv",
     ]
     for name in required:
@@ -97,20 +98,23 @@ def test_funnel_reduces_candidate_count_and_writes_artifacts(tmp_path: Path) -> 
     assert summary["promotion_holdout_months"] == [3, 6, 9, 12]
     assert set(summary["promotion_counts"].keys()) == {"6", "9", "12"}
     assert "candidate_artifact_paths" in summary
+    assert "result_thresholds" in summary
 
     top_strategies = json.loads((run_dir / "strategies.json").read_text(encoding="utf-8"))
     for row in top_strategies:
         assert int(row["holdout_months_used"]) in {3, 6, 9, 12}
+        assert row["result_tier"] in {"Tier A", "Tier B", "Near Miss"}
         validation = row["validation_evidence"]
         assert isinstance(validation["active_days"], int)
 
     candidates_dir = run_dir / "candidates"
     assert candidates_dir.exists()
     candidate_files = sorted(candidates_dir.glob("strategy_*.json"))
-    assert len(candidate_files) == summary["accepted_count"] + summary["near_miss_count"]
+    assert len(candidate_files) == summary["tier_A_count"] + summary["tier_B_count"] + summary["near_miss_count"]
     if candidate_files:
         payload = json.loads(candidate_files[0].read_text(encoding="utf-8"))
         required_keys = {
+            "result_tier",
             "strategy_name",
             "strategy_family",
             "parameters",
@@ -152,7 +156,7 @@ def test_funnel_reduces_candidate_count_and_writes_artifacts(tmp_path: Path) -> 
     assert diagnostics["stages"]["A"]["total_trades_evaluated"] > 0.0
 
 
-def test_stage1_reproducibility_same_seed_same_top3(tmp_path: Path) -> None:
+def test_stage1_reproducibility_same_seed_same_selected_results(tmp_path: Path) -> None:
     root = Path(__file__).resolve().parents[1]
     config = _small_stage1_config(root)
 
@@ -178,12 +182,10 @@ def test_stage1_reproducibility_same_seed_same_top3(tmp_path: Path) -> None:
     top_a = json.loads((run_a / "strategies.json").read_text(encoding="utf-8"))
     top_b = json.loads((run_b / "strategies.json").read_text(encoding="utf-8"))
 
-    assert len(top_a) == 3
-    assert len(top_b) == 3
-
     slim_a = [
         {
             "rank": item["rank"],
+            "result_tier": item["result_tier"],
             "candidate_id": item["candidate_id"],
             "family": item["family"],
             "gating_mode": item["gating_mode"],
@@ -195,6 +197,7 @@ def test_stage1_reproducibility_same_seed_same_top3(tmp_path: Path) -> None:
     slim_b = [
         {
             "rank": item["rank"],
+            "result_tier": item["result_tier"],
             "candidate_id": item["candidate_id"],
             "family": item["family"],
             "gating_mode": item["gating_mode"],

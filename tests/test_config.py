@@ -25,7 +25,12 @@ def test_load_config_success() -> None:
     assert config["evaluation"]["stage1"]["allow_rare_if_high_expectancy"] is False
     assert config["evaluation"]["stage1"]["rare_expectancy_threshold"] == 3.0
     assert config["evaluation"]["stage1"]["rare_penalty_relief"] == 0.1
-    assert config["evaluation"]["stage1"]["near_miss_top_n"] == 20
+    assert config["evaluation"]["stage1"]["result_thresholds"]["min_exp_lcb_holdout"] == 0
+    assert config["evaluation"]["stage1"]["result_thresholds"]["min_effective_edge"] == 0
+    assert config["evaluation"]["stage1"]["result_thresholds"]["min_trades_per_month_holdout"] == 5
+    assert config["evaluation"]["stage1"]["result_thresholds"]["min_pf_adj_holdout"] == 1.1
+    assert config["evaluation"]["stage1"]["result_thresholds"]["max_drawdown_holdout"] == 0.15
+    assert config["evaluation"]["stage1"]["result_thresholds"]["min_exposure_ratio"] == 0.02
     assert config["evaluation"]["stage1"]["promotion_holdout_months"] == [3, 6, 9, 12]
     assert config["data"]["backend"] == "parquet"
 
