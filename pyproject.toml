@@ -19,6 +19,7 @@ dependencies = [
   "pyyaml",
   "pyarrow",
   "plotly",
+  "matplotlib",
   "ccxt",
   "pytest"
 ]
