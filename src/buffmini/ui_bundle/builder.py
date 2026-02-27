@@ -94,7 +94,7 @@ def build_ui_bundle(run_id: str, source_paths: dict[str, Any], out_dir: Path) ->
     report_files = [str(path.resolve()) for path in find_best_report_files(pipeline_run_dir)]
     _write_json_atomic(out_dir / "reports_index.json", {"reports": report_files})
 
-    _copy_equity_and_exposure(
+    window_start_ts, window_end_ts = _copy_equity_and_exposure(
         out_dir=out_dir,
         stage2_run_id=stage2_run_id,
         chosen_method=chosen_method,
@@ -132,6 +132,8 @@ def build_ui_bundle(run_id: str, source_paths: dict[str, Any], out_dir: Path) ->
         "config_hash": config_hash,
         "data_hash": data_hash,
         "seed": seed,
+        "run_window_start_ts": window_start_ts,
+        "run_window_end_ts": window_end_ts,
         "bundle_build_warnings": warnings,
     }
     _write_json_atomic(out_dir / "summary_ui.json", summary_ui)
@@ -157,10 +159,10 @@ def _copy_equity_and_exposure(
     stage2_run_id: str,
     chosen_method: str,
     warnings: list[str],
-) -> None:
+) -> tuple[str | None, str | None]:
     if not stage2_run_id:
         warnings.append("stage2_run_id missing; equity/exposure unavailable")
-        return
+        return None, None
 
     stage2_dir = RUNS_DIR / stage2_run_id
     name_map = {
@@ -174,16 +176,16 @@ def _copy_equity_and_exposure(
     source = stage2_dir / source_name
     if not source.exists():
         warnings.append(f"missing stage2 portfolio series: {source}")
-        return
+        return None, None
 
     frame = _safe_csv(source)
     if frame.empty:
         warnings.append(f"empty portfolio series: {source}")
-        return
+        return None, None
 
     if "timestamp" not in frame.columns or "equity" not in frame.columns:
         warnings.append(f"portfolio series missing required columns in {source}")
-        return
+        return None, None
 
     normalized = frame.copy()
     normalized["timestamp"] = pd.to_datetime(normalized["timestamp"], utc=True, errors="coerce")
@@ -204,6 +206,15 @@ def _copy_equity_and_exposure(
     if "exposure" in normalized.columns:
         exposure = normalized[["timestamp", "exposure"]].copy()
         exposure.to_csv(out_dir / "exposure.csv", index=False)
+
+    if normalized.empty:
+        return None, None
+    start_ts = pd.to_datetime(normalized["timestamp"].iloc[0], utc=True, errors="coerce")
+    end_ts = pd.to_datetime(normalized["timestamp"].iloc[-1], utc=True, errors="coerce")
+    return (
+        start_ts.isoformat() if not pd.isna(start_ts) else None,
+        end_ts.isoformat() if not pd.isna(end_ts) else None,
+    )
 
 
 def _copy_trades_and_events(

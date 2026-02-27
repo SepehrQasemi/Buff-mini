@@ -76,17 +76,19 @@ STAGE4_DEFAULTS = {
 }
 
 UI_STAGE5_DEFAULTS = {
-    "presets": {
-        "quick": {
-            "candidate_count": 1000,
-            "run_stage4_simulate": 0,
+    "stage5": {
+        "presets": {
+            "quick": {
+                "candidate_count": 1000,
+                "run_stage4_simulate": 0,
+            },
+            "full": {
+                "candidate_count": 5000,
+                "run_stage4_simulate": 0,
+            },
         },
-        "full": {
-            "candidate_count": 5000,
-            "run_stage4_simulate": 0,
-        },
+        "window_months_options": [3, 6, 12, 36],
     },
-    "window_months_options": [3, 6, 12, 36],
 }
 
 PORTFOLIO_DEFAULTS = {
@@ -405,7 +407,7 @@ def validate_config(config: ConfigDict) -> None:
     evaluation["stage4"] = stage4
 
     ui = _merge_defaults(UI_STAGE5_DEFAULTS, config.get("ui", {}))
-    stage5_ui = ui["stage5"]
+    stage5_ui = ui.get("stage5", {})
     presets = stage5_ui["presets"]
     for preset_name in ["quick", "full"]:
         preset = presets[preset_name]

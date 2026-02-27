@@ -18,8 +18,9 @@ from buffmini.ui.components.artifacts import (
 from buffmini.ui.components.charts import plot_leverage_frontier, plot_mc_quantiles, plot_selector_log_growth
 from buffmini.ui.components.library import export_run_to_library
 from buffmini.ui.components.markdown_viewer import render_markdown_file
+from buffmini.ui.components.run_exec import start_whitelisted_script
 from buffmini.ui.components.run_index import latest_completed_pipeline, scan_runs
-from buffmini.ui.components.trade_map import load_trade_artifact, plot_trade_map
+from buffmini.ui.components.trade_map import load_bundle_summary, plot_trade_map
 
 
 st.title("Stage-5 Results Studio")
@@ -123,17 +124,49 @@ with charts_tab:
 
 with trade_tab:
     st.subheader("Trade Map")
-    trade_df, trade_warnings = load_trade_artifact(stage4_dir)
-    for warning in trade_warnings:
+    bundle_summary, bundle_warnings = load_bundle_summary(run_dir)
+    for warning in bundle_warnings:
         st.caption(warning)
+
+    bundle_trades = run_dir / "ui_bundle" / "trades.csv"
+    if not bundle_trades.exists():
+        st.info("ui_bundle/trades.csv is missing for this run.")
+        stage2_for_run = pipeline_summary.get("stage2_run_id")
+        if stage2_for_run:
+            if st.button("Run Stage-4 simulation for this run"):
+                args = ["--stage2-run-id", str(stage2_for_run)]
+                pipeline_cfg = run_dir / "pipeline_config.yaml"
+                if pipeline_cfg.exists():
+                    args.extend(["--config", str(pipeline_cfg)])
+                stage3_for_run = pipeline_summary.get("stage3_3_run_id")
+                if stage3_for_run:
+                    args.extend(["--stage3-3-run-id", str(stage3_for_run)])
+                try:
+                    launched_run_id, pid = start_whitelisted_script(
+                        script_relpath="scripts/run_stage4_simulate.py",
+                        args=args,
+                    )
+                except Exception as exc:
+                    st.error(f"Failed to start Stage-4 simulation: {exc}")
+                else:
+                    st.success(f"Started Stage-4 simulation helper run `{launched_run_id}` (pid={pid}).")
+        else:
+            st.caption("No stage2_run_id found in pipeline summary.")
+
     symbol = st.selectbox("Symbol", options=["BTC/USDT", "ETH/USDT"], index=0)
-    fig_trade, plot_warnings = plot_trade_map(trade_df, symbol=symbol, timeframe="1h")
+    direction_filter = st.selectbox("Direction", options=["both", "long", "short"], index=0)
+    fig_trade, plot_warnings, marker_frame = plot_trade_map(
+        run_dir=run_dir,
+        symbol=symbol,
+        direction_filter=direction_filter,
+    )
     for warning in plot_warnings:
         st.caption(warning)
     if fig_trade is None:
-        st.info("Trade map unavailable. If no trades artifact exists, run Stage-4 simulation first.")
+        st.info("Trade map unavailable. If no trades artifact exists, run Stage-4 simulation for this run.")
     else:
         st.pyplot(fig_trade)
+        st.caption(f"Markers: {len(marker_frame)}")
 
 with exposure_tab:
     st.subheader("Exposure Time Series")

@@ -289,6 +289,8 @@ def run_stage4_simulation(
     (run_dir / "execution_metrics.json").write_text(json.dumps(payload, indent=2, allow_nan=False), encoding="utf-8")
     exposure_df.to_csv(run_dir / "exposure_timeseries.csv", index=False)
     orders_df.to_csv(run_dir / "orders.csv", index=False)
+    trades_df = _orders_to_trade_events(orders_df)
+    trades_df.to_csv(run_dir / "trades.csv", index=False)
     killswitch_df.to_csv(run_dir / "killswitch_events.csv", index=False)
     logger.info("Saved Stage-4 simulation artifacts to %s", run_dir)
     return run_dir
@@ -338,3 +340,40 @@ def _ensure_utc(value: pd.Timestamp | str) -> pd.Timestamp:
     if timestamp.tzinfo is None:
         return timestamp.tz_localize("UTC")
     return timestamp.tz_convert("UTC")
+
+
+def _orders_to_trade_events(orders_df: pd.DataFrame) -> pd.DataFrame:
+    """Convert order stream to lightweight trade-event table for UI plotting."""
+
+    if orders_df.empty:
+        return pd.DataFrame(
+            columns=[
+                "timestamp",
+                "symbol",
+                "direction",
+                "action",
+                "strategy_id",
+                "notional_fraction_of_equity",
+                "leverage",
+                "notes",
+            ]
+        )
+    frame = orders_df.copy()
+    frame = frame.rename(columns={"ts": "timestamp"})
+    frame["action"] = "entry"
+    if "notes" not in frame.columns:
+        frame["notes"] = ""
+    columns = [
+        "timestamp",
+        "symbol",
+        "direction",
+        "action",
+        "strategy_id",
+        "notional_fraction_of_equity",
+        "leverage",
+        "notes",
+    ]
+    for column in columns:
+        if column not in frame.columns:
+            frame[column] = ""
+    return frame[columns].copy()

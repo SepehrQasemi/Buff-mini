@@ -9,6 +9,7 @@ from typing import Any
 
 import pandas as pd
 import yaml
+from pandas.errors import EmptyDataError
 
 from buffmini.backtest.engine import run_backtest
 from buffmini.baselines.stage0 import generate_signals
@@ -209,7 +210,12 @@ def load_stage1_candidates(stage1_run_dir: Path) -> list[Stage1CandidateRecord]:
         path = stage1_run_dir / csv_name
         if not path.exists():
             continue
-        frame = pd.read_csv(path)
+        try:
+            frame = pd.read_csv(path)
+        except EmptyDataError:
+            continue
+        if "candidate_id" not in frame.columns:
+            continue
         for row in frame.to_dict(orient="records"):
             candidate_id = str(row["candidate_id"])
             payload = candidate_payloads.get(candidate_id)
