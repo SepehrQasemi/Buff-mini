@@ -14,6 +14,8 @@ from buffmini.execution.allocator import Order, generate_orders
 from buffmini.execution.policy import Signal
 from buffmini.execution.risk import PortfolioState
 from buffmini.portfolio.monte_carlo import _load_stage2_context, _normalize_method_key
+from buffmini.regime.classifier import REGIME_RANGE, regime_distribution_percent
+from buffmini.risk.dynamic_leverage import compute_dynamic_leverage, compute_recent_drawdown
 from buffmini.utils.hashing import stable_hash
 from buffmini.utils.logging import get_logger
 from buffmini.utils.time import utc_now_compact
@@ -37,6 +39,12 @@ def build_signals_from_stage2(
         raise ValueError(f"Stage-2 method not found: {method_key}")
     weights = {str(candidate_id): float(weight) for candidate_id, weight in payload.get("weights", {}).items()}
     timeframe = str(context.config["universe"].get("timeframe", "1h"))
+    candidate_metrics = _load_candidate_metrics(
+        stage1_run_id=context.stage1_run_id,
+        candidate_ids=set(weights.keys()),
+        runs_dir=runs_dir,
+    )
+    regime_by_timestamp = _build_regime_lookup(context=context)
 
     signals: list[Signal] = []
     for candidate_id, bundle in context.candidate_bundles.items():
@@ -75,6 +83,8 @@ def build_signals_from_stage2(
         "stage2_summary": context.stage2_summary,
         "config_hash": context.config_hash,
         "data_hash": context.data_hash,
+        "candidate_metrics": candidate_metrics,
+        "regime_by_timestamp": regime_by_timestamp,
     }
     return signals, weights, metadata
 
@@ -90,6 +100,19 @@ def simulate_execution(
 
     grouped = _normalize_signals(signals_by_ts)
     timestamps = sorted(grouped.keys())
+    stage6_cfg = (cfg.get("evaluation", {}) or {}).get("stage6", {})
+    stage6_enabled = bool(stage6_cfg.get("enabled", False))
+    dynamic_cfg = dict(stage6_cfg.get("dynamic_leverage", {})) if isinstance(stage6_cfg, dict) else {}
+    if not dynamic_cfg.get("allowed_levels"):
+        dynamic_cfg["allowed_levels"] = (
+            cfg.get("portfolio", {})
+            .get("leverage_selector", {})
+            .get("leverage_levels", [])
+        )
+    dd_lookback_bars = int(dynamic_cfg.get("dd_lookback_bars", 168))
+    regime_lookup = cfg.get("_runtime_regime_by_timestamp", {}) if isinstance(cfg.get("_runtime_regime_by_timestamp", {}), dict) else {}
+    candidate_metrics = cfg.get("_runtime_candidate_metrics", {}) if isinstance(cfg.get("_runtime_candidate_metrics", {}), dict) else {}
+
     if not timestamps:
         empty = pd.DataFrame()
         metrics = {
@@ -103,6 +126,10 @@ def simulate_execution(
             "gross_exposure_max": 0.0,
             "gross_exposure_mean": 0.0,
             "chosen_leverage": float(chosen_leverage),
+            "stage6_enabled": bool(stage6_enabled),
+            "base_leverage": float(chosen_leverage),
+            "avg_leverage": float(chosen_leverage),
+            "regime_distribution": {REGIME_RANGE: 100.0},
             "seed": int(seed),
         }
         return metrics, empty, empty, empty
@@ -118,15 +145,21 @@ def simulate_execution(
     exposure_rows: list[dict[str, Any]] = []
     order_rows: list[dict[str, Any]] = []
     killswitch_rows: list[dict[str, Any]] = []
+    sizing_rows: list[dict[str, Any]] = []
+    leverage_rows: list[dict[str, Any]] = []
     scaled_events = 0
     cooldown_bars = 0
     overlap_events = 0
     active_orders: list[Order] = []
+    equity_history: list[float] = [float(initial_equity)]
 
     for bar_index, ts in enumerate(timestamps):
         symbol_exposure: dict[str, float] = {}
         for order in active_orders:
-            symbol_exposure[order.symbol] = symbol_exposure.get(order.symbol, 0.0) + float(order.direction) * float(order.notional_fraction_of_equity) * float(order.leverage)
+            symbol_exposure[order.symbol] = (
+                symbol_exposure.get(order.symbol, 0.0)
+                + float(order.direction) * float(order.notional_fraction_of_equity) * float(order.leverage)
+            )
 
         forced_pnl_by_index = cfg.get("_forced_pnl_by_index", {})
         if isinstance(forced_pnl_by_index, dict) and int(bar_index) in forced_pnl_by_index:
@@ -137,9 +170,30 @@ def simulate_execution(
                 bar_return = float(rng.normal(0.0, 0.001))
                 pnl_change += float(state.equity) * float(symbol_exposure[symbol]) * bar_return
 
+        regime = _resolve_regime_for_timestamp(ts, regime_lookup)
+        dd_recent = compute_recent_drawdown(equity_history=equity_history, lookback_bars=dd_lookback_bars)
+        leverage_info = {
+            "regime": regime,
+            "dd_recent": float(dd_recent),
+            "leverage_raw": float(chosen_leverage),
+            "leverage_clipped": float(chosen_leverage),
+        }
+        if stage6_enabled:
+            leverage_info = compute_dynamic_leverage(
+                base_leverage=float(chosen_leverage),
+                regime=regime,
+                dd_recent=float(dd_recent),
+                config=dynamic_cfg,
+            )
+        current_leverage = float(leverage_info["leverage_clipped"])
+
         runtime_cfg = dict(cfg)
         runtime_cfg["_runtime_pnl_change"] = float(pnl_change)
         runtime_cfg["_runtime_bar_index"] = int(bar_index)
+        runtime_cfg["_runtime_leverage"] = float(current_leverage)
+        runtime_cfg["_runtime_regime"] = str(regime)
+        runtime_cfg["_runtime_candidate_metrics"] = candidate_metrics
+
         prev_cooldown = int(state.cooldown_remaining_bars)
         orders = generate_orders(
             signals=grouped[ts],
@@ -148,6 +202,24 @@ def simulate_execution(
             chosen_leverage=float(chosen_leverage),
             method_weights=cfg.get("_method_weights", {}),
         )
+
+        for row in runtime_cfg.get("_last_sizing_records", []) or []:
+            sizing_rows.append(
+                {
+                    "timestamp": _ensure_utc(row.get("timestamp", ts)).isoformat(),
+                    "component_id": str(row.get("component_id", "")),
+                    "symbol": str(row.get("symbol", "")),
+                    "confidence": float(row.get("confidence", 0.0)),
+                    "multiplier": float(row.get("multiplier", 1.0)),
+                    "applied_weight": float(row.get("applied_weight", 0.0)),
+                    "base_weight": float(row.get("base_weight", 0.0)),
+                    "component_renorm_scale": float(row.get("component_renorm_scale", 1.0)),
+                    "cap_scale": float(row.get("cap_scale", 1.0)),
+                    "final_net_exposure": float(row.get("final_net_exposure", 0.0)),
+                    "regime": str(regime),
+                    "leverage": float(current_leverage),
+                }
+            )
 
         decision = runtime_cfg.get("_last_risk_decision")
         if decision is not None and not bool(decision.allow_new_trades):
@@ -171,6 +243,7 @@ def simulate_execution(
                     "notional_fraction_of_equity": float(order.notional_fraction_of_equity),
                     "leverage": float(order.leverage),
                     "strategy_id": order.strategy_id,
+                    "regime": str(regime),
                 }
                 for order in orders
             ]
@@ -184,10 +257,11 @@ def simulate_execution(
                         "leverage": float(order.leverage),
                         "strategy_id": order.strategy_id,
                         "notes": ";".join(order.notes),
+                        "regime": str(regime),
                     }
                 )
                 for note in order.notes:
-                    if note.startswith("cap_scale="):
+                    if note.startswith("cap_scale=") or note.startswith("component_scale="):
                         try:
                             if float(note.split("=", 1)[1]) < 0.999999:
                                 scaled_events += 1
@@ -200,8 +274,18 @@ def simulate_execution(
         if any(len(direction_set) > 1 for direction_set in directions_by_symbol.values()):
             overlap_events += 1
 
-        gross_exposure = float(sum(abs(float(item["direction"]) * float(item["notional_fraction_of_equity"]) * float(item["leverage"])) for item in state.open_positions))
-        net_exposure = float(sum(float(item["direction"]) * float(item["notional_fraction_of_equity"]) * float(item["leverage"]) for item in state.open_positions))
+        gross_exposure = float(
+            sum(
+                abs(float(item["direction"]) * float(item["notional_fraction_of_equity"]) * float(item["leverage"]))
+                for item in state.open_positions
+            )
+        )
+        net_exposure = float(
+            sum(
+                float(item["direction"]) * float(item["notional_fraction_of_equity"]) * float(item["leverage"])
+                for item in state.open_positions
+            )
+        )
         exposure_rows.append(
             {
                 "ts": _ensure_utc(ts).isoformat(),
@@ -210,13 +294,29 @@ def simulate_execution(
                 "net_exposure": net_exposure,
                 "open_positions": int(len(state.open_positions)),
                 "cooldown_remaining_bars": int(state.cooldown_remaining_bars),
+                "regime": str(regime),
+                "leverage": float(current_leverage),
             }
         )
+        leverage_rows.append(
+            {
+                "timestamp": _ensure_utc(ts).isoformat(),
+                "regime": str(regime),
+                "leverage_raw": float(leverage_info["leverage_raw"]),
+                "leverage_clipped": float(leverage_info["leverage_clipped"]),
+                "dd_recent": float(leverage_info["dd_recent"]),
+            }
+        )
+        equity_history.append(float(state.equity))
 
     exposure_df = pd.DataFrame(exposure_rows)
     orders_df = pd.DataFrame(order_rows)
     killswitch_df = pd.DataFrame(killswitch_rows)
+    sizing_df = pd.DataFrame(sizing_rows)
+    leverage_df = pd.DataFrame(leverage_rows)
     total_bars = len(timestamps)
+    avg_leverage = float(leverage_df["leverage_clipped"].mean()) if not leverage_df.empty else float(chosen_leverage)
+    regime_dist = regime_distribution_percent(leverage_df, column="regime")
     metrics = {
         "order_count": int(len(orders_df)),
         "total_bars": int(total_bars),
@@ -228,8 +328,16 @@ def simulate_execution(
         "gross_exposure_max": float(exposure_df["gross_exposure"].max()) if not exposure_df.empty else 0.0,
         "gross_exposure_mean": float(exposure_df["gross_exposure"].mean()) if not exposure_df.empty else 0.0,
         "chosen_leverage": float(chosen_leverage),
+        "stage6_enabled": bool(stage6_enabled),
+        "base_leverage": float(chosen_leverage),
+        "avg_leverage": float(avg_leverage),
+        "regime_distribution": regime_dist,
         "seed": int(seed),
     }
+    if not sizing_df.empty:
+        cfg["_stage6_sizing_df"] = sizing_df
+    if not leverage_df.empty:
+        cfg["_stage6_leverage_df"] = leverage_df
     return metrics, exposure_df, orders_df, killswitch_df
 
 
@@ -262,6 +370,8 @@ def run_stage4_simulation(
     grouped = _normalize_signals(signals)
     runtime_cfg = dict(cfg)
     runtime_cfg["_method_weights"] = method_weights
+    runtime_cfg["_runtime_candidate_metrics"] = metadata.get("candidate_metrics", {})
+    runtime_cfg["_runtime_regime_by_timestamp"] = metadata.get("regime_by_timestamp", {})
     metrics, exposure_df, orders_df, killswitch_df = simulate_execution(
         signals_by_ts=grouped,
         cfg=runtime_cfg,
@@ -269,6 +379,8 @@ def run_stage4_simulation(
         chosen_leverage=float(chosen_leverage),
         seed=int(seed),
     )
+    sizing_df = runtime_cfg.get("_stage6_sizing_df", pd.DataFrame())
+    leverage_df = runtime_cfg.get("_stage6_leverage_df", pd.DataFrame())
 
     payload = {
         "stage2_run_id": stage2_run_id,
@@ -281,6 +393,10 @@ def run_stage4_simulation(
         "metrics": metrics,
         "config_hash": metadata["config_hash"],
         "data_hash": metadata["data_hash"],
+        "stage6_enabled": bool((cfg.get("evaluation", {}) or {}).get("stage6", {}).get("enabled", False)),
+        "base_leverage": float(chosen_leverage),
+        "avg_leverage": float(metrics.get("avg_leverage", chosen_leverage)),
+        "regime_distribution": metrics.get("regime_distribution", {}),
     }
     run_id = f"{utc_now_compact()}_{stable_hash(payload, length=12)}_stage4_sim"
     run_dir = runs_dir / run_id
@@ -292,6 +408,10 @@ def run_stage4_simulation(
     trades_df = _orders_to_trade_events(orders_df)
     trades_df.to_csv(run_dir / "trades.csv", index=False)
     killswitch_df.to_csv(run_dir / "killswitch_events.csv", index=False)
+    if isinstance(sizing_df, pd.DataFrame) and not sizing_df.empty:
+        sizing_df.to_csv(run_dir / "sizing_multipliers.csv", index=False)
+    if isinstance(leverage_df, pd.DataFrame) and not leverage_df.empty:
+        leverage_df.to_csv(run_dir / "leverage_path.csv", index=False)
     playback_df = _build_playback_state(exposure_df=exposure_df, orders_df=orders_df, killswitch_df=killswitch_df)
     playback_df.to_csv(run_dir / "playback_state.csv", index=False)
     logger.info("Saved Stage-4 simulation artifacts to %s", run_dir)
@@ -320,6 +440,61 @@ def resolve_stage4_method_and_leverage(
     return selected_method, selected_leverage, from_stage3, warnings
 
 
+def _load_candidate_metrics(
+    stage1_run_id: str,
+    candidate_ids: set[str],
+    runs_dir: Path,
+) -> dict[str, dict[str, float]]:
+    if not stage1_run_id or not candidate_ids:
+        return {}
+    candidates_dir = Path(runs_dir) / stage1_run_id / "candidates"
+    if not candidates_dir.exists():
+        return {}
+    metrics: dict[str, dict[str, float]] = {}
+    for path in sorted(candidates_dir.glob("strategy_*.json")):
+        try:
+            payload = json.loads(path.read_text(encoding="utf-8"))
+        except Exception:
+            continue
+        candidate_id = str(payload.get("candidate_id", ""))
+        if candidate_id not in candidate_ids:
+            continue
+        metrics[candidate_id] = {
+            "exp_lcb_holdout": _to_float(payload.get("exp_lcb_holdout"), 0.0),
+            "effective_edge": _to_float(payload.get("effective_edge"), 0.0),
+            "pf_adj_holdout": _to_float(payload.get("pf_adj_holdout"), 1.0),
+            "trades_per_month_holdout": _to_float(payload.get("trades_per_month_holdout"), 0.0),
+        }
+    return metrics
+
+
+def _build_regime_lookup(context: Any) -> dict[str, str]:
+    regime_by_ts: dict[str, str] = {}
+    if not getattr(context, "signal_caches", None):
+        return regime_by_ts
+    # Feature values are identical across candidate caches; use first available cache.
+    first_cache = next(iter(context.signal_caches.values()), {})
+    if not isinstance(first_cache, dict):
+        return regime_by_ts
+    for frame in first_cache.values():
+        if frame is None or frame.empty or "timestamp" not in frame.columns:
+            continue
+        if "regime" not in frame.columns:
+            continue
+        timestamps = pd.to_datetime(frame["timestamp"], utc=True, errors="coerce")
+        regimes = frame["regime"].astype(str)
+        for ts, regime in zip(timestamps, regimes, strict=False):
+            if pd.isna(ts):
+                continue
+            regime_by_ts[pd.Timestamp(ts).isoformat()] = str(regime)
+    return regime_by_ts
+
+
+def _resolve_regime_for_timestamp(ts: pd.Timestamp, regime_lookup: dict[str, str]) -> str:
+    key = _ensure_utc(ts).isoformat()
+    return str(regime_lookup.get(key, REGIME_RANGE))
+
+
 def _normalize_signals(signals_by_ts: dict[pd.Timestamp, list[Signal]] | list[Signal]) -> dict[pd.Timestamp, list[Signal]]:
     if isinstance(signals_by_ts, dict):
         grouped: dict[pd.Timestamp, list[Signal]] = {}
@@ -342,6 +517,15 @@ def _ensure_utc(value: pd.Timestamp | str) -> pd.Timestamp:
     if timestamp.tzinfo is None:
         return timestamp.tz_localize("UTC")
     return timestamp.tz_convert("UTC")
+
+
+def _to_float(value: Any, default: float) -> float:
+    try:
+        if value is None:
+            return float(default)
+        return float(value)
+    except Exception:
+        return float(default)
 
 
 def _orders_to_trade_events(orders_df: pd.DataFrame) -> pd.DataFrame:

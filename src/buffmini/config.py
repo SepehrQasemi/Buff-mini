@@ -76,6 +76,31 @@ STAGE4_DEFAULTS = {
     },
 }
 
+STAGE6_DEFAULTS = {
+    "enabled": False,
+    "regime": {
+        "atr_percentile_window": 252,
+        "vol_expansion_threshold": 0.80,
+        "trend_strength_threshold": 0.010,
+        "range_atr_threshold": 0.40,
+    },
+    "confidence_sizing": {
+        "scale": 2.0,
+        "multiplier_min": 0.5,
+        "multiplier_max": 1.5,
+    },
+    "dynamic_leverage": {
+        "trend_multiplier": 1.2,
+        "range_multiplier": 0.9,
+        "vol_expansion_multiplier": 0.7,
+        "dd_soft_threshold": 0.08,
+        "dd_soft_multiplier": 0.8,
+        "dd_lookback_bars": 168,
+        "max_leverage": 50.0,
+        "allowed_levels": [1, 2, 3, 5, 10, 15, 20, 25, 50],
+    },
+}
+
 UI_STAGE5_DEFAULTS = {
     "stage5": {
         "presets": {
@@ -416,6 +441,49 @@ def validate_config(config: ConfigDict) -> None:
     if not isinstance(output_cfg["write_run_artifacts"], bool):
         raise ValueError("evaluation.stage4.output.write_run_artifacts must be bool")
     evaluation["stage4"] = stage4
+
+    stage6 = _merge_defaults(STAGE6_DEFAULTS, evaluation.get("stage6", {}))
+    if not isinstance(stage6["enabled"], bool):
+        raise ValueError("evaluation.stage6.enabled must be bool")
+    regime_cfg = stage6["regime"]
+    if int(regime_cfg["atr_percentile_window"]) < 2:
+        raise ValueError("evaluation.stage6.regime.atr_percentile_window must be >= 2")
+    if not 0 <= float(regime_cfg["vol_expansion_threshold"]) <= 1:
+        raise ValueError("evaluation.stage6.regime.vol_expansion_threshold must be between 0 and 1")
+    if float(regime_cfg["trend_strength_threshold"]) < 0:
+        raise ValueError("evaluation.stage6.regime.trend_strength_threshold must be >= 0")
+    if not 0 <= float(regime_cfg["range_atr_threshold"]) <= 1:
+        raise ValueError("evaluation.stage6.regime.range_atr_threshold must be between 0 and 1")
+
+    confidence_cfg = stage6["confidence_sizing"]
+    if float(confidence_cfg["scale"]) <= 0:
+        raise ValueError("evaluation.stage6.confidence_sizing.scale must be > 0")
+    if float(confidence_cfg["multiplier_min"]) <= 0:
+        raise ValueError("evaluation.stage6.confidence_sizing.multiplier_min must be > 0")
+    if float(confidence_cfg["multiplier_max"]) <= 0:
+        raise ValueError("evaluation.stage6.confidence_sizing.multiplier_max must be > 0")
+    if float(confidence_cfg["multiplier_max"]) < float(confidence_cfg["multiplier_min"]):
+        raise ValueError("evaluation.stage6.confidence_sizing.multiplier_max must be >= multiplier_min")
+
+    dynamic_cfg = stage6["dynamic_leverage"]
+    for key in ["trend_multiplier", "range_multiplier", "vol_expansion_multiplier", "dd_soft_multiplier"]:
+        if float(dynamic_cfg[key]) <= 0:
+            raise ValueError(f"evaluation.stage6.dynamic_leverage.{key} must be > 0")
+    if not 0 <= float(dynamic_cfg["dd_soft_threshold"]) <= 1:
+        raise ValueError("evaluation.stage6.dynamic_leverage.dd_soft_threshold must be between 0 and 1")
+    if int(dynamic_cfg["dd_lookback_bars"]) < 1:
+        raise ValueError("evaluation.stage6.dynamic_leverage.dd_lookback_bars must be >= 1")
+    if float(dynamic_cfg["max_leverage"]) <= 0:
+        raise ValueError("evaluation.stage6.dynamic_leverage.max_leverage must be > 0")
+    allowed_levels = dynamic_cfg.get("allowed_levels", [])
+    if not isinstance(allowed_levels, list) or not allowed_levels:
+        raise ValueError("evaluation.stage6.dynamic_leverage.allowed_levels must be a non-empty list")
+    parsed_levels = [float(value) for value in allowed_levels]
+    if any(level <= 0 for level in parsed_levels):
+        raise ValueError("evaluation.stage6.dynamic_leverage.allowed_levels values must be > 0")
+    if any(right <= left for left, right in zip(parsed_levels[:-1], parsed_levels[1:], strict=False)):
+        raise ValueError("evaluation.stage6.dynamic_leverage.allowed_levels must be strictly increasing")
+    evaluation["stage6"] = stage6
 
     ui = _merge_defaults(UI_STAGE5_DEFAULTS, config.get("ui", {}))
     stage5_ui = ui.get("stage5", {})

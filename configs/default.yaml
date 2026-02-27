@@ -181,6 +181,26 @@ evaluation:
     output:
       write_docs_summary: true
       write_run_artifacts: true
+  stage6:
+    enabled: false
+    regime:
+      atr_percentile_window: 252
+      vol_expansion_threshold: 0.80
+      trend_strength_threshold: 0.010
+      range_atr_threshold: 0.40
+    confidence_sizing:
+      scale: 2.0
+      multiplier_min: 0.5
+      multiplier_max: 1.5
+    dynamic_leverage:
+      trend_multiplier: 1.2
+      range_multiplier: 0.9
+      vol_expansion_multiplier: 0.7
+      dd_soft_threshold: 0.08
+      dd_soft_multiplier: 0.8
+      dd_lookback_bars: 168
+      max_leverage: 50.0
+      allowed_levels: [1, 2, 3, 5, 10, 15, 20, 25, 50]
 
 ui:
   stage5:

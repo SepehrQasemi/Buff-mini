@@ -78,6 +78,17 @@ with summary_tab:
                 "elapsed_seconds": pipeline_summary.get("elapsed_seconds"),
             }
         )
+        bundle_summary = load_bundle_summary(run_dir)[0]
+        if bundle_summary:
+            st.subheader("Stage-6 Overlay")
+            st.json(
+                {
+                    "stage6_enabled": bundle_summary.get("stage6_enabled"),
+                    "base_leverage": bundle_summary.get("base_leverage"),
+                    "avg_leverage": bundle_summary.get("avg_leverage"),
+                    "regime_distribution": bundle_summary.get("regime_distribution", {}),
+                }
+            )
     else:
         st.info("pipeline_summary.json not available for this run.")
     if progress:
@@ -182,6 +193,20 @@ with exposure_tab:
         st.info("No kill-switch events file found.")
     else:
         st.dataframe(ks_df)
+
+    st.subheader("Stage-6 Leverage Path")
+    leverage_path = run_dir / "ui_bundle" / "leverage_path.csv"
+    if leverage_path.exists():
+        st.dataframe(pd.read_csv(leverage_path).tail(500))
+    else:
+        st.info("No leverage_path.csv found in ui_bundle.")
+
+    st.subheader("Stage-6 Sizing Multipliers")
+    sizing_path = run_dir / "ui_bundle" / "sizing_multipliers.csv"
+    if sizing_path.exists():
+        st.dataframe(pd.read_csv(sizing_path).tail(500))
+    else:
+        st.info("No sizing_multipliers.csv found in ui_bundle.")
 
 with reports_tab:
     st.subheader("Markdown Reports")

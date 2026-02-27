@@ -651,6 +651,17 @@ def _policy_binding_mismatches(summary_ui: dict[str, Any], policy_snapshot: dict
         ("kill_switch", "max_peak_to_valley_dd_pct"),
         ("kill_switch", "max_consecutive_losses"),
         ("kill_switch", "cool_down_bars"),
+        ("stage6", "stage6_enabled"),
+        ("stage6", "regime_rules", "atr_percentile_window"),
+        ("stage6", "regime_rules", "vol_expansion_threshold"),
+        ("stage6", "regime_rules", "trend_strength_threshold"),
+        ("stage6", "regime_rules", "range_atr_threshold"),
+        ("stage6", "dynamic_leverage", "trend_multiplier"),
+        ("stage6", "dynamic_leverage", "range_multiplier"),
+        ("stage6", "dynamic_leverage", "vol_expansion_multiplier"),
+        ("stage6", "dynamic_leverage", "dd_soft_threshold"),
+        ("stage6", "dynamic_leverage", "dd_soft_multiplier"),
+        ("stage6", "dynamic_leverage", "max_leverage"),
     ]
     for path in nested_checks:
         ui_val = _nested_get(ui_policy, *path)

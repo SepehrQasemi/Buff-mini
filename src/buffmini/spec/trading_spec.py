@@ -44,6 +44,7 @@ def generate_trading_spec(
     checklist_path = output.parent / "paper_trading_checklist.md"
 
     stage4_cfg = cfg["evaluation"]["stage4"]
+    stage6_cfg = (cfg.get("evaluation", {}) or {}).get("stage6", {})
     execution_cfg = cfg["execution"]
     risk_cfg = cfg["risk"]
     source = "Stage-3.3" if stage3_3_choice and stage3_3_choice.get("overall_choice", {}).get("status") == "OK" else "Stage-4 defaults"
@@ -132,13 +133,48 @@ def generate_trading_spec(
     lines.append("- Trigger behavior: stop opening new positions until cooldown expires; existing positions are not force-closed.")
     lines.append("")
 
-    lines.append("## 8) Re-Evaluation Plan")
+    lines.append("## 8) Stage-6 Edge Amplification")
+    lines.append(f"- stage6_enabled: `{bool(stage6_cfg.get('enabled', False))}`")
+    regime_cfg = dict(stage6_cfg.get("regime", {})) if isinstance(stage6_cfg, dict) else {}
+    sizing_cfg = dict(stage6_cfg.get("confidence_sizing", {})) if isinstance(stage6_cfg, dict) else {}
+    leverage_cfg = dict(stage6_cfg.get("dynamic_leverage", {})) if isinstance(stage6_cfg, dict) else {}
+    lines.append(
+        "- Regime classification (no lookahead): "
+        "VOL_EXPANSION if atr_percentile_252 >= vol_threshold, "
+        "TREND if atr_percentile_252 < vol_threshold and trend_strength >= trend_threshold, "
+        "RANGE otherwise."
+    )
+    lines.append(
+        f"- Regime thresholds: window={int(regime_cfg.get('atr_percentile_window', 252))}, "
+        f"vol_threshold={float(regime_cfg.get('vol_expansion_threshold', 0.80))}, "
+        f"trend_threshold={float(regime_cfg.get('trend_strength_threshold', 0.010))}, "
+        f"range_atr_threshold={float(regime_cfg.get('range_atr_threshold', 0.40))}"
+    )
+    lines.append(
+        "- Confidence sizing: confidence = sigmoid(exp_lcb_holdout/scale) * clamp(pf_adj_holdout/2, 0, 1); "
+        "multiplier = clip(0.5 + confidence, 0.5, 1.5)."
+    )
+    lines.append(
+        f"- Confidence params: scale={float(sizing_cfg.get('scale', 2.0))}, "
+        f"multiplier_min={float(sizing_cfg.get('multiplier_min', 0.5))}, "
+        f"multiplier_max={float(sizing_cfg.get('multiplier_max', 1.5))}."
+    )
+    lines.append(
+        f"- Dynamic leverage from base {chosen_leverage}x: TREND*{float(leverage_cfg.get('trend_multiplier', 1.2)):.2f}, "
+        f"RANGE*{float(leverage_cfg.get('range_multiplier', 0.9)):.2f}, "
+        f"VOL_EXPANSION*{float(leverage_cfg.get('vol_expansion_multiplier', 0.7)):.2f}, "
+        f"dd_soft_threshold={float(leverage_cfg.get('dd_soft_threshold', 0.08)):.3f}."
+    )
+    lines.append("- Dynamic leverage is clipped by allowed levels, max_leverage, and global exposure caps.")
+    lines.append("")
+
+    lines.append("## 9) Re-Evaluation Plan")
     lines.append(f"- cadence: `{risk_cfg['reeval']['cadence']}`")
     lines.append(f"- min_new_bars: `{risk_cfg['reeval']['min_new_bars']}`")
     lines.append("- Re-run Stage-1 discovery, Stage-2 portfolio build, and Stage-3.3 leverage selection on schedule.")
     lines.append("")
 
-    lines.append("## 9) Monitoring Checklist (Live)")
+    lines.append("## 10) Monitoring Checklist (Live)")
     lines.append("- Log per bar: equity, gross exposure, per-symbol net exposure, open positions, cooldown state.")
     lines.append("- Log per day: return, drawdown, loss streak, cap-bind events, kill-switch events.")
     lines.append("- Alert when: cap scaling > 0, kill-switch triggers, exposure exceeds configured limits.")
@@ -159,4 +195,3 @@ def generate_trading_spec(
     ]
     checklist_path.write_text("\n".join(checklist_lines).strip() + "\n", encoding="utf-8")
     return {"trading_spec_path": output, "paper_checklist_path": checklist_path}
-

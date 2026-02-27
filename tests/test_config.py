@@ -73,6 +73,16 @@ def test_load_config_success() -> None:
     assert config["risk"]["killswitch"]["cool_down_bars"] == 48
     assert config["evaluation"]["stage4"]["default_method"] == "equal"
     assert config["evaluation"]["stage4"]["default_leverage"] == 1.0
+    assert config["evaluation"]["stage6"]["enabled"] is False
+    assert config["evaluation"]["stage6"]["regime"]["atr_percentile_window"] == 252
+    assert config["evaluation"]["stage6"]["regime"]["vol_expansion_threshold"] == 0.80
+    assert config["evaluation"]["stage6"]["regime"]["trend_strength_threshold"] == 0.010
+    assert config["evaluation"]["stage6"]["confidence_sizing"]["scale"] == 2.0
+    assert config["evaluation"]["stage6"]["dynamic_leverage"]["trend_multiplier"] == 1.2
+    assert config["evaluation"]["stage6"]["dynamic_leverage"]["range_multiplier"] == 0.9
+    assert config["evaluation"]["stage6"]["dynamic_leverage"]["vol_expansion_multiplier"] == 0.7
+    assert config["evaluation"]["stage6"]["dynamic_leverage"]["dd_soft_threshold"] == 0.08
+    assert config["evaluation"]["stage6"]["dynamic_leverage"]["max_leverage"] == 50.0
     assert config["ui"]["stage5"]["presets"]["quick"]["candidate_count"] == 1000
     assert config["ui"]["stage5"]["presets"]["full"]["candidate_count"] == 5000
     assert config["ui"]["stage5"]["window_months_options"] == [3, 6, 12, 36]

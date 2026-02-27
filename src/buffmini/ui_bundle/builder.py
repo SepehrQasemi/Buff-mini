@@ -118,11 +118,37 @@ def build_ui_bundle(run_id: str, source_paths: dict[str, Any], out_dir: Path) ->
         chosen_method=chosen_method,
         warnings=warnings,
     )
-    _copy_trades_and_events(
-        out_dir=out_dir,
+    stage4_source_dir = _resolve_stage4_source_dir(
         stage4_run_id=stage4_run_id,
         stage4_sim_run_id=stage4_sim_run_id,
         warnings=warnings,
+    )
+    _copy_trades_and_events(
+        out_dir=out_dir,
+        source_dir=stage4_source_dir,
+        warnings=warnings,
+    )
+    stage4_metrics_payload = _safe_json((stage4_source_dir / "execution_metrics.json")) if stage4_source_dir else {}
+    stage4_metrics = stage4_metrics_payload.get("metrics", {}) if isinstance(stage4_metrics_payload, dict) else {}
+    stage6_enabled = bool(
+        stage4_metrics.get("stage6_enabled")
+        if isinstance(stage4_metrics, dict)
+        else (policy_snapshot.get("stage6", {}) or {}).get("stage6_enabled", False)
+    )
+    base_leverage = float(
+        stage4_metrics.get("base_leverage")
+        if isinstance(stage4_metrics, dict) and stage4_metrics.get("base_leverage") is not None
+        else chosen_leverage
+    )
+    avg_leverage = float(
+        stage4_metrics.get("avg_leverage")
+        if isinstance(stage4_metrics, dict) and stage4_metrics.get("avg_leverage") is not None
+        else chosen_leverage
+    )
+    regime_distribution = (
+        dict(stage4_metrics.get("regime_distribution", {}))
+        if isinstance(stage4_metrics, dict)
+        else {}
     )
 
     config_hash = str(pipeline_summary.get("config_hash") or (compute_config_hash(pipeline_cfg) if pipeline_cfg else ""))
@@ -153,6 +179,10 @@ def build_ui_bundle(run_id: str, source_paths: dict[str, Any], out_dir: Path) ->
         "resolved_end_ts": resolved_end_ts,
         "run_window_start_ts": window_start_ts,
         "run_window_end_ts": window_end_ts,
+        "stage6_enabled": stage6_enabled,
+        "base_leverage": base_leverage,
+        "avg_leverage": avg_leverage,
+        "regime_distribution": regime_distribution,
         "policy_snapshot": policy_snapshot,
         "bundle_build_warnings": warnings,
     }
@@ -237,24 +267,24 @@ def _copy_equity_and_exposure(
     )
 
 
-def _copy_trades_and_events(
-    out_dir: Path,
-    stage4_run_id: str,
-    stage4_sim_run_id: str,
-    warnings: list[str],
-) -> None:
+def _resolve_stage4_source_dir(stage4_run_id: str, stage4_sim_run_id: str, warnings: list[str]) -> Path | None:
     stage_candidates = [stage4_sim_run_id, stage4_run_id]
-    source_dir: Path | None = None
     for run_id in stage_candidates:
         if not run_id:
             continue
         candidate = RUNS_DIR / run_id
         if candidate.exists():
-            source_dir = candidate
-            break
+            return candidate
+    warnings.append("stage4 run artifacts not found; trades/events unavailable")
+    return None
 
+
+def _copy_trades_and_events(
+    out_dir: Path,
+    source_dir: Path | None,
+    warnings: list[str],
+) -> None:
     if source_dir is None:
-        warnings.append("stage4 run artifacts not found; trades/events unavailable")
         return
 
     trades_source = source_dir / "trades.csv"
@@ -289,6 +319,16 @@ def _copy_trades_and_events(
         else:
             warnings.append(f"playback source exists but empty: {playback_source}")
 
+    for stage6_name in ["sizing_multipliers.csv", "leverage_path.csv"]:
+        source = source_dir / stage6_name
+        if not source.exists():
+            continue
+        frame = _safe_csv(source)
+        if frame.empty:
+            warnings.append(f"stage6 artifact exists but empty: {source}")
+            continue
+        frame.to_csv(out_dir / stage6_name, index=False)
+
 
 def _safe_json(path: Path) -> dict[str, Any]:
     if not path.exists():
@@ -317,6 +357,7 @@ def _load_policy_snapshot(
     risk_cfg = pipeline_cfg.get("risk", {}) if isinstance(pipeline_cfg, dict) else {}
     costs_cfg = pipeline_cfg.get("costs", {}) if isinstance(pipeline_cfg, dict) else {}
     execution_cfg = pipeline_cfg.get("execution", {}) if isinstance(pipeline_cfg, dict) else {}
+    stage6_cfg = (pipeline_cfg.get("evaluation", {}) if isinstance(pipeline_cfg, dict) else {}).get("stage6", {})
     return {
         "selected_method": str(chosen_method),
         "leverage": float(chosen_leverage),
@@ -332,6 +373,7 @@ def _load_policy_snapshot(
             "funding_pct_per_day": float(costs_cfg.get("funding_pct_per_day", 0.0)),
         },
         "kill_switch": dict(risk_cfg.get("killswitch", {})),
+        "stage6": dict(stage6_cfg) if isinstance(stage6_cfg, dict) else {},
         "source": "ui_bundle_fallback",
     }
 

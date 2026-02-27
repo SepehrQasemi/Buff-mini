@@ -128,6 +128,26 @@ python scripts/export_to_library.py --run-id <pipeline_run_id>
 
 Super Run: enable auto-save in Strategy Lab, then Run Monitor exports to library automatically on successful completion.
 
+## Stage-6 Edge Amplification
+
+Stage-6 adds deterministic, no-lookahead execution overlays on top of the existing validated pipeline:
+
+- Regime classifier (`TREND`, `RANGE`, `VOL_EXPANSION`)
+- Confidence-weighted component sizing
+- Regime-aware dynamic leverage with conservative clipping
+
+Run an offline baseline-vs-Stage-6 comparison:
+
+```bash
+python scripts/run_stage6_compare.py --offline --seed 42 --window-months 3
+```
+
+Outputs:
+
+- `runs/<stage6_run_id>/stage6_compare/stage6_compare_report.md`
+- `runs/<stage6_run_id>/stage6_compare/stage6_compare_summary.json`
+- `docs/stage6_report.md`
+
 ## Output Structure
 
 - Raw market data: `data/raw/*.parquet`

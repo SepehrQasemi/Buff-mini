@@ -147,6 +147,10 @@ def _load_candidate_lookup(candidates_dir: Path) -> dict[str, dict[str, Any]]:
 
 def _build_policy_snapshot(config: dict[str, Any], selected_method: str, selected_leverage: float) -> dict[str, Any]:
     risk_cfg = config["risk"]
+    stage6_cfg = (config.get("evaluation", {}) or {}).get("stage6", {})
+    regime_cfg = dict(stage6_cfg.get("regime", {})) if isinstance(stage6_cfg, dict) else {}
+    sizing_cfg = dict(stage6_cfg.get("confidence_sizing", {})) if isinstance(stage6_cfg, dict) else {}
+    leverage_cfg = dict(stage6_cfg.get("dynamic_leverage", {})) if isinstance(stage6_cfg, dict) else {}
     return {
         "selected_method": str(selected_method),
         "leverage": float(selected_leverage),
@@ -167,6 +171,32 @@ def _build_policy_snapshot(config: dict[str, Any], selected_method: str, selecte
             "max_peak_to_valley_dd_pct": float(risk_cfg["killswitch"]["max_peak_to_valley_dd_pct"]),
             "max_consecutive_losses": int(risk_cfg["killswitch"]["max_consecutive_losses"]),
             "cool_down_bars": int(risk_cfg["killswitch"]["cool_down_bars"]),
+        },
+        "stage6": {
+            "stage6_enabled": bool(stage6_cfg.get("enabled", False)),
+            "regime_rules": {
+                "atr_percentile_window": int(regime_cfg.get("atr_percentile_window", 252)),
+                "vol_expansion_threshold": float(regime_cfg.get("vol_expansion_threshold", 0.80)),
+                "trend_strength_threshold": float(regime_cfg.get("trend_strength_threshold", 0.010)),
+                "range_atr_threshold": float(regime_cfg.get("range_atr_threshold", 0.40)),
+                "labels": ["TREND", "RANGE", "VOL_EXPANSION"],
+            },
+            "confidence_sizing": {
+                "formula": "sigmoid(exp_lcb_holdout/scale) * clamp(pf_adj_holdout/2,0,1)",
+                "multiplier_formula": "clip(0.5 + confidence, 0.5, 1.5)",
+                "scale": float(sizing_cfg.get("scale", 2.0)),
+                "multiplier_min": float(sizing_cfg.get("multiplier_min", 0.5)),
+                "multiplier_max": float(sizing_cfg.get("multiplier_max", 1.5)),
+            },
+            "dynamic_leverage": {
+                "trend_multiplier": float(leverage_cfg.get("trend_multiplier", 1.2)),
+                "range_multiplier": float(leverage_cfg.get("range_multiplier", 0.9)),
+                "vol_expansion_multiplier": float(leverage_cfg.get("vol_expansion_multiplier", 0.7)),
+                "dd_soft_threshold": float(leverage_cfg.get("dd_soft_threshold", 0.08)),
+                "dd_soft_multiplier": float(leverage_cfg.get("dd_soft_multiplier", 0.8)),
+                "max_leverage": float(leverage_cfg.get("max_leverage", selected_leverage)),
+                "allowed_levels": [float(value) for value in leverage_cfg.get("allowed_levels", [])],
+            },
         },
         "config_hash": stable_hash(config, length=16),
     }

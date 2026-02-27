@@ -5,6 +5,7 @@ from __future__ import annotations
 import numpy as np
 import pandas as pd
 
+from buffmini.regime.classifier import attach_regime_columns
 
 def calculate_features(frame: pd.DataFrame) -> pd.DataFrame:
     """Calculate feature set without future leakage."""
@@ -61,5 +62,7 @@ def calculate_features(frame: pd.DataFrame) -> pd.DataFrame:
     data["donchian_low_55"] = low.rolling(window=55, min_periods=55).min().shift(1)
     data["donchian_high_100"] = high.rolling(window=100, min_periods=100).max().shift(1)
     data["donchian_low_100"] = low.rolling(window=100, min_periods=100).min().shift(1)
+
+    data = attach_regime_columns(data)
 
     return data
