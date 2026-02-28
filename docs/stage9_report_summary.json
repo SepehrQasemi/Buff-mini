@@ -9,9 +9,9 @@
         "gaps_count": 0
       },
       "open_interest": {
-        "start_ts": "2026-02-07T07:00:00+00:00",
+        "start_ts": "2026-01-28T03:00:00+00:00",
         "end_ts": "2026-02-26T09:00:00+00:00",
-        "row_count": 459,
+        "row_count": 703,
         "gaps_count": 0
       }
     },
@@ -24,9 +24,9 @@
         "gaps_count": 0
       },
       "open_interest": {
-        "start_ts": "2026-02-07T07:00:00+00:00",
+        "start_ts": "2026-01-28T03:00:00+00:00",
         "end_ts": "2026-02-26T09:00:00+00:00",
-        "row_count": 459,
+        "row_count": 703,
         "gaps_count": 0
       }
     }
@@ -39,23 +39,23 @@
     "BTC/USDT": {
       "best_effect": {
         "symbol": "BTC/USDT",
-        "condition": "funding_extreme_neg",
-        "horizon": "72h",
-        "count_condition": 48,
-        "count_base": 27537,
-        "median_condition": -0.0019320302376925613,
-        "median_base": 0.0021438770498427573,
-        "median_diff": -0.004075907287535319,
-        "ci_low": -0.02212546434136465,
-        "ci_high": 0.0069918222394793105,
-        "mean_condition": -0.005311033986358358,
-        "mean_base": 0.0045064876340230355,
-        "p05_condition": -0.07879491617305956,
-        "p95_condition": 0.04828443713474384
+        "condition": "crowd_short_risk",
+        "horizon": "24h",
+        "count_condition": 1,
+        "count_base": 27632,
+        "median_condition": 0.008601614229532872,
+        "median_base": 0.0007504553126583824,
+        "median_diff": 0.00785115891687449,
+        "ci_low": 0.007651503283643982,
+        "ci_high": 0.008041743878662893,
+        "mean_condition": 0.008601614229532872,
+        "mean_base": 0.0015249211096501657,
+        "p05_condition": 0.008601614229532872,
+        "p95_condition": 0.008601614229532872
       },
       "ci": [
-        -0.02212546434136465,
-        0.0069918222394793105
+        0.007651503283643982,
+        0.008041743878662893
       ]
     },
     "ETH/USDT": {
@@ -63,21 +63,21 @@
         "symbol": "ETH/USDT",
         "condition": "crowd_short_risk",
         "horizon": "72h",
-        "count_condition": 13,
-        "count_base": 27572,
-        "median_condition": 0.06938282597237788,
-        "median_base": 0.0016485026922355983,
-        "median_diff": 0.06773432328014228,
-        "ci_low": 0.016391852692278518,
-        "ci_high": 0.07647198276756015,
-        "mean_condition": 0.05093557475037085,
-        "mean_base": 0.0028261591110064783,
-        "p05_condition": 0.0037501298195160796,
-        "p95_condition": 0.09038791145969077
+        "count_condition": 29,
+        "count_base": 27556,
+        "median_condition": -0.15432274666252177,
+        "median_base": 0.0016577908356464333,
+        "median_diff": -0.1559805374981682,
+        "ci_low": -0.17513131163912524,
+        "ci_high": 0.01667133137592153,
+        "mean_condition": -0.07834934114263115,
+        "mean_base": 0.002934284815414492,
+        "p05_condition": -0.20806787610719782,
+        "p95_condition": 0.08477274540985487
       },
       "ci": [
-        0.016391852692278518,
-        0.07647198276756015
+        -0.17513131163912524,
+        0.01667133137592153
       ]
     }
   },
@@ -86,49 +86,49 @@
       "symbol": "ETH/USDT",
       "condition": "crowd_short_risk",
       "horizon": "72h",
-      "count_condition": 13,
-      "count_base": 27572,
-      "median_condition": 0.06938282597237788,
-      "median_base": 0.0016485026922355983,
-      "median_diff": 0.06773432328014228,
-      "ci_low": 0.016391852692278518,
-      "ci_high": 0.07647198276756015,
-      "mean_condition": 0.05093557475037085,
-      "mean_base": 0.0028261591110064783,
-      "p05_condition": 0.0037501298195160796,
-      "p95_condition": 0.09038791145969077
+      "count_condition": 29,
+      "count_base": 27556,
+      "median_condition": -0.15432274666252177,
+      "median_base": 0.0016577908356464333,
+      "median_diff": -0.1559805374981682,
+      "ci_low": -0.17513131163912524,
+      "ci_high": 0.01667133137592153,
+      "mean_condition": -0.07834934114263115,
+      "mean_base": 0.002934284815414492,
+      "p05_condition": -0.20806787610719782,
+      "p95_condition": 0.08477274540985487
     },
     {
       "symbol": "ETH/USDT",
       "condition": "crowd_short_risk",
       "horizon": "24h",
-      "count_condition": 18,
-      "count_base": 27615,
-      "median_condition": -0.021730709193153896,
-      "median_base": 0.0005588348293807943,
-      "median_diff": -0.02228954402253469,
-      "ci_low": -0.042118432531212516,
-      "ci_high": 0.020032319393683974,
-      "mean_condition": -0.0074549847376168855,
-      "mean_base": 0.0010135365033593885,
-      "p05_condition": -0.05081754233477348,
-      "p95_condition": 0.06279507087183137
+      "count_condition": 34,
+      "count_base": 27599,
+      "median_condition": -0.02768871982062271,
+      "median_base": 0.0005702217529037767,
+      "median_diff": -0.028258941573526486,
+      "ci_low": -0.04631389893452997,
+      "ci_high": -0.020978495464248837,
+      "mean_condition": -0.0225143505092355,
+      "mean_base": 0.0010369980337079753,
+      "p05_condition": -0.05988347649550306,
+      "p95_condition": 0.05898862059990479
     },
     {
       "symbol": "ETH/USDT",
-      "condition": "funding_extreme_neg",
+      "condition": "crowd_long_risk",
       "horizon": "24h",
-      "count_condition": 144,
-      "count_base": 27489,
-      "median_condition": -0.009098339643373143,
-      "median_base": 0.0005669901965565938,
-      "median_diff": -0.009665329839929737,
-      "ci_low": -0.015939356603679226,
-      "ci_high": 0.0008988643083713414,
-      "mean_condition": -0.0034060922248110572,
-      "mean_base": 0.001031143297150322,
-      "p05_condition": -0.06795234478108357,
-      "p95_condition": 0.06666878600121193
+      "count_condition": 7,
+      "count_base": 27626,
+      "median_condition": 0.014300351074832962,
+      "median_base": 0.000550017452255136,
+      "median_diff": 0.013750333622577826,
+      "ci_low": -0.0005127343456625743,
+      "ci_high": 0.01625566158649693,
+      "mean_condition": 0.009450223600305643,
+      "mean_base": 0.0010058810269235599,
+      "p05_condition": -0.0006402809846149159,
+      "p95_condition": 0.0190783856411278
     }
   ],
   "dsl_lite": {
@@ -146,5 +146,5 @@
     },
     "trade_count_ratio_bounds_ok": true
   },
-  "runtime_seconds": 10.562
+  "runtime_seconds": 13.923
 }
