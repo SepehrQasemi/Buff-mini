@@ -100,6 +100,90 @@ def funding_quality_report(funding: pd.DataFrame) -> dict[str, Any]:
     return _series_quality_report(frame=funding, value_col="funding_rate", expected_gap_hours=8)
 
 
+def fetch_open_interest_history(
+    exchange: ccxt.Exchange,
+    symbol: str,
+    start_ms: int,
+    end_ms: int,
+    timeframe: str = "1h",
+    limit: int = 500,
+) -> pd.DataFrame:
+    """Fetch open-interest history and return normalized rows with columns [ts, open_interest]."""
+
+    since = int(start_ms)
+    end_ms = int(end_ms)
+    rows: list[dict[str, Any]] = []
+    perp = futures_symbol(symbol)
+
+    while since <= end_ms:
+        batch = exchange.fetch_open_interest_history(
+            symbol=perp,
+            timeframe=str(timeframe),
+            since=since,
+            limit=int(limit),
+            params={"endTime": end_ms},
+        )
+        if not batch:
+            break
+
+        for item in batch:
+            ts_ms = int(item.get("timestamp", 0) or 0)
+            if ts_ms <= 0:
+                continue
+            if ts_ms < start_ms or ts_ms > end_ms:
+                continue
+            value = item.get("openInterestAmount")
+            if value is None:
+                value = item.get("openInterestValue")
+            if value is None:
+                value = item.get("openInterest")
+            if value is None:
+                info = item.get("info") if isinstance(item.get("info"), dict) else {}
+                value = info.get("sumOpenInterest") or info.get("openInterest")
+            rows.append(
+                {
+                    "ts": pd.to_datetime(ts_ms, unit="ms", utc=True),
+                    "open_interest": float(value),
+                }
+            )
+
+        last_ts = int(batch[-1].get("timestamp", 0) or 0)
+        next_since = last_ts + 1
+        if next_since <= since:
+            break
+        since = next_since
+        if len(batch) < int(limit):
+            break
+
+    frame = (
+        pd.DataFrame(rows, columns=["ts", "open_interest"])
+        if rows
+        else pd.DataFrame(columns=["ts", "open_interest"])
+    )
+    return _clean_series_frame(frame=frame, value_col="open_interest")
+
+
+def align_open_interest_to_ohlcv(
+    ohlcv: pd.DataFrame,
+    open_interest: pd.DataFrame,
+    timeframe: str = "1h",
+) -> pd.DataFrame:
+    """Align open interest to candle-open timestamps using latest event ts <= candle close."""
+
+    return _align_latest_event_to_candles(
+        ohlcv=ohlcv,
+        events=open_interest,
+        value_col="open_interest",
+        timeframe=timeframe,
+    )
+
+
+def open_interest_quality_report(open_interest: pd.DataFrame) -> dict[str, Any]:
+    """Return basic data-quality checks for open-interest event data."""
+
+    return _series_quality_report(frame=open_interest, value_col="open_interest", expected_gap_hours=1)
+
+
 def _align_latest_event_to_candles(
     ohlcv: pd.DataFrame,
     events: pd.DataFrame,

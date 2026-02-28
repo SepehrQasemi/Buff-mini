@@ -10,9 +10,12 @@ from buffmini.constants import DEFAULT_CONFIG_PATH, RAW_DATA_DIR
 from buffmini.data.derived_store import save_derived_parquet, write_meta_json
 from buffmini.data.futures_extras import (
     align_funding_to_ohlcv,
+    align_open_interest_to_ohlcv,
     create_binance_futures_exchange,
     fetch_funding_history,
+    fetch_open_interest_history,
     funding_quality_report,
+    open_interest_quality_report,
 )
 from buffmini.data.store import build_data_store
 from buffmini.utils.time import utc_now_compact
@@ -82,9 +85,49 @@ def main() -> None:
             data_dir=args.derived_dir,
         )
 
+        oi_raw = fetch_open_interest_history(
+            exchange=exchange,
+            symbol=symbol,
+            start_ms=start_ms,
+            end_ms=end_ms,
+            timeframe=timeframe,
+        )
+        oi_aligned = align_open_interest_to_ohlcv(ohlcv=ohlcv, open_interest=oi_raw, timeframe=timeframe)
+
+        save_derived_parquet(
+            frame=oi_aligned,
+            kind="open_interest",
+            symbol=symbol,
+            timeframe=timeframe,
+            data_dir=args.derived_dir,
+        )
+        oi_quality = open_interest_quality_report(oi_raw)
+        oi_meta = {
+            "symbol": symbol,
+            "timeframe": timeframe,
+            "source": "binance",
+            "kind": "open_interest",
+            "start_ts": oi_quality["start_ts"],
+            "end_ts": oi_quality["end_ts"],
+            "row_count": int(oi_quality["rows"]),
+            "gaps_count": int(oi_quality["gaps_count"]),
+            "fetched_at_utc": utc_now_compact(),
+        }
+        write_meta_json(
+            kind="open_interest",
+            symbol=symbol,
+            timeframe=timeframe,
+            payload=oi_meta,
+            data_dir=args.derived_dir,
+        )
+
         print(
             f"funding {symbol} | rows={meta['row_count']} | range={meta['start_ts']}..{meta['end_ts']} | "
             f"gaps={meta['gaps_count']}"
+        )
+        print(
+            f"open_interest {symbol} | rows={oi_meta['row_count']} | range={oi_meta['start_ts']}..{oi_meta['end_ts']} | "
+            f"gaps={oi_meta['gaps_count']}"
         )
 
 
