@@ -49,6 +49,13 @@ DATA_DEFAULTS = {
             "chg_windows": [1, 24],
             "z_window": 30,
             "oi_to_volume_window": 24,
+            "overlay": {
+                "enabled": False,
+                "recent_window_days": 30,
+                "max_recent_window_days": 90,
+                "clamp_to_available": True,
+                "inactive_value": "nan",
+            },
         },
     },
 }
@@ -161,6 +168,17 @@ STAGE9_DEFAULTS = {
         "enabled": False,
         "funding_selector_enabled": True,
         "oi_selector_enabled": True,
+    },
+}
+
+STAGE9_3_DEFAULTS = {
+    "enabled": False,
+    "report_windows_days": [30, 60, 90],
+    "nan_policy": "condition_false",
+    "ab_non_corruption": {
+        "enabled": True,
+        "max_trade_count_delta_pct": 1.0,
+        "require_equity_identical_for_non_oi": True,
     },
 }
 
@@ -471,6 +489,23 @@ def validate_config(config: ConfigDict) -> None:
         raise ValueError("data.futures_extras.open_interest.z_window must be >= 2")
     if int(oi_cfg["oi_to_volume_window"]) < 1:
         raise ValueError("data.futures_extras.open_interest.oi_to_volume_window must be >= 1")
+    overlay_cfg = _merge_defaults(DATA_DEFAULTS["futures_extras"]["open_interest"]["overlay"], oi_cfg.get("overlay", {}))
+    if not isinstance(overlay_cfg["enabled"], bool):
+        raise ValueError("data.futures_extras.open_interest.overlay.enabled must be bool")
+    if int(overlay_cfg["max_recent_window_days"]) < 1:
+        raise ValueError("data.futures_extras.open_interest.overlay.max_recent_window_days must be >= 1")
+    if int(overlay_cfg["recent_window_days"]) < 1:
+        raise ValueError("data.futures_extras.open_interest.overlay.recent_window_days must be >= 1")
+    if int(overlay_cfg["recent_window_days"]) > int(overlay_cfg["max_recent_window_days"]):
+        raise ValueError(
+            "data.futures_extras.open_interest.overlay.recent_window_days must be <= max_recent_window_days"
+        )
+    if not isinstance(overlay_cfg["clamp_to_available"], bool):
+        raise ValueError("data.futures_extras.open_interest.overlay.clamp_to_available must be bool")
+    if str(overlay_cfg["inactive_value"]) != "nan":
+        raise ValueError("data.futures_extras.open_interest.overlay.inactive_value must be 'nan'")
+    oi_cfg["overlay"] = overlay_cfg
+    futures_extras["open_interest"] = oi_cfg
     config["data"] = data
 
     portfolio = _merge_defaults(PORTFOLIO_DEFAULTS, config.get("portfolio", {}))
@@ -646,6 +681,28 @@ def validate_config(config: ConfigDict) -> None:
     if not isinstance(dsl_lite_cfg["oi_selector_enabled"], bool):
         raise ValueError("evaluation.stage9.dsl_lite.oi_selector_enabled must be bool")
     evaluation["stage9"] = stage9
+    stage9_3 = _merge_defaults(STAGE9_3_DEFAULTS, evaluation.get("stage9_3", {}))
+    if not isinstance(stage9_3["enabled"], bool):
+        raise ValueError("evaluation.stage9_3.enabled must be bool")
+    report_windows = stage9_3["report_windows_days"]
+    if not isinstance(report_windows, list) or not report_windows:
+        raise ValueError("evaluation.stage9_3.report_windows_days must be a non-empty list")
+    overlay_max_days = int(config["data"]["futures_extras"]["open_interest"]["overlay"]["max_recent_window_days"])
+    for value in report_windows:
+        if int(value) < 1 or int(value) > overlay_max_days:
+            raise ValueError(
+                "evaluation.stage9_3.report_windows_days values must be within [1, max_recent_window_days]"
+            )
+    if str(stage9_3["nan_policy"]) != "condition_false":
+        raise ValueError("evaluation.stage9_3.nan_policy must be 'condition_false'")
+    ab_cfg = stage9_3["ab_non_corruption"]
+    if not isinstance(ab_cfg["enabled"], bool):
+        raise ValueError("evaluation.stage9_3.ab_non_corruption.enabled must be bool")
+    if float(ab_cfg["max_trade_count_delta_pct"]) < 0:
+        raise ValueError("evaluation.stage9_3.ab_non_corruption.max_trade_count_delta_pct must be >= 0")
+    if not isinstance(ab_cfg["require_equity_identical_for_non_oi"], bool):
+        raise ValueError("evaluation.stage9_3.ab_non_corruption.require_equity_identical_for_non_oi must be bool")
+    evaluation["stage9_3"] = stage9_3
 
     ui = _merge_defaults(UI_STAGE5_DEFAULTS, config.get("ui", {}))
     stage5_ui = ui.get("stage5", {})

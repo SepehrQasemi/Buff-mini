@@ -55,6 +55,7 @@ def build_ui_bundle(run_id: str, source_paths: dict[str, Any], out_dir: Path) ->
 
     stage2_summary = _safe_json(RUNS_DIR / stage2_run_id / "portfolio_summary.json") if stage2_run_id else {}
     stage3_summary = _safe_json(RUNS_DIR / stage3_3_run_id / "selector_summary.json") if stage3_3_run_id else {}
+    stage1_summary = _safe_json(RUNS_DIR / stage1_run_id / "summary.json") if stage1_run_id else {}
 
     chosen_method = str(
         pipeline_summary.get("chosen_method")
@@ -183,6 +184,10 @@ def build_ui_bundle(run_id: str, source_paths: dict[str, Any], out_dir: Path) ->
         "base_leverage": base_leverage,
         "avg_leverage": avg_leverage,
         "regime_distribution": regime_distribution,
+        "oi_overlay": stage1_summary.get("oi_overlay", {}),
+        "oi_window_start_ts": (stage1_summary.get("oi_overlay", {}) or {}).get("oi_window_start_ts"),
+        "oi_window_end_ts": (stage1_summary.get("oi_overlay", {}) or {}).get("oi_window_end_ts"),
+        "oi_active_percent": (stage1_summary.get("oi_overlay", {}) or {}).get("oi_active_percent"),
         "policy_snapshot": policy_snapshot,
         "bundle_build_warnings": warnings,
     }

@@ -55,6 +55,11 @@ def test_load_config_success() -> None:
     assert config["data"]["futures_extras"]["open_interest"]["chg_windows"] == [1, 24]
     assert config["data"]["futures_extras"]["open_interest"]["z_window"] == 30
     assert config["data"]["futures_extras"]["open_interest"]["oi_to_volume_window"] == 24
+    assert config["data"]["futures_extras"]["open_interest"]["overlay"]["enabled"] is False
+    assert config["data"]["futures_extras"]["open_interest"]["overlay"]["recent_window_days"] == 30
+    assert config["data"]["futures_extras"]["open_interest"]["overlay"]["max_recent_window_days"] == 90
+    assert config["data"]["futures_extras"]["open_interest"]["overlay"]["clamp_to_available"] is True
+    assert config["data"]["futures_extras"]["open_interest"]["overlay"]["inactive_value"] == "nan"
     assert config["cost_model"]["mode"] == "simple"
     assert config["cost_model"]["round_trip_cost_pct"] == 0.1
     assert config["cost_model"]["v2"]["slippage_bps_base"] == 0.5
@@ -114,6 +119,10 @@ def test_load_config_success() -> None:
     assert config["evaluation"]["stage9"]["dsl_lite"]["enabled"] is False
     assert config["evaluation"]["stage9"]["dsl_lite"]["funding_selector_enabled"] is True
     assert config["evaluation"]["stage9"]["dsl_lite"]["oi_selector_enabled"] is True
+    assert config["evaluation"]["stage9_3"]["enabled"] is False
+    assert config["evaluation"]["stage9_3"]["report_windows_days"] == [30, 60, 90]
+    assert config["evaluation"]["stage9_3"]["nan_policy"] == "condition_false"
+    assert config["evaluation"]["stage9_3"]["ab_non_corruption"]["enabled"] is True
     assert config["ui"]["stage5"]["presets"]["quick"]["candidate_count"] == 1000
     assert config["ui"]["stage5"]["presets"]["full"]["candidate_count"] == 5000
     assert config["ui"]["stage5"]["window_months_options"] == [3, 6, 12, 36]

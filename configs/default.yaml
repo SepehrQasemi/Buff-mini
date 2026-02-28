@@ -73,6 +73,12 @@ data:
       chg_windows: [1, 24]
       z_window: 30
       oi_to_volume_window: 24
+      overlay:
+        enabled: false
+        recent_window_days: 30
+        max_recent_window_days: 90
+        clamp_to_available: true
+        inactive_value: "nan"
 
 portfolio:
   walkforward:
@@ -253,6 +259,14 @@ evaluation:
       enabled: false
       funding_selector_enabled: true
       oi_selector_enabled: true
+  stage9_3:
+    enabled: false
+    report_windows_days: [30, 60, 90]
+    nan_policy: "condition_false"
+    ab_non_corruption:
+      enabled: true
+      max_trade_count_delta_pct: 1.0
+      require_equity_identical_for_non_oi: true
 
 ui:
   stage5:

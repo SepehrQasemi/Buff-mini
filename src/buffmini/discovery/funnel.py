@@ -217,6 +217,7 @@ def run_stage1_optimization(
         )
         for symbol, frame in raw_data.items()
     }
+    oi_overlay_summary = _extract_oi_overlay_summary(feature_data)
     base_data_hash = _compute_data_hash(feature_data)
     derived_hash = _compute_derived_hash(feature_data)
     data_hash = (
@@ -786,6 +787,7 @@ def run_stage1_optimization(
         ),
         "best": strategies_payload[0] if strategies_payload else None,
         "best_tier_A": best_tier_a_payload,
+        "oi_overlay": oi_overlay_summary,
     }
     with (run_dir / "summary.json").open("w", encoding="utf-8") as handle:
         json.dump(summary, handle, indent=2)
@@ -1636,6 +1638,37 @@ def _compute_derived_hash(data_by_symbol: dict[str, pd.DataFrame]) -> str:
     if not any_present:
         return ""
     return stable_hash(payload, length=16)
+
+
+def _extract_oi_overlay_summary(data_by_symbol: dict[str, pd.DataFrame]) -> dict[str, Any]:
+    payload: dict[str, Any] = {"enabled": False, "per_symbol": {}}
+    active_percents: list[float] = []
+    starts: list[pd.Timestamp] = []
+    ends: list[pd.Timestamp] = []
+
+    for symbol, frame in sorted(data_by_symbol.items(), key=lambda item: item[0]):
+        overlay = frame.attrs.get("oi_overlay") if hasattr(frame, "attrs") else None
+        if not isinstance(overlay, dict):
+            continue
+        payload["enabled"] = True
+        per_symbol = dict(overlay)
+        payload["per_symbol"][symbol] = per_symbol
+
+        start_ts = per_symbol.get("oi_window_start_ts")
+        end_ts = per_symbol.get("oi_window_end_ts")
+        if start_ts:
+            starts.append(pd.Timestamp(start_ts))
+        if end_ts:
+            ends.append(pd.Timestamp(end_ts))
+        active_percents.append(float(per_symbol.get("oi_active_percent", 0.0)))
+
+    if not payload["enabled"]:
+        return payload
+
+    payload["oi_window_start_ts"] = min(starts).isoformat() if starts else None
+    payload["oi_window_end_ts"] = max(ends).isoformat() if ends else None
+    payload["oi_active_percent"] = float(np.mean(active_percents)) if active_percents else 0.0
+    return payload
 
 
 def _load_stage1_data(

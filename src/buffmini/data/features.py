@@ -16,6 +16,12 @@ from buffmini.data.features_futures import (
     synthetic_futures_extras,
 )
 from buffmini.regime.classifier import attach_regime_columns
+from buffmini.stage9.oi_overlay import (
+    OI_DEPENDENT_COLUMNS,
+    compute_oi_overlay_window,
+    mask_oi_columns,
+    overlay_metadata_dict,
+)
 
 BASE_COLUMNS: tuple[str, ...] = ("timestamp", "open", "high", "low", "close", "volume")
 CORE_FEATURE_COLUMNS: tuple[str, ...] = (
@@ -155,6 +161,33 @@ def calculate_features(
         )
         data = data.merge(extras, on="timestamp", how="left")
 
+        if _oi_overlay_enabled(config):
+            overlay_cfg = dict(
+                (config.get("data", {}) or {})
+                .get("futures_extras", {})
+                .get("open_interest", {})
+                .get("overlay", {})
+            )
+            recent_days = int(overlay_cfg.get("recent_window_days", 30))
+            resolved_end_ts = (
+                (config.get("universe", {}) or {}).get("resolved_end_ts")
+                or (config.get("universe", {}) or {}).get("end")
+            )
+            window = compute_oi_overlay_window(
+                df_ohlcv=data,
+                df_oi=oi_df,
+                resolved_end_ts=resolved_end_ts,
+                recent_days=recent_days,
+            )
+            data, oi_active = mask_oi_columns(
+                features_df=data,
+                ts_col="timestamp",
+                window_start_ts=window.window_start_ts,
+                oi_columns=list(OI_DEPENDENT_COLUMNS),
+            )
+            data["oi_active"] = oi_active
+            data.attrs["oi_overlay"] = overlay_metadata_dict(window=window, oi_active=oi_active, total_rows=len(data))
+
     return data
 
 
@@ -165,3 +198,21 @@ def _should_include_futures_extras(config: dict[str, Any] | None) -> bool:
     if not isinstance(data_cfg, dict):
         return False
     return bool(data_cfg.get("include_futures_extras", False))
+
+
+def _oi_overlay_enabled(config: dict[str, Any] | None) -> bool:
+    if not isinstance(config, dict):
+        return False
+    data_cfg = config.get("data", {})
+    if not isinstance(data_cfg, dict):
+        return False
+    extras = data_cfg.get("futures_extras", {})
+    if not isinstance(extras, dict):
+        return False
+    oi_cfg = extras.get("open_interest", {})
+    if not isinstance(oi_cfg, dict):
+        return False
+    overlay_cfg = oi_cfg.get("overlay", {})
+    if not isinstance(overlay_cfg, dict):
+        return False
+    return bool(overlay_cfg.get("enabled", False))
