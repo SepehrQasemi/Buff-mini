@@ -221,7 +221,7 @@ STAGE10_DEFAULTS = {
         },
     },
     "exits": {
-        "modes": ["fixed_atr", "atr_trailing", "breakeven_1r", "partial_tp", "regime_flip_exit"],
+        "modes": ["fixed_atr", "atr_trailing"],
         "trailing_atr_k": 1.5,
         "partial_fraction": 0.5,
     },

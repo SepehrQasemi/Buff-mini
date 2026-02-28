@@ -301,7 +301,7 @@ evaluation:
         ATR_DistanceRevert: {distance_k: 2.0}
         RangeFade: {donchian_period: 20, edge_atr_k: 0.6}
     exits:
-      modes: [fixed_atr, atr_trailing, breakeven_1r, partial_tp, regime_flip_exit]
+      modes: [fixed_atr, atr_trailing]
       trailing_atr_k: 1.5
       partial_fraction: 0.5
     evaluation:

@@ -45,7 +45,7 @@ STAGE10_DEFAULTS: dict[str, Any] = {
         "defaults": {name: dict(params) for name, params in DEFAULT_SIGNAL_PARAMS.items()},
     },
     "exits": {
-        "modes": ["fixed_atr", "atr_trailing", "breakeven_1r", "partial_tp", "regime_flip_exit"],
+        "modes": ["fixed_atr", "atr_trailing"],
         "trailing_atr_k": 1.5,
         "partial_fraction": 0.5,
     },
@@ -93,6 +93,7 @@ def run_stage10(
     timeframe: str = "1h",
     cost_mode: str = "v2",
     walkforward_v2_enabled: bool = True,
+    exit_mode: str | None = None,
     runs_root: Path = RUNS_DIR,
     docs_dir: Path = Path("docs"),
     data_dir: Path = RAW_DATA_DIR,
@@ -100,7 +101,7 @@ def run_stage10(
 ) -> dict[str, Any]:
     """Run Stage-10 baseline-vs-upgraded comparison and write artifacts."""
 
-    cfg = _normalize_stage10_config(config=config, cost_mode=cost_mode)
+    cfg = _normalize_stage10_config(config=config, cost_mode=cost_mode, exit_mode=exit_mode)
     resolved_symbols = list(symbols or cfg.get("universe", {}).get("symbols", ["BTC/USDT", "ETH/USDT"]))
     resolved_timeframe = str(timeframe or cfg.get("universe", {}).get("timeframe", "1h"))
     if resolved_timeframe != "1h":
@@ -139,6 +140,7 @@ def run_stage10(
         "seed": int(seed),
         "dry_run": bool(dry_run),
         "cost_mode": str(cost_mode),
+        "exit_mode": str(exit_mode) if exit_mode else "multi",
         "config_hash": config_hash,
         "data_hash": data_hash,
         "resolved_end_ts": resolved_end_ts,
@@ -781,12 +783,17 @@ def _resolve_end_ts(config: dict[str, Any], features_by_symbol: dict[str, pd.Dat
     return max(end_points).isoformat()
 
 
-def _normalize_stage10_config(config: dict[str, Any], cost_mode: str) -> dict[str, Any]:
+def _normalize_stage10_config(config: dict[str, Any], cost_mode: str, exit_mode: str | None = None) -> dict[str, Any]:
     cfg = json.loads(json.dumps(config))
     evaluation = cfg.setdefault("evaluation", {})
     stage10 = evaluation.get("stage10", {})
     stage10_norm = _merge_defaults(STAGE10_DEFAULTS, stage10 if isinstance(stage10, dict) else {})
     stage10_norm["cost_mode"] = str(cost_mode)
+    if exit_mode is not None:
+        allowed_exit_modes = {"fixed_atr", "atr_trailing", "breakeven_1r", "partial_tp", "regime_flip_exit"}
+        if str(exit_mode) not in allowed_exit_modes:
+            raise ValueError(f"Unsupported Stage-10 exit mode override: {exit_mode}")
+        stage10_norm["exits"]["modes"] = [str(exit_mode)]
     evaluation["stage10"] = stage10_norm
     cfg["evaluation"] = evaluation
     cfg.setdefault("cost_model", {})

@@ -18,6 +18,13 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument("--timeframe", type=str, default="1h")
     parser.add_argument("--seed", type=int, default=42)
     parser.add_argument("--cost-mode", type=str, default="v2", choices=["simple", "v2"])
+    parser.add_argument(
+        "--exit",
+        type=str,
+        default=None,
+        choices=["fixed_atr", "atr_trailing", "breakeven_1r", "partial_tp", "regime_flip_exit"],
+        help="Optional single exit mode for Stage-10 A/B isolation runs",
+    )
     parser.add_argument("--walkforward-v2", dest="walkforward_v2", action="store_true", default=True)
     parser.add_argument("--no-walkforward-v2", dest="walkforward_v2", action="store_false")
     parser.add_argument("--runs-dir", type=Path, default=RUNS_DIR)
@@ -38,6 +45,7 @@ def main() -> None:
         timeframe=str(args.timeframe),
         cost_mode=str(args.cost_mode),
         walkforward_v2_enabled=bool(args.walkforward_v2),
+        exit_mode=str(args.exit) if args.exit else None,
         runs_root=args.runs_dir,
         docs_dir=Path("docs"),
         data_dir=args.data_dir,

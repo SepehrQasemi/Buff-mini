@@ -129,7 +129,7 @@ def test_load_config_success() -> None:
     assert config["evaluation"]["stage10"]["activation"]["multiplier_min"] == 0.9
     assert config["evaluation"]["stage10"]["activation"]["multiplier_max"] == 1.1
     assert "BreakoutRetest" in config["evaluation"]["stage10"]["signals"]["families"]
-    assert "partial_tp" in config["evaluation"]["stage10"]["exits"]["modes"]
+    assert config["evaluation"]["stage10"]["exits"]["modes"] == ["fixed_atr", "atr_trailing"]
     assert config["ui"]["stage5"]["presets"]["quick"]["candidate_count"] == 1000
     assert config["ui"]["stage5"]["presets"]["full"]["candidate_count"] == 5000
     assert config["ui"]["stage5"]["window_months_options"] == [3, 6, 12, 36]
