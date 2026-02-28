@@ -190,6 +190,12 @@ python scripts/update_futures_extras.py
 python scripts/run_stage9_impact.py
 ```
 
+Run Stage-9.3 recent OI overlay evidence report (OI masked outside trailing window):
+
+```bash
+python scripts/run_stage9_3_overlay_report.py
+```
+
 Optional Stage-5 pipeline flag to include futures extras in feature generation:
 
 ```bash
@@ -202,6 +208,8 @@ Outputs:
 - `docs/stage9_report_summary.json`
 - `docs/stage9_impact_analysis.md`
 - `docs/stage9_data_quality.md`
+- `docs/stage9_3_recent_oi_overlay.md`
+- `docs/stage9_3_recent_oi_overlay_summary.json`
 
 ## Output Structure
 

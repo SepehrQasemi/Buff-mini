@@ -1,0 +1,374 @@
+{
+  "generated_at_utc": "2026-02-28T03:54:43.404865+00:00",
+  "config_path": "C:\\dev\\Buff-mini\\configs\\default.yaml",
+  "symbols": {
+    "BTC/USDT": {
+      "oi_availability": {
+        "earliest_oi_ts": "2026-01-28T02:00:00+00:00",
+        "latest_oi_ts": "2026-02-26T09:00:00+00:00",
+        "row_count": 704,
+        "raw_rows": 27657
+      },
+      "windows": [
+        {
+          "requested_days": 30,
+          "clamped_days": 29,
+          "window_start_ts": "2026-01-28T02:00:00+00:00",
+          "window_end_ts": "2026-02-26T09:00:00+00:00",
+          "window_note": "CLAMPED",
+          "percent_bars_oi_active": 2.545467693531475,
+          "oi_active_rows": 704,
+          "total_rows": 27657,
+          "effects": [
+            {
+              "condition": "crowd_long_risk",
+              "horizon": "24h",
+              "count": 0,
+              "median_diff": 0.0,
+              "ci_low": 0.0,
+              "ci_high": 0.0
+            },
+            {
+              "condition": "crowd_long_risk",
+              "horizon": "72h",
+              "count": 0,
+              "median_diff": 0.0,
+              "ci_low": 0.0,
+              "ci_high": 0.0
+            },
+            {
+              "condition": "crowd_short_risk",
+              "horizon": "24h",
+              "count": 1,
+              "median_diff": 0.01833051552985887,
+              "ci_low": 0.01622194924020559,
+              "ci_high": 0.020317747732246927
+            },
+            {
+              "condition": "crowd_short_risk",
+              "horizon": "72h",
+              "count": 1,
+              "median_diff": 0.031980691165336084,
+              "ci_low": 0.0274695432365476,
+              "ci_high": 0.035838229114219855
+            }
+          ]
+        },
+        {
+          "requested_days": 60,
+          "clamped_days": 29,
+          "window_start_ts": "2026-01-28T02:00:00+00:00",
+          "window_end_ts": "2026-02-26T09:00:00+00:00",
+          "window_note": "CLAMPED",
+          "percent_bars_oi_active": 2.545467693531475,
+          "oi_active_rows": 704,
+          "total_rows": 27657,
+          "effects": [
+            {
+              "condition": "crowd_long_risk",
+              "horizon": "24h",
+              "count": 0,
+              "median_diff": 0.0,
+              "ci_low": 0.0,
+              "ci_high": 0.0
+            },
+            {
+              "condition": "crowd_long_risk",
+              "horizon": "72h",
+              "count": 0,
+              "median_diff": 0.0,
+              "ci_low": 0.0,
+              "ci_high": 0.0
+            },
+            {
+              "condition": "crowd_short_risk",
+              "horizon": "24h",
+              "count": 1,
+              "median_diff": 0.01833051552985887,
+              "ci_low": 0.016361660653441135,
+              "ci_high": 0.020383111699443512
+            },
+            {
+              "condition": "crowd_short_risk",
+              "horizon": "72h",
+              "count": 1,
+              "median_diff": 0.031980691165336084,
+              "ci_low": 0.02752601806148236,
+              "ci_high": 0.035874200369439
+            }
+          ]
+        },
+        {
+          "requested_days": 90,
+          "clamped_days": 29,
+          "window_start_ts": "2026-01-28T02:00:00+00:00",
+          "window_end_ts": "2026-02-26T09:00:00+00:00",
+          "window_note": "CLAMPED",
+          "percent_bars_oi_active": 2.545467693531475,
+          "oi_active_rows": 704,
+          "total_rows": 27657,
+          "effects": [
+            {
+              "condition": "crowd_long_risk",
+              "horizon": "24h",
+              "count": 0,
+              "median_diff": 0.0,
+              "ci_low": 0.0,
+              "ci_high": 0.0
+            },
+            {
+              "condition": "crowd_long_risk",
+              "horizon": "72h",
+              "count": 0,
+              "median_diff": 0.0,
+              "ci_low": 0.0,
+              "ci_high": 0.0
+            },
+            {
+              "condition": "crowd_short_risk",
+              "horizon": "24h",
+              "count": 1,
+              "median_diff": 0.01833051552985887,
+              "ci_low": 0.016218011753593865,
+              "ci_high": 0.02031938183142683
+            },
+            {
+              "condition": "crowd_short_risk",
+              "horizon": "72h",
+              "count": 1,
+              "median_diff": 0.031980691165336084,
+              "ci_low": 0.0274695432365476,
+              "ci_high": 0.035838229114219855
+            }
+          ]
+        }
+      ],
+      "ab_non_corruption": {
+        "strategy": "Trend Pullback",
+        "trade_count_a": 262,
+        "trade_count_b": 262,
+        "trade_count_delta_pct": 0.0,
+        "equity_curve_identical": true
+      }
+    },
+    "ETH/USDT": {
+      "oi_availability": {
+        "earliest_oi_ts": "2026-01-28T02:00:00+00:00",
+        "latest_oi_ts": "2026-02-26T09:00:00+00:00",
+        "row_count": 704,
+        "raw_rows": 27657
+      },
+      "windows": [
+        {
+          "requested_days": 30,
+          "clamped_days": 29,
+          "window_start_ts": "2026-01-28T02:00:00+00:00",
+          "window_end_ts": "2026-02-26T09:00:00+00:00",
+          "window_note": "CLAMPED",
+          "percent_bars_oi_active": 2.545467693531475,
+          "oi_active_rows": 704,
+          "total_rows": 27657,
+          "effects": [
+            {
+              "condition": "crowd_long_risk",
+              "horizon": "24h",
+              "count": 7,
+              "median_diff": 0.026788124308223638,
+              "ci_low": 0.009890302656089922,
+              "ci_high": 0.031924982615330055
+            },
+            {
+              "condition": "crowd_long_risk",
+              "horizon": "72h",
+              "count": 7,
+              "median_diff": 0.026680481936798173,
+              "ci_low": 0.016447452876917512,
+              "ci_high": 0.06386215528411987
+            },
+            {
+              "condition": "crowd_short_risk",
+              "horizon": "24h",
+              "count": 34,
+              "median_diff": -0.017784643789079013,
+              "ci_low": -0.03342860627340268,
+              "ci_high": -0.00887052709701763
+            },
+            {
+              "condition": "crowd_short_risk",
+              "horizon": "72h",
+              "count": 29,
+              "median_diff": -0.12104345169482444,
+              "ci_low": -0.14327572238309458,
+              "ci_high": 0.05016743246835231
+            }
+          ]
+        },
+        {
+          "requested_days": 60,
+          "clamped_days": 29,
+          "window_start_ts": "2026-01-28T02:00:00+00:00",
+          "window_end_ts": "2026-02-26T09:00:00+00:00",
+          "window_note": "CLAMPED",
+          "percent_bars_oi_active": 2.545467693531475,
+          "oi_active_rows": 704,
+          "total_rows": 27657,
+          "effects": [
+            {
+              "condition": "crowd_long_risk",
+              "horizon": "24h",
+              "count": 7,
+              "median_diff": 0.026788124308223638,
+              "ci_low": 0.009804361929260041,
+              "ci_high": 0.031924982615330055
+            },
+            {
+              "condition": "crowd_long_risk",
+              "horizon": "72h",
+              "count": 7,
+              "median_diff": 0.026680481936798173,
+              "ci_low": 0.016048954897202823,
+              "ci_high": 0.06419148145810183
+            },
+            {
+              "condition": "crowd_short_risk",
+              "horizon": "24h",
+              "count": 34,
+              "median_diff": -0.017784643789079013,
+              "ci_low": -0.033367786657630856,
+              "ci_high": -0.009612480281786483
+            },
+            {
+              "condition": "crowd_short_risk",
+              "horizon": "72h",
+              "count": 29,
+              "median_diff": -0.12104345169482444,
+              "ci_low": -0.14343595514358937,
+              "ci_high": 0.05018188752957396
+            }
+          ]
+        },
+        {
+          "requested_days": 90,
+          "clamped_days": 29,
+          "window_start_ts": "2026-01-28T02:00:00+00:00",
+          "window_end_ts": "2026-02-26T09:00:00+00:00",
+          "window_note": "CLAMPED",
+          "percent_bars_oi_active": 2.545467693531475,
+          "oi_active_rows": 704,
+          "total_rows": 27657,
+          "effects": [
+            {
+              "condition": "crowd_long_risk",
+              "horizon": "24h",
+              "count": 7,
+              "median_diff": 0.026788124308223638,
+              "ci_low": 0.00959007546401279,
+              "ci_high": 0.03197217204984981
+            },
+            {
+              "condition": "crowd_long_risk",
+              "horizon": "72h",
+              "count": 7,
+              "median_diff": 0.026680481936798173,
+              "ci_low": 0.01641818064604772,
+              "ci_high": 0.06400356180653699
+            },
+            {
+              "condition": "crowd_short_risk",
+              "horizon": "24h",
+              "count": 34,
+              "median_diff": -0.017784643789079013,
+              "ci_low": -0.0335162253489693,
+              "ci_high": -0.009489613978405772
+            },
+            {
+              "condition": "crowd_short_risk",
+              "horizon": "72h",
+              "count": 29,
+              "median_diff": -0.12104345169482444,
+              "ci_low": -0.14330846034257316,
+              "ci_high": 0.05124222063419575
+            }
+          ]
+        }
+      ],
+      "ab_non_corruption": {
+        "strategy": "Trend Pullback",
+        "trade_count_a": 270,
+        "trade_count_b": 270,
+        "trade_count_delta_pct": 0.0,
+        "equity_curve_identical": true
+      }
+    }
+  },
+  "report_windows_days": [
+    30,
+    60,
+    90
+  ],
+  "nan_policy": "condition_false",
+  "statement": "OI is unavailable outside the recent overlay window; rows outside oi_active are excluded from OI impact confirmation.",
+  "top_recent_effects": [
+    {
+      "condition": "crowd_short_risk",
+      "horizon": "72h",
+      "count": 29,
+      "median_diff": -0.12104345169482444,
+      "ci_low": -0.14327572238309458,
+      "ci_high": 0.05016743246835231,
+      "symbol": "ETH/USDT",
+      "requested_days": 30
+    },
+    {
+      "condition": "crowd_short_risk",
+      "horizon": "72h",
+      "count": 29,
+      "median_diff": -0.12104345169482444,
+      "ci_low": -0.14343595514358937,
+      "ci_high": 0.05018188752957396,
+      "symbol": "ETH/USDT",
+      "requested_days": 60
+    },
+    {
+      "condition": "crowd_short_risk",
+      "horizon": "72h",
+      "count": 29,
+      "median_diff": -0.12104345169482444,
+      "ci_low": -0.14330846034257316,
+      "ci_high": 0.05124222063419575,
+      "symbol": "ETH/USDT",
+      "requested_days": 90
+    },
+    {
+      "condition": "crowd_short_risk",
+      "horizon": "72h",
+      "count": 1,
+      "median_diff": 0.031980691165336084,
+      "ci_low": 0.0274695432365476,
+      "ci_high": 0.035838229114219855,
+      "symbol": "BTC/USDT",
+      "requested_days": 30
+    },
+    {
+      "condition": "crowd_short_risk",
+      "horizon": "72h",
+      "count": 1,
+      "median_diff": 0.031980691165336084,
+      "ci_low": 0.02752601806148236,
+      "ci_high": 0.035874200369439,
+      "symbol": "BTC/USDT",
+      "requested_days": 60
+    },
+    {
+      "condition": "crowd_short_risk",
+      "horizon": "72h",
+      "count": 1,
+      "median_diff": 0.031980691165336084,
+      "ci_low": 0.0274695432365476,
+      "ci_high": 0.035838229114219855,
+      "symbol": "BTC/USDT",
+      "requested_days": 90
+    }
+  ],
+  "runtime_seconds": 17.689
+}
