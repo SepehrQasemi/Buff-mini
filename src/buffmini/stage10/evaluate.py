@@ -19,7 +19,7 @@ from buffmini.data.features import calculate_features
 from buffmini.data.store import build_data_store
 from buffmini.stage10.activation import DEFAULT_ACTIVATION_CONFIG, apply_soft_activation
 from buffmini.stage10.exits import normalize_exit_mode
-from buffmini.stage10.regimes import REGIME_LABELS, regime_distribution
+from buffmini.stage10.regimes import REGIME_LABELS, regime_calibration_diagnostics, regime_distribution
 from buffmini.stage10.signals import DEFAULT_SIGNAL_PARAMS, SIGNAL_FAMILIES, generate_signal_family, resolve_enabled_families
 from buffmini.utils.hashing import stable_hash
 from buffmini.utils.time import utc_now_compact
@@ -32,9 +32,12 @@ STAGE10_DEFAULTS: dict[str, Any] = {
     "cost_mode": "v2",
     "walkforward_v2": True,
     "regimes": {
-        "trend_threshold": 0.010,
-        "vol_rank_high": 0.80,
-        "vol_rank_low": 0.35,
+        "trend_rank_strong": 0.60,
+        "trend_rank_weak": 0.40,
+        "high_vol_rank": 0.75,
+        "low_vol_rank": 0.25,
+        "chop_flip_window": 48,
+        "chop_flip_threshold": 0.18,
         "compression_z": -0.8,
         "expansion_z": 1.0,
         "volume_z_high": 1.0,
@@ -45,8 +48,9 @@ STAGE10_DEFAULTS: dict[str, Any] = {
         "enabled_families": [
             "BreakoutRetest",
             "MA_SlopePullback",
-            "BollingerSnapBack",
             "ATR_DistanceRevert",
+            "RangeFade",
+            "VolCompressionBreakout",
         ],
         "defaults": {name: dict(params) for name, params in DEFAULT_SIGNAL_PARAMS.items()},
     },
@@ -104,6 +108,7 @@ def run_stage10(
     docs_dir: Path = Path("docs"),
     data_dir: Path = RAW_DATA_DIR,
     derived_dir: Path = DERIVED_DATA_DIR,
+    write_docs: bool = True,
 ) -> dict[str, Any]:
     """Run Stage-10 baseline-vs-upgraded comparison and write artifacts."""
 
@@ -188,19 +193,145 @@ def run_stage10(
         encoding="utf-8",
     )
 
-    docs_dir.mkdir(parents=True, exist_ok=True)
-    _write_docs_report(
-        summary=summary,
-        out_md=docs_dir / "stage10_report.md",
-        out_json=docs_dir / "stage10_report_summary.json",
-    )
+    if bool(write_docs):
+        docs_dir.mkdir(parents=True, exist_ok=True)
+        _write_docs_report(
+            summary=summary,
+            out_md=docs_dir / "stage10_report.md",
+            out_json=docs_dir / "stage10_report_summary.json",
+        )
     return summary
+
+
+def run_stage10_exit_ab(
+    config: dict[str, Any],
+    seed: int = 42,
+    dry_run: bool = True,
+    symbols: list[str] | None = None,
+    timeframe: str = "1h",
+    cost_mode: str = "v2",
+    walkforward_v2_enabled: bool = True,
+    runs_root: Path = RUNS_DIR,
+    docs_dir: Path = Path("docs"),
+    data_dir: Path = RAW_DATA_DIR,
+    derived_dir: Path = DERIVED_DATA_DIR,
+) -> dict[str, Any]:
+    """Run deterministic Stage-10 exit A/B and select best isolated exit."""
+
+    compare_rows: list[dict[str, Any]] = []
+    summaries: dict[str, dict[str, Any]] = {}
+    for mode in ("fixed_atr", "atr_trailing"):
+        base = run_stage10(
+            config=config,
+            seed=int(seed),
+            dry_run=bool(dry_run),
+            symbols=symbols,
+            timeframe=timeframe,
+            cost_mode=cost_mode,
+            walkforward_v2_enabled=walkforward_v2_enabled,
+            exit_mode=mode,
+            runs_root=runs_root,
+            docs_dir=docs_dir,
+            data_dir=data_dir,
+            derived_dir=derived_dir,
+            write_docs=False,
+        )
+        stress = run_stage10(
+            config=_build_stress_config(config),
+            seed=int(seed),
+            dry_run=bool(dry_run),
+            symbols=symbols,
+            timeframe=timeframe,
+            cost_mode="v2",
+            walkforward_v2_enabled=False,
+            exit_mode=mode,
+            runs_root=runs_root,
+            docs_dir=docs_dir,
+            data_dir=data_dir,
+            derived_dir=derived_dir,
+            write_docs=False,
+        )
+        base_metrics = dict(base["baseline_vs_stage10"]["stage10"])
+        stress_metrics = dict(stress["baseline_vs_stage10"]["stage10"])
+        drag = max(
+            0.0,
+            _finite(base_metrics.get("expectancy", 0.0), default=0.0)
+            - _finite(stress_metrics.get("expectancy", 0.0), default=0.0),
+        )
+        row = {
+            "exit_mode": mode,
+            "run_id": str(base.get("run_id", "")),
+            "trade_count": _finite(base_metrics.get("trade_count", 0.0), default=0.0),
+            "profit_factor": _finite(base_metrics.get("profit_factor", 0.0), default=0.0, clip=10.0),
+            "expectancy": _finite(base_metrics.get("expectancy", 0.0), default=0.0),
+            "max_drawdown": _finite(base_metrics.get("max_drawdown", 0.0), default=0.0),
+            "exp_lcb": _finite(base_metrics.get("exp_lcb", 0.0), default=0.0),
+            "drag_sensitivity": float(drag),
+            "stress_expectancy": _finite(stress_metrics.get("expectancy", 0.0), default=0.0),
+            "stress_profit_factor": _finite(stress_metrics.get("profit_factor", 0.0), default=0.0, clip=10.0),
+        }
+        compare_rows.append(row)
+        summaries[mode] = base
+
+    compare_rows.sort(key=lambda item: (-float(item["exp_lcb"]), float(item["drag_sensitivity"]), str(item["exit_mode"])))
+    selected = compare_rows[0]["exit_mode"] if compare_rows else "fixed_atr"
+    selected_summary = summaries.get(str(selected), {})
+
+    compare_payload = {
+        "seed": int(seed),
+        "dry_run": bool(dry_run),
+        "symbols": list(symbols or []),
+        "timeframe": str(timeframe),
+        "cost_mode": str(cost_mode),
+        "rows": compare_rows,
+        "selected_exit": selected,
+    }
+    run_id = f"{utc_now_compact()}_{stable_hash(compare_payload, length=12)}_stage10_exit_ab"
+    run_dir = runs_root / run_id
+    run_dir.mkdir(parents=True, exist_ok=True)
+    pd.DataFrame(compare_rows).to_csv(run_dir / "exit_ab_compare.csv", index=False)
+    (run_dir / "exit_ab_summary.json").write_text(
+        json.dumps(
+            {
+                "run_id": run_id,
+                "selected_exit": selected,
+                "rows": compare_rows,
+            },
+            indent=2,
+            allow_nan=False,
+        ),
+        encoding="utf-8",
+    )
+
+    if selected_summary:
+        docs_dir.mkdir(parents=True, exist_ok=True)
+        _write_docs_report(
+            summary=selected_summary,
+            out_md=docs_dir / "stage10_report.md",
+            out_json=docs_dir / "stage10_report_summary.json",
+        )
+
+    return {
+        "run_id": run_id,
+        "selected_exit": selected,
+        "rows": compare_rows,
+        "selected_summary": selected_summary,
+    }
 
 
 def validate_stage10_summary_schema(summary: dict[str, Any]) -> None:
     """Validate Stage-10 docs summary schema contract."""
 
-    required_top = {"stage", "run_id", "determinism", "leakage", "regimes", "baseline_vs_stage10", "next_recommendation"}
+    required_top = {
+        "stage",
+        "run_id",
+        "determinism",
+        "leakage",
+        "regimes",
+        "baseline_vs_stage10",
+        "trade_count_guard",
+        "next_recommendation",
+    }
     missing = required_top.difference(summary.keys())
     if missing:
         raise ValueError(f"Missing summary keys: {sorted(missing)}")
@@ -341,11 +472,13 @@ def _evaluate_stage10(features_by_symbol: dict[str, pd.DataFrame], cfg: dict[str
         dedup.append(row)
         seen.add(key)
     aggregate = _aggregate_metrics([row.to_dict() for row in best_by_symbol.values()])
+    family_breakdown = _family_trade_breakdown(candidate_rows)
     return {
         "all_candidates": [row.to_dict() for row in candidate_rows],
         "best_candidates": dedup[:5],
         "aggregate_metrics": aggregate,
         "best_by_symbol": {symbol: row.to_dict() for symbol, row in best_by_symbol.items()},
+        "family_trade_breakdown": family_breakdown,
     }
 
 
@@ -459,6 +592,22 @@ def _aggregate_metrics(rows: list[dict[str, Any]]) -> dict[str, float]:
         "pf_adj": pf_adj,
         "exp_lcb": exp_lcb,
     }
+
+
+def _family_trade_breakdown(candidates: list[CandidateResult]) -> list[dict[str, Any]]:
+    if not candidates:
+        return []
+    rows = pd.DataFrame([row.to_dict() for row in candidates])
+    if rows.empty:
+        return []
+    grouped = (
+        rows.sort_values(["symbol", "family", "trade_count"], ascending=[True, True, False])
+        .drop_duplicates(subset=["symbol", "family"], keep="first")
+        .groupby("family", dropna=False)["trade_count"]
+        .sum()
+        .sort_values(ascending=False)
+    )
+    return [{"family": str(family), "trade_count": float(value)} for family, value in grouped.items()]
 
 
 def _evaluate_walkforward(
@@ -621,6 +770,7 @@ def _build_stage10_summary(
         "exp_lcb_delta": float(stage10["exp_lcb"] - baseline["exp_lcb"]),
     }
     regime_dist = _aggregate_regime_distribution(features_by_symbol)
+    calibration = _aggregate_regime_calibration(features_by_symbol)
     confidence_values = []
     for frame in features_by_symbol.values():
         confidence_values.extend(pd.to_numeric(frame["regime_confidence_stage10"], errors="coerce").dropna().tolist())
@@ -671,6 +821,7 @@ def _build_stage10_summary(
         "regimes": {
             "distribution": regime_dist,
             "confidence_median": confidence_median,
+            "calibration": calibration,
         },
         "baseline_vs_stage10": {
             "dry_run": {
@@ -687,6 +838,12 @@ def _build_stage10_summary(
             "stage10": stage10,
             "delta": comparison,
         },
+        "trade_count_guard": _stage10_trade_count_guard(
+            baseline_trade_count=float(baseline["trade_count"]),
+            stage10_trade_count=float(stage10["trade_count"]),
+            family_breakdown=list(stage10_eval.get("family_trade_breakdown", [])),
+            max_drop_pct=10.0,
+        ),
         "walkforward_v2": walkforward_payload,
         "best_candidates": stage10_eval["best_candidates"],
         "next_recommendation": recommendation,
@@ -725,6 +882,7 @@ def _write_docs_report(summary: dict[str, Any], out_md: Path, out_json: Path) ->
     lines.append("## Regimes")
     lines.append(f"- distribution (%): `{summary['regimes']['distribution']}`")
     lines.append(f"- confidence_median: `{summary['regimes']['confidence_median']:.6f}`")
+    lines.append(f"- calibration: `{summary['regimes'].get('calibration', {})}`")
     lines.append("")
     lines.append("## Walkforward V2")
     lines.append(f"- enabled: `{summary['walkforward_v2'].get('enabled')}`")
@@ -733,6 +891,12 @@ def _write_docs_report(summary: dict[str, Any], out_md: Path, out_json: Path) ->
     lines.append("")
     lines.append("## Recommendation")
     lines.append(f"- {summary['next_recommendation']}")
+    lines.append("")
+    lines.append("## Trade Count Guard")
+    guard = summary.get("trade_count_guard", {})
+    lines.append(f"- pass: `{guard.get('pass')}`")
+    lines.append(f"- observed_drop_pct: `{_finite(guard.get('observed_drop_pct', 0.0), default=0.0):.6f}`")
+    lines.append(f"- max_drop_pct: `{_finite(guard.get('max_drop_pct', 10.0), default=10.0):.2f}`")
     lines.append("")
     lines.append(f"- run_id: `{summary['run_id']}`")
     lines.append(f"- config_hash: `{summary['config_hash']}`")
@@ -765,6 +929,39 @@ def _aggregate_regime_distribution(features_by_symbol: dict[str, pd.DataFrame]) 
     if total_rows <= 0:
         return {label: 0.0 for label in REGIME_LABELS}
     return {label: float(value / total_rows * 100.0) for label, value in total.items()}
+
+
+def _aggregate_regime_calibration(features_by_symbol: dict[str, pd.DataFrame]) -> dict[str, Any]:
+    diagnostics: list[dict[str, Any]] = []
+    for frame in features_by_symbol.values():
+        if frame.empty:
+            continue
+        diagnostics.append(regime_calibration_diagnostics(frame))
+    if not diagnostics:
+        return {
+            "single_regime_warning": False,
+            "warnings": [],
+            "median_trend_strength": 0.0,
+            "atr_percentile_distribution": {"p05": 0.0, "p50": 0.0, "p95": 0.0},
+        }
+
+    warnings: list[str] = []
+    for item in diagnostics:
+        warnings.extend([str(w) for w in item.get("warnings", [])])
+    medians = [float(item.get("median_trend_strength", 0.0)) for item in diagnostics]
+    atr_p05 = [float(item.get("atr_percentile_distribution", {}).get("p05", 0.0)) for item in diagnostics]
+    atr_p50 = [float(item.get("atr_percentile_distribution", {}).get("p50", 0.0)) for item in diagnostics]
+    atr_p95 = [float(item.get("atr_percentile_distribution", {}).get("p95", 0.0)) for item in diagnostics]
+    return {
+        "single_regime_warning": any(bool(item.get("single_regime_warning", False)) for item in diagnostics),
+        "warnings": sorted(set(warnings)),
+        "median_trend_strength": float(np.mean(medians)) if medians else 0.0,
+        "atr_percentile_distribution": {
+            "p05": float(np.mean(atr_p05)) if atr_p05 else 0.0,
+            "p50": float(np.mean(atr_p50)) if atr_p50 else 0.0,
+            "p95": float(np.mean(atr_p95)) if atr_p95 else 0.0,
+        },
+    }
 
 
 def _compute_data_hash(features_by_symbol: dict[str, pd.DataFrame]) -> str:
@@ -818,6 +1015,18 @@ def _normalize_stage10_config(config: dict[str, Any], cost_mode: str, exit_mode:
     cfg.setdefault("cost_model", {})
     cfg["cost_model"]["mode"] = str(cost_mode)
     return cfg
+
+
+def _build_stress_config(config: dict[str, Any]) -> dict[str, Any]:
+    stressed = json.loads(json.dumps(config))
+    stressed.setdefault("cost_model", {})
+    stressed["cost_model"]["mode"] = "v2"
+    stressed["cost_model"].setdefault("v2", {})
+    v2 = stressed["cost_model"]["v2"]
+    v2["delay_bars"] = int(v2.get("delay_bars", 0)) + 1
+    v2["spread_bps"] = float(v2.get("spread_bps", 0.0)) + 1.0
+    v2["slippage_bps_base"] = float(v2.get("slippage_bps_base", 0.0)) + 1.0
+    return stressed
 
 
 def build_stage10_6_report_from_runs(
@@ -1017,6 +1226,37 @@ def _build_trade_count_guard(context: dict[str, Any], max_drop_pct: float) -> di
     }
 
 
+def _stage10_trade_count_guard(
+    baseline_trade_count: float,
+    stage10_trade_count: float,
+    family_breakdown: list[dict[str, Any]],
+    max_drop_pct: float,
+) -> dict[str, Any]:
+    baseline = max(0.0, float(baseline_trade_count))
+    stage = max(0.0, float(stage10_trade_count))
+    if baseline <= 0:
+        observed = 0.0
+    else:
+        observed = max(0.0, (baseline - stage) / baseline * 100.0)
+    reductions: list[dict[str, Any]] = []
+    for item in family_breakdown:
+        family_trade_count = max(0.0, _finite(item.get("trade_count", 0.0), default=0.0))
+        reductions.append(
+            {
+                "family": str(item.get("family", "")),
+                "trade_count": family_trade_count,
+                "delta_vs_baseline_total": float(family_trade_count - baseline),
+            }
+        )
+    reductions.sort(key=lambda row: float(row["delta_vs_baseline_total"]))
+    return {
+        "max_drop_pct": float(max_drop_pct),
+        "observed_drop_pct": float(observed),
+        "pass": bool(observed <= float(max_drop_pct)),
+        "family_reduction_breakdown": reductions,
+    }
+
+
 def _build_determinism_status(dry_runs: list[dict[str, Any]]) -> dict[str, Any]:
     if not dry_runs:
         return {"pass": False, "notes": "No dry runs found for determinism check"}
@@ -1119,6 +1359,182 @@ def _write_stage10_6_report(summary: dict[str, Any], out_md: Path, out_json: Pat
     lines.append("## Known Limitations")
     lines.append("- Stage-10.6 ranking is currently single-exit-first (fixed_atr) before A/B exit sweeps.")
     lines.append("- Drag penalty is sandbox-only and not yet part of the main optimizer objective.")
+
+    out_md.write_text("\n".join(lines).strip() + "\n", encoding="utf-8")
+    out_json.write_text(json.dumps(summary, indent=2, allow_nan=False), encoding="utf-8")
+
+
+def build_stage10_7_report_from_runs(
+    runs_root: Path = RUNS_DIR,
+    docs_dir: Path = Path("docs"),
+    max_drop_pct: float = 10.0,
+) -> dict[str, Any]:
+    """Build Stage-10.7 forensic refinement report from run artifacts."""
+
+    stage10_runs = _discover_stage10_runs(runs_root)
+    dry_runs = [row for row in stage10_runs if _is_dry_summary(row)]
+    real_runs = [row for row in stage10_runs if not _is_dry_summary(row)]
+    dry_pre, dry_latest = _pick_reference_and_latest(dry_runs)
+    real_pre, real_latest = _pick_reference_and_latest(real_runs)
+
+    dry_cmp = _build_context_comparison(dry_pre, dry_latest)
+    real_cmp = _build_context_comparison(real_pre, real_latest)
+    real_cmp["available"] = bool(real_latest is not None)
+    guard_source = real_cmp if real_cmp["available"] else dry_cmp
+    guard = _build_trade_count_guard(guard_source, max_drop_pct=float(max_drop_pct))
+    latest_summary = real_latest or dry_latest or {}
+    guard["family_reduction_breakdown"] = list(
+        latest_summary.get("trade_count_guard", {}).get("family_reduction_breakdown", [])
+    )
+    determinism = _build_determinism_status(dry_runs)
+    sandbox = _discover_latest_sandbox_summary(runs_root) or {}
+    exit_ab = _discover_latest_exit_ab_summary(runs_root) or {}
+    regime_calibration = dict((real_latest or dry_latest or {}).get("regimes", {}).get("calibration", {}))
+    regime_distribution = dict((real_latest or dry_latest or {}).get("regimes", {}).get("distribution", {}))
+
+    verdict = _stage10_7_verdict(real_cmp=real_cmp, dry_cmp=dry_cmp, guard=guard)
+    summary: dict[str, Any] = {
+        "stage": "10.7",
+        "regime_distribution": regime_distribution,
+        "regime_calibration": regime_calibration,
+        "sandbox": {
+            "run_id": str(sandbox.get("run_id", "")),
+            "enabled_signals": list(sandbox.get("enabled_signals", [])),
+            "disabled_signals": list(sandbox.get("disabled_signals", [])),
+            "rank_table_path": str(sandbox.get("rank_table_path", "")),
+        },
+        "exit_ab": {
+            "run_id": str(exit_ab.get("run_id", "")),
+            "selected_exit": str(exit_ab.get("selected_exit", "")),
+            "rows": list(exit_ab.get("rows", [])),
+        },
+        "comparisons": {
+            "dry": dry_cmp,
+            "real": real_cmp,
+        },
+        "trade_count_guard": guard,
+        "determinism": bool(determinism.get("pass", False)),
+        "determinism_detail": determinism,
+        "final_verdict": verdict,
+    }
+    docs_dir.mkdir(parents=True, exist_ok=True)
+    _write_stage10_7_report(
+        summary=summary,
+        out_md=docs_dir / "stage10_7_report.md",
+        out_json=docs_dir / "stage10_7_report_summary.json",
+    )
+    return summary
+
+
+def _discover_latest_exit_ab_summary(runs_root: Path) -> dict[str, Any] | None:
+    summaries: list[dict[str, Any]] = []
+    for path in sorted(runs_root.glob("*_stage10_exit_ab/exit_ab_summary.json")):
+        try:
+            payload = json.loads(path.read_text(encoding="utf-8"))
+        except Exception:
+            continue
+        summaries.append(payload)
+    if not summaries:
+        return None
+    summaries.sort(key=lambda row: str(row.get("run_id", "")))
+    return summaries[-1]
+
+
+def _stage10_7_verdict(real_cmp: dict[str, Any], dry_cmp: dict[str, Any], guard: dict[str, Any]) -> str:
+    context = real_cmp if bool(real_cmp.get("available", False)) else dry_cmp
+    pre = context.get("stage10_pre", {})
+    post = context.get("stage10_6", {})
+    pf_delta = _finite(post.get("profit_factor", 0.0), 0.0) - _finite(pre.get("profit_factor", 0.0), 0.0)
+    exp_delta = _finite(post.get("expectancy", 0.0), 0.0) - _finite(pre.get("expectancy", 0.0), 0.0)
+    wf_pre = str(context.get("walkforward_pre", "N/A"))
+    wf_post = str(context.get("walkforward_stage10_6", "N/A"))
+    wf_not_worse = wf_post == wf_pre or (wf_pre == "INSUFFICIENT_DATA" and wf_post in {"UNSTABLE", "STABLE"})
+
+    if bool(guard.get("pass", False)) and pf_delta > 0 and exp_delta > 0 and wf_not_worse:
+        return "IMPROVED"
+    if abs(pf_delta) < 1e-12 and abs(exp_delta) < 1e-12 and wf_not_worse:
+        return "NO_CHANGE"
+    return "REGRESSION"
+
+
+def _write_stage10_7_report(summary: dict[str, Any], out_md: Path, out_json: Path) -> None:
+    dry = summary["comparisons"]["dry"]
+    real = summary["comparisons"]["real"]
+    guard = summary["trade_count_guard"]
+    lines: list[str] = []
+    lines.append("# Stage-10.7 Report")
+    lines.append("")
+    lines.append("## Regime Calibration")
+    lines.append(f"- regime_distribution: `{summary['regime_distribution']}`")
+    lines.append(f"- calibration: `{summary['regime_calibration']}`")
+    lines.append("")
+    lines.append("## Sandbox Ranking (Real Data)")
+    lines.append(f"- sandbox_run_id: `{summary['sandbox']['run_id']}`")
+    lines.append(f"- enabled_signals: `{summary['sandbox']['enabled_signals']}`")
+    lines.append(f"- disabled_signals: `{summary['sandbox']['disabled_signals']}`")
+    lines.append(f"- ranking_table: `{summary['sandbox']['rank_table_path']}`")
+    lines.append("")
+    lines.append("## Exit A/B Isolation")
+    lines.append(f"- exit_ab_run_id: `{summary['exit_ab']['run_id']}`")
+    lines.append(f"- selected_exit: `{summary['exit_ab']['selected_exit']}`")
+    lines.append("| exit_mode | trade_count | PF | expectancy | maxDD | exp_lcb | drag_sensitivity |")
+    lines.append("| --- | ---: | ---: | ---: | ---: | ---: | ---: |")
+    for row in summary["exit_ab"]["rows"]:
+        lines.append(
+            f"| {row.get('exit_mode','')} | "
+            f"{_finite(row.get('trade_count',0.0),0.0):.2f} | "
+            f"{_finite(row.get('profit_factor',0.0),0.0):.6f} | "
+            f"{_finite(row.get('expectancy',0.0),0.0):.6f} | "
+            f"{_finite(row.get('max_drawdown',0.0),0.0):.6f} | "
+            f"{_finite(row.get('exp_lcb',0.0),0.0):.6f} | "
+            f"{_finite(row.get('drag_sensitivity',0.0),0.0):.6f} |"
+        )
+    lines.append("")
+    lines.append("## Before/After Comparison")
+    lines.append("### Dry")
+    lines.append(f"- Stage-9 baseline run-context: `{dry.get('stage10_6_run_id','')}`")
+    lines.append(f"- Stage-10.6 run_id: `{dry.get('pre_run_id','')}`")
+    lines.append(f"- Stage-10.7 run_id: `{dry.get('stage10_6_run_id','')}`")
+    lines.append(f"- walkforward: `{dry.get('walkforward_pre','N/A')} -> {dry.get('walkforward_stage10_6','N/A')}`")
+    lines.append(f"- usable_windows: `{dry.get('usable_windows_pre',0)} -> {dry.get('usable_windows_stage10_6',0)}`")
+    lines.append("")
+    lines.append("### Real")
+    lines.append(f"- available: `{real.get('available', False)}`")
+    lines.append(f"- Stage-10.6 run_id: `{real.get('pre_run_id','')}`")
+    lines.append(f"- Stage-10.7 run_id: `{real.get('stage10_6_run_id','')}`")
+    lines.append(f"- walkforward: `{real.get('walkforward_pre','N/A')} -> {real.get('walkforward_stage10_6','N/A')}`")
+    lines.append(f"- usable_windows: `{real.get('usable_windows_pre',0)} -> {real.get('usable_windows_stage10_6',0)}`")
+    lines.append("")
+    lines.append("| metric | Stage-9 baseline | Stage-10.6 | Stage-10.7 |")
+    lines.append("| --- | ---: | ---: | ---: |")
+    context = real if bool(real.get("available", False)) else dry
+    for metric in ["trade_count", "profit_factor", "expectancy", "max_drawdown", "pf_adj", "exp_lcb"]:
+        lines.append(
+            f"| {metric} | "
+            f"{_finite(context.get('baseline', {}).get(metric, 0.0), 0.0):.6f} | "
+            f"{_finite(context.get('stage10_pre', {}).get(metric, 0.0), 0.0):.6f} | "
+            f"{_finite(context.get('stage10_6', {}).get(metric, 0.0), 0.0):.6f} |"
+        )
+    lines.append("")
+    lines.append("## Trade Count Guard")
+    lines.append(f"- pass: `{guard['pass']}`")
+    lines.append(f"- observed_drop_pct: `{guard['observed_drop_pct']:.6f}`")
+    lines.append(f"- max_drop_pct: `{guard['max_drop_pct']:.2f}`")
+    if not bool(guard.get("pass", True)):
+        lines.append("- family_reduction_breakdown (top 5 by delta_vs_baseline_total):")
+        for row in list(guard.get("family_reduction_breakdown", []))[:5]:
+            lines.append(
+                f"  - {row.get('family','')}: "
+                f"trade_count={_finite(row.get('trade_count',0.0),0.0):.2f}, "
+                f"delta_vs_baseline_total={_finite(row.get('delta_vs_baseline_total',0.0),0.0):.2f}"
+            )
+    lines.append("")
+    lines.append("## Determinism")
+    lines.append(f"- pass: `{summary['determinism']}`")
+    lines.append(f"- detail: `{summary['determinism_detail']}`")
+    lines.append("")
+    lines.append("## Final Verdict")
+    lines.append(f"- {summary['final_verdict']}")
 
     out_md.write_text("\n".join(lines).strip() + "\n", encoding="utf-8")
     out_json.write_text(json.dumps(summary, indent=2, allow_nan=False), encoding="utf-8")
