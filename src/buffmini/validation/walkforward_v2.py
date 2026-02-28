@@ -319,6 +319,7 @@ def _safe_backtest(
         max_hold_bars=int(settings["max_hold_bars"]),
         round_trip_cost_pct=float(costs.get("round_trip_cost_pct", 0.1)),
         slippage_pct=float(costs.get("slippage_pct", 0.0005)),
+        cost_model_cfg=cfg.get("cost_model"),
     )
 
 

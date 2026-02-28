@@ -13,6 +13,18 @@ costs:
   slippage_pct: 0.0005
   funding_pct_per_day: 0.0
 
+cost_model:
+  mode: simple
+  round_trip_cost_pct: 0.1
+  v2:
+    slippage_bps_base: 0.5
+    slippage_bps_vol_mult: 2.0
+    spread_bps: 0.5
+    delay_bars: 0
+    vol_proxy: atr_pct
+    vol_lookback: 14
+    max_total_bps_per_side: 10.0
+
 risk:
   risk_per_trade_pct: 0.01
   max_drawdown_pct: 0.25

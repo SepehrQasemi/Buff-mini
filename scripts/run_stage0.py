@@ -195,6 +195,7 @@ def run_stage0(
                 round_trip_cost_pct=float(costs["round_trip_cost_pct"]),
                 slippage_pct=float(costs["slippage_pct"]),
                 initial_capital=10_000.0 * float(risk["max_concurrent_positions"]),
+                cost_model_cfg=config.get("cost_model"),
             )
 
             sanitized = strategy.name.lower().replace(" ", "_").replace("/", "-")

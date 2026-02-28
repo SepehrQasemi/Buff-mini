@@ -6,7 +6,14 @@ from typing import Any
 
 import pandas as pd
 
-from buffmini.backtest.costs import apply_fee, apply_slippage, round_trip_pct_to_one_way_fee_rate
+from buffmini.backtest.costs import (
+    apply_fee,
+    apply_slippage,
+    fill_price_and_index,
+    normalized_cost_cfg,
+    one_way_slippage_for_bar,
+    round_trip_pct_to_one_way_fee_rate,
+)
 from buffmini.backtest.metrics import calculate_metrics
 from buffmini.types import BacktestResult, Trade
 
@@ -29,6 +36,7 @@ def run_backtest(
     exit_mode: str = "fixed_atr",
     trailing_atr_k: float = 1.5,
     partial_size: float = 0.5,
+    cost_model_cfg: dict[str, Any] | None = None,
 ) -> BacktestResult:
     """Run a single-position long/short backtest with multiple exit styles."""
 
@@ -44,7 +52,12 @@ def run_backtest(
     data = frame.copy().reset_index(drop=True)
     data["timestamp"] = pd.to_datetime(data["timestamp"], utc=True)
 
-    one_way_fee_rate = round_trip_pct_to_one_way_fee_rate(round_trip_cost_pct)
+    cost_cfg = normalized_cost_cfg(
+        round_trip_cost_pct=float(round_trip_cost_pct),
+        slippage_pct=float(slippage_pct),
+        cost_model_cfg=cost_model_cfg,
+    )
+    one_way_fee_rate = round_trip_pct_to_one_way_fee_rate(float(cost_cfg["round_trip_cost_pct"]))
 
     equity = float(initial_capital)
     equity_rows: list[dict[str, Any]] = []
@@ -60,7 +73,15 @@ def run_backtest(
         if position is None and signal in (-1, 1) and pd.notna(atr) and atr > 0 and equity > 0:
             side = "long" if signal == 1 else "short"
             entry_exec_side = "buy" if side == "long" else "sell"
-            entry_price = apply_slippage(float(row["close"]), slippage_pct, entry_exec_side)
+            entry_price, entry_idx = _execution_fill_price(
+                data=data,
+                trigger_index=idx,
+                base_price=float(row["close"]),
+                side=entry_exec_side,
+                cost_cfg=cost_cfg,
+                atr_col=atr_col,
+            )
+            entry_time = pd.to_datetime(data.iloc[entry_idx]["timestamp"], utc=True)
             qty = equity / entry_price if entry_price > 0 else 0.0
             if qty <= 0:
                 equity_rows.append({"timestamp": timestamp, "equity": equity})
@@ -82,8 +103,8 @@ def run_backtest(
             )
 
             position = {
-                "entry_idx": idx,
-                "entry_time": timestamp,
+                "entry_idx": int(entry_idx),
+                "entry_time": entry_time,
                 "entry_price": entry_price,
                 "side": side,
                 "qty_total": qty,
@@ -143,7 +164,14 @@ def run_backtest(
                     partial_qty = max(0.0, min(partial_qty, float(position["qty_open"])))
                     if partial_qty > 0:
                         partial_side = "sell" if side == "long" else "buy"
-                        partial_price = apply_slippage(one_r_price, slippage_pct, partial_side)
+                        partial_price, _ = _execution_fill_price(
+                            data=data,
+                            trigger_index=idx,
+                            base_price=float(one_r_price),
+                            side=partial_side,
+                            cost_cfg=cost_cfg,
+                            atr_col=atr_col,
+                        )
                         partial_notional = partial_price * partial_qty
                         partial_fee = apply_fee(partial_notional, one_way_fee_rate)
                         partial_gross = (partial_price - float(position["entry_price"])) * partial_qty * direction
@@ -166,6 +194,8 @@ def run_backtest(
 
             exit_reason = ""
             exit_price = None
+            exit_idx = int(idx)
+            exit_time = timestamp
 
             if side == "long":
                 stop_hit = float(row["low"]) <= float(position["stop_price"])
@@ -177,17 +207,41 @@ def run_backtest(
             if stop_hit:
                 exit_reason = "stop_loss"
                 exec_side = "sell" if side == "long" else "buy"
-                exit_price = apply_slippage(float(position["stop_price"]), slippage_pct, exec_side)
+                exit_price, exit_idx = _execution_fill_price(
+                    data=data,
+                    trigger_index=idx,
+                    base_price=float(position["stop_price"]),
+                    side=exec_side,
+                    cost_cfg=cost_cfg,
+                    atr_col=atr_col,
+                )
+                exit_time = pd.to_datetime(data.iloc[exit_idx]["timestamp"], utc=True)
             elif exit_mode in {"fixed_atr", "breakeven_1r"} and tp_hit:
                 exit_reason = "take_profit"
                 exec_side = "sell" if side == "long" else "buy"
-                exit_price = apply_slippage(float(position["tp_price"]), slippage_pct, exec_side)
+                exit_price, exit_idx = _execution_fill_price(
+                    data=data,
+                    trigger_index=idx,
+                    base_price=float(position["tp_price"]),
+                    side=exec_side,
+                    cost_cfg=cost_cfg,
+                    atr_col=atr_col,
+                )
+                exit_time = pd.to_datetime(data.iloc[exit_idx]["timestamp"], utc=True)
 
             bars_held = idx - int(position["entry_idx"])
             if not exit_reason and bars_held >= int(max_hold_bars):
                 exit_reason = "time_stop"
                 exec_side = "sell" if side == "long" else "buy"
-                exit_price = apply_slippage(float(row["close"]), slippage_pct, exec_side)
+                exit_price, exit_idx = _execution_fill_price(
+                    data=data,
+                    trigger_index=idx,
+                    base_price=float(row["close"]),
+                    side=exec_side,
+                    cost_cfg=cost_cfg,
+                    atr_col=atr_col,
+                )
+                exit_time = pd.to_datetime(data.iloc[exit_idx]["timestamp"], utc=True)
 
             if exit_reason and exit_price is not None:
                 qty_open = float(position["qty_open"])
@@ -211,12 +265,12 @@ def run_backtest(
                     symbol=symbol,
                     side=side,
                     entry_time=position["entry_time"],
-                    exit_time=timestamp,
+                    exit_time=exit_time,
                     entry_price=float(position["entry_price"]),
                     exit_price=float(exit_price),
                     pnl=float(net_trade_pnl),
                     return_pct=float(net_trade_pnl / float(position["entry_notional"])) if position["entry_notional"] else 0.0,
-                    bars_held=bars_held,
+                    bars_held=int(max(0, exit_idx - int(position["entry_idx"]))),
                     exit_reason=exit_reason,
                 )
                 trades.append(trade.to_dict())
@@ -225,12 +279,20 @@ def run_backtest(
         equity_rows.append({"timestamp": timestamp, "equity": equity})
 
     if position is not None:
-        final_row = data.iloc[-1]
-        final_time = pd.to_datetime(final_row["timestamp"], utc=True)
+        final_idx = len(data) - 1
+        final_row = data.iloc[final_idx]
         side = position["side"]
         direction = 1.0 if side == "long" else -1.0
         exec_side = "sell" if side == "long" else "buy"
-        exit_price = apply_slippage(float(final_row["close"]), slippage_pct, exec_side)
+        exit_price, exit_idx = _execution_fill_price(
+            data=data,
+            trigger_index=final_idx,
+            base_price=float(final_row["close"]),
+            side=exec_side,
+            cost_cfg=cost_cfg,
+            atr_col=atr_col,
+        )
+        final_time = pd.to_datetime(data.iloc[exit_idx]["timestamp"], utc=True)
 
         qty_open = float(position["qty_open"])
         exit_notional = exit_price * qty_open
@@ -255,7 +317,7 @@ def run_backtest(
             exit_price=float(exit_price),
             pnl=float(net_trade_pnl),
             return_pct=float(net_trade_pnl / float(position["entry_notional"])) if position["entry_notional"] else 0.0,
-            bars_held=int(len(data) - 1 - int(position["entry_idx"])),
+            bars_held=int(max(0, exit_idx - int(position["entry_idx"]))),
             exit_reason="end_of_data",
         )
         trades.append(trade.to_dict())
@@ -268,3 +330,30 @@ def run_backtest(
     metrics = calculate_metrics(trades_df, equity_curve)
 
     return BacktestResult(trades=trades_df, equity_curve=equity_curve, metrics=metrics)
+
+
+def _execution_fill_price(
+    data: pd.DataFrame,
+    trigger_index: int,
+    base_price: float,
+    side: str,
+    cost_cfg: dict[str, Any],
+    atr_col: str,
+) -> tuple[float, int]:
+    """Resolve delayed fill and apply one-way slippage/spread."""
+
+    fill_base_price, fill_idx = fill_price_and_index(
+        frame=data,
+        trigger_index=int(trigger_index),
+        base_price=float(base_price),
+        cost_cfg=cost_cfg,
+    )
+    slippage_rate = one_way_slippage_for_bar(
+        frame=data,
+        bar_index=int(fill_idx),
+        cost_cfg=cost_cfg,
+        atr_col=atr_col,
+        close_col="close",
+    )
+    filled = apply_slippage(float(fill_base_price), float(slippage_rate), "buy" if side == "buy" else "sell")
+    return float(filled), int(fill_idx)

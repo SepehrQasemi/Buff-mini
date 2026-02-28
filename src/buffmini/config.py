@@ -36,6 +36,20 @@ DATA_DEFAULTS = {
     "backend": "parquet",
 }
 
+COST_MODEL_DEFAULTS = {
+    "mode": "simple",
+    "round_trip_cost_pct": 0.1,
+    "v2": {
+        "slippage_bps_base": 0.5,
+        "slippage_bps_vol_mult": 2.0,
+        "spread_bps": 0.5,
+        "delay_bars": 0,
+        "vol_proxy": "atr_pct",
+        "vol_lookback": 14,
+        "max_total_bps_per_side": 10.0,
+    },
+}
+
 EXECUTION_DEFAULTS = {
     "mode": "net",
     "per_symbol_netting": True,
@@ -280,6 +294,31 @@ def validate_config(config: ConfigDict) -> None:
     _validate_fraction(costs["slippage_pct"], "costs.slippage_pct")
     if float(costs["funding_pct_per_day"]) < 0:
         raise ValueError("costs.funding_pct_per_day must be >= 0")
+
+    cost_model = _merge_defaults(COST_MODEL_DEFAULTS, config.get("cost_model", {}))
+    mode = str(cost_model["mode"])
+    if mode not in {"simple", "v2"}:
+        raise ValueError("cost_model.mode must be 'simple' or 'v2'")
+    # Backward-compatible behavior: `costs.round_trip_cost_pct` is canonical.
+    # Keep cost_model in sync so existing scripts that only edit `costs` continue to work.
+    cost_model["round_trip_cost_pct"] = float(costs["round_trip_cost_pct"])
+
+    v2 = cost_model["v2"]
+    if float(v2["slippage_bps_base"]) < 0:
+        raise ValueError("cost_model.v2.slippage_bps_base must be >= 0")
+    if float(v2["slippage_bps_vol_mult"]) < 0:
+        raise ValueError("cost_model.v2.slippage_bps_vol_mult must be >= 0")
+    if float(v2["spread_bps"]) < 0:
+        raise ValueError("cost_model.v2.spread_bps must be >= 0")
+    if int(v2["delay_bars"]) < 0:
+        raise ValueError("cost_model.v2.delay_bars must be >= 0")
+    if str(v2["vol_proxy"]) != "atr_pct":
+        raise ValueError("cost_model.v2.vol_proxy must be 'atr_pct'")
+    if int(v2["vol_lookback"]) < 1:
+        raise ValueError("cost_model.v2.vol_lookback must be >= 1")
+    if float(v2["max_total_bps_per_side"]) <= 0:
+        raise ValueError("cost_model.v2.max_total_bps_per_side must be > 0")
+    config["cost_model"] = cost_model
 
     risk = config["risk"]
     _validate_fraction(risk["risk_per_trade_pct"], "risk.risk_per_trade_pct")

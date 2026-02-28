@@ -44,6 +44,15 @@ def test_load_config_success() -> None:
     assert thresholds["NearMiss"]["min_exp_lcb_holdout"] == -5
     assert config["evaluation"]["stage1"]["promotion_holdout_months"] == [3, 6, 9, 12]
     assert config["data"]["backend"] == "parquet"
+    assert config["cost_model"]["mode"] == "simple"
+    assert config["cost_model"]["round_trip_cost_pct"] == 0.1
+    assert config["cost_model"]["v2"]["slippage_bps_base"] == 0.5
+    assert config["cost_model"]["v2"]["slippage_bps_vol_mult"] == 2.0
+    assert config["cost_model"]["v2"]["spread_bps"] == 0.5
+    assert config["cost_model"]["v2"]["delay_bars"] == 0
+    assert config["cost_model"]["v2"]["vol_proxy"] == "atr_pct"
+    assert config["cost_model"]["v2"]["vol_lookback"] == 14
+    assert config["cost_model"]["v2"]["max_total_bps_per_side"] == 10.0
     assert config["portfolio"]["walkforward"]["min_usable_windows"] == 3
     assert config["portfolio"]["walkforward"]["min_forward_trades"] == 10
     assert config["portfolio"]["walkforward"]["min_forward_exposure"] == 0.01
