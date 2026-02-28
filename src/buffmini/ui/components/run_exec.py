@@ -58,6 +58,11 @@ def validate_pipeline_params(params: dict[str, Any]) -> dict[str, Any]:
         raise ValueError("timeframe must be 1h")
     normalized["timeframe"] = timeframe
 
+    base_timeframe = str(params.get("base_timeframe", "1h")).lower()
+    if base_timeframe not in {"1m", "1h"}:
+        raise ValueError("base_timeframe must be 1m or 1h")
+    normalized["base_timeframe"] = base_timeframe
+
     window_months = int(params.get("window_months", 36))
     if window_months not in {3, 6, 12, 36}:
         raise ValueError("window_months must be one of: 3,6,12,36")
@@ -118,6 +123,8 @@ def start_pipeline(params: dict[str, Any], runs_dir: Path = RUNS_DIR) -> tuple[s
         run_id,
         "--symbols",
         ",".join(validated["symbols"]),
+        "--base-timeframe",
+        validated["base_timeframe"],
         "--timeframe",
         validated["timeframe"],
         "--window-months",

@@ -47,6 +47,7 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument("--config", type=Path, default=DEFAULT_CONFIG_PATH)
     parser.add_argument("--run-id", type=str, default=None)
     parser.add_argument("--symbols", type=str, default="BTC/USDT,ETH/USDT")
+    parser.add_argument("--base-timeframe", type=str, default=None)
     parser.add_argument("--timeframe", type=str, default="1h")
     parser.add_argument("--window-months", type=int, choices=[3, 6, 12, 36], default=12)
     parser.add_argument("--candidate-count", type=int, default=None)
@@ -68,12 +69,15 @@ def main() -> None:
     if not symbols:
         raise ValueError("--symbols must contain at least one symbol")
     if args.timeframe != "1h":
-        raise ValueError("Only 1h timeframe is supported")
+        raise ValueError("Pipeline currently supports operational timeframe=1h")
+    if args.base_timeframe is not None and str(args.base_timeframe).strip().lower() not in {"1m", "1h"}:
+        raise ValueError("base-timeframe must be 1m or 1h")
 
     signature = stable_hash(
         {
             "symbols": symbols,
             "timeframe": args.timeframe,
+            "base_timeframe": str(args.base_timeframe or ""),
             "window_months": args.window_months,
             "mode": args.mode,
             "execution_mode": args.execution_mode,
@@ -405,10 +409,13 @@ def _prepare_config(config: dict[str, Any], args: argparse.Namespace, symbols: l
     cfg["universe"]["symbols"] = symbols
     cfg["universe"]["operational_timeframe"] = str(args.timeframe)
     cfg["universe"]["timeframe"] = str(args.timeframe)
-    if not str(cfg["universe"].get("base_timeframe") or "").strip():
-        cfg["universe"]["base_timeframe"] = str(args.timeframe)
+    resolved_base_timeframe = str(args.base_timeframe or cfg["universe"].get("base_timeframe") or args.timeframe)
+    cfg["universe"]["base_timeframe"] = resolved_base_timeframe
     if "htf_timeframes" not in cfg["universe"]:
         cfg["universe"]["htf_timeframes"] = []
+    if str(resolved_base_timeframe) != str(args.timeframe):
+        cfg.setdefault("data", {})
+        cfg["data"]["resample_source"] = "base"
     resolved_end_ts = _resolve_universe_end_ts(cfg, symbols=symbols, timeframe=str(args.timeframe))
     cfg["universe"]["resolved_end_ts"] = resolved_end_ts
     cfg["universe"]["end"] = resolved_end_ts

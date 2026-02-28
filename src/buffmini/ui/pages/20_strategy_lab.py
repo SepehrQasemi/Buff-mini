@@ -31,6 +31,7 @@ quick_count, full_count, default_sim = _stage5_presets(config)
 defaults = st.session_state.get("strategy_lab_defaults", {})
 default_symbols = defaults.get("symbols") or list(config["universe"]["symbols"])
 default_timeframe = defaults.get("timeframe", "1h")
+default_base_timeframe = defaults.get("base_timeframe", str(config["universe"].get("base_timeframe", "1h")))
 default_method = defaults.get("method")
 default_leverage = defaults.get("leverage")
 
@@ -47,6 +48,7 @@ with st.form("strategy_lab_form"):
         options=["BTC/USDT", "ETH/USDT"],
         default=default_symbols,
     )
+    base_timeframe = st.selectbox("Base timeframe (data source)", options=["1h", "1m"], index=0 if default_base_timeframe == "1h" else 1)
     timeframe = st.selectbox("Timeframe", options=["1h"], index=0 if default_timeframe == "1h" else 0)
     window_months = st.selectbox("Evaluation window (months)", options=[3, 6, 12, 36], index=2)
     fees_round_trip_pct = st.number_input("Round-trip fee (%)", min_value=0.0, max_value=100.0, value=float(config["costs"]["round_trip_cost_pct"]), step=0.01)
@@ -89,6 +91,7 @@ if submitted:
 
         params = {
             "symbols": symbols,
+            "base_timeframe": base_timeframe,
             "timeframe": timeframe,
             "window_months": int(window_months),
             "candidate_count": int(candidate_count),

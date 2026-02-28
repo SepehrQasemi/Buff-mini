@@ -326,6 +326,34 @@ Outputs:
 - `docs/stage11_1_report.md`
 - `docs/stage11_1_report_summary.json`
 
+## Stage-11.4 1m Data + Performance
+
+Stage-11.4 adds deterministic 1m ingestion, exact derived timeframe resampling, and cache-backed performance improvements while keeping legacy 1h behavior intact when `base_timeframe` is not used.
+
+Update 1m market data (Binance via ccxt):
+
+```bash
+python scripts/update_data.py --timeframe 1m --symbols BTC/USDT,ETH/USDT
+```
+
+Benchmark cache effectiveness:
+
+```bash
+python scripts/bench_engine.py --seed 42 --base-timeframe 1m --operational-timeframe 1h
+```
+
+Run operational timeframe sweep derived from 1m:
+
+```bash
+python scripts/run_timeframe_sweep.py --seed 42 --base-timeframe 1m --tfs 15m,30m,1h,2h,4h
+```
+
+Outputs:
+
+- `docs/stage11_4_1m_and_perf_report.md`
+- `docs/stage11_4_1m_and_perf_report_summary.json`
+- `docs/timeframe_sweep_from_1m.md`
+
 ## Output Structure
 
 - Raw market data: `data/raw/*.parquet`

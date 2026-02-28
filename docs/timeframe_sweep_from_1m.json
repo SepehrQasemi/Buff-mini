@@ -1,0 +1,88 @@
+{
+  "seed": 42,
+  "base_timeframe": "1m",
+  "symbols": [
+    "BTC/USDT",
+    "ETH/USDT"
+  ],
+  "rows": [
+    {
+      "timeframe": "15m",
+      "trade_count": 691.0,
+      "trades_per_month": 24.449959456470992,
+      "profit_factor": 0.48972466722434904,
+      "expectancy": -17.123442156739607,
+      "exp_lcb": -19.496929706276713,
+      "max_drawdown": 0.6009467496376864,
+      "runtime_seconds": 8.998266300011892,
+      "data_hash": "b041fa2a0753bac5"
+    },
+    {
+      "timeframe": "1h",
+      "trade_count": 184.0,
+      "trades_per_month": 6.511353583013861,
+      "profit_factor": 1.0523067905333046,
+      "expectancy": 9.325898718521676,
+      "exp_lcb": -5.8954156179805395,
+      "max_drawdown": 0.1700829653240804,
+      "runtime_seconds": 2.3829804999986663,
+      "data_hash": "34f6d9ff29f1c2b9"
+    },
+    {
+      "timeframe": "2h",
+      "trade_count": 83.0,
+      "trades_per_month": 2.9374754227290607,
+      "profit_factor": 1.1031696967365567,
+      "expectancy": 7.870278308351885,
+      "exp_lcb": -28.471784124710467,
+      "max_drawdown": 0.1477305818610088,
+      "runtime_seconds": 2.0323462999949697,
+      "data_hash": "d47c7507b2753923"
+    },
+    {
+      "timeframe": "30m",
+      "trade_count": 377.0,
+      "trades_per_month": 13.339885983880478,
+      "profit_factor": 0.5780687504852943,
+      "expectancy": -18.604676276334008,
+      "exp_lcb": -23.162757122104363,
+      "max_drawdown": 0.36072591868418913,
+      "runtime_seconds": 5.154441599996062,
+      "data_hash": "4cf3a2737ff0605d"
+    },
+    {
+      "timeframe": "4h",
+      "trade_count": 38.0,
+      "trades_per_month": 1.3453973249409912,
+      "profit_factor": 0.5316633927694883,
+      "expectancy": -102.50486679824145,
+      "exp_lcb": -161.07623531085943,
+      "max_drawdown": 0.2632289183709803,
+      "runtime_seconds": 1.517288599978201,
+      "data_hash": "0af07c17a791577f"
+    }
+  ],
+  "best_by_profit_factor": {
+    "timeframe": "2h",
+    "trade_count": 83.0,
+    "trades_per_month": 2.9374754227290607,
+    "profit_factor": 1.1031696967365567,
+    "expectancy": 7.870278308351885,
+    "exp_lcb": -28.471784124710467,
+    "max_drawdown": 0.1477305818610088,
+    "runtime_seconds": 2.0323462999949697,
+    "data_hash": "d47c7507b2753923"
+  },
+  "best_by_exp_lcb": {
+    "timeframe": "1h",
+    "trade_count": 184.0,
+    "trades_per_month": 6.511353583013861,
+    "profit_factor": 1.0523067905333046,
+    "expectancy": 9.325898718521676,
+    "exp_lcb": -5.8954156179805395,
+    "max_drawdown": 0.1700829653240804,
+    "runtime_seconds": 2.3829804999986663,
+    "data_hash": "34f6d9ff29f1c2b9"
+  },
+  "config_hash": "ed191d9385ac"
+}
