@@ -299,14 +299,25 @@ Use with:
 python scripts/run_stage11.py --preset configs/presets/stage11_bias.yaml --seed 42
 ```
 
+Run the full Stage-11.1 effectiveness matrix (baseline + bias + confirm + bias_confirm):
+
+```bash
+python scripts/run_stage11_matrix.py --seed 42
+```
+
 Outputs:
 
-- `runs/<run_id>_stage11/stage11_summary.json`
-- `runs/<run_id>_stage11/mtf_layer_stats.json`
-- `runs/<run_id>_stage11/regime_distribution.csv`
-- `runs/<run_id>_stage11/comparison_vs_stage10_7.csv`
+- `runs/<run_id>_stage11_1/stage11_summary.json`
+- `runs/<run_id>_stage11_1/mtf_join_stats.json`
+- `runs/<run_id>_stage11_1/regime_distribution.csv`
+- `runs/<run_id>_stage11_1/comparison_vs_stage10_7.csv`
+- `runs/<run_id>_stage11_1/sizing_stats.json`
+- `runs/<run_id>_stage11_1/confirm_stats.json`
+- `runs/<run_id>_stage11_1/comparison_vs_baseline.json`
 - `docs/stage11_report.md`
 - `docs/stage11_report_summary.json`
+- `docs/stage11_1_report.md`
+- `docs/stage11_1_report_summary.json`
 
 ## Output Structure
 

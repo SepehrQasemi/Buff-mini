@@ -43,7 +43,7 @@ evaluation:
         multiplier_max: 1.15
       confirm:
         enabled: true
-        threshold: 0.50
+        threshold: 0.30
         max_delay_bars: 3
       exit:
         enabled: false

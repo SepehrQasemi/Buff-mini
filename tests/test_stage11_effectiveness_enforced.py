@@ -37,6 +37,5 @@ def test_stage11_bias_and_confirm_effectiveness_enforced(tmp_path: Path) -> None
     stats = confirm_summary["confirm_stats"]
     assert int(stats["signals_seen"]) > 0
     assert int(stats["confirmed"]) + int(stats["skipped"]) == int(stats["signals_seen"])
-    assert 0.05 < float(stats["confirm_rate"]) < 0.95
+    assert 0.25 < float(stats["confirm_rate"]) < 0.75
     assert bool(confirm_summary["noop_bug_detected"]) is False
-

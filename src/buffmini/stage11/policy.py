@@ -139,8 +139,6 @@ def _build_confirm_hook(cfg: dict[str, Any]):
         ) -> int:
             _ = (timestamp, symbol, signal_family)
             emitted = 0
-            score = _score_confirm(base_row)
-
             if int(signal) != 0:
                 self._signals_seen += 1
                 self._pending.append({"signal": int(np.sign(signal)), "delay": 0, "remaining": max_delay_bars})
@@ -148,9 +146,8 @@ def _build_confirm_hook(cfg: dict[str, Any]):
             next_pending: list[dict[str, int]] = []
             emitted_once = False
             for item in self._pending:
-                slope = _to_float(base_row.get("stage11_confirm_ema_slope_50", base_row.get("ema_slope_50", 0.0)))
-                direction_ok = (int(item["signal"]) > 0 and slope >= 0.0) or (int(item["signal"]) < 0 and slope <= 0.0)
-                if not emitted_once and score >= threshold and direction_ok:
+                score = _score_confirm(base_row, signal=int(item["signal"]))
+                if not emitted_once and score >= threshold:
                     emitted = int(item["signal"])
                     emitted_once = True
                     self._confirmed += 1
@@ -240,12 +237,15 @@ def _score_range(row: dict[str, Any], trend_score: float) -> float:
     return _clip01((1.0 - trend_score) * max(0.0, mid_vol))
 
 
-def _score_confirm(row: dict[str, Any]) -> float:
+def _score_confirm(row: dict[str, Any], signal: int) -> float:
     volume_z = _to_float(row.get("stage11_confirm_volume_z_120", row.get("volume_z_120", 0.0)))
-    slope = abs(_to_float(row.get("stage11_confirm_ema_slope_50", row.get("ema_slope_50", 0.0))))
-    volume_score = _clip01((volume_z + 1.0) / 2.0)
-    slope_score = _clip01(slope / 0.02)
-    return _clip01(0.5 * volume_score + 0.5 * slope_score)
+    slope = _to_float(row.get("stage11_confirm_ema_slope_50", row.get("ema_slope_50", 0.0)))
+    directional_slope = slope if int(signal) >= 0 else -slope
+    atr_rank = _to_float(row.get("stage11_confirm_atr_pct_rank_252", row.get("atr_pct_rank_252", 0.5)))
+    volume_score = _clip01((volume_z + 2.0) / 4.0)
+    slope_score = _clip01((directional_slope / 0.02 + 1.0) / 2.0)
+    vol_mid_score = _clip01(1.0 - abs(atr_rank - 0.5) / 0.5)
+    return _clip01(0.5 * slope_score + 0.3 * volume_score + 0.2 * vol_mid_score)
 
 
 def _merge(base: dict[str, Any], override: dict[str, Any]) -> dict[str, Any]:
