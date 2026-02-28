@@ -52,6 +52,8 @@ CORE_FEATURE_COLUMNS: tuple[str, ...] = (
     "atr_pct_rank_252",
     "ema_slope_50",
     "trend_strength_stage10",
+    "trend_strength_rank_252",
+    "ema_slope_flip_rate_48",
     "volume_z_120",
     "score_trend",
     "score_range",

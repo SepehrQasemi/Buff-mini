@@ -6,9 +6,11 @@ from buffmini.stage10.regimes import (
     REGIME_SCORE_COLUMNS,
     compute_regime_scores,
     ensure_stage10_regime_features,
+    regime_calibration_diagnostics,
     regime_distribution,
 )
 from buffmini.stage10.signals import (
+    BREAKOUT_FAMILIES,
     DEFAULT_SIGNAL_PARAMS,
     MEAN_REV_FAMILIES,
     SIGNAL_FAMILIES,
@@ -39,7 +41,9 @@ __all__ = [
     "REGIME_SCORE_COLUMNS",
     "compute_regime_scores",
     "ensure_stage10_regime_features",
+    "regime_calibration_diagnostics",
     "regime_distribution",
+    "BREAKOUT_FAMILIES",
     "DEFAULT_SIGNAL_PARAMS",
     "MEAN_REV_FAMILIES",
     "SIGNAL_FAMILIES",

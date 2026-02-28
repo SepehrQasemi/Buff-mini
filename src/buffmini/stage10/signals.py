@@ -7,19 +7,17 @@ from typing import Any
 import numpy as np
 import pandas as pd
 
-from buffmini.stage10.regimes import REGIME_RANGE
-
 TREND_FAMILIES: tuple[str, ...] = (
     "BreakoutRetest",
     "MA_SlopePullback",
-    "VolCompressionBreakout",
 )
+BREAKOUT_FAMILIES: tuple[str, ...] = ("VolCompressionBreakout",)
 MEAN_REV_FAMILIES: tuple[str, ...] = (
     "BollingerSnapBack",
     "ATR_DistanceRevert",
     "RangeFade",
 )
-SIGNAL_FAMILIES: tuple[str, ...] = TREND_FAMILIES + MEAN_REV_FAMILIES
+SIGNAL_FAMILIES: tuple[str, ...] = TREND_FAMILIES + BREAKOUT_FAMILIES + MEAN_REV_FAMILIES
 
 DEFAULT_SIGNAL_PARAMS: dict[str, dict[str, float | int]] = {
     "BreakoutRetest": {"donchian_period": 20, "retest_atr_k": 0.8},
@@ -35,6 +33,8 @@ def signal_family_type(family: str) -> str:
     name = str(family)
     if name in TREND_FAMILIES:
         return "trend"
+    if name in BREAKOUT_FAMILIES:
+        return "breakout"
     if name in MEAN_REV_FAMILIES:
         return "mean_reversion"
     raise ValueError(f"Unknown signal family: {family}")
@@ -140,8 +140,8 @@ def generate_signal_family(
         edge_k = float(p["edge_atr_k"])
         near_high = (high - close) <= atr * edge_k
         near_low = (close - low) <= atr * edge_k
-        regime = frame.get("regime_label_stage10", pd.Series("", index=frame.index)).astype(str)
-        in_range = regime.eq(REGIME_RANGE)
+        range_score = pd.to_numeric(frame.get("score_range", np.nan), errors="coerce").fillna(0.0)
+        in_range = range_score >= 0.50
         long_entry = in_range & near_low
         short_entry = in_range & near_high
         strength = _clip01(((high - low) / (atr.replace(0.0, np.nan) + 1e-12)) / 6.0)

@@ -126,16 +126,26 @@ def test_load_config_success() -> None:
     assert config["evaluation"]["stage10"]["enabled"] is False
     assert config["evaluation"]["stage10"]["cost_mode"] == "v2"
     assert config["evaluation"]["stage10"]["walkforward_v2"] is True
+    assert config["evaluation"]["stage10"]["regimes"]["trend_rank_strong"] == 0.60
+    assert config["evaluation"]["stage10"]["regimes"]["trend_rank_weak"] == 0.40
+    assert config["evaluation"]["stage10"]["regimes"]["high_vol_rank"] == 0.75
+    assert config["evaluation"]["stage10"]["regimes"]["low_vol_rank"] == 0.25
+    assert config["evaluation"]["stage10"]["regimes"]["chop_flip_window"] == 48
+    assert config["evaluation"]["stage10"]["regimes"]["chop_flip_threshold"] == 0.18
     assert config["evaluation"]["stage10"]["activation"]["multiplier_min"] == 0.9
     assert config["evaluation"]["stage10"]["activation"]["multiplier_max"] == 1.1
     assert "BreakoutRetest" in config["evaluation"]["stage10"]["signals"]["families"]
     assert config["evaluation"]["stage10"]["signals"]["enabled_families"] == [
         "BreakoutRetest",
         "MA_SlopePullback",
-        "BollingerSnapBack",
         "ATR_DistanceRevert",
+        "RangeFade",
+        "VolCompressionBreakout",
     ]
     assert config["evaluation"]["stage10"]["exits"]["modes"] == ["fixed_atr", "atr_trailing"]
+    assert config["evaluation"]["stage10"]["sandbox"]["top_k_per_category"] == 2
+    assert config["evaluation"]["stage10"]["sandbox"]["bootstrap_resamples"] == 500
+    assert config["evaluation"]["stage10"]["sandbox"]["exit_mode"] == "fixed_atr"
     assert config["ui"]["stage5"]["presets"]["quick"]["candidate_count"] == 1000
     assert config["ui"]["stage5"]["presets"]["full"]["candidate_count"] == 5000
     assert config["ui"]["stage5"]["window_months_options"] == [3, 6, 12, 36]

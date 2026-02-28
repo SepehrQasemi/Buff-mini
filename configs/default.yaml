@@ -272,9 +272,12 @@ evaluation:
     cost_mode: v2
     walkforward_v2: true
     regimes:
-      trend_threshold: 0.010
-      vol_rank_high: 0.80
-      vol_rank_low: 0.35
+      trend_rank_strong: 0.60
+      trend_rank_weak: 0.40
+      high_vol_rank: 0.75
+      low_vol_rank: 0.25
+      chop_flip_window: 48
+      chop_flip_threshold: 0.18
       compression_z: -0.8
       expansion_z: 1.0
       volume_z_high: 1.0
@@ -296,8 +299,9 @@ evaluation:
       enabled_families:
         - BreakoutRetest
         - MA_SlopePullback
-        - BollingerSnapBack
         - ATR_DistanceRevert
+        - RangeFade
+        - VolCompressionBreakout
       defaults:
         BreakoutRetest: {donchian_period: 20, retest_atr_k: 0.8}
         MA_SlopePullback: {slope_min: 0.003, pullback_atr_k: 1.2}
@@ -315,6 +319,10 @@ evaluation:
       take_profit_atr_multiple: 3.0
       max_hold_bars: 24
       dry_run_rows: 2400
+    sandbox:
+      top_k_per_category: 2
+      bootstrap_resamples: 500
+      exit_mode: fixed_atr
 
 ui:
   stage5:

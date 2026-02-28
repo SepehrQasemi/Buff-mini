@@ -28,6 +28,8 @@ REGIME_FEATURE_COLUMNS: tuple[str, ...] = (
     "atr_pct_rank_252",
     "ema_slope_50",
     "trend_strength_stage10",
+    "trend_strength_rank_252",
+    "ema_slope_flip_rate_48",
     "volume_z_120",
 )
 
@@ -68,6 +70,11 @@ def ensure_stage10_regime_features(frame: pd.DataFrame) -> pd.DataFrame:
     out["atr_pct_rank_252"] = _rolling_percentile(out["atr_pct"], window=252)
     out["ema_slope_50"] = (ema_50 / ema_50.shift(24)) - 1.0
     out["trend_strength_stage10"] = out["ema_slope_50"].abs()
+    out["trend_strength_rank_252"] = _rolling_percentile(out["trend_strength_stage10"], window=252)
+    slope_sign = np.sign(pd.to_numeric(out["ema_slope_50"], errors="coerce")).replace(0.0, np.nan).ffill().fillna(0.0)
+    sign_flip = slope_sign.ne(slope_sign.shift(1)).astype(float)
+    sign_flip.iloc[0] = 0.0
+    out["ema_slope_flip_rate_48"] = sign_flip.rolling(window=48, min_periods=24).mean()
     out["volume_z_120"] = _rolling_zscore(volume, window=120)
     return out
 
@@ -79,9 +86,12 @@ def compute_regime_scores(
     """Compute per-bar regime probabilities and primary label."""
 
     cfg = dict(settings or {})
-    trend_threshold = float(cfg.get("trend_threshold", 0.010))
-    vol_rank_high = float(cfg.get("vol_rank_high", 0.80))
-    vol_rank_low = float(cfg.get("vol_rank_low", 0.35))
+    trend_rank_strong = float(cfg.get("trend_rank_strong", 0.60))
+    trend_rank_weak = float(cfg.get("trend_rank_weak", 0.40))
+    vol_rank_high = float(cfg.get("high_vol_rank", cfg.get("vol_rank_high", 0.75)))
+    vol_rank_low = float(cfg.get("low_vol_rank", cfg.get("vol_rank_low", 0.25)))
+    chop_flip_window = int(cfg.get("chop_flip_window", 48))
+    chop_flip_threshold = float(cfg.get("chop_flip_threshold", 0.18))
     compression_z = float(cfg.get("compression_z", -0.8))
     expansion_z = float(cfg.get("expansion_z", 1.0))
     volume_z_high = float(cfg.get("volume_z_high", 1.0))
@@ -91,26 +101,39 @@ def compute_regime_scores(
     out = derived.copy()
 
     trend_strength = pd.to_numeric(out["trend_strength_stage10"], errors="coerce")
+    trend_rank = pd.to_numeric(out["trend_strength_rank_252"], errors="coerce")
     atr_rank = pd.to_numeric(out["atr_pct_rank_252"], errors="coerce")
     bb_z = pd.to_numeric(out["bb_bandwidth_z_120"], errors="coerce")
     volume_z = pd.to_numeric(out["volume_z_120"], errors="coerce")
+    flip_rate = pd.to_numeric(out["ema_slope_flip_rate_48"], errors="coerce")
+    if chop_flip_window != 48:
+        slope_sign = np.sign(pd.to_numeric(out["ema_slope_50"], errors="coerce")).replace(0.0, np.nan).ffill().fillna(0.0)
+        sign_flip = slope_sign.ne(slope_sign.shift(1)).astype(float)
+        sign_flip.iloc[0] = 0.0
+        flip_rate = sign_flip.rolling(window=max(2, chop_flip_window), min_periods=max(2, chop_flip_window // 2)).mean()
+        out["ema_slope_flip_rate_48"] = flip_rate
 
-    trend_score = _sigmoid(trend_strength / max(trend_threshold, eps))
+    trend_scale = max(abs(trend_rank_strong - trend_rank_weak), 0.05)
+    trend_score = _sigmoid((trend_rank - trend_rank_strong) / trend_scale)
     low_trend = 1.0 - trend_score
-    range_vol_score = 1.0 - (atr_rank - vol_rank_low).abs() / max(vol_rank_low, 0.05)
-    range_bw_score = 1.0 - (bb_z.abs() / 2.5)
-    range_score = low_trend * _clip01(range_vol_score) * _clip01(range_bw_score)
 
-    vol_expansion_score = np.maximum.reduce(
-        [
-            _clip01((atr_rank - vol_rank_high) / max(1.0 - vol_rank_high, 0.05)),
-            _sigmoid((bb_z - expansion_z) * 1.5),
-            _sigmoid((volume_z - volume_z_high) * 1.5),
-        ]
+    mid_vol_score = 1.0 - np.abs(atr_rank - 0.5) / 0.25
+    mid_vol_score = _clip01(mid_vol_score)
+    range_vol_gate = _sigmoid((trend_rank_weak - trend_rank) / 0.08)
+    range_atr_gate = _clip01(1.0 - np.abs(atr_rank - 0.45) / 0.30)
+    range_bw_score = _clip01(1.0 - (bb_z.abs() / 2.0))
+    range_score = range_vol_gate * range_atr_gate * range_bw_score
+
+    vol_expansion_score = _clip01(
+        (0.60 * _sigmoid((atr_rank - vol_rank_high) / 0.08))
+        + (0.25 * _sigmoid((bb_z - expansion_z) * 1.5))
+        + (0.15 * _sigmoid((volume_z - volume_z_high) * 1.2))
     )
-    vol_compression_score = _sigmoid((compression_z - bb_z) * 1.5) * _clip01((vol_rank_low - atr_rank) / max(vol_rank_low, 0.05))
-    vol_neutral = 1.0 - (vol_expansion_score + vol_compression_score) / 2.0
-    chop_score = low_trend * _clip01(vol_neutral) * _clip01(1.0 - (bb_z.abs() / 3.0))
+    vol_compression_score = _sigmoid((vol_rank_low - atr_rank) / 0.08) * _sigmoid((compression_z - bb_z) * 1.5)
+
+    chop_flip_score = _sigmoid((flip_rate - chop_flip_threshold) / 0.05)
+    vol_neutral = _clip01(1.0 - np.abs(atr_rank - 0.5) / 0.25)
+    chop_score = _clip01(((0.6 * low_trend) + (0.4 * chop_flip_score)) * vol_neutral)
 
     raw_scores = np.column_stack(
         [
@@ -143,6 +166,35 @@ def regime_distribution(frame: pd.DataFrame) -> dict[str, float]:
     series = frame["regime_label_stage10"].astype(str)
     counts = series.value_counts(normalize=True)
     return {label: float(counts.get(label, 0.0) * 100.0) for label in REGIME_LABELS}
+
+
+def regime_calibration_diagnostics(frame: pd.DataFrame) -> dict[str, Any]:
+    """Return deterministic Stage-10.7 regime calibration diagnostics."""
+
+    required = {"trend_strength_stage10", "atr_pct_rank_252", "regime_label_stage10"}
+    missing = required.difference(frame.columns)
+    if missing:
+        raise ValueError(f"Missing required columns for regime diagnostics: {sorted(missing)}")
+
+    distribution = regime_distribution(frame)
+    max_share = max(distribution.values()) if distribution else 0.0
+    warnings: list[str] = []
+    if max_share > 70.0:
+        warnings.append("Single regime exceeds 70% share")
+    atr_rank = pd.to_numeric(frame["atr_pct_rank_252"], errors="coerce").dropna()
+    trend_strength = pd.to_numeric(frame["trend_strength_stage10"], errors="coerce").dropna()
+    atr_stats = {
+        "p05": float(atr_rank.quantile(0.05)) if not atr_rank.empty else 0.0,
+        "p50": float(atr_rank.quantile(0.50)) if not atr_rank.empty else 0.0,
+        "p95": float(atr_rank.quantile(0.95)) if not atr_rank.empty else 0.0,
+    }
+    return {
+        "distribution_pct": distribution,
+        "median_trend_strength": float(trend_strength.median()) if not trend_strength.empty else 0.0,
+        "atr_percentile_distribution": atr_stats,
+        "single_regime_warning": bool(max_share > 70.0),
+        "warnings": warnings,
+    }
 
 
 def get_family_score(family: str, scores_row: dict[str, Any] | pd.Series) -> float:

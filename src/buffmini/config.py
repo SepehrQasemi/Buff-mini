@@ -187,9 +187,12 @@ STAGE10_DEFAULTS = {
     "cost_mode": "v2",
     "walkforward_v2": True,
     "regimes": {
-        "trend_threshold": 0.010,
-        "vol_rank_high": 0.80,
-        "vol_rank_low": 0.35,
+        "trend_rank_strong": 0.60,
+        "trend_rank_weak": 0.40,
+        "high_vol_rank": 0.75,
+        "low_vol_rank": 0.25,
+        "chop_flip_window": 48,
+        "chop_flip_threshold": 0.18,
         "compression_z": -0.8,
         "expansion_z": 1.0,
         "volume_z_high": 1.0,
@@ -214,8 +217,9 @@ STAGE10_DEFAULTS = {
         "enabled_families": [
             "BreakoutRetest",
             "MA_SlopePullback",
-            "BollingerSnapBack",
             "ATR_DistanceRevert",
+            "RangeFade",
+            "VolCompressionBreakout",
         ],
         "defaults": {
             "BreakoutRetest": {"donchian_period": 20, "retest_atr_k": 0.8},
@@ -237,6 +241,11 @@ STAGE10_DEFAULTS = {
         "take_profit_atr_multiple": 3.0,
         "max_hold_bars": 24,
         "dry_run_rows": 2400,
+    },
+    "sandbox": {
+        "top_k_per_category": 2,
+        "bootstrap_resamples": 500,
+        "exit_mode": "fixed_atr",
     },
 }
 
@@ -771,12 +780,35 @@ def validate_config(config: ConfigDict) -> None:
         raise ValueError("evaluation.stage10.walkforward_v2 must be bool")
 
     regimes_cfg = stage10["regimes"]
-    if float(regimes_cfg["trend_threshold"]) < 0:
-        raise ValueError("evaluation.stage10.regimes.trend_threshold must be >= 0")
-    if not 0 <= float(regimes_cfg["vol_rank_high"]) <= 1:
-        raise ValueError("evaluation.stage10.regimes.vol_rank_high must be in [0,1]")
-    if not 0 <= float(regimes_cfg["vol_rank_low"]) <= 1:
-        raise ValueError("evaluation.stage10.regimes.vol_rank_low must be in [0,1]")
+    if "trend_threshold" in regimes_cfg and "trend_rank_strong" not in regimes_cfg:
+        regimes_cfg["trend_rank_strong"] = 0.60
+    if "vol_rank_high" in regimes_cfg and "high_vol_rank" not in regimes_cfg:
+        regimes_cfg["high_vol_rank"] = regimes_cfg["vol_rank_high"]
+    if "vol_rank_low" in regimes_cfg and "low_vol_rank" not in regimes_cfg:
+        regimes_cfg["low_vol_rank"] = regimes_cfg["vol_rank_low"]
+    if "trend_rank_weak" not in regimes_cfg:
+        regimes_cfg["trend_rank_weak"] = 0.40
+    if "chop_flip_window" not in regimes_cfg:
+        regimes_cfg["chop_flip_window"] = 48
+    if "chop_flip_threshold" not in regimes_cfg:
+        regimes_cfg["chop_flip_threshold"] = 0.18
+
+    if not 0 <= float(regimes_cfg["trend_rank_strong"]) <= 1:
+        raise ValueError("evaluation.stage10.regimes.trend_rank_strong must be in [0,1]")
+    if not 0 <= float(regimes_cfg["trend_rank_weak"]) <= 1:
+        raise ValueError("evaluation.stage10.regimes.trend_rank_weak must be in [0,1]")
+    if float(regimes_cfg["trend_rank_strong"]) <= float(regimes_cfg["trend_rank_weak"]):
+        raise ValueError("evaluation.stage10.regimes.trend_rank_strong must be > trend_rank_weak")
+    if not 0 <= float(regimes_cfg["high_vol_rank"]) <= 1:
+        raise ValueError("evaluation.stage10.regimes.high_vol_rank must be in [0,1]")
+    if not 0 <= float(regimes_cfg["low_vol_rank"]) <= 1:
+        raise ValueError("evaluation.stage10.regimes.low_vol_rank must be in [0,1]")
+    if float(regimes_cfg["high_vol_rank"]) <= float(regimes_cfg["low_vol_rank"]):
+        raise ValueError("evaluation.stage10.regimes.high_vol_rank must be > low_vol_rank")
+    if int(regimes_cfg["chop_flip_window"]) < 4:
+        raise ValueError("evaluation.stage10.regimes.chop_flip_window must be >= 4")
+    if not 0 <= float(regimes_cfg["chop_flip_threshold"]) <= 1:
+        raise ValueError("evaluation.stage10.regimes.chop_flip_threshold must be in [0,1]")
     float(regimes_cfg["compression_z"])
     float(regimes_cfg["expansion_z"])
     float(regimes_cfg["volume_z_high"])
@@ -833,6 +865,13 @@ def validate_config(config: ConfigDict) -> None:
         raise ValueError("evaluation.stage10.evaluation.max_hold_bars must be >= 1")
     if int(eval_cfg["dry_run_rows"]) < 300:
         raise ValueError("evaluation.stage10.evaluation.dry_run_rows must be >= 300")
+    sandbox_cfg = stage10.get("sandbox", {})
+    if int(sandbox_cfg["top_k_per_category"]) < 1:
+        raise ValueError("evaluation.stage10.sandbox.top_k_per_category must be >= 1")
+    if int(sandbox_cfg["bootstrap_resamples"]) < 100:
+        raise ValueError("evaluation.stage10.sandbox.bootstrap_resamples must be >= 100")
+    if str(sandbox_cfg["exit_mode"]) not in {"fixed_atr", "atr_trailing"}:
+        raise ValueError("evaluation.stage10.sandbox.exit_mode must be fixed_atr or atr_trailing")
     evaluation["stage10"] = stage10
 
     ui = _merge_defaults(UI_STAGE5_DEFAULTS, config.get("ui", {}))
