@@ -279,12 +279,12 @@ evaluation:
       expansion_z: 1.0
       volume_z_high: 1.0
     activation:
-      m_min: 0.5
-      m_max: 1.5
-      trend_boost: 1.2
-      range_boost: 1.1
-      expansion_cut: 0.8
-      chop_cut: 0.7
+      multiplier_min: 0.9
+      multiplier_max: 1.1
+      trend_boost: 1.05
+      range_boost: 1.03
+      vol_cut: 0.95
+      chop_cut: 0.93
     signals:
       families:
         - BreakoutRetest

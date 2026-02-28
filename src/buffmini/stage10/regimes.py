@@ -39,6 +39,10 @@ REGIME_SCORE_COLUMNS: tuple[str, ...] = (
     "score_chop",
 )
 
+_TREND_FAMILIES: frozenset[str] = frozenset({"MA_SlopePullback"})
+_RANGE_FAMILIES: frozenset[str] = frozenset({"BollingerSnapBack", "ATR_DistanceRevert", "RangeFade"})
+_BREAKOUT_FAMILIES: frozenset[str] = frozenset({"BreakoutRetest", "VolCompressionBreakout"})
+
 
 def ensure_stage10_regime_features(frame: pd.DataFrame) -> pd.DataFrame:
     """Append deterministic derived columns required for Stage-10 regimes."""
@@ -139,6 +143,38 @@ def regime_distribution(frame: pd.DataFrame) -> dict[str, float]:
     series = frame["regime_label_stage10"].astype(str)
     counts = series.value_counts(normalize=True)
     return {label: float(counts.get(label, 0.0) * 100.0) for label in REGIME_LABELS}
+
+
+def get_family_score(family: str, scores_row: dict[str, Any] | pd.Series) -> float:
+    """Return score used by Stage-10.6 activation for the given signal family.
+
+    Stage-10.6 uses score-only decisions:
+    - trend families -> score_trend
+    - mean-reversion families -> score_range
+    - breakout families -> score_vol_expansion
+    """
+
+    row = dict(scores_row) if isinstance(scores_row, dict) else scores_row.to_dict()
+    name = str(family)
+    if name in _TREND_FAMILIES:
+        value = row.get("score_trend", 0.0)
+    elif name in _RANGE_FAMILIES:
+        value = row.get("score_range", 0.0)
+    elif name in _BREAKOUT_FAMILIES:
+        value = row.get("score_vol_expansion", 0.0)
+    else:
+        value = max(
+            float(row.get("score_trend", 0.0)),
+            float(row.get("score_range", 0.0)),
+            float(row.get("score_vol_expansion", 0.0)),
+        )
+    try:
+        numeric = float(value)
+    except Exception:
+        numeric = 0.0
+    if not np.isfinite(numeric):
+        numeric = 0.0
+    return float(np.clip(numeric, 0.0, 1.0))
 
 
 def _rolling_zscore(series: pd.Series, window: int) -> pd.Series:

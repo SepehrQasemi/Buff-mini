@@ -195,12 +195,12 @@ STAGE10_DEFAULTS = {
         "volume_z_high": 1.0,
     },
     "activation": {
-        "m_min": 0.5,
-        "m_max": 1.5,
-        "trend_boost": 1.2,
-        "range_boost": 1.1,
-        "expansion_cut": 0.8,
-        "chop_cut": 0.7,
+        "multiplier_min": 0.9,
+        "multiplier_max": 1.1,
+        "trend_boost": 1.05,
+        "range_boost": 1.03,
+        "vol_cut": 0.95,
+        "chop_cut": 0.93,
     },
     "signals": {
         "families": [
@@ -776,13 +776,20 @@ def validate_config(config: ConfigDict) -> None:
     float(regimes_cfg["volume_z_high"])
 
     activation_cfg = stage10["activation"]
-    if float(activation_cfg["m_min"]) <= 0:
-        raise ValueError("evaluation.stage10.activation.m_min must be > 0")
-    if float(activation_cfg["m_max"]) <= 0:
-        raise ValueError("evaluation.stage10.activation.m_max must be > 0")
-    if float(activation_cfg["m_max"]) < float(activation_cfg["m_min"]):
-        raise ValueError("evaluation.stage10.activation.m_max must be >= m_min")
-    for key in ["trend_boost", "range_boost", "expansion_cut", "chop_cut"]:
+    if "m_min" in activation_cfg and "multiplier_min" not in activation_cfg:
+        activation_cfg["multiplier_min"] = activation_cfg["m_min"]
+    if "m_max" in activation_cfg and "multiplier_max" not in activation_cfg:
+        activation_cfg["multiplier_max"] = activation_cfg["m_max"]
+    if "expansion_cut" in activation_cfg and "vol_cut" not in activation_cfg:
+        activation_cfg["vol_cut"] = activation_cfg["expansion_cut"]
+
+    if float(activation_cfg["multiplier_min"]) <= 0:
+        raise ValueError("evaluation.stage10.activation.multiplier_min must be > 0")
+    if float(activation_cfg["multiplier_max"]) <= 0:
+        raise ValueError("evaluation.stage10.activation.multiplier_max must be > 0")
+    if float(activation_cfg["multiplier_max"]) < float(activation_cfg["multiplier_min"]):
+        raise ValueError("evaluation.stage10.activation.multiplier_max must be >= multiplier_min")
+    for key in ["trend_boost", "range_boost", "vol_cut", "chop_cut"]:
         if float(activation_cfg[key]) <= 0:
             raise ValueError(f"evaluation.stage10.activation.{key} must be > 0")
 

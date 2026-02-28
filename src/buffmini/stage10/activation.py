@@ -7,47 +7,51 @@ from typing import Any
 import numpy as np
 import pandas as pd
 
-from buffmini.stage10.regimes import REGIME_CHOP, REGIME_RANGE, REGIME_TREND, REGIME_VOL_EXPANSION
+from buffmini.stage10.regimes import get_family_score
 from buffmini.stage10.signals import signal_family_type
 
 DEFAULT_ACTIVATION_CONFIG: dict[str, float] = {
-    "m_min": 0.5,
-    "m_max": 1.5,
-    "trend_boost": 1.2,
-    "range_boost": 1.1,
-    "expansion_cut": 0.8,
-    "chop_cut": 0.7,
+    "multiplier_min": 0.9,
+    "multiplier_max": 1.1,
+    "trend_boost": 1.05,
+    "range_boost": 1.03,
+    "vol_cut": 0.95,
+    "chop_cut": 0.93,
+}
+
+_ACTIVATION_ALIASES: dict[str, str] = {
+    "m_min": "multiplier_min",
+    "m_max": "multiplier_max",
+    "expansion_cut": "vol_cut",
 }
 
 
 def activation_multiplier(
-    regime_label: str,
+    regime_scores: dict[str, float] | pd.Series,
     regime_confidence: float,
     signal_family: str,
     settings: dict[str, Any] | None = None,
 ) -> float:
-    """Compute soft activation multiplier for one signal/regime observation."""
+    """Compute score-only soft activation multiplier for one observation."""
 
-    cfg = dict(DEFAULT_ACTIVATION_CONFIG)
-    if settings:
-        cfg.update({key: float(value) for key, value in settings.items() if key in cfg})
+    cfg = _normalized_activation_cfg(settings)
 
     family_type = signal_family_type(signal_family)
-    label = str(regime_label)
     conf = float(np.clip(float(regime_confidence), 0.0, 1.0))
+    score_family = get_family_score(signal_family, regime_scores)
+    score_vol_expansion = _safe_score(regime_scores, "score_vol_expansion")
+    score_chop = _safe_score(regime_scores, "score_chop")
 
     m = 1.0
-    if label == REGIME_TREND and family_type == "trend":
-        m *= float(cfg["trend_boost"])
-    if label == REGIME_RANGE and family_type == "mean_reversion":
-        m *= float(cfg["range_boost"])
-    if label == REGIME_VOL_EXPANSION:
-        m *= float(cfg["expansion_cut"])
-    if label == REGIME_CHOP:
-        m *= float(cfg["chop_cut"])
+    if family_type == "trend":
+        m *= 1.0 + (float(cfg["trend_boost"]) - 1.0) * score_family
+    elif family_type == "mean_reversion":
+        m *= 1.0 + (float(cfg["range_boost"]) - 1.0) * score_family
+    m *= 1.0 - (1.0 - float(cfg["vol_cut"])) * score_vol_expansion
+    m *= 1.0 - (1.0 - float(cfg["chop_cut"])) * score_chop
 
     smooth = 1.0 + (m - 1.0) * conf
-    return float(np.clip(smooth, float(cfg["m_min"]), float(cfg["m_max"])))
+    return float(np.clip(smooth, float(cfg["multiplier_min"]), float(cfg["multiplier_max"])))
 
 
 def apply_soft_activation(
@@ -62,17 +66,18 @@ def apply_soft_activation(
         raise ValueError("signal_frame must include signal column")
     if "signal_strength" not in signal_frame.columns:
         raise ValueError("signal_frame must include signal_strength column")
-    if "regime_label_stage10" not in regime_frame.columns:
-        raise ValueError("regime_frame must include regime_label_stage10")
     if "regime_confidence_stage10" not in regime_frame.columns:
         raise ValueError("regime_frame must include regime_confidence_stage10")
+    for score_col in ("score_trend", "score_range", "score_vol_expansion", "score_chop"):
+        if score_col not in regime_frame.columns:
+            raise ValueError(f"regime_frame must include {score_col}")
 
     aligned = signal_frame.copy()
-    labels = regime_frame["regime_label_stage10"].astype(str)
     confidence = pd.to_numeric(regime_frame["regime_confidence_stage10"], errors="coerce").fillna(0.0)
+    score_cols = regime_frame[["score_trend", "score_range", "score_vol_expansion", "score_chop"]]
     multipliers = [
         activation_multiplier(
-            regime_label=labels.iloc[idx],
+            regime_scores=score_cols.iloc[idx],
             regime_confidence=float(confidence.iloc[idx]),
             signal_family=signal_family,
             settings=settings,
@@ -86,3 +91,27 @@ def apply_soft_activation(
     )
     aligned["effective_strength"] = aligned["effective_strength"].clip(lower=0.0)
     return aligned
+
+
+def _normalized_activation_cfg(settings: dict[str, Any] | None = None) -> dict[str, float]:
+    cfg = dict(DEFAULT_ACTIVATION_CONFIG)
+    if settings:
+        for key, value in settings.items():
+            canonical = _ACTIVATION_ALIASES.get(str(key), str(key))
+            if canonical in cfg:
+                cfg[canonical] = float(value)
+    return cfg
+
+
+def _safe_score(scores: dict[str, float] | pd.Series, key: str) -> float:
+    if isinstance(scores, pd.Series):
+        value = scores.get(key, 0.0)
+    else:
+        value = scores.get(key, 0.0)
+    try:
+        numeric = float(value)
+    except Exception:
+        numeric = 0.0
+    if not np.isfinite(numeric):
+        numeric = 0.0
+    return float(np.clip(numeric, 0.0, 1.0))

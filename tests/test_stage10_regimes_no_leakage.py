@@ -6,6 +6,7 @@ import numpy as np
 import pandas as pd
 
 from buffmini.data.features import calculate_features
+from buffmini.stage10.regimes import get_family_score
 from buffmini.validation.leakage_harness import (
     apply_future_shock,
     compare_series_no_future_leakage,
@@ -61,3 +62,13 @@ def test_stage10_regime_deterministic_labels() -> None:
         atol=0.0,
         rtol=0.0,
     )
+
+
+def test_stage10_family_score_helper_deterministic() -> None:
+    frame = synthetic_ohlcv(rows=720, seed=21)
+    features = calculate_features(frame)
+    row = features.iloc[350]
+    left = get_family_score("MA_SlopePullback", row)
+    right = get_family_score("MA_SlopePullback", row)
+    assert left == right
+    assert 0.0 <= left <= 1.0

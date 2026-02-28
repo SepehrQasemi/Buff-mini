@@ -40,6 +40,6 @@ def test_activation_multiplier_bounds_and_determinism() -> None:
 
     mult = left["activation_multiplier"].to_numpy(dtype=float)
     assert np.isfinite(mult).all()
-    assert (mult >= 0.5).all()
-    assert (mult <= 1.5).all()
+    assert (mult >= 0.9).all()
+    assert (mult <= 1.1).all()
     assert left.equals(right)

@@ -126,8 +126,8 @@ def test_load_config_success() -> None:
     assert config["evaluation"]["stage10"]["enabled"] is False
     assert config["evaluation"]["stage10"]["cost_mode"] == "v2"
     assert config["evaluation"]["stage10"]["walkforward_v2"] is True
-    assert config["evaluation"]["stage10"]["activation"]["m_min"] == 0.5
-    assert config["evaluation"]["stage10"]["activation"]["m_max"] == 1.5
+    assert config["evaluation"]["stage10"]["activation"]["multiplier_min"] == 0.9
+    assert config["evaluation"]["stage10"]["activation"]["multiplier_max"] == 1.1
     assert "BreakoutRetest" in config["evaluation"]["stage10"]["signals"]["families"]
     assert "partial_tp" in config["evaluation"]["stage10"]["exits"]["modes"]
     assert config["ui"]["stage5"]["presets"]["quick"]["candidate_count"] == 1000
