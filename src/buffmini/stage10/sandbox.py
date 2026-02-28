@@ -55,6 +55,7 @@ def run_stage10_sandbox(
         raise ValueError("No features available for sandbox ranking")
 
     rows: list[dict[str, Any]] = []
+    bootstrap_resamples = int(cfg["evaluation"]["stage10"]["sandbox"].get("bootstrap_resamples", 500))
     for family in SIGNAL_FAMILIES:
         family_rows: list[dict[str, Any]] = []
         for symbol, frame in features_by_symbol.items():
@@ -63,6 +64,8 @@ def run_stage10_sandbox(
                 symbol=symbol,
                 family=family,
                 cfg=cfg,
+                seed=int(seed),
+                bootstrap_resamples=bootstrap_resamples,
             )
             family_rows.append(metrics)
             row = {"family": family, "symbol": symbol, "category": signal_family_type(family)}
@@ -128,7 +131,14 @@ def run_stage10_sandbox(
     return summary
 
 
-def _evaluate_family_symbol(frame: pd.DataFrame, symbol: str, family: str, cfg: dict[str, Any]) -> dict[str, float]:
+def _evaluate_family_symbol(
+    frame: pd.DataFrame,
+    symbol: str,
+    family: str,
+    cfg: dict[str, Any],
+    seed: int,
+    bootstrap_resamples: int,
+) -> dict[str, float]:
     signal_frame = generate_signal_family(frame=frame, family=family, params=cfg["evaluation"]["stage10"]["signals"]["defaults"].get(family, {}))
     work = frame.copy()
     work["signal"] = signal_frame["signal"].astype(int)
@@ -166,9 +176,18 @@ def _evaluate_family_symbol(frame: pd.DataFrame, symbol: str, family: str, cfg: 
     profit_factor = _finite(base.get("profit_factor", 0.0), default=0.0, clip=10.0)
     max_drawdown = _finite(base.get("max_drawdown", 0.0), default=0.0)
     trades_per_month = _trades_per_month(base_result.trades)
-    exp_lcb_proxy = _expectancy_lcb(base_result.trades)
+    exp_lcb_proxy = _bootstrap_exp_lcb(
+        trades=base_result.trades,
+        resamples=int(bootstrap_resamples),
+        seed=int.from_bytes(
+            stable_hash(f"{seed}:{symbol}:{family}:exp_lcb", length=12).encode("utf-8"),
+            "little",
+            signed=False,
+        )
+        % (2**31),
+    )
     drag_penalty = _drag_penalty(base=base, stress=stress)
-    score = exp_lcb_proxy - (0.35 * drag_penalty) - (0.20 * max_drawdown)
+    score = exp_lcb_proxy - (0.5 * drag_penalty) - (0.2 * max_drawdown)
 
     return {
         "trade_count": trade_count,
@@ -210,7 +229,7 @@ def _aggregate_family_row(family: str, family_rows: list[dict[str, float]]) -> d
 
 def _select_enabled_signals(family_rankings: pd.DataFrame, top_k_per_category: int) -> tuple[list[str], list[str]]:
     enabled: list[str] = []
-    for category in ("trend", "mean_reversion"):
+    for category in ("trend", "mean_reversion", "breakout"):
         subset = family_rankings.loc[family_rankings["category"] == category].head(int(top_k_per_category))
         enabled.extend(subset["family"].astype(str).tolist())
     enabled_unique = sorted(dict.fromkeys(enabled))
@@ -260,11 +279,7 @@ def _stress_cost_cfg(cost_model_cfg: dict[str, Any]) -> dict[str, Any]:
 def _drag_penalty(base: dict[str, Any], stress: dict[str, Any]) -> float:
     base_expectancy = _finite(base.get("expectancy", 0.0), default=0.0)
     stress_expectancy = _finite(stress.get("expectancy", 0.0), default=0.0)
-    base_pf = _finite(base.get("profit_factor", 0.0), default=0.0, clip=10.0)
-    stress_pf = _finite(stress.get("profit_factor", 0.0), default=0.0, clip=10.0)
-    delta_expectancy = max(0.0, base_expectancy - stress_expectancy)
-    delta_pf = max(0.0, base_pf - stress_pf)
-    return float(delta_expectancy + (0.5 * delta_pf))
+    return float(max(0.0, base_expectancy - stress_expectancy))
 
 
 def _expectancy_lcb(trades: pd.DataFrame) -> float:
@@ -278,6 +293,23 @@ def _expectancy_lcb(trades: pd.DataFrame) -> float:
         return mean
     std = float(np.std(pnl, ddof=0))
     return float(mean - (std / math.sqrt(float(pnl.size))))
+
+
+def _bootstrap_exp_lcb(trades: pd.DataFrame, resamples: int, seed: int) -> float:
+    if trades.empty or "pnl" not in trades.columns:
+        return 0.0
+    pnl = pd.to_numeric(trades["pnl"], errors="coerce").dropna().to_numpy(dtype=float)
+    if pnl.size == 0:
+        return 0.0
+    if pnl.size == 1:
+        return float(pnl[0])
+    rng = np.random.default_rng(int(seed))
+    sample_size = int(pnl.size)
+    means = np.empty(int(resamples), dtype=float)
+    for idx in range(int(resamples)):
+        picks = rng.integers(0, sample_size, size=sample_size)
+        means[idx] = float(np.mean(pnl[picks]))
+    return float(np.quantile(means, 0.05))
 
 
 def _trades_per_month(trades: pd.DataFrame) -> float:

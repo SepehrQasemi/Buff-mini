@@ -13,7 +13,9 @@ from buffmini.stage10.sandbox import run_stage10_sandbox
 def parse_args() -> argparse.Namespace:
     parser = argparse.ArgumentParser(description="Run Stage-10.6 sandbox ranking")
     parser.add_argument("--config", type=Path, default=DEFAULT_CONFIG_PATH)
-    parser.add_argument("--dry-run", action="store_true", help="Use deterministic synthetic data")
+    mode_group = parser.add_mutually_exclusive_group()
+    mode_group.add_argument("--dry-run", action="store_true", help="Use deterministic synthetic data")
+    mode_group.add_argument("--real-data", action="store_true", help="Force local real-data mode")
     parser.add_argument("--symbols", type=str, default=None, help="Optional comma-separated symbols")
     parser.add_argument("--timeframe", type=str, default="1h")
     parser.add_argument("--seed", type=int, default=42)
@@ -30,10 +32,17 @@ def main() -> None:
     args = parse_args()
     config = load_config(args.config)
     symbols = [item.strip() for item in str(args.symbols).split(",") if item.strip()] if args.symbols else None
+    dry_run = bool(args.dry_run)
+    if not dry_run and not bool(args.real_data):
+        dry_run = not _has_local_data(
+            data_dir=args.data_dir,
+            symbols=symbols or list(config.get("universe", {}).get("symbols", [])),
+            timeframe=str(args.timeframe),
+        )
     summary = run_stage10_sandbox(
         config=config,
         seed=int(args.seed),
-        dry_run=bool(args.dry_run),
+        dry_run=bool(dry_run),
         symbols=symbols,
         timeframe=str(args.timeframe),
         cost_mode=str(args.cost_mode),
@@ -46,6 +55,17 @@ def main() -> None:
     print(f"run_id: {summary['run_id']}")
     print(f"enabled_signals: {summary['enabled_signals']}")
     print(f"rank_table: {summary['rank_table_path']}")
+
+
+def _has_local_data(data_dir: Path, symbols: list[str], timeframe: str) -> bool:
+    if not symbols:
+        return False
+    for symbol in symbols:
+        safe = str(symbol).replace("/", "-")
+        path = data_dir / f"{safe}_{timeframe}.parquet"
+        if not path.exists():
+            return False
+    return True
 
 
 if __name__ == "__main__":
