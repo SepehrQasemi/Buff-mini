@@ -148,6 +148,29 @@ Outputs:
 - `runs/<stage6_run_id>/stage6_compare/stage6_compare_summary.json`
 - `docs/stage6_report.md`
 
+## Stage-8 Validation Foundation
+
+Stage-8 strengthens research integrity with deterministic validation layers:
+
+- Stage-8.1: standardized multi-window walk-forward (`train/holdout/forward`) with robust stats and stability classification.
+- Stage-8.2: cost model v2 with volatility-aware slippage, spread proxy, and deterministic execution delay.
+- Stage-8.3: automated future-leakage harness across all registered features.
+
+Run Stage-8 offline checks:
+
+```bash
+python scripts/run_stage8_walkforward.py --seed 42 --rows 10080
+python scripts/run_stage8_cost_sensitivity.py
+```
+
+Outputs:
+
+- `runs/<run_id>_stage8_wf/` walk-forward artifacts
+- `docs/stage8_cost_sensitivity.md`
+- `docs/stage8_cost_sensitivity.json`
+- `docs/stage8_report.md`
+- `docs/stage8_report_summary.json`
+
 ## Output Structure
 
 - Raw market data: `data/raw/*.parquet`

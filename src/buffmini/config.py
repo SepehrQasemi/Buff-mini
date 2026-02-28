@@ -115,6 +115,29 @@ STAGE6_DEFAULTS = {
     },
 }
 
+STAGE8_DEFAULTS = {
+    "enabled": True,
+    "walkforward_v2": {
+        "train_days": 180,
+        "holdout_days": 30,
+        "forward_days": 30,
+        "step_days": 30,
+        "reserve_tail_days": 0,
+        "min_trades": 10,
+        "min_exposure": 0.01,
+        "min_usable_windows": 3,
+        "stable_min_median_expectancy": 0.0,
+        "stable_min_worst_expectancy": 0.0,
+        "stable_min_median_profit_factor": 1.0,
+        "stable_min_p05_return": 0.0,
+        "stable_max_median_max_drawdown": 0.25,
+        "stop_atr_multiple": 1.5,
+        "take_profit_atr_multiple": 3.0,
+        "max_hold_bars": 24,
+        "initial_capital": None,
+    },
+}
+
 UI_STAGE5_DEFAULTS = {
     "stage5": {
         "presets": {
@@ -523,6 +546,30 @@ def validate_config(config: ConfigDict) -> None:
     if any(right <= left for left, right in zip(parsed_levels[:-1], parsed_levels[1:], strict=False)):
         raise ValueError("evaluation.stage6.dynamic_leverage.allowed_levels must be strictly increasing")
     evaluation["stage6"] = stage6
+
+    stage8 = _merge_defaults(STAGE8_DEFAULTS, evaluation.get("stage8", {}))
+    if not isinstance(stage8["enabled"], bool):
+        raise ValueError("evaluation.stage8.enabled must be bool")
+    wf_v2 = stage8["walkforward_v2"]
+    int_fields = ["train_days", "holdout_days", "forward_days", "step_days", "min_usable_windows", "max_hold_bars"]
+    for field in int_fields:
+        if int(wf_v2[field]) < 1:
+            raise ValueError(f"evaluation.stage8.walkforward_v2.{field} must be >= 1")
+    if int(wf_v2["reserve_tail_days"]) < 0:
+        raise ValueError("evaluation.stage8.walkforward_v2.reserve_tail_days must be >= 0")
+    if float(wf_v2["min_trades"]) < 0:
+        raise ValueError("evaluation.stage8.walkforward_v2.min_trades must be >= 0")
+    if float(wf_v2["min_exposure"]) < 0:
+        raise ValueError("evaluation.stage8.walkforward_v2.min_exposure must be >= 0")
+    float(wf_v2["stable_min_median_expectancy"])
+    float(wf_v2["stable_min_worst_expectancy"])
+    float(wf_v2["stable_min_median_profit_factor"])
+    float(wf_v2["stable_min_p05_return"])
+    if float(wf_v2["stable_max_median_max_drawdown"]) < 0:
+        raise ValueError("evaluation.stage8.walkforward_v2.stable_max_median_max_drawdown must be >= 0")
+    if wf_v2["initial_capital"] is not None and float(wf_v2["initial_capital"]) <= 0:
+        raise ValueError("evaluation.stage8.walkforward_v2.initial_capital must be > 0 when set")
+    evaluation["stage8"] = stage8
 
     ui = _merge_defaults(UI_STAGE5_DEFAULTS, config.get("ui", {}))
     stage5_ui = ui.get("stage5", {})

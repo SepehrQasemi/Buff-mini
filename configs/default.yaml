@@ -213,6 +213,26 @@ evaluation:
       dd_lookback_bars: 168
       max_leverage: 50.0
       allowed_levels: [1, 2, 3, 5, 10, 15, 20, 25, 50]
+  stage8:
+    enabled: true
+    walkforward_v2:
+      train_days: 180
+      holdout_days: 30
+      forward_days: 30
+      step_days: 30
+      reserve_tail_days: 0
+      min_trades: 10
+      min_exposure: 0.01
+      min_usable_windows: 3
+      stable_min_median_expectancy: 0.0
+      stable_min_worst_expectancy: 0.0
+      stable_min_median_profit_factor: 1.0
+      stable_min_p05_return: 0.0
+      stable_max_median_max_drawdown: 0.25
+      stop_atr_multiple: 1.5
+      take_profit_atr_multiple: 3.0
+      max_hold_bars: 24
+      initial_capital: null
 
 ui:
   stage5:

@@ -92,6 +92,13 @@ def test_load_config_success() -> None:
     assert config["evaluation"]["stage6"]["dynamic_leverage"]["vol_expansion_multiplier"] == 0.7
     assert config["evaluation"]["stage6"]["dynamic_leverage"]["dd_soft_threshold"] == 0.08
     assert config["evaluation"]["stage6"]["dynamic_leverage"]["max_leverage"] == 50.0
+    assert config["evaluation"]["stage8"]["enabled"] is True
+    assert config["evaluation"]["stage8"]["walkforward_v2"]["train_days"] == 180
+    assert config["evaluation"]["stage8"]["walkforward_v2"]["holdout_days"] == 30
+    assert config["evaluation"]["stage8"]["walkforward_v2"]["forward_days"] == 30
+    assert config["evaluation"]["stage8"]["walkforward_v2"]["step_days"] == 30
+    assert config["evaluation"]["stage8"]["walkforward_v2"]["min_trades"] == 10
+    assert config["evaluation"]["stage8"]["walkforward_v2"]["min_exposure"] == 0.01
     assert config["ui"]["stage5"]["presets"]["quick"]["candidate_count"] == 1000
     assert config["ui"]["stage5"]["presets"]["full"]["candidate_count"] == 5000
     assert config["ui"]["stage5"]["window_months_options"] == [3, 6, 12, 36]

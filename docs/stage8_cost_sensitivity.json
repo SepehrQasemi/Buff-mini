@@ -1,0 +1,41 @@
+{
+  "synthetic_data": true,
+  "rows": [
+    {
+      "scenario": "simple_delay0",
+      "mode": "simple",
+      "trade_count": 21.0,
+      "expectancy": -14.980791443353539,
+      "profit_factor": 0.0,
+      "max_drawdown": 0.03145966203104217,
+      "final_equity": 9685.403379689578
+    },
+    {
+      "scenario": "v2_high_delay1",
+      "mode": "v2",
+      "trade_count": 21.0,
+      "expectancy": -38.78416506858279,
+      "profit_factor": 0.0,
+      "max_drawdown": 0.08144674664402392,
+      "final_equity": 9185.53253355976
+    },
+    {
+      "scenario": "v2_low_delay0",
+      "mode": "v2",
+      "trade_count": 21.0,
+      "expectancy": -24.56996341871507,
+      "profit_factor": 0.0,
+      "max_drawdown": 0.05159692317930203,
+      "final_equity": 9484.03076820698
+    },
+    {
+      "scenario": "v2_low_delay1",
+      "mode": "v2",
+      "trade_count": 21.0,
+      "expectancy": -20.01219576466224,
+      "profit_factor": 0.0,
+      "max_drawdown": 0.04202561110579118,
+      "final_equity": 9579.743888942088
+    }
+  ]
+}

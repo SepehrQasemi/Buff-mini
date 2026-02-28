@@ -1,0 +1,18 @@
+{
+  "walkforward_v2": {
+    "usable_windows": 2,
+    "classification": "INSUFFICIENT_DATA",
+    "excluded_reasons": {
+      "min_trades": 2
+    }
+  },
+  "cost_sensitivity": {
+    "simple_vs_v2_delta": -201.3726,
+    "delay_impact": 95.7131
+  },
+  "leakage_harness": {
+    "features_checked": 20,
+    "leaks_found": 0
+  },
+  "synthetic": true
+}
