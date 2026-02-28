@@ -1,0 +1,23 @@
+{
+  "walkforward_v2": {
+    "deterministic": true,
+    "classification": "UNSTABLE",
+    "usable_windows": 12,
+    "critical_issues": []
+  },
+  "cost_model_v2": {
+    "finite_safe": true,
+    "drag_sensitivity": "HIGH",
+    "backward_compatible": true
+  },
+  "leakage_harness": {
+    "all_features_clean": true,
+    "synthetic_leak_detected": true
+  },
+  "pipeline_integrity": {
+    "stage0_unchanged": true,
+    "hash_stable": true
+  },
+  "final_verdict": "SAFE_WITH_LIMITATIONS",
+  "critical_findings": []
+}

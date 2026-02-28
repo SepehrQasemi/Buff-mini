@@ -1,0 +1,9 @@
+{
+  "features_checked": 20,
+  "leaks_found": 0,
+  "registry_complete": true,
+  "synthetic_leak_detected": true,
+  "runtime_seconds": 0.03377159999217838,
+  "registry_missing": [],
+  "registry_extra": []
+}

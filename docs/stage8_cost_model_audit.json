@@ -1,0 +1,50 @@
+{
+  "rows": {
+    "simple_d0": {
+      "final_equity": 9703.157010391345,
+      "expectancy": -14.135380457554866,
+      "profit_factor": 0.0,
+      "max_drawdown": 0.029684298960865454,
+      "trade_count": 21
+    },
+    "v2_low_d0": {
+      "final_equity": 9110.427117296851,
+      "expectancy": -42.360613462054914,
+      "profit_factor": 0.0,
+      "max_drawdown": 0.08895728827031489,
+      "trade_count": 21
+    },
+    "v2_low_d1": {
+      "final_equity": 9219.185209173917,
+      "expectancy": -37.181656706003984,
+      "profit_factor": 0.0,
+      "max_drawdown": 0.07808147908260835,
+      "trade_count": 21
+    },
+    "v2_high_d0": {
+      "final_equity": 8735.526477861482,
+      "expectancy": -60.21302486373872,
+      "profit_factor": 0.0,
+      "max_drawdown": 0.1264473522138518,
+      "trade_count": 21
+    },
+    "v2_high_d1": {
+      "final_equity": 8839.809201348999,
+      "expectancy": -55.24718088814314,
+      "profit_factor": 0.0,
+      "max_drawdown": 0.11601907986510014,
+      "trade_count": 21
+    }
+  },
+  "simple_vs_v2_delta": -863.3478090423469,
+  "delay_impact": 108.75809187706545,
+  "drag_sensitivity_flag": "HIGH",
+  "finite_check_passed": true,
+  "backward_compatible": true,
+  "monotonic_checks": {
+    "spread_or_slippage_increase_worsens_equity": true,
+    "volatility_increases_slippage": true,
+    "delay_non_improving_in_controlled_uptrend": false,
+    "max_total_bps_per_side_respected": true
+  }
+}

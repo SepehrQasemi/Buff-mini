@@ -1,0 +1,57 @@
+{
+  "synthetic": {
+    "label": "synthetic",
+    "window_count": 4,
+    "no_overlap_holdout_forward": true,
+    "no_overlap_forward_sequence": true,
+    "reserve_tail_respected": true,
+    "window_deterministic": true,
+    "summary_hash_1": "d7d0ba5debace503634f46fbe6deff7e82da7b240bb8fef183168c5d4215850b",
+    "summary_hash_2": "d7d0ba5debace503634f46fbe6deff7e82da7b240bb8fef183168c5d4215850b",
+    "summary_hash_equal": true,
+    "usable_windows": 2,
+    "excluded_windows": 2,
+    "classification": "INSUFFICIENT_DATA",
+    "classification_explanation": "usable_windows=2 < min_usable_windows=3",
+    "excluded_reasons": {
+      "min_trades": 2
+    },
+    "classification_changed_when_tightened": true,
+    "tightened_classification": "INSUFFICIENT_DATA",
+    "tightened_usable_windows": 0,
+    "no_future_safe": true,
+    "finite_metrics": true,
+    "excluded_windows_have_reasons": true,
+    "anomalies": []
+  },
+  "real": {
+    "label": "real_btc_1h",
+    "window_count": 16,
+    "no_overlap_holdout_forward": true,
+    "no_overlap_forward_sequence": true,
+    "reserve_tail_respected": true,
+    "window_deterministic": true,
+    "summary_hash_1": "7431548bd6fdc75d54280edbee5ddfaea847d4a32215bc2369b7a32c880cb791",
+    "summary_hash_2": "7431548bd6fdc75d54280edbee5ddfaea847d4a32215bc2369b7a32c880cb791",
+    "summary_hash_equal": true,
+    "usable_windows": 12,
+    "excluded_windows": 4,
+    "classification": "UNSTABLE",
+    "classification_explanation": "one or more robustness thresholds failed",
+    "excluded_reasons": {
+      "min_trades": 4
+    },
+    "classification_changed_when_tightened": true,
+    "tightened_classification": "INSUFFICIENT_DATA",
+    "tightened_usable_windows": 0,
+    "no_future_safe": true,
+    "finite_metrics": true,
+    "excluded_windows_have_reasons": true,
+    "anomalies": []
+  },
+  "usable_windows": 12,
+  "excluded_windows": 4,
+  "classification": "UNSTABLE",
+  "determinism_status": true,
+  "anomaly": []
+}
