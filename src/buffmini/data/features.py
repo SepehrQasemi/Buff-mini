@@ -7,10 +7,40 @@ import pandas as pd
 
 from buffmini.regime.classifier import attach_regime_columns
 
+BASE_COLUMNS: tuple[str, ...] = ("timestamp", "open", "high", "low", "close", "volume")
+FEATURE_COLUMNS: tuple[str, ...] = (
+    "ema_20",
+    "ema_50",
+    "ema_100",
+    "ema_200",
+    "rsi_14",
+    "atr_14",
+    "atr_14_sma_50",
+    "bb_mid_20",
+    "bb_std_20",
+    "bb_upper_20_2",
+    "bb_lower_20_2",
+    "donchian_high_20",
+    "donchian_low_20",
+    "donchian_high_55",
+    "donchian_low_55",
+    "donchian_high_100",
+    "donchian_low_100",
+    "trend_strength",
+    "atr_percentile_252",
+    "regime",
+)
+
+
+def registered_feature_columns() -> list[str]:
+    """Return canonical computed feature column names."""
+
+    return list(FEATURE_COLUMNS)
+
 def calculate_features(frame: pd.DataFrame) -> pd.DataFrame:
     """Calculate feature set without future leakage."""
 
-    required = {"timestamp", "open", "high", "low", "close", "volume"}
+    required = set(BASE_COLUMNS)
     missing = required.difference(frame.columns)
     if missing:
         msg = f"Missing required columns: {sorted(missing)}"
