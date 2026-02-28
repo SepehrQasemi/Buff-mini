@@ -21,6 +21,7 @@ from buffmini.stage10.activation import DEFAULT_ACTIVATION_CONFIG, apply_soft_ac
 from buffmini.stage10.exits import normalize_exit_mode
 from buffmini.stage10.regimes import REGIME_LABELS, regime_calibration_diagnostics, regime_distribution
 from buffmini.stage10.signals import DEFAULT_SIGNAL_PARAMS, SIGNAL_FAMILIES, generate_signal_family, resolve_enabled_families
+from buffmini.stage11.hooks import build_noop_hooks
 from buffmini.utils.hashing import stable_hash
 from buffmini.utils.time import utc_now_compact
 from buffmini.validation.leakage_harness import run_registered_features_harness, synthetic_ohlcv
@@ -110,6 +111,7 @@ def run_stage10(
     derived_dir: Path = DERIVED_DATA_DIR,
     write_docs: bool = True,
     is_stress: bool = False,
+    hooks: dict[str, Any] | None = None,
 ) -> dict[str, Any]:
     """Run Stage-10 baseline-vs-upgraded comparison and write artifacts."""
 
@@ -136,13 +138,15 @@ def run_stage10(
     resolved_end_ts = _resolve_end_ts(config=cfg, features_by_symbol=features_by_symbol)
 
     baseline_eval = _evaluate_baseline(features_by_symbol=features_by_symbol, cfg=cfg)
-    stage10_eval = _evaluate_stage10(features_by_symbol=features_by_symbol, cfg=cfg)
+    resolved_hooks = _resolve_stage11_hooks(hooks)
+    stage10_eval = _evaluate_stage10(features_by_symbol=features_by_symbol, cfg=cfg, hooks=resolved_hooks)
 
     walkforward_payload = _evaluate_walkforward(
         features_by_symbol=features_by_symbol,
         cfg=cfg,
         stage10_eval=stage10_eval,
         enabled=bool(walkforward_v2_enabled and (not dry_run)),
+        hooks=resolved_hooks,
     )
     leakage = run_registered_features_harness(rows=520, seed=int(seed), shock_index=420, warmup_max=260)
 
@@ -160,6 +164,11 @@ def run_stage10(
         "baseline_metrics": baseline_eval["aggregate_metrics"],
         "stage10_metrics": stage10_eval["aggregate_metrics"],
         "walkforward": walkforward_payload,
+        "hooks_enabled": {
+            "bias": hooks is not None and "bias" in hooks,
+            "confirm": hooks is not None and "confirm" in hooks,
+            "exit": hooks is not None and "exit" in hooks,
+        },
     }
     run_id = f"{utc_now_compact()}_{stable_hash(run_payload, length=12)}_stage10"
     run_dir = runs_root / run_id
@@ -218,6 +227,7 @@ def run_stage10_exit_ab(
     docs_dir: Path = Path("docs"),
     data_dir: Path = RAW_DATA_DIR,
     derived_dir: Path = DERIVED_DATA_DIR,
+    hooks: dict[str, Any] | None = None,
 ) -> dict[str, Any]:
     """Run deterministic Stage-10 exit A/B and select best isolated exit."""
 
@@ -239,6 +249,7 @@ def run_stage10_exit_ab(
             derived_dir=derived_dir,
             write_docs=False,
             is_stress=False,
+            hooks=hooks,
         )
         stress = run_stage10(
             config=_build_stress_config(config),
@@ -255,6 +266,7 @@ def run_stage10_exit_ab(
             derived_dir=derived_dir,
             write_docs=False,
             is_stress=True,
+            hooks=hooks,
         )
         base_metrics = dict(base["baseline_vs_stage10"]["stage10"])
         stress_metrics = dict(stress["baseline_vs_stage10"]["stage10"])
@@ -408,7 +420,11 @@ def _evaluate_baseline(features_by_symbol: dict[str, pd.DataFrame], cfg: dict[st
     return {"rows": rows, "aggregate_metrics": aggregate}
 
 
-def _evaluate_stage10(features_by_symbol: dict[str, pd.DataFrame], cfg: dict[str, Any]) -> dict[str, Any]:
+def _evaluate_stage10(
+    features_by_symbol: dict[str, pd.DataFrame],
+    cfg: dict[str, Any],
+    hooks: dict[str, Any] | None = None,
+) -> dict[str, Any]:
     candidate_rows: list[CandidateResult] = []
     best_by_symbol: dict[str, CandidateResult] = {}
     families = resolve_enabled_families(
@@ -418,25 +434,49 @@ def _evaluate_stage10(features_by_symbol: dict[str, pd.DataFrame], cfg: dict[str
     modes = list(cfg["evaluation"]["stage10"]["exits"]["modes"])
     signal_defaults = cfg["evaluation"]["stage10"]["signals"]["defaults"]
     activation_cfg = dict(cfg["evaluation"]["stage10"]["activation"])
+    resolved_hooks = _resolve_stage11_hooks(hooks)
 
     for symbol, frame in features_by_symbol.items():
         symbol_best: CandidateResult | None = None
         for family in families:
             params = dict(signal_defaults.get(family, {}))
             signal_frame = generate_signal_family(frame=frame, family=family, params=params)
+            signal_frame = _apply_confirm_hook_to_signal_frame(
+                signal_frame=signal_frame,
+                base_frame=frame,
+                symbol=symbol,
+                signal_family=family,
+                confirm_hook=resolved_hooks["confirm"],
+            )
             activated = apply_soft_activation(signal_frame, frame, signal_family=family, settings=activation_cfg)
+            activated = _apply_bias_hook_to_activation(
+                activation_df=activated,
+                base_frame=frame,
+                symbol=symbol,
+                signal_family=family,
+                bias_hook=resolved_hooks["bias"],
+            )
             work = frame.copy()
             work["signal"] = signal_frame["signal"].astype(int)
 
             for mode in modes:
-                engine_mode = normalize_exit_mode(mode)
+                exit_cfg = _apply_exit_hook(
+                    exit_hook=resolved_hooks["exit"],
+                    base_frame=frame,
+                    symbol=symbol,
+                    signal_family=family,
+                    exit_mode=mode,
+                    trailing_atr_k=float(cfg["evaluation"]["stage10"]["exits"]["trailing_atr_k"]),
+                    partial_size=float(cfg["evaluation"]["stage10"]["exits"]["partial_fraction"]),
+                )
+                engine_mode = normalize_exit_mode(str(exit_cfg["exit_mode"]))
                 result = run_backtest(
                     frame=work,
                     strategy_name=f"Stage10::{family}",
                     symbol=symbol,
                     exit_mode=engine_mode,
-                    trailing_atr_k=float(cfg["evaluation"]["stage10"]["exits"]["trailing_atr_k"]),
-                    partial_size=float(cfg["evaluation"]["stage10"]["exits"]["partial_fraction"]),
+                    trailing_atr_k=float(exit_cfg["trailing_atr_k"]),
+                    partial_size=float(exit_cfg["partial_size"]),
                     max_hold_bars=int(cfg["evaluation"]["stage10"]["evaluation"]["max_hold_bars"]),
                     stop_atr_multiple=float(cfg["evaluation"]["stage10"]["evaluation"]["stop_atr_multiple"]),
                     take_profit_atr_multiple=float(cfg["evaluation"]["stage10"]["evaluation"]["take_profit_atr_multiple"]),
@@ -550,6 +590,143 @@ def _apply_activation_scaling(result: Any, activation_df: pd.DataFrame) -> dict[
     return {"trades": trades, "equity_curve": equity, "metrics": metrics}
 
 
+def _resolve_stage11_hooks(hooks: dict[str, Any] | None) -> dict[str, Any]:
+    defaults = build_noop_hooks()
+    if not isinstance(hooks, dict):
+        return defaults
+    for key in ("bias", "confirm", "exit"):
+        value = hooks.get(key)
+        if callable(value):
+            defaults[key] = value
+    return defaults
+
+
+def _apply_confirm_hook_to_signal_frame(
+    signal_frame: pd.DataFrame,
+    base_frame: pd.DataFrame,
+    symbol: str,
+    signal_family: str,
+    confirm_hook: Any,
+) -> pd.DataFrame:
+    out = signal_frame.copy()
+    if not callable(confirm_hook):
+        return out
+    timestamps = pd.to_datetime(base_frame.get("timestamp"), utc=True, errors="coerce")
+    revised: list[int] = []
+    for idx, signal in enumerate(out["signal"].astype(int).tolist()):
+        ts = timestamps.iloc[idx] if len(timestamps) > idx else pd.NaT
+        if pd.isna(ts):
+            ts = pd.Timestamp("1970-01-01T00:00:00Z")
+        row_payload = base_frame.iloc[idx].to_dict() if len(base_frame) > idx else {}
+        updated = confirm_hook(
+            timestamp=pd.Timestamp(ts),
+            symbol=str(symbol),
+            signal_family=str(signal_family),
+            signal=int(signal),
+            base_row=row_payload,
+        )
+        try:
+            numeric = int(updated)
+        except Exception:
+            numeric = int(signal)
+        if numeric > 0:
+            numeric = 1
+        elif numeric < 0:
+            numeric = -1
+        revised.append(numeric)
+    out["signal"] = pd.Series(revised, index=out.index, dtype=int)
+    out["long_entry"] = out["signal"] == 1
+    out["short_entry"] = out["signal"] == -1
+    return out
+
+
+def _apply_bias_hook_to_activation(
+    activation_df: pd.DataFrame,
+    base_frame: pd.DataFrame,
+    symbol: str,
+    signal_family: str,
+    bias_hook: Any,
+) -> pd.DataFrame:
+    out = activation_df.copy()
+    if not callable(bias_hook):
+        return out
+    timestamps = pd.to_datetime(base_frame.get("timestamp"), utc=True, errors="coerce")
+    bias_values: list[float] = []
+    for idx, row in out.iterrows():
+        ts = timestamps.iloc[idx] if len(timestamps) > idx else pd.NaT
+        if pd.isna(ts):
+            ts = pd.Timestamp("1970-01-01T00:00:00Z")
+        base_row = base_frame.iloc[idx].to_dict() if len(base_frame) > idx else {}
+        signal = int(row.get("signal", 0))
+        activation_multiplier = float(row.get("activation_multiplier", 1.0))
+        value = bias_hook(
+            timestamp=pd.Timestamp(ts),
+            symbol=str(symbol),
+            signal_family=str(signal_family),
+            signal=signal,
+            base_row=base_row,
+            activation_multiplier=activation_multiplier,
+        )
+        try:
+            numeric = float(value)
+        except Exception:
+            numeric = 1.0
+        if not np.isfinite(numeric):
+            numeric = 1.0
+        bias_values.append(float(numeric))
+    out["stage11_bias_multiplier"] = pd.Series(bias_values, index=out.index, dtype=float)
+    out["activation_multiplier"] = (
+        pd.to_numeric(out["activation_multiplier"], errors="coerce").fillna(1.0)
+        * pd.to_numeric(out["stage11_bias_multiplier"], errors="coerce").fillna(1.0)
+    )
+    out["effective_strength"] = (
+        pd.to_numeric(out["signal_strength"], errors="coerce").fillna(0.0)
+        * pd.to_numeric(out["activation_multiplier"], errors="coerce").fillna(1.0)
+    )
+    return out
+
+
+def _apply_exit_hook(
+    *,
+    exit_hook: Any,
+    base_frame: pd.DataFrame,
+    symbol: str,
+    signal_family: str,
+    exit_mode: str,
+    trailing_atr_k: float,
+    partial_size: float,
+) -> dict[str, Any]:
+    if not callable(exit_hook):
+        return {
+            "exit_mode": str(exit_mode),
+            "trailing_atr_k": float(trailing_atr_k),
+            "partial_size": float(partial_size),
+        }
+    if base_frame.empty:
+        row_payload: dict[str, Any] = {}
+        timestamp = pd.Timestamp("1970-01-01T00:00:00Z")
+    else:
+        row_payload = base_frame.iloc[-1].to_dict()
+        ts = pd.to_datetime(row_payload.get("timestamp"), utc=True, errors="coerce")
+        timestamp = pd.Timestamp("1970-01-01T00:00:00Z") if pd.isna(ts) else pd.Timestamp(ts)
+    payload = exit_hook(
+        timestamp=timestamp,
+        symbol=str(symbol),
+        signal_family=str(signal_family),
+        exit_mode=str(exit_mode),
+        trailing_atr_k=float(trailing_atr_k),
+        partial_size=float(partial_size),
+        base_row=row_payload,
+    )
+    if not isinstance(payload, dict):
+        payload = {}
+    return {
+        "exit_mode": str(payload.get("exit_mode", exit_mode)),
+        "trailing_atr_k": float(payload.get("trailing_atr_k", trailing_atr_k)),
+        "partial_size": float(payload.get("partial_size", partial_size)),
+    }
+
+
 def _candidate_score(metrics: dict[str, Any]) -> float:
     expectancy = _finite(metrics.get("expectancy", 0.0), default=0.0)
     pf = _finite(metrics.get("profit_factor", 0.0), default=0.0, clip=10.0)
@@ -620,6 +797,7 @@ def _evaluate_walkforward(
     cfg: dict[str, Any],
     stage10_eval: dict[str, Any],
     enabled: bool,
+    hooks: dict[str, Any] | None = None,
 ) -> dict[str, Any]:
     if not enabled:
         return {"enabled": False, "classification": "N/A", "stage10_classification": "N/A"}
@@ -661,7 +839,17 @@ def _evaluate_walkforward(
     family = str(stage10_symbol_best["family"])
     mode = str(stage10_symbol_best["exit_mode"])
     for window in windows:
-        stage10_rows.append(_evaluate_stage10_window(frame=frame, symbol=symbol, family=family, exit_mode=mode, window=window, cfg=cfg))
+        stage10_rows.append(
+            _evaluate_stage10_window(
+                frame=frame,
+                symbol=symbol,
+                family=family,
+                exit_mode=mode,
+                window=window,
+                cfg=cfg,
+                hooks=hooks,
+            )
+        )
     stage10_summary = aggregate_windows(stage10_rows, cfg=cfg)
     return {
         "enabled": True,
@@ -679,27 +867,75 @@ def _evaluate_stage10_window(
     exit_mode: str,
     window: Any,
     cfg: dict[str, Any],
+    hooks: dict[str, Any] | None = None,
 ) -> dict[str, Any]:
     ts = pd.to_datetime(frame["timestamp"], utc=True)
     holdout = frame.loc[(ts >= window.holdout_start) & (ts < window.holdout_end)].copy().reset_index(drop=True)
     forward = frame.loc[(ts >= window.forward_start) & (ts < window.forward_end)].copy().reset_index(drop=True)
     signal_defaults = cfg["evaluation"]["stage10"]["signals"]["defaults"]
     activation_cfg = cfg["evaluation"]["stage10"]["activation"]
+    resolved_hooks = _resolve_stage11_hooks(hooks)
 
     holdout_sig = generate_signal_family(holdout, family=family, params=dict(signal_defaults.get(family, {})))
     forward_sig = generate_signal_family(forward, family=family, params=dict(signal_defaults.get(family, {})))
+    holdout_sig = _apply_confirm_hook_to_signal_frame(
+        signal_frame=holdout_sig,
+        base_frame=holdout,
+        symbol=symbol,
+        signal_family=family,
+        confirm_hook=resolved_hooks["confirm"],
+    )
+    forward_sig = _apply_confirm_hook_to_signal_frame(
+        signal_frame=forward_sig,
+        base_frame=forward,
+        symbol=symbol,
+        signal_family=family,
+        confirm_hook=resolved_hooks["confirm"],
+    )
     holdout_act = apply_soft_activation(holdout_sig, holdout, signal_family=family, settings=activation_cfg)
     forward_act = apply_soft_activation(forward_sig, forward, signal_family=family, settings=activation_cfg)
+    holdout_act = _apply_bias_hook_to_activation(
+        activation_df=holdout_act,
+        base_frame=holdout,
+        symbol=symbol,
+        signal_family=family,
+        bias_hook=resolved_hooks["bias"],
+    )
+    forward_act = _apply_bias_hook_to_activation(
+        activation_df=forward_act,
+        base_frame=forward,
+        symbol=symbol,
+        signal_family=family,
+        bias_hook=resolved_hooks["bias"],
+    )
     holdout["signal"] = holdout_sig["signal"].astype(int)
     forward["signal"] = forward_sig["signal"].astype(int)
+    exit_cfg_holdout = _apply_exit_hook(
+        exit_hook=resolved_hooks["exit"],
+        base_frame=holdout,
+        symbol=symbol,
+        signal_family=family,
+        exit_mode=exit_mode,
+        trailing_atr_k=float(cfg["evaluation"]["stage10"]["exits"]["trailing_atr_k"]),
+        partial_size=float(cfg["evaluation"]["stage10"]["exits"]["partial_fraction"]),
+    )
+    exit_cfg_forward = _apply_exit_hook(
+        exit_hook=resolved_hooks["exit"],
+        base_frame=forward,
+        symbol=symbol,
+        signal_family=family,
+        exit_mode=exit_mode,
+        trailing_atr_k=float(cfg["evaluation"]["stage10"]["exits"]["trailing_atr_k"]),
+        partial_size=float(cfg["evaluation"]["stage10"]["exits"]["partial_fraction"]),
+    )
 
     result_holdout = run_backtest(
         frame=holdout,
         strategy_name=f"Stage10::{family}",
         symbol=symbol,
-        exit_mode=normalize_exit_mode(exit_mode),
-        trailing_atr_k=float(cfg["evaluation"]["stage10"]["exits"]["trailing_atr_k"]),
-        partial_size=float(cfg["evaluation"]["stage10"]["exits"]["partial_fraction"]),
+        exit_mode=normalize_exit_mode(str(exit_cfg_holdout["exit_mode"])),
+        trailing_atr_k=float(exit_cfg_holdout["trailing_atr_k"]),
+        partial_size=float(exit_cfg_holdout["partial_size"]),
         max_hold_bars=int(cfg["evaluation"]["stage10"]["evaluation"]["max_hold_bars"]),
         stop_atr_multiple=float(cfg["evaluation"]["stage10"]["evaluation"]["stop_atr_multiple"]),
         take_profit_atr_multiple=float(cfg["evaluation"]["stage10"]["evaluation"]["take_profit_atr_multiple"]),
@@ -711,9 +947,9 @@ def _evaluate_stage10_window(
         frame=forward,
         strategy_name=f"Stage10::{family}",
         symbol=symbol,
-        exit_mode=normalize_exit_mode(exit_mode),
-        trailing_atr_k=float(cfg["evaluation"]["stage10"]["exits"]["trailing_atr_k"]),
-        partial_size=float(cfg["evaluation"]["stage10"]["exits"]["partial_fraction"]),
+        exit_mode=normalize_exit_mode(str(exit_cfg_forward["exit_mode"])),
+        trailing_atr_k=float(exit_cfg_forward["trailing_atr_k"]),
+        partial_size=float(exit_cfg_forward["partial_size"]),
         max_hold_bars=int(cfg["evaluation"]["stage10"]["evaluation"]["max_hold_bars"]),
         stop_atr_multiple=float(cfg["evaluation"]["stage10"]["evaluation"]["stop_atr_multiple"]),
         take_profit_atr_multiple=float(cfg["evaluation"]["stage10"]["evaluation"]["take_profit_atr_multiple"]),
