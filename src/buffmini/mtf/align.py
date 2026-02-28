@@ -15,6 +15,7 @@ def join_mtf_layer(
     layer_df: pd.DataFrame,
     layer_spec: MtfLayerSpec,
     base_ts_col: str = "timestamp",
+    base_timeframe: str = "1h",
 ) -> tuple[pd.DataFrame, dict[str, Any]]:
     """Causally join one layer onto base timeframe rows via backward asof."""
 
@@ -33,7 +34,7 @@ def join_mtf_layer(
 
     prefixed = _prefix_layer_columns(layer, layer_spec.name)
     close_col = f"{layer_spec.name}__ts_close"
-    tolerance = layer_spec.tolerance_delta(base_timeframe="1h")
+    tolerance = layer_spec.tolerance_delta(base_timeframe=base_timeframe)
 
     joined = pd.merge_asof(
         left=base,
@@ -79,7 +80,10 @@ def assert_causal_alignment(joined: pd.DataFrame, base_ts_col: str, layer_close_
 def _prefix_layer_columns(layer: pd.DataFrame, layer_name: str) -> pd.DataFrame:
     renamed: dict[str, str] = {}
     for col in layer.columns:
-        renamed[col] = f"{layer_name}__{col}"
+        if str(col).startswith(f"{layer_name}__"):
+            renamed[col] = str(col)
+        else:
+            renamed[col] = f"{layer_name}__{col}"
     return layer.rename(columns=renamed)
 
 
@@ -116,4 +120,3 @@ def _alignment_stats(
         "unmatched_pct": float(unmatched / total * 100.0) if total > 0 else 0.0,
         "max_lookback_bars": max_lookback_bars,
     }
-
