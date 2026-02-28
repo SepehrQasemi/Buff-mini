@@ -49,6 +49,7 @@ def test_load_config_success() -> None:
     assert config["data"]["backend"] == "parquet"
     assert config["data"]["resample_source"] == "direct"
     assert config["data"]["partial_last_bucket"] is False
+    assert config["data"]["feature_cache"]["enabled"] is True
     assert config["data"]["include_futures_extras"] is False
     assert config["data"]["futures_extras"]["symbols"] == ["BTC/USDT", "ETH/USDT"]
     assert config["data"]["futures_extras"]["timeframe"] == "1h"

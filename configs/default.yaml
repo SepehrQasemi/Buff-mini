@@ -64,6 +64,8 @@ data:
   backend: parquet
   resample_source: direct
   partial_last_bucket: false
+  feature_cache:
+    enabled: true
   include_futures_extras: false
   futures_extras:
     symbols: ["BTC/USDT", "ETH/USDT"]

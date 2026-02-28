@@ -48,6 +48,9 @@ DATA_DEFAULTS = {
     "backend": "parquet",
     "resample_source": "direct",
     "partial_last_bucket": False,
+    "feature_cache": {
+        "enabled": True,
+    },
     "include_futures_extras": False,
     "futures_extras": {
         "symbols": ["BTC/USDT", "ETH/USDT"],
@@ -623,6 +626,11 @@ def validate_config(config: ConfigDict) -> None:
         raise ValueError("data.resample_source must be 'direct' or 'base'")
     if not isinstance(data["partial_last_bucket"], bool):
         raise ValueError("data.partial_last_bucket must be bool")
+    feature_cache_cfg = data.get("feature_cache", {})
+    if not isinstance(feature_cache_cfg, dict):
+        raise ValueError("data.feature_cache must be mapping")
+    if not isinstance(feature_cache_cfg.get("enabled", True), bool):
+        raise ValueError("data.feature_cache.enabled must be bool")
     if not isinstance(data["include_futures_extras"], bool):
         raise ValueError("data.include_futures_extras must be bool")
     futures_extras = data["futures_extras"]

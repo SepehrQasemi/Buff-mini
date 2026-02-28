@@ -13,6 +13,7 @@ import pandas as pd
 from buffmini.backtest.engine import run_backtest
 from buffmini.config import compute_config_hash, get_universe_end
 from buffmini.constants import DERIVED_DATA_DIR, RAW_DATA_DIR, RUNS_DIR
+from buffmini.data.cache import FeatureFrameCache, ohlcv_data_hash
 from buffmini.data.features import calculate_features
 from buffmini.data.store import build_data_store
 from buffmini.stage10.exits import normalize_exit_mode
@@ -247,6 +248,8 @@ def _build_features(
     derived_dir: Path,
 ) -> dict[str, pd.DataFrame]:
     frames: dict[str, pd.DataFrame] = {}
+    feature_cache_enabled = bool(config.get("data", {}).get("feature_cache", {}).get("enabled", True))
+    feature_cache = FeatureFrameCache() if feature_cache_enabled else None
     rows = int(config["evaluation"]["stage10"]["evaluation"].get("dry_run_rows", 2400))
     if dry_run:
         for symbol in symbols:
@@ -268,7 +271,42 @@ def _build_features(
         raw = store.load_ohlcv(symbol=symbol, timeframe=timeframe)
         if raw.empty:
             continue
-        frames[symbol] = calculate_features(raw, config=config, symbol=symbol, timeframe=timeframe, derived_data_dir=derived_dir)
+        data_hash = ohlcv_data_hash(raw)
+        params_hash = stable_hash(
+            {
+                "timeframe": str(timeframe),
+                "include_futures_extras": bool(config.get("data", {}).get("include_futures_extras", False)),
+                "futures_extras": config.get("data", {}).get("futures_extras", {}),
+                "cost_model": config.get("cost_model", {}),
+            },
+            length=16,
+        )
+        if feature_cache is not None:
+            cache_key = feature_cache.key(
+                symbol=str(symbol),
+                timeframe=str(timeframe),
+                data_hash=str(data_hash),
+                params_hash=str(params_hash),
+            )
+            features, _ = feature_cache.get_or_build(
+                key=cache_key,
+                builder=lambda r=raw, s=symbol: calculate_features(
+                    r,
+                    config=config,
+                    symbol=s,
+                    timeframe=timeframe,
+                    derived_data_dir=derived_dir,
+                ),
+                meta={
+                    "symbol": str(symbol),
+                    "timeframe": str(timeframe),
+                    "data_hash": str(data_hash),
+                    "params_hash": str(params_hash),
+                },
+            )
+        else:
+            features = calculate_features(raw, config=config, symbol=symbol, timeframe=timeframe, derived_data_dir=derived_dir)
+        frames[symbol] = features
     return frames
 
 
