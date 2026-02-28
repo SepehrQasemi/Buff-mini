@@ -171,6 +171,38 @@ Outputs:
 - `docs/stage8_report.md`
 - `docs/stage8_report_summary.json`
 
+## Stage-9 Data Expansion
+
+Stage-9 adds futures-derived context data (BTC/USDT and ETH/USDT only):
+
+- Funding-rate ingestion + alignment
+- Open-interest ingestion + alignment
+- Leakage-safe funding/OI interaction features
+- Impact analysis reports (statistical bias evidence only)
+- Minimal DSL-lite regime selectors for family selection (non-blocking)
+
+Stage-9 is disabled by default for backward compatibility (`data.include_futures_extras: false`).
+
+Run Stage-9 data + analysis:
+
+```bash
+python scripts/update_futures_extras.py
+python scripts/run_stage9_impact.py
+```
+
+Optional Stage-5 pipeline flag to include futures extras in feature generation:
+
+```bash
+python scripts/run_pipeline.py --include-futures-extras
+```
+
+Outputs:
+
+- `docs/stage9_report.md`
+- `docs/stage9_report_summary.json`
+- `docs/stage9_impact_analysis.md`
+- `docs/stage9_data_quality.md`
+
 ## Output Structure
 
 - Raw market data: `data/raw/*.parquet`

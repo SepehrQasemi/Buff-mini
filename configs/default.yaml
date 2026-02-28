@@ -247,6 +247,12 @@ evaluation:
       take_profit_atr_multiple: 3.0
       max_hold_bars: 24
       initial_capital: null
+  stage9:
+    enabled: false
+    dsl_lite:
+      enabled: false
+      funding_selector_enabled: true
+      oi_selector_enabled: true
 
 ui:
   stage5:

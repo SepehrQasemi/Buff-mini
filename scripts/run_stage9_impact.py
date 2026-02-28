@@ -11,7 +11,11 @@ from typing import Any
 
 import pandas as pd
 
-from buffmini.analysis.impact_analysis import analyze_symbol_impact, summarize_data_quality
+from buffmini.analysis.impact_analysis import (
+    analyze_symbol_impact,
+    compute_dsl_trade_count_ratio,
+    summarize_data_quality,
+)
 from buffmini.config import load_config
 from buffmini.constants import DEFAULT_CONFIG_PATH, DERIVED_DATA_DIR, RAW_DATA_DIR
 from buffmini.data.derived_store import read_meta_json
@@ -53,6 +57,7 @@ def main() -> None:
     impact_payload: dict[str, Any] = {}
     all_rows: list[dict[str, Any]] = []
     quality_payload: dict[str, Any] = {}
+    dsl_trade_ratio: dict[str, dict[str, float]] = {}
 
     for symbol in symbols:
         frame = store.load_ohlcv(symbol=symbol, timeframe=timeframe)
@@ -70,6 +75,7 @@ def main() -> None:
         symbol_impact = analyze_symbol_impact(features=features, symbol=symbol, seed=int(args.seed), n_boot=int(args.n_boot))
         impact_payload[symbol] = symbol_impact
         all_rows.extend(symbol_impact["rows"])
+        dsl_trade_ratio[symbol] = compute_dsl_trade_count_ratio(features)
 
         funding_meta = read_meta_json(
             kind="funding",
@@ -124,12 +130,21 @@ def main() -> None:
         },
         "top_effects": strongest,
         "dsl_lite": {
-            "trade_count_ratio_bounds_ok": False,
+            "trade_count_ratio": dsl_trade_ratio,
+            "trade_count_ratio_bounds_ok": bool(
+                all(0.8 <= float(row.get("ratio", 0.0)) <= 1.2 for row in dsl_trade_ratio.values())
+            ),
         },
         "runtime_seconds": round(time.time() - started, 3),
     }
 
     (docs_dir / "stage9_report_summary.json").write_text(json.dumps(summary, indent=2), encoding="utf-8")
+
+    significant_effects = [
+        row
+        for row in strongest
+        if not (float(row["ci_low"]) <= 0.0 <= float(row["ci_high"]))
+    ]
 
     report_lines = [
         "# Stage-9 Report",
@@ -139,12 +154,29 @@ def main() -> None:
         "- Leakage-safe futures extras features",
         "- Stage-9 impact analysis tables and quality report",
         "",
-        "## Leak-Proof Evidence",
-        f"- features_checked: `{summary['leakage']['features_checked']}`",
-        f"- leaks_found: `{summary['leakage']['leaks_found']}`",
-        "",
-        "## Impact Evidence",
+        "## Data Lineage",
     ]
+    for symbol in symbols:
+        quality = quality_payload.get(symbol, {})
+        funding = quality.get("funding", {})
+        oi = quality.get("open_interest", {})
+        report_lines.append(
+            "- "
+            f"{symbol}: funding_rows={int(funding.get('row_count', 0))} "
+            f"({funding.get('start_ts')}..{funding.get('end_ts')}), "
+            f"oi_rows={int(oi.get('row_count', 0))} "
+            f"({oi.get('start_ts')}..{oi.get('end_ts')})"
+        )
+    report_lines.extend(
+        [
+            "",
+            "## Leak-Proof Evidence",
+            f"- features_checked: `{summary['leakage']['features_checked']}`",
+            f"- leaks_found: `{summary['leakage']['leaks_found']}`",
+            "",
+            "## Impact Evidence",
+        ]
+    )
     if strongest:
         for row in strongest:
             report_lines.append(
@@ -153,8 +185,24 @@ def main() -> None:
                 f"median_diff={float(row['median_diff']):.6f} | "
                 f"CI=[{float(row['ci_low']):.6f}, {float(row['ci_high']):.6f}]"
             )
+        if not significant_effects:
+            report_lines.append("- no statistically clear directional bias (all top CI ranges cross zero)")
     else:
         report_lines.append("- no meaningful bias detected")
+
+    report_lines.extend(
+        [
+            "",
+            "## DSL-Lite Trade-Frequency Guard",
+            f"- ratio_bounds_ok: `{summary['dsl_lite']['trade_count_ratio_bounds_ok']}`",
+        ]
+    )
+    for symbol in sorted(dsl_trade_ratio):
+        row = dsl_trade_ratio[symbol]
+        report_lines.append(
+            f"- {symbol}: baseline_entries={int(row['baseline_entries'])}, "
+            f"dsl_entries={int(row['dsl_entries'])}, ratio={float(row['ratio']):.4f}"
+        )
 
     report_lines.extend(
         [

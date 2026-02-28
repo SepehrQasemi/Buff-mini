@@ -53,6 +53,7 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument("--mode", type=str, choices=["quick", "full"], default="quick")
     parser.add_argument("--execution-mode", type=str, choices=["net", "hedge", "isolated"], default="net")
     parser.add_argument("--fees-round-trip-pct", type=float, default=None)
+    parser.add_argument("--include-futures-extras", action="store_true")
     parser.add_argument("--seed", type=int, default=42)
     parser.add_argument("--run-stage4-simulate", type=int, choices=[0, 1], default=0)
     parser.add_argument("--runs-dir", type=Path, default=RUNS_DIR)
@@ -76,6 +77,7 @@ def main() -> None:
             "window_months": args.window_months,
             "mode": args.mode,
             "execution_mode": args.execution_mode,
+            "include_futures_extras": bool(args.include_futures_extras),
             "seed": args.seed,
         },
         length=10,
@@ -405,6 +407,9 @@ def _prepare_config(config: dict[str, Any], args: argparse.Namespace, symbols: l
     cfg["universe"]["end"] = resolved_end_ts
     cfg["search"]["seed"] = int(args.seed)
     cfg["execution"]["mode"] = str(args.execution_mode)
+    if bool(args.include_futures_extras):
+        cfg.setdefault("data", {})
+        cfg["data"]["include_futures_extras"] = True
 
     if args.fees_round_trip_pct is not None:
         cfg["costs"]["round_trip_cost_pct"] = float(args.fees_round_trip_pct)

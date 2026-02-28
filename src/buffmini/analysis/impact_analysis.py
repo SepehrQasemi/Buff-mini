@@ -7,6 +7,16 @@ from typing import Any
 import numpy as np
 import pandas as pd
 
+from buffmini.baselines.stage0 import (
+    bollinger_mean_reversion,
+    donchian_breakout,
+    generate_signals,
+    range_breakout_with_ema_trend_filter,
+    rsi_mean_reversion,
+    trend_pullback,
+)
+from buffmini.discovery.dsl import select_signals_by_regime
+
 
 CONDITIONS: tuple[str, ...] = (
     "funding_extreme_pos",
@@ -174,3 +184,53 @@ def summarize_data_quality(
             "gaps_count": int(oi_meta.get("gaps_count", 0) or 0),
         },
     }
+
+
+def compute_dsl_trade_count_ratio(frame: pd.DataFrame) -> dict[str, float]:
+    """Compare baseline vs DSL-lite entry counts on one feature frame."""
+
+    strategy_specs = [
+        donchian_breakout(),
+        rsi_mean_reversion(),
+        trend_pullback(),
+        bollinger_mean_reversion(),
+        range_breakout_with_ema_trend_filter(),
+    ]
+    pair_by_name = {
+        "Donchian Breakout": rsi_mean_reversion(),
+        "RSI Mean Reversion": donchian_breakout(),
+        "Bollinger Mean Reversion": range_breakout_with_ema_trend_filter(),
+        "Range Breakout w/ EMA Trend Filter": bollinger_mean_reversion(),
+    }
+
+    baseline_entries = 0
+    dsl_entries = 0
+    for spec in strategy_specs:
+        primary = generate_signals(frame, spec, gating_mode="none")
+        selected = primary
+        paired = pair_by_name.get(spec.name)
+        if paired is not None:
+            alternate = generate_signals(frame, paired, gating_mode="none")
+            selected = select_signals_by_regime(
+                frame=frame,
+                primary_signal=primary,
+                alternate_signal=alternate,
+                use_funding_selector=True,
+                use_oi_selector=True,
+            )
+
+        baseline_entries += int(_count_entries(primary))
+        dsl_entries += int(_count_entries(selected))
+
+    ratio = float(dsl_entries / baseline_entries) if baseline_entries > 0 else 1.0
+    return {
+        "baseline_entries": float(baseline_entries),
+        "dsl_entries": float(dsl_entries),
+        "ratio": float(ratio),
+    }
+
+
+def _count_entries(signal: pd.Series) -> int:
+    s = pd.Series(signal).fillna(0).astype(int)
+    entered = s.ne(0) & s.shift(1).fillna(0).eq(0)
+    return int(entered.sum())

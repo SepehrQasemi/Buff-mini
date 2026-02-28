@@ -155,6 +155,15 @@ STAGE8_DEFAULTS = {
     },
 }
 
+STAGE9_DEFAULTS = {
+    "enabled": False,
+    "dsl_lite": {
+        "enabled": False,
+        "funding_selector_enabled": True,
+        "oi_selector_enabled": True,
+    },
+}
+
 UI_STAGE5_DEFAULTS = {
     "stage5": {
         "presets": {
@@ -625,6 +634,18 @@ def validate_config(config: ConfigDict) -> None:
     if wf_v2["initial_capital"] is not None and float(wf_v2["initial_capital"]) <= 0:
         raise ValueError("evaluation.stage8.walkforward_v2.initial_capital must be > 0 when set")
     evaluation["stage8"] = stage8
+
+    stage9 = _merge_defaults(STAGE9_DEFAULTS, evaluation.get("stage9", {}))
+    if not isinstance(stage9["enabled"], bool):
+        raise ValueError("evaluation.stage9.enabled must be bool")
+    dsl_lite_cfg = stage9["dsl_lite"]
+    if not isinstance(dsl_lite_cfg["enabled"], bool):
+        raise ValueError("evaluation.stage9.dsl_lite.enabled must be bool")
+    if not isinstance(dsl_lite_cfg["funding_selector_enabled"], bool):
+        raise ValueError("evaluation.stage9.dsl_lite.funding_selector_enabled must be bool")
+    if not isinstance(dsl_lite_cfg["oi_selector_enabled"], bool):
+        raise ValueError("evaluation.stage9.dsl_lite.oi_selector_enabled must be bool")
+    evaluation["stage9"] = stage9
 
     ui = _merge_defaults(UI_STAGE5_DEFAULTS, config.get("ui", {}))
     stage5_ui = ui.get("stage5", {})

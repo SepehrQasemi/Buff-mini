@@ -40,12 +40,16 @@ def fetch_funding_history(
     rows: list[dict[str, Any]] = []
     perp = futures_symbol(symbol)
 
+    interval_ms = 8 * 3600 * 1000  # funding cadence on Binance perp.
+    chunk_span_ms = max(interval_ms, int(limit) * interval_ms)
+
     while since <= end_ms:
+        chunk_end_ms = min(end_ms, since + chunk_span_ms - 1)
         batch = exchange.fetch_funding_rate_history(
             symbol=perp,
             since=since,
             limit=int(limit),
-            params={"endTime": end_ms},
+            params={"endTime": chunk_end_ms},
         )
         if not batch:
             break
@@ -72,7 +76,7 @@ def fetch_funding_history(
         if next_since <= since:
             break
         since = next_since
-        if len(batch) < int(limit):
+        if len(batch) < int(limit) and chunk_end_ms >= end_ms:
             break
 
     frame = pd.DataFrame(rows, columns=["ts", "funding_rate"]) if rows else pd.DataFrame(columns=["ts", "funding_rate"])
@@ -115,44 +119,49 @@ def fetch_open_interest_history(
     rows: list[dict[str, Any]] = []
     perp = futures_symbol(symbol)
 
+    interval_ms = int(exchange.parse_timeframe(str(timeframe))) * 1000
+    chunk_span_ms = max(interval_ms, int(limit) * interval_ms)
+    # Binance open-interest history endpoint is typically constrained to a
+    # recent window. Cap the requested start to keep requests valid.
+    max_history_days = 30
+    min_supported_since = end_ms - (max_history_days * 24 * 3600 * 1000)
+    since = max(since, min_supported_since)
+
     while since <= end_ms:
-        batch = exchange.fetch_open_interest_history(
-            symbol=perp,
-            timeframe=str(timeframe),
-            since=since,
-            limit=int(limit),
-            params={"endTime": end_ms},
-        )
+        chunk_end_ms = min(end_ms, since + chunk_span_ms - 1)
+        try:
+            batch = exchange.fetch_open_interest_history(
+                symbol=perp,
+                timeframe=str(timeframe),
+                since=since,
+                limit=int(limit),
+                params={"endTime": chunk_end_ms},
+            )
+        except ccxt.BadRequest:
+            # Fallback to exchange-supported latest chunk when startTime window
+            # constraints reject historical `since` requests.
+            batch = exchange.fetch_open_interest_history(
+                symbol=perp,
+                timeframe=str(timeframe),
+                since=None,
+                limit=int(limit),
+                params={},
+            )
+            if not batch:
+                break
+            rows.extend(_normalize_open_interest_batch(batch, start_ms=start_ms, end_ms=end_ms))
+            break
         if not batch:
             break
 
-        for item in batch:
-            ts_ms = int(item.get("timestamp", 0) or 0)
-            if ts_ms <= 0:
-                continue
-            if ts_ms < start_ms or ts_ms > end_ms:
-                continue
-            value = item.get("openInterestAmount")
-            if value is None:
-                value = item.get("openInterestValue")
-            if value is None:
-                value = item.get("openInterest")
-            if value is None:
-                info = item.get("info") if isinstance(item.get("info"), dict) else {}
-                value = info.get("sumOpenInterest") or info.get("openInterest")
-            rows.append(
-                {
-                    "ts": pd.to_datetime(ts_ms, unit="ms", utc=True),
-                    "open_interest": float(value),
-                }
-            )
+        rows.extend(_normalize_open_interest_batch(batch, start_ms=start_ms, end_ms=end_ms))
 
         last_ts = int(batch[-1].get("timestamp", 0) or 0)
         next_since = last_ts + 1
         if next_since <= since:
             break
         since = next_since
-        if len(batch) < int(limit):
+        if len(batch) < int(limit) and chunk_end_ms >= end_ms:
             break
 
     frame = (
@@ -161,6 +170,31 @@ def fetch_open_interest_history(
         else pd.DataFrame(columns=["ts", "open_interest"])
     )
     return _clean_series_frame(frame=frame, value_col="open_interest")
+
+
+def _normalize_open_interest_batch(batch: list[dict[str, Any]], start_ms: int, end_ms: int) -> list[dict[str, Any]]:
+    rows: list[dict[str, Any]] = []
+    for item in batch:
+        ts_ms = int(item.get("timestamp", 0) or 0)
+        if ts_ms <= 0:
+            continue
+        if ts_ms < start_ms or ts_ms > end_ms:
+            continue
+        value = item.get("openInterestAmount")
+        if value is None:
+            value = item.get("openInterestValue")
+        if value is None:
+            value = item.get("openInterest")
+        if value is None:
+            info = item.get("info") if isinstance(item.get("info"), dict) else {}
+            value = info.get("sumOpenInterest") or info.get("openInterest")
+        rows.append(
+            {
+                "ts": pd.to_datetime(ts_ms, unit="ms", utc=True),
+                "open_interest": float(value),
+            }
+        )
+    return rows
 
 
 def align_open_interest_to_ohlcv(

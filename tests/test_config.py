@@ -110,6 +110,10 @@ def test_load_config_success() -> None:
     assert config["evaluation"]["stage8"]["walkforward_v2"]["step_days"] == 30
     assert config["evaluation"]["stage8"]["walkforward_v2"]["min_trades"] == 10
     assert config["evaluation"]["stage8"]["walkforward_v2"]["min_exposure"] == 0.01
+    assert config["evaluation"]["stage9"]["enabled"] is False
+    assert config["evaluation"]["stage9"]["dsl_lite"]["enabled"] is False
+    assert config["evaluation"]["stage9"]["dsl_lite"]["funding_selector_enabled"] is True
+    assert config["evaluation"]["stage9"]["dsl_lite"]["oi_selector_enabled"] is True
     assert config["ui"]["stage5"]["presets"]["quick"]["candidate_count"] == 1000
     assert config["ui"]["stage5"]["presets"]["full"]["candidate_count"] == 5000
     assert config["ui"]["stage5"]["window_months_options"] == [3, 6, 12, 36]

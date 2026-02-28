@@ -5,6 +5,7 @@ from __future__ import annotations
 import json
 import math
 import time
+from copy import deepcopy
 from dataclasses import dataclass
 from pathlib import Path
 from typing import Any
@@ -20,7 +21,9 @@ from buffmini.constants import RAW_DATA_DIR, RUNS_DIR
 from buffmini.data.features import calculate_features
 from buffmini.data.store import DataStore, build_data_store
 from buffmini.data.window import slice_last_n_months
+from buffmini.discovery.dsl import dsl_lite_settings, select_signals_by_regime
 from buffmini.discovery.generator import (
+    FAMILY_BUILDERS,
     Candidate,
     candidate_to_strategy_spec,
     complexity_penalty,
@@ -304,6 +307,7 @@ def run_stage1_optimization(
             round_trip_cost_pct=round_trip_cost_pct,
             slippage_pct=slippage_pct,
             initial_capital=initial_capital,
+            config=config,
         )
 
         instability = 0.0
@@ -360,6 +364,7 @@ def run_stage1_optimization(
             round_trip_cost_pct=round_trip_cost_pct,
             slippage_pct=slippage_pct,
             initial_capital=initial_capital,
+            config=config,
         )
 
         instability = _instability_penalty(
@@ -371,6 +376,7 @@ def run_stage1_optimization(
             slippage_pct=slippage_pct,
             initial_capital=initial_capital,
             weights=weights,
+            config=config,
         )
         score = _compute_score(metrics=metrics, candidate=candidate, weights=weights, instability_penalty=instability)
 
@@ -407,7 +413,7 @@ def run_stage1_optimization(
     stage_c_candidate_timings: list[dict[str, Any]] = []
     for candidate in stage_c_candidate_pool:
         candidate_started = time.time()
-        signal_cache = _build_candidate_signal_cache(candidate=candidate, data_by_symbol=stage_c_data)
+        signal_cache = _build_candidate_signal_cache(candidate=candidate, data_by_symbol=stage_c_data, config=config)
         temporal_metrics, holdout_months_used = _evaluate_with_holdout_promotion(
             candidate=candidate,
             signal_cache=signal_cache,
@@ -898,12 +904,18 @@ def _evaluate_temporal_candidate_metrics_cached(
 def _build_candidate_signal_cache(
     candidate: Candidate,
     data_by_symbol: dict[str, pd.DataFrame],
+    config: ConfigDict | None = None,
 ) -> dict[str, pd.DataFrame]:
     spec = candidate_to_strategy_spec(candidate)
     cached: dict[str, pd.DataFrame] = {}
     for symbol, frame in data_by_symbol.items():
         prepared = frame.copy()
-        prepared["signal"] = generate_signals(prepared, spec, gating_mode=candidate.gating_mode)
+        prepared["signal"] = _generate_candidate_signal(
+            frame=prepared,
+            candidate=candidate,
+            spec=spec,
+            config=config,
+        )
         cached[symbol] = prepared
     return cached
 
@@ -929,6 +941,63 @@ def _slice_signal_cache(
         end_ts = template_ts.iloc[-1]
         sliced[symbol] = cached.loc[(cached_ts >= start_ts) & (cached_ts <= end_ts)].reset_index(drop=True)
     return sliced
+
+
+def _generate_candidate_signal(
+    frame: pd.DataFrame,
+    candidate: Candidate,
+    spec: Any,
+    config: ConfigDict | None = None,
+) -> pd.Series:
+    primary_signal = generate_signals(frame, spec, gating_mode=candidate.gating_mode)
+    if not _can_apply_stage9_dsl(frame=frame, config=config):
+        return primary_signal
+
+    alternate_family = _paired_family_for_dsl(candidate.family)
+    if alternate_family is None:
+        return primary_signal
+
+    alternate_candidate = Candidate(
+        candidate_id=f"{candidate.candidate_id}_dsl_alt",
+        family=alternate_family,
+        gating_mode=candidate.gating_mode,
+        exit_mode=candidate.exit_mode,
+        params=deepcopy(candidate.params),
+    )
+    alternate_spec = candidate_to_strategy_spec(alternate_candidate)
+    alternate_signal = generate_signals(frame, alternate_spec, gating_mode=alternate_candidate.gating_mode)
+
+    dsl_settings = dsl_lite_settings(config)
+    return select_signals_by_regime(
+        frame=frame,
+        primary_signal=primary_signal,
+        alternate_signal=alternate_signal,
+        use_funding_selector=bool(dsl_settings.get("funding_selector_enabled", True)),
+        use_oi_selector=bool(dsl_settings.get("oi_selector_enabled", True)),
+    )
+
+
+def _paired_family_for_dsl(family: str) -> str | None:
+    pair_map = {
+        "DonchianBreakout": "RSIMeanReversion",
+        "RSIMeanReversion": "DonchianBreakout",
+        "RangeBreakoutTrendFilter": "BollingerMeanReversion",
+        "BollingerMeanReversion": "RangeBreakoutTrendFilter",
+    }
+    paired = pair_map.get(str(family))
+    if paired is None:
+        return None
+    if paired not in FAMILY_BUILDERS:
+        return None
+    return paired
+
+
+def _can_apply_stage9_dsl(frame: pd.DataFrame, config: ConfigDict | None) -> bool:
+    settings = dsl_lite_settings(config)
+    if not bool(settings.get("enabled", False)):
+        return False
+    required = {"funding_extreme_pos", "funding_extreme_neg", "oi_chg_24"}
+    return required.issubset(frame.columns)
 
 
 def _evaluate_with_holdout_promotion(
@@ -1277,6 +1346,7 @@ def _evaluate_candidate_metrics(
     slippage_pct: float,
     initial_capital: float,
     signal_precomputed: bool = False,
+    config: ConfigDict | None = None,
 ) -> dict[str, float | str]:
     expectancy_list: list[float] = []
     trade_pnl_values: list[float] = []
@@ -1311,7 +1381,12 @@ def _evaluate_candidate_metrics(
             if candidate is None:
                 raise ValueError("candidate is required when signal_precomputed=False")
             spec = candidate_to_strategy_spec(candidate)
-            eval_frame["signal"] = generate_signals(eval_frame, spec, gating_mode=candidate.gating_mode)
+            eval_frame["signal"] = _generate_candidate_signal(
+                frame=eval_frame,
+                candidate=candidate,
+                spec=spec,
+                config=config,
+            )
 
         result = run_backtest(
             frame=eval_frame,
@@ -1480,6 +1555,7 @@ def _instability_penalty(
     slippage_pct: float,
     initial_capital: float,
     weights: dict[str, float],
+    config: ConfigDict | None = None,
 ) -> float:
     base_score = _compute_score(metrics=base_metrics, candidate=candidate, weights=weights, instability_penalty=0.0)
 
@@ -1495,6 +1571,7 @@ def _instability_penalty(
             round_trip_cost_pct=round_trip_cost_pct,
             slippage_pct=slippage_pct,
             initial_capital=initial_capital,
+            config=config,
         )
         perturb_scores.append(_compute_score(metrics=metrics, candidate=variant, weights=weights, instability_penalty=0.0))
 

@@ -1,0 +1,150 @@
+{
+  "data_quality": {
+    "BTC/USDT": {
+      "symbol": "BTC/USDT",
+      "funding": {
+        "start_ts": "2023-01-01T00:00:00+00:00",
+        "end_ts": "2026-02-26T08:00:00.006000+00:00",
+        "row_count": 3458,
+        "gaps_count": 0
+      },
+      "open_interest": {
+        "start_ts": "2026-02-07T07:00:00+00:00",
+        "end_ts": "2026-02-26T09:00:00+00:00",
+        "row_count": 459,
+        "gaps_count": 0
+      }
+    },
+    "ETH/USDT": {
+      "symbol": "ETH/USDT",
+      "funding": {
+        "start_ts": "2023-01-01T00:00:00+00:00",
+        "end_ts": "2026-02-26T08:00:00.006000+00:00",
+        "row_count": 3458,
+        "gaps_count": 0
+      },
+      "open_interest": {
+        "start_ts": "2026-02-07T07:00:00+00:00",
+        "end_ts": "2026-02-26T09:00:00+00:00",
+        "row_count": 459,
+        "gaps_count": 0
+      }
+    }
+  },
+  "leakage": {
+    "features_checked": 36,
+    "leaks_found": 0
+  },
+  "impact": {
+    "BTC/USDT": {
+      "best_effect": {
+        "symbol": "BTC/USDT",
+        "condition": "funding_extreme_neg",
+        "horizon": "72h",
+        "count_condition": 48,
+        "count_base": 27537,
+        "median_condition": -0.0019320302376925613,
+        "median_base": 0.0021438770498427573,
+        "median_diff": -0.004075907287535319,
+        "ci_low": -0.02212546434136465,
+        "ci_high": 0.0069918222394793105,
+        "mean_condition": -0.005311033986358358,
+        "mean_base": 0.0045064876340230355,
+        "p05_condition": -0.07879491617305956,
+        "p95_condition": 0.04828443713474384
+      },
+      "ci": [
+        -0.02212546434136465,
+        0.0069918222394793105
+      ]
+    },
+    "ETH/USDT": {
+      "best_effect": {
+        "symbol": "ETH/USDT",
+        "condition": "crowd_short_risk",
+        "horizon": "72h",
+        "count_condition": 13,
+        "count_base": 27572,
+        "median_condition": 0.06938282597237788,
+        "median_base": 0.0016485026922355983,
+        "median_diff": 0.06773432328014228,
+        "ci_low": 0.016391852692278518,
+        "ci_high": 0.07647198276756015,
+        "mean_condition": 0.05093557475037085,
+        "mean_base": 0.0028261591110064783,
+        "p05_condition": 0.0037501298195160796,
+        "p95_condition": 0.09038791145969077
+      },
+      "ci": [
+        0.016391852692278518,
+        0.07647198276756015
+      ]
+    }
+  },
+  "top_effects": [
+    {
+      "symbol": "ETH/USDT",
+      "condition": "crowd_short_risk",
+      "horizon": "72h",
+      "count_condition": 13,
+      "count_base": 27572,
+      "median_condition": 0.06938282597237788,
+      "median_base": 0.0016485026922355983,
+      "median_diff": 0.06773432328014228,
+      "ci_low": 0.016391852692278518,
+      "ci_high": 0.07647198276756015,
+      "mean_condition": 0.05093557475037085,
+      "mean_base": 0.0028261591110064783,
+      "p05_condition": 0.0037501298195160796,
+      "p95_condition": 0.09038791145969077
+    },
+    {
+      "symbol": "ETH/USDT",
+      "condition": "crowd_short_risk",
+      "horizon": "24h",
+      "count_condition": 18,
+      "count_base": 27615,
+      "median_condition": -0.021730709193153896,
+      "median_base": 0.0005588348293807943,
+      "median_diff": -0.02228954402253469,
+      "ci_low": -0.042118432531212516,
+      "ci_high": 0.020032319393683974,
+      "mean_condition": -0.0074549847376168855,
+      "mean_base": 0.0010135365033593885,
+      "p05_condition": -0.05081754233477348,
+      "p95_condition": 0.06279507087183137
+    },
+    {
+      "symbol": "ETH/USDT",
+      "condition": "funding_extreme_neg",
+      "horizon": "24h",
+      "count_condition": 144,
+      "count_base": 27489,
+      "median_condition": -0.009098339643373143,
+      "median_base": 0.0005669901965565938,
+      "median_diff": -0.009665329839929737,
+      "ci_low": -0.015939356603679226,
+      "ci_high": 0.0008988643083713414,
+      "mean_condition": -0.0034060922248110572,
+      "mean_base": 0.001031143297150322,
+      "p05_condition": -0.06795234478108357,
+      "p95_condition": 0.06666878600121193
+    }
+  ],
+  "dsl_lite": {
+    "trade_count_ratio": {
+      "BTC/USDT": {
+        "baseline_entries": 5908.0,
+        "dsl_entries": 5908.0,
+        "ratio": 1.0
+      },
+      "ETH/USDT": {
+        "baseline_entries": 6004.0,
+        "dsl_entries": 6004.0,
+        "ratio": 1.0
+      }
+    },
+    "trade_count_ratio_bounds_ok": true
+  },
+  "runtime_seconds": 10.562
+}
