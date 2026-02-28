@@ -27,6 +27,11 @@ from buffmini.stage10.exits import (
     trailing_stop_path,
     update_trailing_stop,
 )
+from buffmini.stage10.activation import (
+    DEFAULT_ACTIVATION_CONFIG,
+    activation_multiplier,
+    apply_soft_activation,
+)
 
 __all__ = [
     "REGIME_FEATURE_COLUMNS",
@@ -50,4 +55,7 @@ __all__ = [
     "should_regime_flip_exit",
     "trailing_stop_path",
     "update_trailing_stop",
+    "DEFAULT_ACTIVATION_CONFIG",
+    "activation_multiplier",
+    "apply_soft_activation",
 ]
