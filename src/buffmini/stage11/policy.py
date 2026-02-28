@@ -137,12 +137,17 @@ def _build_exit_hook(cfg: dict[str, Any]):
 
 
 def _score_trend(row: dict[str, Any], scale: float) -> float:
-    slope = _to_float(row.get("ema_slope_50", row.get("trend_strength_stage10", 0.0)))
+    slope = _to_float(
+        row.get(
+            "stage11_context_ema_slope_50",
+            row.get("ema_slope_50", row.get("trend_strength_stage10", 0.0)),
+        )
+    )
     return _clip01(_sigmoid(abs(slope) / scale))
 
 
 def _score_vol_expansion(row: dict[str, Any]) -> float:
-    atr_rank = _to_float(row.get("atr_pct_rank_252", 0.5))
+    atr_rank = _to_float(row.get("stage11_context_atr_pct_rank_252", row.get("atr_pct_rank_252", 0.5)))
     return _clip01(atr_rank)
 
 
@@ -153,8 +158,8 @@ def _score_range(row: dict[str, Any], trend_score: float) -> float:
 
 
 def _score_confirm(row: dict[str, Any]) -> float:
-    volume_z = _to_float(row.get("volume_z_120", 0.0))
-    slope = abs(_to_float(row.get("ema_slope_50", 0.0)))
+    volume_z = _to_float(row.get("stage11_confirm_volume_z_120", row.get("volume_z_120", 0.0)))
+    slope = abs(_to_float(row.get("stage11_confirm_ema_slope_50", row.get("ema_slope_50", 0.0))))
     return _clip01(0.5 * _sigmoid(volume_z) + 0.5 * _sigmoid(slope / 0.01))
 
 
@@ -185,4 +190,3 @@ def _sigmoid(value: float) -> float:
 
 def _clip01(value: float) -> float:
     return float(np.clip(float(value), 0.0, 1.0))
-

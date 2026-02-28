@@ -323,6 +323,62 @@ evaluation:
       top_k_per_category: 2
       bootstrap_resamples: 500
       exit_mode: fixed_atr
+  stage11:
+    enabled: false
+    mtf:
+      base_timeframe: "1h"
+      layers:
+        - name: "htf_4h"
+          timeframe: "4h"
+          role: "context"
+          features:
+            - ema_50
+            - ema_200
+            - ema_slope_50
+            - atr_14
+            - atr_pct
+            - atr_pct_rank_252
+            - bb_mid_20
+            - bb_upper_20_2
+            - bb_lower_20_2
+            - bb_bandwidth_20
+            - volume_z_120
+          tolerance_bars: 4
+          enabled: true
+        - name: "ltf_15m"
+          timeframe: "15m"
+          role: "confirm"
+          features:
+            - ema_50
+            - ema_slope_50
+            - atr_pct_rank_252
+            - volume_z_120
+          tolerance_bars: 2
+          enabled: false
+      feature_pack_params: {}
+      hooks_enabled:
+        bias: true
+        confirm: false
+        exit: false
+    hooks:
+      bias:
+        enabled: true
+        multiplier_min: 0.9
+        multiplier_max: 1.1
+        trend_boost: 1.10
+        range_boost: 1.05
+        vol_cut: 0.95
+        trend_slope_scale: 0.01
+      confirm:
+        enabled: false
+        threshold: 0.55
+      exit:
+        enabled: false
+        tighten_trailing_scale: 0.9
+    trade_count_guard:
+      max_drop_pct: 15.0
+      material_pf_improvement: 0.05
+      material_exp_lcb_improvement: 0.5
 
 ui:
   stage5:

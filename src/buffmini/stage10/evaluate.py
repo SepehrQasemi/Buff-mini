@@ -112,6 +112,7 @@ def run_stage10(
     write_docs: bool = True,
     is_stress: bool = False,
     hooks: dict[str, Any] | None = None,
+    features_by_symbol_override: dict[str, pd.DataFrame] | None = None,
 ) -> dict[str, Any]:
     """Run Stage-10 baseline-vs-upgraded comparison and write artifacts."""
 
@@ -121,15 +122,18 @@ def run_stage10(
     if resolved_timeframe != "1h":
         raise ValueError("Stage-10 currently supports timeframe=1h only")
 
-    features_by_symbol = _build_features(
-        config=cfg,
-        symbols=resolved_symbols,
-        timeframe=resolved_timeframe,
-        dry_run=bool(dry_run),
-        seed=int(seed),
-        data_dir=data_dir,
-        derived_dir=derived_dir,
-    )
+    if isinstance(features_by_symbol_override, dict) and features_by_symbol_override:
+        features_by_symbol = {str(sym): frame.copy() for sym, frame in features_by_symbol_override.items()}
+    else:
+        features_by_symbol = _build_features(
+            config=cfg,
+            symbols=resolved_symbols,
+            timeframe=resolved_timeframe,
+            dry_run=bool(dry_run),
+            seed=int(seed),
+            data_dir=data_dir,
+            derived_dir=derived_dir,
+        )
     if not features_by_symbol:
         raise ValueError("No feature frames available for Stage-10 evaluation")
 
@@ -424,9 +428,11 @@ def _evaluate_stage10(
     features_by_symbol: dict[str, pd.DataFrame],
     cfg: dict[str, Any],
     hooks: dict[str, Any] | None = None,
+    return_paths: bool = False,
 ) -> dict[str, Any]:
     candidate_rows: list[CandidateResult] = []
     best_by_symbol: dict[str, CandidateResult] = {}
+    best_paths: dict[str, dict[str, pd.DataFrame]] = {}
     families = resolve_enabled_families(
         families=list(cfg["evaluation"]["stage10"]["signals"]["families"]),
         enabled_families=list(cfg["evaluation"]["stage10"]["signals"].get("enabled_families", [])),
@@ -501,6 +507,11 @@ def _evaluate_stage10(
                 candidate_rows.append(candidate)
                 if symbol_best is None or candidate.score > symbol_best.score:
                     symbol_best = candidate
+                    if bool(return_paths):
+                        best_paths[symbol] = {
+                            "trades": adjusted["trades"].copy(),
+                            "equity_curve": adjusted["equity_curve"].copy(),
+                        }
         if symbol_best is not None:
             best_by_symbol[symbol] = symbol_best
 
@@ -524,6 +535,7 @@ def _evaluate_stage10(
         "aggregate_metrics": aggregate,
         "best_by_symbol": {symbol: row.to_dict() for symbol, row in best_by_symbol.items()},
         "family_trade_breakdown": family_breakdown,
+        "best_paths": best_paths if bool(return_paths) else {},
     }
 
 

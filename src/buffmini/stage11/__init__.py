@@ -1,4 +1,4 @@
-"""Stage-11 multi-timeframe policy layer."""
+"""Stage-11 multi-timeframe package."""
 
 from .hooks import build_noop_hooks
 from .policy import DEFAULT_POLICY_CFG, build_stage11_policy_hooks

@@ -249,6 +249,63 @@ STAGE10_DEFAULTS = {
     },
 }
 
+STAGE11_DEFAULTS = {
+    "enabled": False,
+    "mtf": {
+        "base_timeframe": "1h",
+        "layers": [
+            {
+                "name": "htf_4h",
+                "timeframe": "4h",
+                "role": "context",
+                "features": [
+                    "ema_50",
+                    "ema_200",
+                    "ema_slope_50",
+                    "atr_14",
+                    "atr_pct",
+                    "atr_pct_rank_252",
+                    "bb_mid_20",
+                    "bb_upper_20_2",
+                    "bb_lower_20_2",
+                    "bb_bandwidth_20",
+                    "volume_z_120",
+                ],
+                "tolerance_bars": 4,
+                "enabled": True,
+            },
+            {
+                "name": "ltf_15m",
+                "timeframe": "15m",
+                "role": "confirm",
+                "features": ["ema_50", "ema_slope_50", "atr_pct_rank_252", "volume_z_120"],
+                "tolerance_bars": 2,
+                "enabled": False,
+            },
+        ],
+        "feature_pack_params": {},
+        "hooks_enabled": {"bias": True, "confirm": False, "exit": False},
+    },
+    "hooks": {
+        "bias": {
+            "enabled": True,
+            "multiplier_min": 0.9,
+            "multiplier_max": 1.1,
+            "trend_boost": 1.10,
+            "range_boost": 1.05,
+            "vol_cut": 0.95,
+            "trend_slope_scale": 0.01,
+        },
+        "confirm": {"enabled": False, "threshold": 0.55},
+        "exit": {"enabled": False, "tighten_trailing_scale": 0.9},
+    },
+    "trade_count_guard": {
+        "max_drop_pct": 15.0,
+        "material_pf_improvement": 0.05,
+        "material_exp_lcb_improvement": 0.5,
+    },
+}
+
 UI_STAGE5_DEFAULTS = {
     "stage5": {
         "presets": {
@@ -873,6 +930,68 @@ def validate_config(config: ConfigDict) -> None:
     if str(sandbox_cfg["exit_mode"]) not in {"fixed_atr", "atr_trailing"}:
         raise ValueError("evaluation.stage10.sandbox.exit_mode must be fixed_atr or atr_trailing")
     evaluation["stage10"] = stage10
+
+    stage11 = _merge_defaults(STAGE11_DEFAULTS, evaluation.get("stage11", {}))
+    if not isinstance(stage11["enabled"], bool):
+        raise ValueError("evaluation.stage11.enabled must be bool")
+    mtf_cfg = stage11["mtf"]
+    if str(mtf_cfg["base_timeframe"]) != "1h":
+        raise ValueError("evaluation.stage11.mtf.base_timeframe must be '1h'")
+    layers = mtf_cfg["layers"]
+    if not isinstance(layers, list):
+        raise ValueError("evaluation.stage11.mtf.layers must be a list")
+    allowed_roles = {"context", "confirm", "exit", "features_only"}
+    for idx, layer in enumerate(layers):
+        if not isinstance(layer, dict):
+            raise ValueError(f"evaluation.stage11.mtf.layers[{idx}] must be mapping")
+        if not str(layer.get("name", "")).strip():
+            raise ValueError(f"evaluation.stage11.mtf.layers[{idx}].name must be non-empty")
+        timeframe_value = str(layer.get("timeframe", "")).strip().lower()
+        if not timeframe_value or timeframe_value[-1] not in {"m", "h", "d"}:
+            raise ValueError(f"evaluation.stage11.mtf.layers[{idx}].timeframe must be like 15m/1h/1d")
+        if int(str(timeframe_value[:-1])) <= 0:
+            raise ValueError(f"evaluation.stage11.mtf.layers[{idx}].timeframe must have positive interval")
+        if str(layer.get("role", "")) not in allowed_roles:
+            raise ValueError(f"evaluation.stage11.mtf.layers[{idx}].role unsupported")
+        features = layer.get("features", [])
+        if not isinstance(features, list):
+            raise ValueError(f"evaluation.stage11.mtf.layers[{idx}].features must be list")
+        if int(layer.get("tolerance_bars", 1)) < 1:
+            raise ValueError(f"evaluation.stage11.mtf.layers[{idx}].tolerance_bars must be >= 1")
+        if not isinstance(layer.get("enabled", True), bool):
+            raise ValueError(f"evaluation.stage11.mtf.layers[{idx}].enabled must be bool")
+    hooks_enabled = mtf_cfg.get("hooks_enabled", {})
+    for key in ("bias", "confirm", "exit"):
+        if not isinstance(hooks_enabled.get(key, False), bool):
+            raise ValueError(f"evaluation.stage11.mtf.hooks_enabled.{key} must be bool")
+
+    hooks_cfg = stage11["hooks"]
+    for key in ("bias", "confirm", "exit"):
+        if not isinstance(hooks_cfg[key]["enabled"], bool):
+            raise ValueError(f"evaluation.stage11.hooks.{key}.enabled must be bool")
+    bias_cfg = hooks_cfg["bias"]
+    if float(bias_cfg["multiplier_min"]) <= 0:
+        raise ValueError("evaluation.stage11.hooks.bias.multiplier_min must be > 0")
+    if float(bias_cfg["multiplier_max"]) <= 0:
+        raise ValueError("evaluation.stage11.hooks.bias.multiplier_max must be > 0")
+    if float(bias_cfg["multiplier_max"]) < float(bias_cfg["multiplier_min"]):
+        raise ValueError("evaluation.stage11.hooks.bias.multiplier_max must be >= multiplier_min")
+    for field in ("trend_boost", "range_boost", "vol_cut", "trend_slope_scale"):
+        if float(bias_cfg[field]) <= 0:
+            raise ValueError(f"evaluation.stage11.hooks.bias.{field} must be > 0")
+    confirm_cfg = hooks_cfg["confirm"]
+    if not 0 <= float(confirm_cfg["threshold"]) <= 1:
+        raise ValueError("evaluation.stage11.hooks.confirm.threshold must be between 0 and 1")
+    exit_cfg = hooks_cfg["exit"]
+    if float(exit_cfg["tighten_trailing_scale"]) <= 0:
+        raise ValueError("evaluation.stage11.hooks.exit.tighten_trailing_scale must be > 0")
+
+    guard_cfg = stage11["trade_count_guard"]
+    if float(guard_cfg["max_drop_pct"]) < 0:
+        raise ValueError("evaluation.stage11.trade_count_guard.max_drop_pct must be >= 0")
+    float(guard_cfg["material_pf_improvement"])
+    float(guard_cfg["material_exp_lcb_improvement"])
+    evaluation["stage11"] = stage11
 
     ui = _merge_defaults(UI_STAGE5_DEFAULTS, config.get("ui", {}))
     stage5_ui = ui.get("stage5", {})

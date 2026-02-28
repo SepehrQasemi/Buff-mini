@@ -1,0 +1,113 @@
+{
+  "stage": "11",
+  "run_id": "20260228_151921_a544a242e95f_stage11",
+  "mtf_spec": {
+    "base_timeframe": "1h",
+    "layers": [
+      {
+        "name": "htf_4h",
+        "timeframe": "4h",
+        "role": "context",
+        "features": [
+          "ema_50",
+          "ema_200",
+          "ema_slope_50",
+          "atr_14",
+          "atr_pct",
+          "atr_pct_rank_252",
+          "bb_mid_20",
+          "bb_upper_20_2",
+          "bb_lower_20_2",
+          "bb_bandwidth_20",
+          "volume_z_120"
+        ],
+        "tolerance_bars": 4,
+        "enabled": true
+      },
+      {
+        "name": "ltf_15m",
+        "timeframe": "15m",
+        "role": "confirm",
+        "features": [
+          "ema_50",
+          "ema_slope_50",
+          "atr_pct_rank_252",
+          "volume_z_120"
+        ],
+        "tolerance_bars": 2,
+        "enabled": false
+      }
+    ],
+    "feature_pack_params": {},
+    "hooks_enabled": {
+      "bias": true,
+      "confirm": false,
+      "exit": false
+    }
+  },
+  "causality": {
+    "status": "PASS",
+    "notes": "causal merge_asof backward joins with assertions",
+    "violations": []
+  },
+  "leakage": {
+    "status": "PASS",
+    "features_checked": 36,
+    "leaks_found": 0
+  },
+  "cache": {
+    "enabled": false,
+    "hits": 0,
+    "misses": 0,
+    "hit_rate": 0.0
+  },
+  "comparisons": {
+    "baseline_stage10_7": {
+      "trade_count": 2919.0,
+      "profit_factor": 0.26161906325753315,
+      "expectancy": -3.0744220661921884,
+      "max_drawdown": 0.9855505753184995,
+      "win_rate": 0.19047619047619047,
+      "pf_adj": 0.2740539055738428,
+      "exp_lcb": -5.1757933336110735
+    },
+    "stage11_bias_only": {
+      "trade_count": 2919.0,
+      "profit_factor": 0.26161906325753315,
+      "expectancy": -3.0744220661921884,
+      "max_drawdown": 0.9855505753184995,
+      "win_rate": 0.19047619047619047,
+      "pf_adj": 0.2740539055738428,
+      "exp_lcb": -5.1757933336110735
+    },
+    "stage11_with_confirm": {
+      "trade_count": 2919.0,
+      "profit_factor": 0.26161906325753315,
+      "expectancy": -3.0744220661921884,
+      "max_drawdown": 0.9855505753184995,
+      "win_rate": 0.19047619047619047,
+      "pf_adj": 0.2740539055738428,
+      "exp_lcb": -5.1757933336110735
+    },
+    "comparison_table_path": "C:\\dev\\Buff-mini\\runs\\20260228_151921_a544a242e95f_stage11\\comparison_vs_stage10_7.csv"
+  },
+  "trade_count_guard": {
+    "max_drop_pct": 15.0,
+    "observed_drop_pct": 0.0,
+    "pass": true,
+    "pf_delta": 0.0,
+    "exp_lcb_delta": 0.0,
+    "material_improvement": false
+  },
+  "walkforward": {
+    "baseline_classification": "UNSTABLE",
+    "stage11_classification": "UNSTABLE",
+    "baseline_usable_windows": 16,
+    "stage11_usable_windows": 16
+  },
+  "seed": 42,
+  "config_hash": "daeee98ef8b9",
+  "data_hash": "1ce4fcff98e4608e",
+  "determinism_signature": "d67ca901eba7705a070d8906",
+  "final_verdict": "NEUTRAL"
+}
