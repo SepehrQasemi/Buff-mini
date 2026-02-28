@@ -1,0 +1,196 @@
+{
+  "stage": "10.7",
+  "regime_distribution": {
+    "TREND": 45.87988574321148,
+    "RANGE": 12.130744476985935,
+    "VOL_EXPANSION": 17.820081715298116,
+    "VOL_COMPRESSION": 19.165129985175543,
+    "CHOP": 5.004158079328922
+  },
+  "regime_calibration": {
+    "single_regime_warning": false,
+    "warnings": [],
+    "median_trend_strength": 0.008332611598270034,
+    "atr_percentile_distribution": {
+      "p05": 0.027777777777777776,
+      "p50": 0.48412698412698413,
+      "p95": 0.9722222222222222
+    }
+  },
+  "sandbox": {
+    "run_id": "20260228_134824_d58e1aa34355_stage10_sandbox",
+    "enabled_signals": [
+      "ATR_DistanceRevert",
+      "BollingerSnapBack",
+      "BreakoutRetest",
+      "MA_SlopePullback",
+      "VolCompressionBreakout"
+    ],
+    "disabled_signals": [
+      "RangeFade"
+    ],
+    "rank_table_path": "C:\\dev\\Buff-mini\\runs\\20260228_134824_d58e1aa34355_stage10_sandbox\\sandbox_rankings.csv"
+  },
+  "exit_ab": {
+    "run_id": "20260228_135329_642b3888fb30_stage10_exit_ab",
+    "selected_exit": "atr_trailing",
+    "rows": [
+      {
+        "exit_mode": "atr_trailing",
+        "run_id": "20260228_135215_8502c83e35d7_stage10",
+        "trade_count": 2919.0,
+        "profit_factor": 0.26161906325753315,
+        "expectancy": -3.2855381457808477,
+        "max_drawdown": 0.9855431197063731,
+        "exp_lcb": -3.961143022475937,
+        "drag_sensitivity": 0.0,
+        "stress_expectancy": -3.201520873550912,
+        "stress_profit_factor": 0.43713775789347753
+      },
+      {
+        "exit_mode": "fixed_atr",
+        "run_id": "20260228_134946_d1c6cc662deb_stage10",
+        "trade_count": 1738.0,
+        "profit_factor": 0.5700978223996803,
+        "expectancy": -5.128980996938941,
+        "max_drawdown": 0.978662118632433,
+        "exp_lcb": -7.879517476125896,
+        "drag_sensitivity": 0.0,
+        "stress_expectancy": -5.020395033771366,
+        "stress_profit_factor": 0.5722386417247295
+      }
+    ]
+  },
+  "comparisons": {
+    "dry": {
+      "baseline": {
+        "trade_count": 519.0,
+        "profit_factor": 0.6184589809802599,
+        "expectancy": -32.93479261975572,
+        "max_drawdown": 0.4415285326373439,
+        "win_rate": 0.3198458574181117,
+        "pf_adj": 0.651986311298339,
+        "exp_lcb": -34.02825645254948
+      },
+      "stage10_pre": {
+        "trade_count": 450.0,
+        "profit_factor": 0.45589892323441084,
+        "expectancy": -25.574440005343746,
+        "max_drawdown": 0.6019704894697908,
+        "win_rate": 0.29111111111111115,
+        "pf_adj": 0.5103090309109697,
+        "exp_lcb": -25.625012112274543
+      },
+      "stage10_6": {
+        "trade_count": 450.0,
+        "profit_factor": 0.4244410379758498,
+        "expectancy": -26.813455805985928,
+        "max_drawdown": 0.6433892477823946,
+        "win_rate": 0.26222222222222225,
+        "pf_adj": 0.48199693417826484,
+        "exp_lcb": -26.83920739090388
+      },
+      "walkforward_pre": "N/A",
+      "walkforward_stage10_6": "N/A",
+      "usable_windows_pre": 0,
+      "usable_windows_stage10_6": 0,
+      "regime_distribution_stage10_6": {
+        "TREND": 86.52083333333334,
+        "RANGE": 0.0,
+        "VOL_EXPANSION": 12.958333333333332,
+        "VOL_COMPRESSION": 0.5208333333333333,
+        "CHOP": 0.0
+      },
+      "single_label_warning_stage10_6": false,
+      "pre_run_id": "20260228_111937_2d4caf91e389_stage10",
+      "stage10_6_run_id": "20260228_122912_9a27f1e5886a_stage10"
+    },
+    "real": {
+      "baseline": {
+        "trade_count": 6275.0,
+        "profit_factor": 0.6162719543617284,
+        "expectancy": -7.830390103511169,
+        "max_drawdown": 0.954499895999803,
+        "win_rate": 0.3217529880478088,
+        "pf_adj": 0.6193053776474065,
+        "exp_lcb": -7.89689166690102
+      },
+      "stage10_pre": {
+        "trade_count": 1738.0,
+        "profit_factor": 0.5700978223996803,
+        "expectancy": -5.128980996938941,
+        "max_drawdown": 0.978662118632433,
+        "win_rate": 0.3095512082853855,
+        "pf_adj": 0.5821196953750807,
+        "exp_lcb": -7.879517476125896
+      },
+      "stage10_6": {
+        "trade_count": 2919.0,
+        "profit_factor": 0.26161906325753315,
+        "expectancy": -3.2855381457808477,
+        "max_drawdown": 0.9855431197063731,
+        "win_rate": 0.1908187735525865,
+        "pf_adj": 0.2740539055738428,
+        "exp_lcb": -3.961143022475937
+      },
+      "walkforward_pre": "UNSTABLE",
+      "walkforward_stage10_6": "UNSTABLE",
+      "usable_windows_pre": 16,
+      "usable_windows_stage10_6": 16,
+      "regime_distribution_stage10_6": {
+        "TREND": 45.87988574321148,
+        "RANGE": 12.130744476985935,
+        "VOL_EXPANSION": 17.820081715298116,
+        "VOL_COMPRESSION": 19.165129985175543,
+        "CHOP": 5.004158079328922
+      },
+      "single_label_warning_stage10_6": false,
+      "pre_run_id": "20260228_134946_d1c6cc662deb_stage10",
+      "stage10_6_run_id": "20260228_135215_8502c83e35d7_stage10",
+      "available": true
+    }
+  },
+  "trade_count_guard": {
+    "max_drop_pct": 10.0,
+    "observed_drop_pct": 53.482071713147405,
+    "pass": false,
+    "pf_delta_vs_baseline": -0.3546528911041953,
+    "expectancy_delta_vs_baseline": 4.544851957730321,
+    "justified_by_robust_improvement": false,
+    "family_reduction_breakdown": [
+      {
+        "family": "BreakoutRetest",
+        "trade_count": 0.0,
+        "delta_vs_baseline_total": -6275.0
+      },
+      {
+        "family": "VolCompressionBreakout",
+        "trade_count": 6.0,
+        "delta_vs_baseline_total": -6269.0
+      },
+      {
+        "family": "RangeFade",
+        "trade_count": 248.0,
+        "delta_vs_baseline_total": -6027.0
+      },
+      {
+        "family": "MA_SlopePullback",
+        "trade_count": 958.0,
+        "delta_vs_baseline_total": -5317.0
+      },
+      {
+        "family": "ATR_DistanceRevert",
+        "trade_count": 5627.0,
+        "delta_vs_baseline_total": -648.0
+      }
+    ]
+  },
+  "determinism": true,
+  "determinism_detail": {
+    "pass": true,
+    "notes": "PASS",
+    "signature_previous": "29e4517119c707f17a764e3c",
+    "signature_latest": "29e4517119c707f17a764e3c"
+  },
+  "final_verdict": "REGRESSION"
+}

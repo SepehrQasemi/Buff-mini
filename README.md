@@ -239,6 +239,18 @@ Run Stage-10.6 sandbox ranking (offline-friendly):
 python scripts/run_stage10_sandbox.py --dry-run --seed 42
 ```
 
+Run Stage-10.7 sandbox ranking on local real data:
+
+```bash
+python scripts/run_stage10_sandbox.py --real-data --seed 42
+```
+
+Run Stage-10.7 exit A/B isolation:
+
+```bash
+python scripts/run_stage10.py --seed 42 --exit-mode compare
+```
+
 Outputs:
 
 - `runs/<run_id>_stage10/stage10_summary.json`
@@ -251,6 +263,8 @@ Outputs:
 - `runs/<run_id>_stage10_sandbox/sandbox_summary.json`
 - `docs/stage10_6_report.md`
 - `docs/stage10_6_report_summary.json`
+- `docs/stage10_7_report.md`
+- `docs/stage10_7_report_summary.json`
 
 ## Output Structure
 

@@ -109,6 +109,7 @@ def run_stage10(
     data_dir: Path = RAW_DATA_DIR,
     derived_dir: Path = DERIVED_DATA_DIR,
     write_docs: bool = True,
+    is_stress: bool = False,
 ) -> dict[str, Any]:
     """Run Stage-10 baseline-vs-upgraded comparison and write artifacts."""
 
@@ -152,6 +153,7 @@ def run_stage10(
         "dry_run": bool(dry_run),
         "cost_mode": str(cost_mode),
         "exit_mode": str(exit_mode) if exit_mode else "multi",
+        "is_stress": bool(is_stress),
         "config_hash": config_hash,
         "data_hash": data_hash,
         "resolved_end_ts": resolved_end_ts,
@@ -187,6 +189,7 @@ def run_stage10(
         walkforward_payload=walkforward_payload,
         leakage=leakage,
         features_by_symbol=features_by_symbol,
+        is_stress=bool(is_stress),
     )
     (run_dir / "stage10_summary.json").write_text(
         json.dumps(summary, indent=2, allow_nan=False),
@@ -235,6 +238,7 @@ def run_stage10_exit_ab(
             data_dir=data_dir,
             derived_dir=derived_dir,
             write_docs=False,
+            is_stress=False,
         )
         stress = run_stage10(
             config=_build_stress_config(config),
@@ -250,6 +254,7 @@ def run_stage10_exit_ab(
             data_dir=data_dir,
             derived_dir=derived_dir,
             write_docs=False,
+            is_stress=True,
         )
         base_metrics = dict(base["baseline_vs_stage10"]["stage10"])
         stress_metrics = dict(stress["baseline_vs_stage10"]["stage10"])
@@ -761,6 +766,7 @@ def _build_stage10_summary(
     walkforward_payload: dict[str, Any],
     leakage: dict[str, Any],
     features_by_symbol: dict[str, pd.DataFrame],
+    is_stress: bool = False,
 ) -> dict[str, Any]:
     baseline = baseline_eval["aggregate_metrics"]
     stage10 = stage10_eval["aggregate_metrics"]
@@ -797,6 +803,7 @@ def _build_stage10_summary(
         "stage": "10",
         "run_id": run_id,
         "dry_run": bool(dry_run),
+        "is_stress": bool(is_stress),
         "config_hash": config_hash,
         "data_hash": data_hash,
         "seed": int(seed),
@@ -1108,6 +1115,8 @@ def _discover_stage10_runs(runs_root: Path) -> list[dict[str, Any]]:
         try:
             payload = json.loads(path.read_text(encoding="utf-8"))
         except Exception:
+            continue
+        if bool(payload.get("is_stress", False)):
             continue
         payload["_summary_path"] = str(path)
         payload["_run_dir"] = str(path.parent)
