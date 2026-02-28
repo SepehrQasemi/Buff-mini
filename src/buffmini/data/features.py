@@ -22,6 +22,7 @@ from buffmini.stage9.oi_overlay import (
     mask_oi_columns,
     overlay_metadata_dict,
 )
+from buffmini.stage10.regimes import compute_regime_scores
 
 BASE_COLUMNS: tuple[str, ...] = ("timestamp", "open", "high", "low", "close", "volume")
 CORE_FEATURE_COLUMNS: tuple[str, ...] = (
@@ -45,6 +46,20 @@ CORE_FEATURE_COLUMNS: tuple[str, ...] = (
     "trend_strength",
     "atr_percentile_252",
     "regime",
+    "bb_bandwidth_20",
+    "bb_bandwidth_z_120",
+    "atr_pct",
+    "atr_pct_rank_252",
+    "ema_slope_50",
+    "trend_strength_stage10",
+    "volume_z_120",
+    "score_trend",
+    "score_range",
+    "score_vol_expansion",
+    "score_vol_compression",
+    "score_chop",
+    "regime_label_stage10",
+    "regime_confidence_stage10",
 )
 
 
@@ -125,6 +140,7 @@ def calculate_features(
     data["donchian_low_100"] = low.rolling(window=100, min_periods=100).min().shift(1)
 
     data = attach_regime_columns(data)
+    data = compute_regime_scores(data)
 
     if _should_include_futures_extras(config):
         extras_cfg = dict(config.get("data", {}).get("futures_extras", {}))
