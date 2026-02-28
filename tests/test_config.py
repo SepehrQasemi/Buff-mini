@@ -123,6 +123,13 @@ def test_load_config_success() -> None:
     assert config["evaluation"]["stage9_3"]["report_windows_days"] == [30, 60, 90]
     assert config["evaluation"]["stage9_3"]["nan_policy"] == "condition_false"
     assert config["evaluation"]["stage9_3"]["ab_non_corruption"]["enabled"] is True
+    assert config["evaluation"]["stage10"]["enabled"] is False
+    assert config["evaluation"]["stage10"]["cost_mode"] == "v2"
+    assert config["evaluation"]["stage10"]["walkforward_v2"] is True
+    assert config["evaluation"]["stage10"]["activation"]["m_min"] == 0.5
+    assert config["evaluation"]["stage10"]["activation"]["m_max"] == 1.5
+    assert "BreakoutRetest" in config["evaluation"]["stage10"]["signals"]["families"]
+    assert "partial_tp" in config["evaluation"]["stage10"]["exits"]["modes"]
     assert config["ui"]["stage5"]["presets"]["quick"]["candidate_count"] == 1000
     assert config["ui"]["stage5"]["presets"]["full"]["candidate_count"] == 5000
     assert config["ui"]["stage5"]["window_months_options"] == [3, 6, 12, 36]

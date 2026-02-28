@@ -1,0 +1,51 @@
+{
+  "stage": "10",
+  "run_id": "20260228_112303_c3a6713a904d_stage10",
+  "runs": {
+    "dry_run_id": "20260228_111937_2d4caf91e389_stage10",
+    "real_run_id": "20260228_112303_c3a6713a904d_stage10"
+  },
+  "determinism": {
+    "status": "PASS",
+    "notes": "Signatures remained stable across deterministic dry-run checks.",
+    "signature_real": "d14194d723bc580abe547761",
+    "signature_dry": "05a8044ce98dec26618ba26d"
+  },
+  "leakage": {
+    "status": "PASS",
+    "features_checked": 34,
+    "leaks_found": 0
+  },
+  "regimes": {
+    "distribution": {
+      "TREND": 79.3560400621904,
+      "RANGE": 0.0,
+      "VOL_EXPANSION": 16.99750515240265,
+      "VOL_COMPRESSION": 3.6464547854069496,
+      "CHOP": 0.0
+    },
+    "confidence_median": 0.5147098065693803
+  },
+  "baseline_vs_stage10": {
+    "dry_run": {
+      "trade_count": 450.0,
+      "pf": 0.45589892323441084,
+      "expectancy": -25.574440005343746,
+      "maxdd": 0.6019704894697908
+    },
+    "real_data": {
+      "available": true,
+      "walkforward_classification": "UNSTABLE",
+      "trade_count": 2923.0,
+      "pf": 0.32247482244834,
+      "expectancy": -3.0427353046095833,
+      "maxdd": 0.970305463546935
+    },
+    "delta_real": {
+      "trade_count_delta": -3352.0,
+      "pf_adj_delta": -0.2854359171642251,
+      "exp_lcb_delta": 2.922021191355105
+    }
+  },
+  "next_recommendation": "Refine Stage-10 signal/activation parameters before Stage-11"
+}

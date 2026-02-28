@@ -211,6 +211,36 @@ Outputs:
 - `docs/stage9_3_recent_oi_overlay.md`
 - `docs/stage9_3_recent_oi_overlay_summary.json`
 
+## Stage-10 Engine Upgrade
+
+Stage-10 adds:
+
+- Regime scores + confidence labels
+- Expanded signal and exit libraries
+- Regime-aware soft activation (sizing multipliers, not hard trade blocking)
+- Baseline vs Stage-10 comparison runner with deterministic artifacts
+
+Run synthetic offline Stage-10:
+
+```bash
+python scripts/run_stage10.py --dry-run --seed 42
+```
+
+Run Stage-10 on local real data (if `data/raw` exists):
+
+```bash
+python scripts/run_stage10.py --seed 42
+```
+
+Outputs:
+
+- `runs/<run_id>_stage10/stage10_summary.json`
+- `runs/<run_id>_stage10/stage10_compare.csv`
+- `runs/<run_id>_stage10/regime_distribution.csv`
+- `runs/<run_id>_stage10/best_candidates.json`
+- `docs/stage10_report.md`
+- `docs/stage10_report_summary.json`
+
 ## Output Structure
 
 - Raw market data: `data/raw/*.parquet`

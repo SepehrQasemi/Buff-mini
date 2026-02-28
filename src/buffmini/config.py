@@ -182,6 +182,58 @@ STAGE9_3_DEFAULTS = {
     },
 }
 
+STAGE10_DEFAULTS = {
+    "enabled": False,
+    "cost_mode": "v2",
+    "walkforward_v2": True,
+    "regimes": {
+        "trend_threshold": 0.010,
+        "vol_rank_high": 0.80,
+        "vol_rank_low": 0.35,
+        "compression_z": -0.8,
+        "expansion_z": 1.0,
+        "volume_z_high": 1.0,
+    },
+    "activation": {
+        "m_min": 0.5,
+        "m_max": 1.5,
+        "trend_boost": 1.2,
+        "range_boost": 1.1,
+        "expansion_cut": 0.8,
+        "chop_cut": 0.7,
+    },
+    "signals": {
+        "families": [
+            "BreakoutRetest",
+            "MA_SlopePullback",
+            "VolCompressionBreakout",
+            "BollingerSnapBack",
+            "ATR_DistanceRevert",
+            "RangeFade",
+        ],
+        "defaults": {
+            "BreakoutRetest": {"donchian_period": 20, "retest_atr_k": 0.8},
+            "MA_SlopePullback": {"slope_min": 0.003, "pullback_atr_k": 1.2},
+            "VolCompressionBreakout": {"donchian_period": 20, "compression_z": -0.8, "expansion_z": 0.6},
+            "BollingerSnapBack": {"rsi_low": 35, "rsi_high": 65},
+            "ATR_DistanceRevert": {"distance_k": 2.0},
+            "RangeFade": {"donchian_period": 20, "edge_atr_k": 0.6},
+        },
+    },
+    "exits": {
+        "modes": ["fixed_atr", "atr_trailing", "breakeven_1r", "partial_tp", "regime_flip_exit"],
+        "trailing_atr_k": 1.5,
+        "partial_fraction": 0.5,
+    },
+    "evaluation": {
+        "initial_capital": 10000.0,
+        "stop_atr_multiple": 1.5,
+        "take_profit_atr_multiple": 3.0,
+        "max_hold_bars": 24,
+        "dry_run_rows": 2400,
+    },
+}
+
 UI_STAGE5_DEFAULTS = {
     "stage5": {
         "presets": {
@@ -703,6 +755,66 @@ def validate_config(config: ConfigDict) -> None:
     if not isinstance(ab_cfg["require_equity_identical_for_non_oi"], bool):
         raise ValueError("evaluation.stage9_3.ab_non_corruption.require_equity_identical_for_non_oi must be bool")
     evaluation["stage9_3"] = stage9_3
+
+    stage10 = _merge_defaults(STAGE10_DEFAULTS, evaluation.get("stage10", {}))
+    if not isinstance(stage10["enabled"], bool):
+        raise ValueError("evaluation.stage10.enabled must be bool")
+    if str(stage10["cost_mode"]) not in {"simple", "v2"}:
+        raise ValueError("evaluation.stage10.cost_mode must be 'simple' or 'v2'")
+    if not isinstance(stage10["walkforward_v2"], bool):
+        raise ValueError("evaluation.stage10.walkforward_v2 must be bool")
+
+    regimes_cfg = stage10["regimes"]
+    if float(regimes_cfg["trend_threshold"]) < 0:
+        raise ValueError("evaluation.stage10.regimes.trend_threshold must be >= 0")
+    if not 0 <= float(regimes_cfg["vol_rank_high"]) <= 1:
+        raise ValueError("evaluation.stage10.regimes.vol_rank_high must be in [0,1]")
+    if not 0 <= float(regimes_cfg["vol_rank_low"]) <= 1:
+        raise ValueError("evaluation.stage10.regimes.vol_rank_low must be in [0,1]")
+    float(regimes_cfg["compression_z"])
+    float(regimes_cfg["expansion_z"])
+    float(regimes_cfg["volume_z_high"])
+
+    activation_cfg = stage10["activation"]
+    if float(activation_cfg["m_min"]) <= 0:
+        raise ValueError("evaluation.stage10.activation.m_min must be > 0")
+    if float(activation_cfg["m_max"]) <= 0:
+        raise ValueError("evaluation.stage10.activation.m_max must be > 0")
+    if float(activation_cfg["m_max"]) < float(activation_cfg["m_min"]):
+        raise ValueError("evaluation.stage10.activation.m_max must be >= m_min")
+    for key in ["trend_boost", "range_boost", "expansion_cut", "chop_cut"]:
+        if float(activation_cfg[key]) <= 0:
+            raise ValueError(f"evaluation.stage10.activation.{key} must be > 0")
+
+    signals_cfg = stage10["signals"]
+    if not isinstance(signals_cfg["families"], list) or not signals_cfg["families"]:
+        raise ValueError("evaluation.stage10.signals.families must be a non-empty list")
+    if not isinstance(signals_cfg["defaults"], dict):
+        raise ValueError("evaluation.stage10.signals.defaults must be a mapping")
+
+    exits_cfg = stage10["exits"]
+    if not isinstance(exits_cfg["modes"], list) or not exits_cfg["modes"]:
+        raise ValueError("evaluation.stage10.exits.modes must be a non-empty list")
+    allowed_exit_modes = {"fixed_atr", "atr_trailing", "breakeven_1r", "partial_tp", "regime_flip_exit"}
+    if any(str(mode) not in allowed_exit_modes for mode in exits_cfg["modes"]):
+        raise ValueError("evaluation.stage10.exits.modes contains unsupported value")
+    if float(exits_cfg["trailing_atr_k"]) <= 0:
+        raise ValueError("evaluation.stage10.exits.trailing_atr_k must be > 0")
+    if not 0 < float(exits_cfg["partial_fraction"]) <= 1:
+        raise ValueError("evaluation.stage10.exits.partial_fraction must be in (0,1]")
+
+    eval_cfg = stage10["evaluation"]
+    if float(eval_cfg["initial_capital"]) <= 0:
+        raise ValueError("evaluation.stage10.evaluation.initial_capital must be > 0")
+    if float(eval_cfg["stop_atr_multiple"]) <= 0:
+        raise ValueError("evaluation.stage10.evaluation.stop_atr_multiple must be > 0")
+    if float(eval_cfg["take_profit_atr_multiple"]) <= 0:
+        raise ValueError("evaluation.stage10.evaluation.take_profit_atr_multiple must be > 0")
+    if int(eval_cfg["max_hold_bars"]) < 1:
+        raise ValueError("evaluation.stage10.evaluation.max_hold_bars must be >= 1")
+    if int(eval_cfg["dry_run_rows"]) < 300:
+        raise ValueError("evaluation.stage10.evaluation.dry_run_rows must be >= 300")
+    evaluation["stage10"] = stage10
 
     ui = _merge_defaults(UI_STAGE5_DEFAULTS, config.get("ui", {}))
     stage5_ui = ui.get("stage5", {})

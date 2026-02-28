@@ -267,6 +267,49 @@ evaluation:
       enabled: true
       max_trade_count_delta_pct: 1.0
       require_equity_identical_for_non_oi: true
+  stage10:
+    enabled: false
+    cost_mode: v2
+    walkforward_v2: true
+    regimes:
+      trend_threshold: 0.010
+      vol_rank_high: 0.80
+      vol_rank_low: 0.35
+      compression_z: -0.8
+      expansion_z: 1.0
+      volume_z_high: 1.0
+    activation:
+      m_min: 0.5
+      m_max: 1.5
+      trend_boost: 1.2
+      range_boost: 1.1
+      expansion_cut: 0.8
+      chop_cut: 0.7
+    signals:
+      families:
+        - BreakoutRetest
+        - MA_SlopePullback
+        - VolCompressionBreakout
+        - BollingerSnapBack
+        - ATR_DistanceRevert
+        - RangeFade
+      defaults:
+        BreakoutRetest: {donchian_period: 20, retest_atr_k: 0.8}
+        MA_SlopePullback: {slope_min: 0.003, pullback_atr_k: 1.2}
+        VolCompressionBreakout: {donchian_period: 20, compression_z: -0.8, expansion_z: 0.6}
+        BollingerSnapBack: {rsi_low: 35, rsi_high: 65}
+        ATR_DistanceRevert: {distance_k: 2.0}
+        RangeFade: {donchian_period: 20, edge_atr_k: 0.6}
+    exits:
+      modes: [fixed_atr, atr_trailing, breakeven_1r, partial_tp, regime_flip_exit]
+      trailing_atr_k: 1.5
+      partial_fraction: 0.5
+    evaluation:
+      initial_capital: 10000.0
+      stop_atr_multiple: 1.5
+      take_profit_atr_multiple: 3.0
+      max_hold_bars: 24
+      dry_run_rows: 2400
 
 ui:
   stage5:
