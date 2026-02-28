@@ -792,8 +792,11 @@ def _load_raw_data(config: dict[str, Any], data_dir: Path) -> dict[str, pd.DataF
     store = build_data_store(
         backend=str(config.get("data", {}).get("backend", "parquet")),
         data_dir=data_dir,
+        base_timeframe=str(config.get("universe", {}).get("base_timeframe") or config.get("universe", {}).get("timeframe", DEFAULT_TIMEFRAME)),
+        resample_source=str(config.get("data", {}).get("resample_source", "direct")),
+        partial_last_bucket=bool(config.get("data", {}).get("partial_last_bucket", False)),
     )
-    timeframe = str(config["universe"].get("timeframe", DEFAULT_TIMEFRAME))
+    timeframe = str(config["universe"].get("operational_timeframe") or config["universe"].get("timeframe", DEFAULT_TIMEFRAME))
     start = config["universe"].get("start")
     end = get_universe_end(config)
     return {

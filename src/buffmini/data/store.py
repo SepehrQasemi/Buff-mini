@@ -8,7 +8,10 @@ from typing import Any, Protocol
 import pandas as pd
 
 from buffmini.constants import RAW_DATA_DIR
+from buffmini.data.cache import DerivedTimeframeCache, ohlcv_data_hash
+from buffmini.data.resample import resample_ohlcv, resample_settings_hash
 from buffmini.data.storage import load_parquet, parquet_path, save_parquet
+from buffmini.utils.hashing import stable_hash
 
 
 class DataStore(Protocol):
@@ -36,8 +39,21 @@ class DataStore(Protocol):
 class ParquetStore:
     """Parquet-backed store. This remains the source of truth."""
 
-    def __init__(self, data_dir: str | Path = RAW_DATA_DIR) -> None:
+    def __init__(
+        self,
+        data_dir: str | Path = RAW_DATA_DIR,
+        *,
+        base_timeframe: str | None = None,
+        resample_source: str = "direct",
+        derived_dir: str | Path | None = None,
+        partial_last_bucket: bool = False,
+    ) -> None:
         self.data_dir = Path(data_dir)
+        self.base_timeframe = str(base_timeframe).strip().lower() if base_timeframe else None
+        self.resample_source = str(resample_source).strip().lower()
+        self.partial_last_bucket = bool(partial_last_bucket)
+        resolved_derived_dir = Path(derived_dir) if derived_dir is not None else (self.data_dir.parent / "derived")
+        self.derived_cache = DerivedTimeframeCache(resolved_derived_dir)
 
     def load_ohlcv(
         self,
@@ -46,7 +62,37 @@ class ParquetStore:
         start: str | pd.Timestamp | None = None,
         end: str | pd.Timestamp | None = None,
     ) -> pd.DataFrame:
-        frame = load_parquet(symbol=symbol, timeframe=timeframe, data_dir=self.data_dir)
+        resolved_timeframe = str(timeframe).strip().lower()
+        should_resample = (
+            self.resample_source == "base"
+            and bool(self.base_timeframe)
+            and str(resolved_timeframe) != str(self.base_timeframe)
+        )
+        if should_resample:
+            base_frame = load_parquet(symbol=symbol, timeframe=str(self.base_timeframe), data_dir=self.data_dir)
+            source_hash = ohlcv_data_hash(base_frame)
+            settings_hash = stable_hash(
+                resample_settings_hash(
+                    base_timeframe=str(self.base_timeframe),
+                    target_timeframe=resolved_timeframe,
+                    partial_last_bucket=self.partial_last_bucket,
+                ),
+                length=16,
+            )
+            frame, _ = self.derived_cache.get_or_build(
+                symbol=symbol,
+                timeframe=resolved_timeframe,
+                source_hash=source_hash,
+                settings_hash=settings_hash,
+                builder=lambda: resample_ohlcv(
+                    base_frame,
+                    target_timeframe=resolved_timeframe,
+                    base_timeframe=str(self.base_timeframe),
+                    partial_last_bucket=self.partial_last_bucket,
+                ),
+            )
+        else:
+            frame = load_parquet(symbol=symbol, timeframe=resolved_timeframe, data_dir=self.data_dir)
         return _filter_frame(frame=frame, start=start, end=end)
 
     def save_ohlcv(self, symbol: str, timeframe: str, df: pd.DataFrame) -> None:
@@ -69,12 +115,22 @@ class ParquetStore:
         return items
 
     def coverage(self, symbol: str, timeframe: str) -> dict[str, Any]:
-        path = parquet_path(symbol=symbol, timeframe=timeframe, data_dir=self.data_dir)
+        resolved_timeframe = str(timeframe).strip().lower()
+        should_resample = (
+            self.resample_source == "base"
+            and bool(self.base_timeframe)
+            and str(resolved_timeframe) != str(self.base_timeframe)
+        )
+        path = (
+            self.derived_cache.cache_path(symbol=symbol, timeframe=resolved_timeframe)
+            if should_resample
+            else parquet_path(symbol=symbol, timeframe=resolved_timeframe, data_dir=self.data_dir)
+        )
         if not path.exists():
             return {
                 "backend": "parquet",
                 "symbol": symbol,
-                "timeframe": timeframe,
+                "timeframe": resolved_timeframe,
                 "exists": False,
                 "rows": 0,
                 "start": None,
@@ -82,12 +138,12 @@ class ParquetStore:
                 "path": str(path),
             }
 
-        frame = load_parquet(symbol=symbol, timeframe=timeframe, data_dir=self.data_dir)
+        frame = self.load_ohlcv(symbol=symbol, timeframe=resolved_timeframe)
         if frame.empty:
             return {
                 "backend": "parquet",
                 "symbol": symbol,
-                "timeframe": timeframe,
+                "timeframe": resolved_timeframe,
                 "exists": True,
                 "rows": 0,
                 "start": None,
@@ -99,7 +155,7 @@ class ParquetStore:
         return {
             "backend": "parquet",
             "symbol": symbol,
-            "timeframe": timeframe,
+            "timeframe": resolved_timeframe,
             "exists": True,
             "rows": int(len(frame)),
             "start": timestamps.iloc[0].isoformat(),
@@ -250,12 +306,23 @@ def build_data_store(
     backend: str = "parquet",
     data_dir: str | Path = RAW_DATA_DIR,
     db_path: str | Path | None = None,
+    *,
+    base_timeframe: str | None = None,
+    resample_source: str = "direct",
+    derived_dir: str | Path | None = None,
+    partial_last_bucket: bool = False,
 ) -> DataStore:
     """Construct the configured datastore."""
 
     if str(backend) == "duckdb":
         return DuckDBStore(data_dir=data_dir, db_path=db_path)
-    return ParquetStore(data_dir=data_dir)
+    return ParquetStore(
+        data_dir=data_dir,
+        base_timeframe=base_timeframe,
+        resample_source=resample_source,
+        derived_dir=derived_dir,
+        partial_last_bucket=partial_last_bucket,
+    )
 
 
 def _filter_frame(

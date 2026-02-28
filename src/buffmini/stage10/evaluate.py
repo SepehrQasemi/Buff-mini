@@ -389,7 +389,14 @@ def _build_features(
             frames[symbol] = features
         return frames
 
-    store = build_data_store(backend=str(config.get("data", {}).get("backend", "parquet")), data_dir=data_dir)
+    store = build_data_store(
+        backend=str(config.get("data", {}).get("backend", "parquet")),
+        data_dir=data_dir,
+        base_timeframe=str(config.get("universe", {}).get("base_timeframe") or timeframe),
+        resample_source=str(config.get("data", {}).get("resample_source", "direct")),
+        derived_dir=derived_dir,
+        partial_last_bucket=bool(config.get("data", {}).get("partial_last_bucket", False)),
+    )
     for symbol in symbols:
         raw = store.load_ohlcv(symbol=symbol, timeframe=timeframe)
         if raw.empty:

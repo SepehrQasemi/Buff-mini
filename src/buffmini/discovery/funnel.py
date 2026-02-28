@@ -198,6 +198,9 @@ def run_stage1_optimization(
     store = build_data_store(
         backend=str(config.get("data", {}).get("backend", "parquet")),
         data_dir=data_dir,
+        base_timeframe=str(config.get("universe", {}).get("base_timeframe") or config["universe"]["timeframe"]),
+        resample_source=str(config.get("data", {}).get("resample_source", "direct")),
+        partial_last_bucket=bool(config.get("data", {}).get("partial_last_bucket", False)),
     )
     raw_data = _load_stage1_data(
         symbols=required_symbols,

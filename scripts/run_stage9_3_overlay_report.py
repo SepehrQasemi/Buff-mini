@@ -63,6 +63,10 @@ def main() -> None:
     store = build_data_store(
         backend=str(cfg.get("data", {}).get("backend", "parquet")),
         data_dir=args.data_dir,
+        base_timeframe=str(cfg.get("universe", {}).get("base_timeframe") or timeframe),
+        resample_source=str(cfg.get("data", {}).get("resample_source", "direct")),
+        derived_dir=args.derived_dir,
+        partial_last_bucket=bool(cfg.get("data", {}).get("partial_last_bucket", False)),
     )
 
     summary_symbols: dict[str, Any] = {}

@@ -110,6 +110,8 @@ def main() -> None:
         _run_data_validate(
             symbols=symbols,
             timeframe=args.timeframe,
+            base_timeframe=str(config.get("universe", {}).get("base_timeframe") or args.timeframe),
+            resample_source=str(config.get("data", {}).get("resample_source", "direct")),
             run_dir=run_dir,
             started_at=started_at,
             stage_idx=1,
@@ -401,7 +403,12 @@ def _prepare_config(config: dict[str, Any], args: argparse.Namespace, symbols: l
     resolved_candidate_count = max(1, int(resolved_candidate_count))
 
     cfg["universe"]["symbols"] = symbols
+    cfg["universe"]["operational_timeframe"] = str(args.timeframe)
     cfg["universe"]["timeframe"] = str(args.timeframe)
+    if not str(cfg["universe"].get("base_timeframe") or "").strip():
+        cfg["universe"]["base_timeframe"] = str(args.timeframe)
+    if "htf_timeframes" not in cfg["universe"]:
+        cfg["universe"]["htf_timeframes"] = []
     resolved_end_ts = _resolve_universe_end_ts(cfg, symbols=symbols, timeframe=str(args.timeframe))
     cfg["universe"]["resolved_end_ts"] = resolved_end_ts
     cfg["universe"]["end"] = resolved_end_ts
@@ -444,6 +451,9 @@ def _resolve_universe_end_ts(config: dict[str, Any], symbols: list[str], timefra
     store = build_data_store(
         backend=str(config.get("data", {}).get("backend", "parquet")),
         data_dir=RAW_DATA_DIR,
+        base_timeframe=str(config.get("universe", {}).get("base_timeframe") or timeframe),
+        resample_source=str(config.get("data", {}).get("resample_source", "direct")),
+        partial_last_bucket=bool(config.get("data", {}).get("partial_last_bucket", False)),
     )
     end_timestamps: list[pd.Timestamp] = []
     for symbol in symbols:
@@ -469,6 +479,8 @@ def _as_utc_iso_timestamp(value: Any) -> str:
 def _run_data_validate(
     symbols: list[str],
     timeframe: str,
+    base_timeframe: str,
+    resample_source: str,
     run_dir: Path,
     started_at: float,
     stage_idx: int,
@@ -489,8 +501,9 @@ def _run_data_validate(
 
     missing: list[str] = []
     found = 0
+    required_timeframe = str(base_timeframe if str(resample_source) == "base" else timeframe)
     for symbol in symbols:
-        path = parquet_path(symbol=symbol, timeframe=timeframe)
+        path = parquet_path(symbol=symbol, timeframe=required_timeframe)
         if path.exists():
             found += 1
         else:

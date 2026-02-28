@@ -732,14 +732,17 @@ def _load_feature_data(config: ConfigDict, data_dir: Path) -> dict[str, pd.DataF
     store = build_data_store(
         backend=str(config.get("data", {}).get("backend", "parquet")),
         data_dir=data_dir,
+        base_timeframe=str(config.get("universe", {}).get("base_timeframe") or config["universe"]["timeframe"]),
+        resample_source=str(config.get("data", {}).get("resample_source", "direct")),
+        partial_last_bucket=bool(config.get("data", {}).get("partial_last_bucket", False)),
     )
-    timeframe = str(config["universe"]["timeframe"])
+    timeframe = str(config["universe"].get("operational_timeframe") or config["universe"]["timeframe"])
     start = config["universe"].get("start")
     end = get_universe_end(config)
     feature_data: dict[str, pd.DataFrame] = {}
     for symbol in config["universe"]["symbols"]:
         frame = store.load_ohlcv(symbol=symbol, timeframe=timeframe, start=start, end=end)
-        feature_data[str(symbol)] = calculate_features(frame)
+        feature_data[str(symbol)] = calculate_features(frame, config=config, symbol=str(symbol), timeframe=timeframe)
     return feature_data
 
 

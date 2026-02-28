@@ -138,14 +138,20 @@ def run_stage0(
         json.dump(serialized_strategies, handle, indent=2)
 
     universe = config["universe"]
-    timeframe = universe["timeframe"]
+    timeframe = str(universe.get("operational_timeframe") or universe["timeframe"])
     start = universe["start"]
     end = universe["end"]
     symbols = list(universe["symbols"])
 
     costs = config["costs"]
     risk = config["risk"]
-    store = build_data_store(backend=str(config.get("data", {}).get("backend", "parquet")), data_dir=data_dir)
+    store = build_data_store(
+        backend=str(config.get("data", {}).get("backend", "parquet")),
+        data_dir=data_dir,
+        base_timeframe=str(universe.get("base_timeframe") or timeframe),
+        resample_source=str(config.get("data", {}).get("resample_source", "direct")),
+        partial_last_bucket=bool(config.get("data", {}).get("partial_last_bucket", False)),
+    )
 
     summary_rows: list[dict[str, float | str | int | None]] = []
     date_ranges_by_symbol: dict[str, str] = {}
