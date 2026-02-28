@@ -1,0 +1,120 @@
+{
+  "stage": "10.6",
+  "sandbox": {
+    "enabled_signals": [
+      "ATR_DistanceRevert",
+      "BreakoutRetest",
+      "RangeFade",
+      "VolCompressionBreakout"
+    ],
+    "disabled_signals": [
+      "BollingerSnapBack",
+      "MA_SlopePullback"
+    ],
+    "rank_table_path": "C:\\dev\\Buff-mini\\runs\\20260228_122344_7e18484fd058_stage10_sandbox\\sandbox_rankings.csv",
+    "run_id": "20260228_122344_7e18484fd058_stage10_sandbox"
+  },
+  "comparisons": {
+    "dry_run": {
+      "baseline": {
+        "trade_count": 519.0,
+        "profit_factor": 0.6184589809802599,
+        "expectancy": -32.93479261975572,
+        "max_drawdown": 0.4415285326373439,
+        "win_rate": 0.3198458574181117,
+        "pf_adj": 0.651986311298339,
+        "exp_lcb": -34.02825645254948
+      },
+      "stage10_pre": {
+        "trade_count": 450.0,
+        "profit_factor": 0.45589892323441084,
+        "expectancy": -25.574440005343746,
+        "max_drawdown": 0.6019704894697908,
+        "win_rate": 0.29111111111111115,
+        "pf_adj": 0.5103090309109697,
+        "exp_lcb": -25.625012112274543
+      },
+      "stage10_6": {
+        "trade_count": 450.0,
+        "profit_factor": 0.4244410379758498,
+        "expectancy": -26.813455805985928,
+        "max_drawdown": 0.6433892477823946,
+        "win_rate": 0.26222222222222225,
+        "pf_adj": 0.48199693417826484,
+        "exp_lcb": -26.83920739090388
+      },
+      "walkforward_pre": "N/A",
+      "walkforward_stage10_6": "N/A",
+      "usable_windows_pre": 0,
+      "usable_windows_stage10_6": 0,
+      "regime_distribution_stage10_6": {
+        "TREND": 86.52083333333334,
+        "RANGE": 0.0,
+        "VOL_EXPANSION": 12.958333333333332,
+        "VOL_COMPRESSION": 0.5208333333333333,
+        "CHOP": 0.0
+      },
+      "single_label_warning_stage10_6": false,
+      "pre_run_id": "20260228_111937_2d4caf91e389_stage10",
+      "stage10_6_run_id": "20260228_122912_9a27f1e5886a_stage10"
+    },
+    "real_data": {
+      "baseline": {
+        "trade_count": 6275.0,
+        "profit_factor": 0.6162719543617284,
+        "expectancy": -7.830390103511169,
+        "max_drawdown": 0.954499895999803,
+        "win_rate": 0.3217529880478088,
+        "pf_adj": 0.6193053776474065,
+        "exp_lcb": -7.89689166690102
+      },
+      "stage10_pre": {
+        "trade_count": 2923.0,
+        "profit_factor": 0.32247482244834,
+        "expectancy": -3.0427353046095833,
+        "max_drawdown": 0.970305463546935,
+        "win_rate": 0.24974341430037633,
+        "pf_adj": 0.33386946048318134,
+        "exp_lcb": -4.974870475545915
+      },
+      "stage10_6": {
+        "trade_count": 5627.0,
+        "profit_factor": 0.26556207645704843,
+        "expectancy": -3.518895497849126,
+        "max_drawdown": 0.9900474797219206,
+        "win_rate": 0.21432379598365026,
+        "pf_adj": 0.27203061550533936,
+        "exp_lcb": -3.5205905370559645
+      },
+      "walkforward_pre": "UNSTABLE",
+      "walkforward_stage10_6": "UNSTABLE",
+      "usable_windows_pre": 16,
+      "usable_windows_stage10_6": 16,
+      "regime_distribution_stage10_6": {
+        "TREND": 79.3560400621904,
+        "RANGE": 0.0,
+        "VOL_EXPANSION": 16.99750515240265,
+        "VOL_COMPRESSION": 3.6464547854069496,
+        "CHOP": 0.0
+      },
+      "single_label_warning_stage10_6": false,
+      "pre_run_id": "20260228_112303_c3a6713a904d_stage10",
+      "stage10_6_run_id": "20260228_123104_791590f09a7d_stage10",
+      "available": true
+    }
+  },
+  "trade_count_guard": {
+    "max_drop_pct": 10.0,
+    "observed_drop_pct": 10.326693227091633,
+    "pass": false,
+    "pf_delta_vs_baseline": -0.35070987790468,
+    "expectancy_delta_vs_baseline": 4.311494605662043,
+    "justified_by_robust_improvement": false
+  },
+  "determinism": {
+    "pass": true,
+    "notes": "PASS",
+    "signature_previous": "29e4517119c707f17a764e3c",
+    "signature_latest": "29e4517119c707f17a764e3c"
+  }
+}

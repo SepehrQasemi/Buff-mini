@@ -211,6 +211,12 @@ STAGE10_DEFAULTS = {
             "ATR_DistanceRevert",
             "RangeFade",
         ],
+        "enabled_families": [
+            "BreakoutRetest",
+            "MA_SlopePullback",
+            "BollingerSnapBack",
+            "ATR_DistanceRevert",
+        ],
         "defaults": {
             "BreakoutRetest": {"donchian_period": 20, "retest_atr_k": 0.8},
             "MA_SlopePullback": {"slope_min": 0.003, "pullback_atr_k": 1.2},
@@ -796,6 +802,12 @@ def validate_config(config: ConfigDict) -> None:
     signals_cfg = stage10["signals"]
     if not isinstance(signals_cfg["families"], list) or not signals_cfg["families"]:
         raise ValueError("evaluation.stage10.signals.families must be a non-empty list")
+    if not isinstance(signals_cfg.get("enabled_families", []), list) or not signals_cfg.get("enabled_families"):
+        raise ValueError("evaluation.stage10.signals.enabled_families must be a non-empty list")
+    family_set = {str(name) for name in signals_cfg["families"]}
+    enabled_set = {str(name) for name in signals_cfg["enabled_families"]}
+    if not enabled_set.issubset(family_set):
+        raise ValueError("evaluation.stage10.signals.enabled_families must be a subset of families")
     if not isinstance(signals_cfg["defaults"], dict):
         raise ValueError("evaluation.stage10.signals.defaults must be a mapping")
 

@@ -46,6 +46,23 @@ def signal_default_params(family: str) -> dict[str, float | int]:
     return dict(DEFAULT_SIGNAL_PARAMS[family])
 
 
+def resolve_enabled_families(
+    families: list[str] | tuple[str, ...],
+    enabled_families: list[str] | tuple[str, ...] | None = None,
+) -> list[str]:
+    """Resolve deterministic enabled family list from config values."""
+
+    available = [str(name) for name in families]
+    allowed = set(available)
+    if not enabled_families:
+        return available
+    resolved = [str(name) for name in enabled_families if str(name) in allowed]
+    if not resolved:
+        return available
+    # Keep configured order and remove duplicates.
+    return list(dict.fromkeys(resolved))
+
+
 def generate_signal_family(
     frame: pd.DataFrame,
     family: str,

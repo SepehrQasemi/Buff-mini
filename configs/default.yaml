@@ -293,6 +293,11 @@ evaluation:
         - BollingerSnapBack
         - ATR_DistanceRevert
         - RangeFade
+      enabled_families:
+        - BreakoutRetest
+        - MA_SlopePullback
+        - BollingerSnapBack
+        - ATR_DistanceRevert
       defaults:
         BreakoutRetest: {donchian_period: 20, retest_atr_k: 0.8}
         MA_SlopePullback: {slope_min: 0.003, pullback_atr_k: 1.2}

@@ -20,7 +20,7 @@ from buffmini.data.store import build_data_store
 from buffmini.stage10.activation import DEFAULT_ACTIVATION_CONFIG, apply_soft_activation
 from buffmini.stage10.exits import normalize_exit_mode
 from buffmini.stage10.regimes import REGIME_LABELS, regime_distribution
-from buffmini.stage10.signals import DEFAULT_SIGNAL_PARAMS, SIGNAL_FAMILIES, generate_signal_family
+from buffmini.stage10.signals import DEFAULT_SIGNAL_PARAMS, SIGNAL_FAMILIES, generate_signal_family, resolve_enabled_families
 from buffmini.utils.hashing import stable_hash
 from buffmini.utils.time import utc_now_compact
 from buffmini.validation.leakage_harness import run_registered_features_harness, synthetic_ohlcv
@@ -42,6 +42,12 @@ STAGE10_DEFAULTS: dict[str, Any] = {
     "activation": dict(DEFAULT_ACTIVATION_CONFIG),
     "signals": {
         "families": list(SIGNAL_FAMILIES),
+        "enabled_families": [
+            "BreakoutRetest",
+            "MA_SlopePullback",
+            "BollingerSnapBack",
+            "ATR_DistanceRevert",
+        ],
         "defaults": {name: dict(params) for name, params in DEFAULT_SIGNAL_PARAMS.items()},
     },
     "exits": {
@@ -170,6 +176,7 @@ def run_stage10(
         seed=int(seed),
         resolved_end_ts=resolved_end_ts,
         dry_run=bool(dry_run),
+        cfg=cfg,
         baseline_eval=baseline_eval,
         stage10_eval=stage10_eval,
         walkforward_payload=walkforward_payload,
@@ -268,7 +275,10 @@ def _evaluate_baseline(features_by_symbol: dict[str, pd.DataFrame], cfg: dict[st
 def _evaluate_stage10(features_by_symbol: dict[str, pd.DataFrame], cfg: dict[str, Any]) -> dict[str, Any]:
     candidate_rows: list[CandidateResult] = []
     best_by_symbol: dict[str, CandidateResult] = {}
-    families = list(cfg["evaluation"]["stage10"]["signals"]["families"])
+    families = resolve_enabled_families(
+        families=list(cfg["evaluation"]["stage10"]["signals"]["families"]),
+        enabled_families=list(cfg["evaluation"]["stage10"]["signals"].get("enabled_families", [])),
+    )
     modes = list(cfg["evaluation"]["stage10"]["exits"]["modes"])
     signal_defaults = cfg["evaluation"]["stage10"]["signals"]["defaults"]
     activation_cfg = dict(cfg["evaluation"]["stage10"]["activation"])
@@ -596,6 +606,7 @@ def _build_stage10_summary(
     seed: int,
     resolved_end_ts: str,
     dry_run: bool,
+    cfg: dict[str, Any],
     baseline_eval: dict[str, Any],
     stage10_eval: dict[str, Any],
     walkforward_payload: dict[str, Any],
@@ -635,10 +646,18 @@ def _build_stage10_summary(
     summary = {
         "stage": "10",
         "run_id": run_id,
+        "dry_run": bool(dry_run),
         "config_hash": config_hash,
         "data_hash": data_hash,
         "seed": int(seed),
         "resolved_end_ts": resolved_end_ts,
+        "enabled_signal_families": list(
+            resolve_enabled_families(
+                families=list(cfg["evaluation"]["stage10"]["signals"]["families"]),
+                enabled_families=list(cfg["evaluation"]["stage10"]["signals"].get("enabled_families", [])),
+            )
+        ),
+        "exit_modes": list(cfg["evaluation"]["stage10"]["exits"]["modes"]),
         "determinism": {
             "status": determinism_status,
             "notes": "signature generated from deterministic payload",
@@ -799,6 +818,310 @@ def _normalize_stage10_config(config: dict[str, Any], cost_mode: str, exit_mode:
     cfg.setdefault("cost_model", {})
     cfg["cost_model"]["mode"] = str(cost_mode)
     return cfg
+
+
+def build_stage10_6_report_from_runs(
+    runs_root: Path = RUNS_DIR,
+    docs_dir: Path = Path("docs"),
+    max_drop_pct: float = 10.0,
+) -> dict[str, Any]:
+    """Build Stage-10.6 comparative report from available run artifacts."""
+
+    stage10_runs = _discover_stage10_runs(runs_root)
+    dry_runs = [row for row in stage10_runs if _is_dry_summary(row)]
+    real_runs = [row for row in stage10_runs if not _is_dry_summary(row)]
+
+    dry_pre, dry_latest = _pick_reference_and_latest(dry_runs)
+    real_pre, real_latest = _pick_reference_and_latest(real_runs)
+    sandbox_latest = _discover_latest_sandbox_summary(runs_root)
+
+    comparisons = {
+        "dry_run": _build_context_comparison(dry_pre, dry_latest),
+        "real_data": _build_context_comparison(real_pre, real_latest),
+    }
+    comparisons["real_data"]["available"] = bool(real_latest is not None)
+
+    guard_source = comparisons["real_data"] if comparisons["real_data"]["available"] else comparisons["dry_run"]
+    guard = _build_trade_count_guard(guard_source, max_drop_pct=float(max_drop_pct))
+    determinism = _build_determinism_status(dry_runs)
+
+    summary: dict[str, Any] = {
+        "stage": "10.6",
+        "sandbox": {
+            "enabled_signals": list((sandbox_latest or {}).get("enabled_signals", [])),
+            "disabled_signals": list((sandbox_latest or {}).get("disabled_signals", [])),
+            "rank_table_path": str((sandbox_latest or {}).get("rank_table_path", "")),
+            "run_id": str((sandbox_latest or {}).get("run_id", "")),
+        },
+        "comparisons": comparisons,
+        "trade_count_guard": guard,
+        "determinism": determinism,
+    }
+    validate_stage10_6_summary_schema(summary)
+    docs_dir.mkdir(parents=True, exist_ok=True)
+    _write_stage10_6_report(
+        summary=summary,
+        out_md=docs_dir / "stage10_6_report.md",
+        out_json=docs_dir / "stage10_6_report_summary.json",
+    )
+    return summary
+
+
+def validate_stage10_6_summary_schema(summary: dict[str, Any]) -> None:
+    required_top = {"stage", "sandbox", "comparisons", "trade_count_guard", "determinism"}
+    missing = required_top.difference(summary.keys())
+    if missing:
+        raise ValueError(f"Missing Stage-10.6 summary keys: {sorted(missing)}")
+    if str(summary["stage"]) != "10.6":
+        raise ValueError("stage must be '10.6'")
+    sandbox = summary["sandbox"]
+    if not isinstance(sandbox.get("enabled_signals"), list):
+        raise ValueError("sandbox.enabled_signals must be a list")
+    if not isinstance(sandbox.get("disabled_signals"), list):
+        raise ValueError("sandbox.disabled_signals must be a list")
+    comparisons = summary["comparisons"]
+    for key in ["dry_run", "real_data"]:
+        if key not in comparisons:
+            raise ValueError(f"comparisons.{key} is required")
+    guard = summary["trade_count_guard"]
+    float(guard["max_drop_pct"])
+    float(guard["observed_drop_pct"])
+    if not isinstance(guard["pass"], bool):
+        raise ValueError("trade_count_guard.pass must be bool")
+    determinism = summary["determinism"]
+    if not isinstance(determinism.get("pass"), bool):
+        raise ValueError("determinism.pass must be bool")
+
+
+def _discover_stage10_runs(runs_root: Path) -> list[dict[str, Any]]:
+    rows: list[dict[str, Any]] = []
+    for path in sorted(runs_root.glob("*_stage10/stage10_summary.json")):
+        try:
+            payload = json.loads(path.read_text(encoding="utf-8"))
+        except Exception:
+            continue
+        payload["_summary_path"] = str(path)
+        payload["_run_dir"] = str(path.parent)
+        rows.append(payload)
+    rows.sort(key=lambda row: str(row.get("run_id", "")))
+    return rows
+
+
+def _is_dry_summary(summary: dict[str, Any]) -> bool:
+    if "dry_run" in summary:
+        return bool(summary.get("dry_run"))
+    real_block = summary.get("baseline_vs_stage10", {}).get("real_data", {})
+    return not bool(real_block.get("available", False))
+
+
+def _discover_latest_sandbox_summary(runs_root: Path) -> dict[str, Any] | None:
+    summaries: list[dict[str, Any]] = []
+    for path in sorted(runs_root.glob("*_stage10_sandbox/sandbox_summary.json")):
+        try:
+            payload = json.loads(path.read_text(encoding="utf-8"))
+        except Exception:
+            continue
+        summaries.append(payload)
+    if not summaries:
+        return None
+    summaries.sort(key=lambda row: str(row.get("run_id", "")))
+    return summaries[-1]
+
+
+def _pick_reference_and_latest(rows: list[dict[str, Any]]) -> tuple[dict[str, Any] | None, dict[str, Any] | None]:
+    if not rows:
+        return None, None
+    if len(rows) == 1:
+        return None, rows[-1]
+    latest = rows[-1]
+    latest_cfg = str(latest.get("config_hash", ""))
+    latest_signals = tuple(latest.get("enabled_signal_families", []) or [])
+    latest_exits = tuple(latest.get("exit_modes", []) or [])
+    for candidate in reversed(rows[:-1]):
+        if (
+            str(candidate.get("config_hash", "")) != latest_cfg
+            or tuple(candidate.get("enabled_signal_families", []) or []) != latest_signals
+            or tuple(candidate.get("exit_modes", []) or []) != latest_exits
+        ):
+            return candidate, latest
+    return rows[-2], latest
+
+
+def _extract_context_metrics(summary: dict[str, Any] | None) -> dict[str, Any]:
+    if summary is None:
+        return {}
+    block = summary.get("baseline_vs_stage10", {})
+    walkforward = summary.get("walkforward_v2", {})
+    stage10_walk = walkforward.get("stage10", {}) if isinstance(walkforward.get("stage10", {}), dict) else {}
+    regime_dist = summary.get("regimes", {}).get("distribution", {})
+    max_share = 0.0
+    if isinstance(regime_dist, dict) and regime_dist:
+        max_share = max(_finite(value, 0.0) for value in regime_dist.values())
+    return {
+        "run_id": str(summary.get("run_id", "")),
+        "baseline": dict(block.get("baseline", {})),
+        "stage10": dict(block.get("stage10", {})),
+        "walkforward_classification": str(walkforward.get("stage10_classification", walkforward.get("classification", "N/A"))),
+        "usable_windows": int(stage10_walk.get("usable_windows", 0)),
+        "regime_distribution": dict(regime_dist) if isinstance(regime_dist, dict) else {},
+        "single_label_warning": bool(max_share >= 99.9),
+    }
+
+
+def _build_context_comparison(previous: dict[str, Any] | None, latest: dict[str, Any] | None) -> dict[str, Any]:
+    pre = _extract_context_metrics(previous)
+    post = _extract_context_metrics(latest)
+    baseline = dict(post.get("baseline", {}))
+    return {
+        "baseline": baseline,
+        "stage10_pre": dict(pre.get("stage10", {})),
+        "stage10_6": dict(post.get("stage10", {})),
+        "walkforward_pre": str(pre.get("walkforward_classification", "N/A")),
+        "walkforward_stage10_6": str(post.get("walkforward_classification", "N/A")),
+        "usable_windows_pre": int(pre.get("usable_windows", 0)),
+        "usable_windows_stage10_6": int(post.get("usable_windows", 0)),
+        "regime_distribution_stage10_6": dict(post.get("regime_distribution", {})),
+        "single_label_warning_stage10_6": bool(post.get("single_label_warning", False)),
+        "pre_run_id": str(pre.get("run_id", "")),
+        "stage10_6_run_id": str(post.get("run_id", "")),
+    }
+
+
+def _build_trade_count_guard(context: dict[str, Any], max_drop_pct: float) -> dict[str, Any]:
+    baseline = context.get("baseline", {})
+    stage10_6 = context.get("stage10_6", {})
+    baseline_tc = _finite(baseline.get("trade_count", 0.0), default=0.0)
+    stage_tc = _finite(stage10_6.get("trade_count", 0.0), default=0.0)
+    if baseline_tc <= 0:
+        observed_drop_pct = 0.0
+    else:
+        observed_drop_pct = max(0.0, (baseline_tc - stage_tc) / baseline_tc * 100.0)
+
+    pf_delta = _finite(stage10_6.get("profit_factor", 0.0), default=0.0) - _finite(
+        baseline.get("profit_factor", 0.0),
+        default=0.0,
+    )
+    expectancy_delta = _finite(stage10_6.get("expectancy", 0.0), default=0.0) - _finite(
+        baseline.get("expectancy", 0.0),
+        default=0.0,
+    )
+    robust_improved = bool(pf_delta > 0 and expectancy_delta > 0)
+    passed = bool(observed_drop_pct <= float(max_drop_pct) or robust_improved)
+    return {
+        "max_drop_pct": float(max_drop_pct),
+        "observed_drop_pct": float(observed_drop_pct),
+        "pass": passed,
+        "pf_delta_vs_baseline": float(pf_delta),
+        "expectancy_delta_vs_baseline": float(expectancy_delta),
+        "justified_by_robust_improvement": robust_improved,
+    }
+
+
+def _build_determinism_status(dry_runs: list[dict[str, Any]]) -> dict[str, Any]:
+    if not dry_runs:
+        return {"pass": False, "notes": "No dry runs found for determinism check"}
+    latest = dry_runs[-1]
+    latest_signature = str(latest.get("determinism", {}).get("signature", ""))
+    matching = [
+        row
+        for row in dry_runs
+        if row.get("config_hash") == latest.get("config_hash")
+        and row.get("data_hash") == latest.get("data_hash")
+        and row.get("enabled_signal_families") == latest.get("enabled_signal_families")
+        and row.get("exit_modes") == latest.get("exit_modes")
+        and int(row.get("seed", -1)) == int(latest.get("seed", -2))
+    ]
+    if len(matching) < 2:
+        return {
+            "pass": False,
+            "notes": "Need two matching dry runs (same seed/config/data) for determinism proof",
+            "signature_latest": latest_signature,
+        }
+    prev = matching[-2]
+    prev_signature = str(prev.get("determinism", {}).get("signature", ""))
+    passed = bool(prev_signature != "" and prev_signature == latest_signature)
+    return {
+        "pass": passed,
+        "notes": "PASS" if passed else "Signatures differ across matching dry runs",
+        "signature_previous": prev_signature,
+        "signature_latest": latest_signature,
+    }
+
+
+def _write_stage10_6_report(summary: dict[str, Any], out_md: Path, out_json: Path) -> None:
+    dry = summary["comparisons"]["dry_run"]
+    real = summary["comparisons"]["real_data"]
+    guard = summary["trade_count_guard"]
+    lines: list[str] = []
+    lines.append("# Stage-10.6 Report")
+    lines.append("")
+    lines.append("## What Changed")
+    lines.append("- Switched activation decisions to score-only regime usage.")
+    lines.append("- Clamped activation multipliers to a strict soft band.")
+    lines.append("- Reduced default exits to fixed ATR and ATR trailing.")
+    lines.append("- Added sandbox ranking with drag-aware stress penalty.")
+    lines.append("")
+    lines.append("## Sandbox Selection")
+    lines.append(f"- enabled_signals: `{summary['sandbox']['enabled_signals']}`")
+    lines.append(f"- disabled_signals: `{summary['sandbox']['disabled_signals']}`")
+    lines.append(f"- ranking table: `{summary['sandbox']['rank_table_path']}`")
+    lines.append("")
+    lines.append("## Comparisons (Dry Run)")
+    lines.append(f"- pre_run_id: `{dry.get('pre_run_id', '')}`")
+    lines.append(f"- stage10_6_run_id: `{dry.get('stage10_6_run_id', '')}`")
+    lines.append(f"- walkforward: `{dry.get('walkforward_pre', 'N/A')} -> {dry.get('walkforward_stage10_6', 'N/A')}`")
+    lines.append(f"- usable_windows: `{dry.get('usable_windows_pre', 0)} -> {dry.get('usable_windows_stage10_6', 0)}`")
+    lines.append(f"- single_label_warning: `{dry.get('single_label_warning_stage10_6', False)}`")
+    lines.append("")
+    lines.append("| metric | baseline | stage10_pre | stage10_6 |")
+    lines.append("| --- | ---: | ---: | ---: |")
+    for metric in ["trade_count", "profit_factor", "expectancy", "max_drawdown", "pf_adj", "exp_lcb"]:
+        lines.append(
+            f"| {metric} | "
+            f"{_finite(dry.get('baseline', {}).get(metric, 0.0), 0.0):.6f} | "
+            f"{_finite(dry.get('stage10_pre', {}).get(metric, 0.0), 0.0):.6f} | "
+            f"{_finite(dry.get('stage10_6', {}).get(metric, 0.0), 0.0):.6f} |"
+        )
+    lines.append("")
+    lines.append("## Comparisons (Real Data)")
+    lines.append(f"- available: `{real.get('available', False)}`")
+    lines.append(f"- pre_run_id: `{real.get('pre_run_id', '')}`")
+    lines.append(f"- stage10_6_run_id: `{real.get('stage10_6_run_id', '')}`")
+    lines.append(f"- walkforward: `{real.get('walkforward_pre', 'N/A')} -> {real.get('walkforward_stage10_6', 'N/A')}`")
+    lines.append(f"- usable_windows: `{real.get('usable_windows_pre', 0)} -> {real.get('usable_windows_stage10_6', 0)}`")
+    lines.append(f"- single_label_warning: `{real.get('single_label_warning_stage10_6', False)}`")
+    lines.append("")
+    if bool(real.get("available", False)):
+        lines.append("| metric | baseline | stage10_pre | stage10_6 |")
+        lines.append("| --- | ---: | ---: | ---: |")
+        for metric in ["trade_count", "profit_factor", "expectancy", "max_drawdown", "pf_adj", "exp_lcb"]:
+            lines.append(
+                f"| {metric} | "
+                f"{_finite(real.get('baseline', {}).get(metric, 0.0), 0.0):.6f} | "
+                f"{_finite(real.get('stage10_pre', {}).get(metric, 0.0), 0.0):.6f} | "
+                f"{_finite(real.get('stage10_6', {}).get(metric, 0.0), 0.0):.6f} |"
+            )
+        lines.append("")
+    lines.append("## Trade Count Guard")
+    lines.append(f"- max_drop_pct: `{guard['max_drop_pct']:.2f}`")
+    lines.append(f"- observed_drop_pct: `{guard['observed_drop_pct']:.6f}`")
+    lines.append(f"- pass: `{guard['pass']}`")
+    lines.append(f"- justified_by_robust_improvement: `{guard['justified_by_robust_improvement']}`")
+    lines.append("")
+    lines.append("## Determinism")
+    lines.append(f"- pass: `{summary['determinism']['pass']}`")
+    lines.append(f"- notes: `{summary['determinism']['notes']}`")
+    if summary["determinism"].get("signature_previous"):
+        lines.append(f"- signature_previous: `{summary['determinism']['signature_previous']}`")
+    if summary["determinism"].get("signature_latest"):
+        lines.append(f"- signature_latest: `{summary['determinism']['signature_latest']}`")
+    lines.append("")
+    lines.append("## Known Limitations")
+    lines.append("- Stage-10.6 ranking is currently single-exit-first (fixed_atr) before A/B exit sweeps.")
+    lines.append("- Drag penalty is sandbox-only and not yet part of the main optimizer objective.")
+
+    out_md.write_text("\n".join(lines).strip() + "\n", encoding="utf-8")
+    out_json.write_text(json.dumps(summary, indent=2, allow_nan=False), encoding="utf-8")
 
 
 def _merge_defaults(defaults: dict[str, Any], override: dict[str, Any]) -> dict[str, Any]:

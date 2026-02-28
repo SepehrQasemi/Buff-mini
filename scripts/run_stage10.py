@@ -7,7 +7,7 @@ from pathlib import Path
 
 from buffmini.config import load_config
 from buffmini.constants import DEFAULT_CONFIG_PATH, DERIVED_DATA_DIR, RAW_DATA_DIR, RUNS_DIR
-from buffmini.stage10.evaluate import run_stage10
+from buffmini.stage10.evaluate import build_stage10_6_report_from_runs, run_stage10
 
 
 def parse_args() -> argparse.Namespace:
@@ -51,9 +51,15 @@ def main() -> None:
         data_dir=args.data_dir,
         derived_dir=args.derived_dir,
     )
+    stage10_6 = build_stage10_6_report_from_runs(
+        runs_root=args.runs_dir,
+        docs_dir=Path("docs"),
+        max_drop_pct=10.0,
+    )
     print(f"run_id: {summary['run_id']}")
     print("wrote: docs/stage10_report.md")
     print("wrote: docs/stage10_report_summary.json")
+    print(f"stage10_6_report: docs/stage10_6_report.md (guard_pass={stage10_6['trade_count_guard']['pass']})")
 
 
 if __name__ == "__main__":

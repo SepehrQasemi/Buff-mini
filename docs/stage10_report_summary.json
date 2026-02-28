@@ -1,15 +1,25 @@
 {
   "stage": "10",
-  "run_id": "20260228_112303_c3a6713a904d_stage10",
-  "runs": {
-    "dry_run_id": "20260228_111937_2d4caf91e389_stage10",
-    "real_run_id": "20260228_112303_c3a6713a904d_stage10"
-  },
+  "run_id": "20260228_123104_791590f09a7d_stage10",
+  "dry_run": false,
+  "config_hash": "42061eca8bb3",
+  "data_hash": "1ce4fcff98e4608e",
+  "seed": 42,
+  "resolved_end_ts": "2026-02-26T09:00:00+00:00",
+  "enabled_signal_families": [
+    "BreakoutRetest",
+    "MA_SlopePullback",
+    "BollingerSnapBack",
+    "ATR_DistanceRevert"
+  ],
+  "exit_modes": [
+    "fixed_atr",
+    "atr_trailing"
+  ],
   "determinism": {
     "status": "PASS",
-    "notes": "Signatures remained stable across deterministic dry-run checks.",
-    "signature_real": "d14194d723bc580abe547761",
-    "signature_dry": "05a8044ce98dec26618ba26d"
+    "notes": "signature generated from deterministic payload",
+    "signature": "36032bafe9ac53aac4ee060c"
   },
   "leakage": {
     "status": "PASS",
@@ -28,24 +38,166 @@
   },
   "baseline_vs_stage10": {
     "dry_run": {
-      "trade_count": 450.0,
-      "pf": 0.45589892323441084,
-      "expectancy": -25.574440005343746,
-      "maxdd": 0.6019704894697908
+      "trade_count": 6275.0,
+      "pf": 0.6162719543617284,
+      "expectancy": -7.830390103511169,
+      "maxdd": 0.954499895999803
     },
     "real_data": {
       "available": true,
-      "walkforward_classification": "UNSTABLE",
-      "trade_count": 2923.0,
-      "pf": 0.32247482244834,
-      "expectancy": -3.0427353046095833,
-      "maxdd": 0.970305463546935
+      "walkforward_classification": "UNSTABLE"
     },
-    "delta_real": {
-      "trade_count_delta": -3352.0,
-      "pf_adj_delta": -0.2854359171642251,
-      "exp_lcb_delta": 2.922021191355105
+    "baseline": {
+      "trade_count": 6275.0,
+      "profit_factor": 0.6162719543617284,
+      "expectancy": -7.830390103511169,
+      "max_drawdown": 0.954499895999803,
+      "win_rate": 0.3217529880478088,
+      "pf_adj": 0.6193053776474065,
+      "exp_lcb": -7.89689166690102
+    },
+    "stage10": {
+      "trade_count": 5627.0,
+      "profit_factor": 0.26556207645704843,
+      "expectancy": -3.518895497849126,
+      "max_drawdown": 0.9900474797219206,
+      "win_rate": 0.21432379598365026,
+      "pf_adj": 0.27203061550533936,
+      "exp_lcb": -3.5205905370559645
+    },
+    "delta": {
+      "trade_count_delta": -648.0,
+      "pf_adj_delta": -0.3472747621420671,
+      "exp_lcb_delta": 4.376301129845055
     }
   },
+  "walkforward_v2": {
+    "enabled": true,
+    "classification": "INSUFFICIENT_DATA",
+    "stage10_classification": "UNSTABLE",
+    "baseline": {
+      "total_windows": 16,
+      "usable_windows": 1,
+      "excluded_windows": 15,
+      "excluded_reasons": {
+        "min_trades": 15
+      },
+      "forward_expectancy": {
+        "median": 19.55128355731095,
+        "iqr": 0.0,
+        "p05": 19.55128355731095,
+        "worst": 19.55128355731095
+      },
+      "forward_profit_factor": {
+        "median": 1.2713272277218182,
+        "iqr": 0.0,
+        "p05": 1.2713272277218182,
+        "worst": 1.2713272277218182
+      },
+      "forward_return_pct": {
+        "median": 0.023461540268772785,
+        "iqr": 0.0,
+        "p05": 0.023461540268772785,
+        "worst": 0.023461540268772785
+      },
+      "forward_max_drawdown": {
+        "median": 0.02948133894975456,
+        "iqr": 0.0,
+        "p05": 0.02948133894975456,
+        "worst": 0.02948133894975456
+      },
+      "classification": "INSUFFICIENT_DATA",
+      "classification_explanation": "usable_windows=1 < min_usable_windows=3"
+    },
+    "stage10": {
+      "total_windows": 16,
+      "usable_windows": 16,
+      "excluded_windows": 0,
+      "excluded_reasons": {},
+      "forward_expectancy": {
+        "median": -34.10439373841071,
+        "iqr": 6.073444544576699,
+        "p05": -40.145948880127264,
+        "worst": -41.63708956546308
+      },
+      "forward_profit_factor": {
+        "median": 0.19318172276405476,
+        "iqr": 0.07532753095702124,
+        "p05": 0.12258019136137793,
+        "worst": 0.11680845964761159
+      },
+      "forward_return_pct": {
+        "median": 0.0,
+        "iqr": 0.0,
+        "p05": 0.0,
+        "worst": 0.0
+      },
+      "forward_max_drawdown": {
+        "median": 0.2919324235174493,
+        "iqr": 0.08189508954807578,
+        "p05": 0.173323876380069,
+        "worst": 0.15349978143714307
+      },
+      "classification": "UNSTABLE",
+      "classification_explanation": "one or more robustness thresholds failed"
+    }
+  },
+  "best_candidates": [
+    {
+      "symbol": "BTC/USDT",
+      "family": "ATR_DistanceRevert",
+      "exit_mode": "atr_trailing",
+      "score": -0.780786545317131,
+      "trade_count": 2915.0,
+      "expectancy": -3.3963320495315736,
+      "profit_factor": 0.24797590187935686,
+      "max_drawdown": 0.9900307924384543,
+      "win_rate": 0.18970840480274442
+    },
+    {
+      "symbol": "ETH/USDT",
+      "family": "ATR_DistanceRevert",
+      "exit_mode": "atr_trailing",
+      "score": -0.897844930789292,
+      "trade_count": 2712.0,
+      "expectancy": -3.6506331275857287,
+      "profit_factor": 0.2844646202970083,
+      "max_drawdown": 0.9900654160903958,
+      "win_rate": 0.24078171091445427
+    },
+    {
+      "symbol": "BTC/USDT",
+      "family": "ATR_DistanceRevert",
+      "exit_mode": "fixed_atr",
+      "score": -2.264505447371759,
+      "trade_count": 1734.0,
+      "expectancy": -5.677854867803603,
+      "profit_factor": 0.5476627871367449,
+      "max_drawdown": 0.9845550480130189,
+      "win_rate": 0.30853517877739334
+    },
+    {
+      "symbol": "ETH/USDT",
+      "family": "ATR_DistanceRevert",
+      "exit_mode": "fixed_atr",
+      "score": -2.3521850636617483,
+      "trade_count": 1627.0,
+      "expectancy": -6.040145858786683,
+      "profit_factor": 0.7195385307297141,
+      "max_drawdown": 0.9828940042676015,
+      "win_rate": 0.34480639213275965
+    },
+    {
+      "symbol": "ETH/USDT",
+      "family": "BollingerSnapBack",
+      "exit_mode": "atr_trailing",
+      "score": -3.391044300589691,
+      "trade_count": 1613.0,
+      "expectancy": -6.123123480338527,
+      "profit_factor": 0.2779647403885715,
+      "max_drawdown": 0.9876598173786051,
+      "win_rate": 0.2393056416615003
+    }
+  ],
   "next_recommendation": "Refine Stage-10 signal/activation parameters before Stage-11"
 }

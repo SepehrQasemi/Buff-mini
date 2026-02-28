@@ -218,6 +218,7 @@ Stage-10 adds:
 - Regime scores + confidence labels
 - Expanded signal and exit libraries
 - Regime-aware soft activation (sizing multipliers, not hard trade blocking)
+- Stage-10.6 refinement: score-only activation input, tighter multiplier clamp, reduced default exits, and sandbox signal ranking
 - Baseline vs Stage-10 comparison runner with deterministic artifacts
 
 Run synthetic offline Stage-10:
@@ -232,6 +233,12 @@ Run Stage-10 on local real data (if `data/raw` exists):
 python scripts/run_stage10.py --seed 42
 ```
 
+Run Stage-10.6 sandbox ranking (offline-friendly):
+
+```bash
+python scripts/run_stage10_sandbox.py --dry-run --seed 42
+```
+
 Outputs:
 
 - `runs/<run_id>_stage10/stage10_summary.json`
@@ -240,6 +247,10 @@ Outputs:
 - `runs/<run_id>_stage10/best_candidates.json`
 - `docs/stage10_report.md`
 - `docs/stage10_report_summary.json`
+- `runs/<run_id>_stage10_sandbox/sandbox_rankings.csv`
+- `runs/<run_id>_stage10_sandbox/sandbox_summary.json`
+- `docs/stage10_6_report.md`
+- `docs/stage10_6_report_summary.json`
 
 ## Output Structure
 

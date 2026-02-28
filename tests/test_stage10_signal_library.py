@@ -5,7 +5,7 @@ from __future__ import annotations
 import numpy as np
 
 from buffmini.data.features import calculate_features
-from buffmini.stage10.signals import SIGNAL_FAMILIES, generate_signal_family
+from buffmini.stage10.signals import SIGNAL_FAMILIES, generate_signal_family, resolve_enabled_families
 from buffmini.validation.leakage_harness import synthetic_ohlcv
 
 
@@ -30,3 +30,11 @@ def test_stage10_signal_generation_deterministic() -> None:
     left = generate_signal_family(features, family="BollingerSnapBack")
     right = generate_signal_family(features, family="BollingerSnapBack")
     assert left.equals(right)
+
+
+def test_stage10_enabled_family_resolution_subset() -> None:
+    resolved = resolve_enabled_families(
+        families=list(SIGNAL_FAMILIES),
+        enabled_families=["ATR_DistanceRevert", "unknown", "BreakoutRetest"],
+    )
+    assert resolved == ["ATR_DistanceRevert", "BreakoutRetest"]
