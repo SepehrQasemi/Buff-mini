@@ -26,6 +26,18 @@ _REQUIRED_SCHEMA: dict[str, tuple[str, ...]] = {
     "evaluation": ("stage0_enabled",),
 }
 
+SUPPORTED_TIMEFRAMES: tuple[str, ...] = ("1m", "5m", "15m", "30m", "1h", "2h", "4h", "1d")
+UNIVERSE_DEFAULTS = {
+    "symbols": ["BTC/USDT", "ETH/USDT"],
+    "timeframe": "1h",
+    "base_timeframe": "1h",
+    "operational_timeframe": "1h",
+    "htf_timeframes": [],
+    "start": "2023-01-01T00:00:00Z",
+    "end": None,
+    "resolved_end_ts": None,
+}
+
 
 STAGE06_DEFAULTS = {
     "window_months": 36,
@@ -34,6 +46,8 @@ STAGE06_DEFAULTS = {
 
 DATA_DEFAULTS = {
     "backend": "parquet",
+    "resample_source": "direct",
+    "partial_last_bucket": False,
     "include_futures_extras": False,
     "futures_extras": {
         "symbols": ["BTC/USDT", "ETH/USDT"],
@@ -466,11 +480,38 @@ def validate_config(config: ConfigDict) -> None:
                 msg = f"Missing config key: {section}.{key}"
                 raise ValueError(msg)
 
-    universe = config["universe"]
+    universe = _merge_defaults(UNIVERSE_DEFAULTS, config["universe"])
     if not universe["symbols"]:
         raise ValueError("universe.symbols must be non-empty")
-    if universe["timeframe"] != "1h":
-        raise ValueError("Only 1h timeframe is supported in MVP Phase 1")
+    timeframe = str(universe["timeframe"]).strip().lower()
+    base_timeframe = str(universe.get("base_timeframe") or timeframe).strip().lower()
+    operational_timeframe = str(universe.get("operational_timeframe") or timeframe).strip().lower()
+    htf_timeframes = [str(value).strip().lower() for value in list(universe.get("htf_timeframes", []))]
+    if timeframe not in SUPPORTED_TIMEFRAMES:
+        raise ValueError(f"universe.timeframe must be one of {SUPPORTED_TIMEFRAMES}")
+    if base_timeframe not in SUPPORTED_TIMEFRAMES:
+        raise ValueError(f"universe.base_timeframe must be one of {SUPPORTED_TIMEFRAMES}")
+    if operational_timeframe not in SUPPORTED_TIMEFRAMES:
+        raise ValueError(f"universe.operational_timeframe must be one of {SUPPORTED_TIMEFRAMES}")
+    if timeframe != operational_timeframe:
+        raise ValueError("universe.timeframe must match universe.operational_timeframe")
+    _validate_timeframe_multiple(
+        base_timeframe=base_timeframe,
+        child_timeframe=operational_timeframe,
+        field_name="universe.operational_timeframe",
+    )
+    for idx, item in enumerate(htf_timeframes):
+        if item not in SUPPORTED_TIMEFRAMES:
+            raise ValueError(f"universe.htf_timeframes[{idx}] must be one of {SUPPORTED_TIMEFRAMES}")
+        _validate_timeframe_multiple(
+            base_timeframe=base_timeframe,
+            child_timeframe=item,
+            field_name=f"universe.htf_timeframes[{idx}]",
+        )
+    universe["base_timeframe"] = base_timeframe
+    universe["operational_timeframe"] = operational_timeframe
+    universe["timeframe"] = operational_timeframe
+    universe["htf_timeframes"] = htf_timeframes
     if universe.get("resolved_end_ts") is not None and str(universe.get("resolved_end_ts")).strip() != "":
         try:
             resolved_end_ts = parse_utc_timestamp(str(universe["resolved_end_ts"]))
@@ -481,6 +522,7 @@ def validate_config(config: ConfigDict) -> None:
             parsed_end = parse_utc_timestamp(str(end_value))
             if resolved_end_ts != parsed_end:
                 raise ValueError("universe.end and universe.resolved_end_ts must match when both are set")
+    config["universe"] = universe
 
     costs = config["costs"]
     _validate_percent_value(costs["round_trip_cost_pct"], "costs.round_trip_cost_pct")
@@ -577,6 +619,10 @@ def validate_config(config: ConfigDict) -> None:
     data = _merge_defaults(DATA_DEFAULTS, config.get("data", {}))
     if str(data["backend"]) not in {"parquet", "duckdb"}:
         raise ValueError("data.backend must be 'parquet' or 'duckdb'")
+    if str(data["resample_source"]) not in {"direct", "base"}:
+        raise ValueError("data.resample_source must be 'direct' or 'base'")
+    if not isinstance(data["partial_last_bucket"], bool):
+        raise ValueError("data.partial_last_bucket must be bool")
     if not isinstance(data["include_futures_extras"], bool):
         raise ValueError("data.include_futures_extras must be bool")
     futures_extras = data["futures_extras"]
@@ -1050,6 +1096,28 @@ def _validate_percent_value(value: Any, name: str) -> None:
     numeric = float(value)
     if not 0 <= numeric <= 100:
         raise ValueError(f"{name} must be between 0 and 100 (percent units)")
+
+
+def _timeframe_to_minutes(timeframe: str) -> int:
+    text = str(timeframe).strip().lower()
+    if text not in SUPPORTED_TIMEFRAMES:
+        raise ValueError(f"Unsupported timeframe: {timeframe}")
+    if text.endswith("m"):
+        return int(text[:-1])
+    if text.endswith("h"):
+        return int(text[:-1]) * 60
+    if text.endswith("d"):
+        return int(text[:-1]) * 60 * 24
+    raise ValueError(f"Unsupported timeframe: {timeframe}")
+
+
+def _validate_timeframe_multiple(base_timeframe: str, child_timeframe: str, field_name: str) -> None:
+    base_minutes = _timeframe_to_minutes(base_timeframe)
+    child_minutes = _timeframe_to_minutes(child_timeframe)
+    if child_minutes < base_minutes:
+        raise ValueError(f"{field_name} must be >= universe.base_timeframe")
+    if child_minutes % base_minutes != 0:
+        raise ValueError(f"{field_name} must be an integer multiple of universe.base_timeframe")
 
 
 def _merge_defaults(defaults: dict[str, Any], override: dict[str, Any]) -> dict[str, Any]:

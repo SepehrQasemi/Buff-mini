@@ -14,6 +14,9 @@ def test_load_config_success() -> None:
 
     assert "universe" in config
     assert config["universe"]["timeframe"] == "1h"
+    assert config["universe"]["base_timeframe"] == "1h"
+    assert config["universe"]["operational_timeframe"] == "1h"
+    assert config["universe"]["htf_timeframes"] == ["4h"]
     assert config["evaluation"]["stage0_enabled"] is True
     assert config["evaluation"]["stage06"]["window_months"] == 36
     assert config["evaluation"]["stage06"]["end_mode"] == "latest"
@@ -44,6 +47,8 @@ def test_load_config_success() -> None:
     assert thresholds["NearMiss"]["min_exp_lcb_holdout"] == -5
     assert config["evaluation"]["stage1"]["promotion_holdout_months"] == [3, 6, 9, 12]
     assert config["data"]["backend"] == "parquet"
+    assert config["data"]["resample_source"] == "direct"
+    assert config["data"]["partial_last_bucket"] is False
     assert config["data"]["include_futures_extras"] is False
     assert config["data"]["futures_extras"]["symbols"] == ["BTC/USDT", "ETH/USDT"]
     assert config["data"]["futures_extras"]["timeframe"] == "1h"
@@ -196,3 +201,25 @@ def test_validate_config_rejects_unsorted_leverage_levels() -> None:
 
     with pytest.raises(ValueError, match="strictly increasing"):
         validate_config(config)
+
+
+def test_validate_config_rejects_non_multiple_operational_timeframe() -> None:
+    root = Path(__file__).resolve().parents[1]
+    config = load_config(root / "configs" / "default.yaml")
+    config["universe"]["base_timeframe"] = "5m"
+    config["universe"]["operational_timeframe"] = "1h"
+    config["universe"]["timeframe"] = "1h"
+    validate_config(config)
+
+    invalid = deepcopy(config)
+    invalid["universe"]["base_timeframe"] = "15m"
+    invalid["universe"]["operational_timeframe"] = "2h"
+    invalid["universe"]["timeframe"] = "2h"
+    validate_config(invalid)
+
+    bad = deepcopy(config)
+    bad["universe"]["base_timeframe"] = "1h"
+    bad["universe"]["operational_timeframe"] = "15m"
+    bad["universe"]["timeframe"] = "15m"
+    with pytest.raises(ValueError, match="must be >= universe.base_timeframe"):
+        validate_config(bad)

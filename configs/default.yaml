@@ -3,6 +3,9 @@
     - BTC/USDT
     - ETH/USDT
   timeframe: 1h
+  base_timeframe: 1h
+  operational_timeframe: 1h
+  htf_timeframes: ["4h"]
   start: "2023-01-01T00:00:00Z"
   end: null
   resolved_end_ts: null
@@ -59,6 +62,8 @@ search:
 
 data:
   backend: parquet
+  resample_source: direct
+  partial_last_bucket: false
   include_futures_extras: false
   futures_extras:
     symbols: ["BTC/USDT", "ETH/USDT"]

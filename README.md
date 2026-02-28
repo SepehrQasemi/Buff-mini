@@ -5,7 +5,7 @@ Auto Crypto Strategy Discovery Engine (MVP Phase 1).
 ## What This Phase Builds
 
 - Reproducible configuration system
-- Binance 1h OHLCV data ingestion via `ccxt`
+- Binance OHLCV ingestion via `ccxt` (including `1m` base support)
 - Parquet data storage layer
 - Feature pipeline (EMA, RSI, ATR, Donchian)
 - Minimal long/short backtest engine with ATR exits and costs
@@ -29,9 +29,16 @@ Auto Crypto Strategy Discovery Engine (MVP Phase 1).
 ```bash
 pip install -e .
 python scripts/update_data.py
+python scripts/update_data.py --timeframe 1m --symbols BTC/USDT,ETH/USDT
 python scripts/run_stage0.py
 python scripts/run_stage0.py --dry-run
 streamlit run src/buffmini/ui/app.py
+```
+
+1m convenience wrapper:
+
+```bash
+python scripts/update_data_1m.py --symbols BTC/USDT,ETH/USDT
 ```
 
 One-click local launch (no CLI after clone):
