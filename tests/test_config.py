@@ -147,11 +147,14 @@ def test_load_config_success() -> None:
     assert config["evaluation"]["stage10"]["sandbox"]["bootstrap_resamples"] == 500
     assert config["evaluation"]["stage10"]["sandbox"]["exit_mode"] == "fixed_atr"
     assert config["evaluation"]["stage11"]["enabled"] is False
+    assert config["evaluation"]["stage11"]["allow_noop"] is False
     assert config["evaluation"]["stage11"]["mtf"]["base_timeframe"] == "1h"
     assert isinstance(config["evaluation"]["stage11"]["mtf"]["layers"], list)
     assert config["evaluation"]["stage11"]["hooks"]["bias"]["enabled"] is True
     assert config["evaluation"]["stage11"]["hooks"]["confirm"]["enabled"] is False
-    assert config["evaluation"]["stage11"]["trade_count_guard"]["max_drop_pct"] == 15.0
+    assert config["evaluation"]["stage11"]["hooks"]["confirm"]["max_delay_bars"] == 3
+    assert config["evaluation"]["stage11"]["trade_count_guard"]["bias_max_drop_pct"] == 2.0
+    assert config["evaluation"]["stage11"]["trade_count_guard"]["confirm_max_drop_pct"] == 25.0
     assert config["ui"]["stage5"]["presets"]["quick"]["candidate_count"] == 1000
     assert config["ui"]["stage5"]["presets"]["full"]["candidate_count"] == 5000
     assert config["ui"]["stage5"]["window_months_options"] == [3, 6, 12, 36]

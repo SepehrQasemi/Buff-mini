@@ -287,6 +287,18 @@ Run Stage-11 on local real parquet data:
 python scripts/run_stage11.py --seed 42
 ```
 
+Stage-11.1 presets:
+
+- `configs/presets/stage11_bias.yaml`
+- `configs/presets/stage11_confirm.yaml`
+- `configs/presets/stage11_bias_confirm.yaml`
+
+Use with:
+
+```bash
+python scripts/run_stage11.py --config configs/presets/stage11_bias.yaml --seed 42
+```
+
 Outputs:
 
 - `runs/<run_id>_stage11/stage11_summary.json`

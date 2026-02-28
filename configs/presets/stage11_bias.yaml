@@ -1,0 +1,47 @@
+evaluation:
+  stage11:
+    enabled: true
+    allow_noop: false
+    mtf:
+      base_timeframe: "1h"
+      layers:
+        - name: "htf_4h"
+          timeframe: "4h"
+          role: "context"
+          features:
+            - ema_50
+            - ema_200
+            - ema_slope_50
+            - atr_14
+            - atr_pct
+            - atr_pct_rank_252
+            - bb_mid_20
+            - bb_upper_20_2
+            - bb_lower_20_2
+            - bb_bandwidth_20
+            - volume_z_120
+          tolerance_bars: 4
+          enabled: true
+        - name: "ltf_15m"
+          timeframe: "15m"
+          role: "confirm"
+          features:
+            - ema_50
+            - ema_slope_50
+            - atr_pct_rank_252
+            - volume_z_120
+          tolerance_bars: 2
+          enabled: false
+      hooks_enabled:
+        bias: true
+        confirm: false
+        exit: false
+    hooks:
+      bias:
+        enabled: true
+        multiplier_min: 0.85
+        multiplier_max: 1.15
+      confirm:
+        enabled: false
+      exit:
+        enabled: false

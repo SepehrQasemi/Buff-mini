@@ -325,6 +325,7 @@ evaluation:
       exit_mode: fixed_atr
   stage11:
     enabled: false
+    allow_noop: false
     mtf:
       base_timeframe: "1h"
       layers:
@@ -372,11 +373,13 @@ evaluation:
       confirm:
         enabled: false
         threshold: 0.55
+        max_delay_bars: 3
       exit:
         enabled: false
         tighten_trailing_scale: 0.9
     trade_count_guard:
-      max_drop_pct: 15.0
+      bias_max_drop_pct: 2.0
+      confirm_max_drop_pct: 25.0
       material_pf_improvement: 0.05
       material_exp_lcb_improvement: 0.5
 

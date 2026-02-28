@@ -251,6 +251,7 @@ STAGE10_DEFAULTS = {
 
 STAGE11_DEFAULTS = {
     "enabled": False,
+    "allow_noop": False,
     "mtf": {
         "base_timeframe": "1h",
         "layers": [
@@ -296,11 +297,12 @@ STAGE11_DEFAULTS = {
             "vol_cut": 0.95,
             "trend_slope_scale": 0.01,
         },
-        "confirm": {"enabled": False, "threshold": 0.55},
+        "confirm": {"enabled": False, "threshold": 0.55, "max_delay_bars": 3},
         "exit": {"enabled": False, "tighten_trailing_scale": 0.9},
     },
     "trade_count_guard": {
-        "max_drop_pct": 15.0,
+        "bias_max_drop_pct": 2.0,
+        "confirm_max_drop_pct": 25.0,
         "material_pf_improvement": 0.05,
         "material_exp_lcb_improvement": 0.5,
     },
@@ -934,6 +936,8 @@ def validate_config(config: ConfigDict) -> None:
     stage11 = _merge_defaults(STAGE11_DEFAULTS, evaluation.get("stage11", {}))
     if not isinstance(stage11["enabled"], bool):
         raise ValueError("evaluation.stage11.enabled must be bool")
+    if not isinstance(stage11.get("allow_noop", False), bool):
+        raise ValueError("evaluation.stage11.allow_noop must be bool")
     mtf_cfg = stage11["mtf"]
     if str(mtf_cfg["base_timeframe"]) != "1h":
         raise ValueError("evaluation.stage11.mtf.base_timeframe must be '1h'")
@@ -982,13 +986,17 @@ def validate_config(config: ConfigDict) -> None:
     confirm_cfg = hooks_cfg["confirm"]
     if not 0 <= float(confirm_cfg["threshold"]) <= 1:
         raise ValueError("evaluation.stage11.hooks.confirm.threshold must be between 0 and 1")
+    if int(confirm_cfg["max_delay_bars"]) < 0:
+        raise ValueError("evaluation.stage11.hooks.confirm.max_delay_bars must be >= 0")
     exit_cfg = hooks_cfg["exit"]
     if float(exit_cfg["tighten_trailing_scale"]) <= 0:
         raise ValueError("evaluation.stage11.hooks.exit.tighten_trailing_scale must be > 0")
 
     guard_cfg = stage11["trade_count_guard"]
-    if float(guard_cfg["max_drop_pct"]) < 0:
-        raise ValueError("evaluation.stage11.trade_count_guard.max_drop_pct must be >= 0")
+    if float(guard_cfg["bias_max_drop_pct"]) < 0:
+        raise ValueError("evaluation.stage11.trade_count_guard.bias_max_drop_pct must be >= 0")
+    if float(guard_cfg["confirm_max_drop_pct"]) < 0:
+        raise ValueError("evaluation.stage11.trade_count_guard.confirm_max_drop_pct must be >= 0")
     float(guard_cfg["material_pf_improvement"])
     float(guard_cfg["material_exp_lcb_improvement"])
     evaluation["stage11"] = stage11
