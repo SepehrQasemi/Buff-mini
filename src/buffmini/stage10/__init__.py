@@ -17,6 +17,16 @@ from buffmini.stage10.signals import (
     signal_default_params,
     signal_family_type,
 )
+from buffmini.stage10.exits import (
+    EXIT_MODE_ALIASES,
+    apply_breakeven_after_1r,
+    decide_exit_reason,
+    normalize_exit_mode,
+    partial_take_profit,
+    should_regime_flip_exit,
+    trailing_stop_path,
+    update_trailing_stop,
+)
 
 __all__ = [
     "REGIME_FEATURE_COLUMNS",
@@ -32,4 +42,12 @@ __all__ = [
     "generate_signal_family",
     "signal_default_params",
     "signal_family_type",
+    "EXIT_MODE_ALIASES",
+    "apply_breakeven_after_1r",
+    "decide_exit_reason",
+    "normalize_exit_mode",
+    "partial_take_profit",
+    "should_regime_flip_exit",
+    "trailing_stop_path",
+    "update_trailing_stop",
 ]
