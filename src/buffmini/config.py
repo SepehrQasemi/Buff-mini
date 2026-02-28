@@ -34,6 +34,23 @@ STAGE06_DEFAULTS = {
 
 DATA_DEFAULTS = {
     "backend": "parquet",
+    "include_futures_extras": False,
+    "futures_extras": {
+        "symbols": ["BTC/USDT", "ETH/USDT"],
+        "timeframe": "1h",
+        "max_fill_gap_bars": 8,
+        "funding": {
+            "z_windows": [30, 90],
+            "trend_window": 24,
+            "abs_pctl_window": 4320,
+            "extreme_pctl": 0.95,
+        },
+        "open_interest": {
+            "chg_windows": [1, 24],
+            "z_window": 30,
+            "oi_to_volume_window": 24,
+        },
+    },
 }
 
 COST_MODEL_DEFAULTS = {
@@ -407,6 +424,44 @@ def validate_config(config: ConfigDict) -> None:
     data = _merge_defaults(DATA_DEFAULTS, config.get("data", {}))
     if str(data["backend"]) not in {"parquet", "duckdb"}:
         raise ValueError("data.backend must be 'parquet' or 'duckdb'")
+    if not isinstance(data["include_futures_extras"], bool):
+        raise ValueError("data.include_futures_extras must be bool")
+    futures_extras = data["futures_extras"]
+    symbols = futures_extras["symbols"]
+    if not isinstance(symbols, list) or not symbols:
+        raise ValueError("data.futures_extras.symbols must be a non-empty list")
+    allowed_symbols = {"BTC/USDT", "ETH/USDT"}
+    parsed_symbols = [str(symbol) for symbol in symbols]
+    if any(symbol not in allowed_symbols for symbol in parsed_symbols):
+        raise ValueError("data.futures_extras.symbols must contain only BTC/USDT and ETH/USDT")
+    if str(futures_extras["timeframe"]) != "1h":
+        raise ValueError("data.futures_extras.timeframe must be '1h'")
+    if int(futures_extras["max_fill_gap_bars"]) < 0:
+        raise ValueError("data.futures_extras.max_fill_gap_bars must be >= 0")
+
+    funding_cfg = futures_extras["funding"]
+    z_windows = funding_cfg["z_windows"]
+    if not isinstance(z_windows, list) or not z_windows:
+        raise ValueError("data.futures_extras.funding.z_windows must be a non-empty list")
+    if any(int(value) < 2 for value in z_windows):
+        raise ValueError("data.futures_extras.funding.z_windows values must be >= 2")
+    if int(funding_cfg["trend_window"]) < 1:
+        raise ValueError("data.futures_extras.funding.trend_window must be >= 1")
+    if int(funding_cfg["abs_pctl_window"]) < 24:
+        raise ValueError("data.futures_extras.funding.abs_pctl_window must be >= 24")
+    if not 0 < float(funding_cfg["extreme_pctl"]) <= 1:
+        raise ValueError("data.futures_extras.funding.extreme_pctl must be in (0,1]")
+
+    oi_cfg = futures_extras["open_interest"]
+    chg_windows = oi_cfg["chg_windows"]
+    if not isinstance(chg_windows, list) or not chg_windows:
+        raise ValueError("data.futures_extras.open_interest.chg_windows must be a non-empty list")
+    if any(int(value) < 1 for value in chg_windows):
+        raise ValueError("data.futures_extras.open_interest.chg_windows values must be >= 1")
+    if int(oi_cfg["z_window"]) < 2:
+        raise ValueError("data.futures_extras.open_interest.z_window must be >= 2")
+    if int(oi_cfg["oi_to_volume_window"]) < 1:
+        raise ValueError("data.futures_extras.open_interest.oi_to_volume_window must be >= 1")
     config["data"] = data
 
     portfolio = _merge_defaults(PORTFOLIO_DEFAULTS, config.get("portfolio", {}))

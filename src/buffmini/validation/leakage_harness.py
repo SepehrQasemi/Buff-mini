@@ -181,14 +181,38 @@ def run_registered_features_harness(
     shock_index: int = 280,
     warmup_max: int = 220,
     tol: float = 1e-12,
+    include_futures_extras: bool = False,
 ) -> dict[str, object]:
     """Run leakage harness against all registered project features."""
 
     frame = synthetic_ohlcv(rows=int(rows), seed=int(seed))
+    feature_columns = registered_feature_columns(include_futures_extras=bool(include_futures_extras))
+    if include_futures_extras:
+        cfg = {
+            "data": {
+                "include_futures_extras": True,
+                "futures_extras": {
+                    "timeframe": "1h",
+                    "max_fill_gap_bars": 8,
+                    "funding": {"z_windows": [30, 90], "trend_window": 24, "abs_pctl_window": 180, "extreme_pctl": 0.95},
+                    "open_interest": {"chg_windows": [1, 24], "z_window": 30, "oi_to_volume_window": 24},
+                },
+            }
+        }
+        feature_fn = lambda df: calculate_features(  # noqa: E731
+            df,
+            config=cfg,
+            symbol="BTC/USDT",
+            timeframe="1h",
+            _synthetic_extras_for_tests=True,
+        )
+    else:
+        feature_fn = calculate_features
+
     return run_feature_harness(
         frame=frame,
-        feature_fn=calculate_features,
-        feature_columns=registered_feature_columns(),
+        feature_fn=feature_fn,
+        feature_columns=feature_columns,
         shock_index=int(shock_index),
         warmup_max=int(warmup_max),
         tol=float(tol),

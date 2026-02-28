@@ -44,6 +44,17 @@ def test_load_config_success() -> None:
     assert thresholds["NearMiss"]["min_exp_lcb_holdout"] == -5
     assert config["evaluation"]["stage1"]["promotion_holdout_months"] == [3, 6, 9, 12]
     assert config["data"]["backend"] == "parquet"
+    assert config["data"]["include_futures_extras"] is False
+    assert config["data"]["futures_extras"]["symbols"] == ["BTC/USDT", "ETH/USDT"]
+    assert config["data"]["futures_extras"]["timeframe"] == "1h"
+    assert config["data"]["futures_extras"]["max_fill_gap_bars"] == 8
+    assert config["data"]["futures_extras"]["funding"]["z_windows"] == [30, 90]
+    assert config["data"]["futures_extras"]["funding"]["trend_window"] == 24
+    assert config["data"]["futures_extras"]["funding"]["abs_pctl_window"] == 4320
+    assert config["data"]["futures_extras"]["funding"]["extreme_pctl"] == 0.95
+    assert config["data"]["futures_extras"]["open_interest"]["chg_windows"] == [1, 24]
+    assert config["data"]["futures_extras"]["open_interest"]["z_window"] == 30
+    assert config["data"]["futures_extras"]["open_interest"]["oi_to_volume_window"] == 24
     assert config["cost_model"]["mode"] == "simple"
     assert config["cost_model"]["round_trip_cost_pct"] == 0.1
     assert config["cost_model"]["v2"]["slippage_bps_base"] == 0.5

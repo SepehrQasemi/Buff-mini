@@ -1,14 +1,24 @@
-﻿"""Feature calculation for Stage-0, Stage-0.5, Stage-0.6, and Stage-1."""
+"""Feature calculation for Stage-0..Stage-9."""
 
 from __future__ import annotations
+
+from pathlib import Path
+from typing import Any
 
 import numpy as np
 import pandas as pd
 
+from buffmini.constants import DERIVED_DATA_DIR
+from buffmini.data.derived_store import load_derived_parquet
+from buffmini.data.features_futures import (
+    build_all_futures_features,
+    registered_futures_feature_columns,
+    synthetic_futures_extras,
+)
 from buffmini.regime.classifier import attach_regime_columns
 
 BASE_COLUMNS: tuple[str, ...] = ("timestamp", "open", "high", "low", "close", "volume")
-FEATURE_COLUMNS: tuple[str, ...] = (
+CORE_FEATURE_COLUMNS: tuple[str, ...] = (
     "ema_20",
     "ema_50",
     "ema_100",
@@ -32,13 +42,28 @@ FEATURE_COLUMNS: tuple[str, ...] = (
 )
 
 
-def registered_feature_columns() -> list[str]:
+def registered_feature_columns(include_futures_extras: bool = False) -> list[str]:
     """Return canonical computed feature column names."""
 
-    return list(FEATURE_COLUMNS)
+    cols = list(CORE_FEATURE_COLUMNS)
+    if bool(include_futures_extras):
+        cols.extend(registered_futures_feature_columns())
+    return cols
 
-def calculate_features(frame: pd.DataFrame) -> pd.DataFrame:
-    """Calculate feature set without future leakage."""
+
+def calculate_features(
+    frame: pd.DataFrame,
+    config: dict[str, Any] | None = None,
+    symbol: str | None = None,
+    timeframe: str = "1h",
+    derived_data_dir: str | Path = DERIVED_DATA_DIR,
+    _synthetic_extras_for_tests: bool = False,
+) -> pd.DataFrame:
+    """Calculate feature set without future leakage.
+
+    When ``config.data.include_futures_extras`` is true, funding/open-interest
+    features are merged from ``data/derived`` using timestamp alignment.
+    """
 
     required = set(BASE_COLUMNS)
     missing = required.difference(frame.columns)
@@ -95,4 +120,48 @@ def calculate_features(frame: pd.DataFrame) -> pd.DataFrame:
 
     data = attach_regime_columns(data)
 
+    if _should_include_futures_extras(config):
+        extras_cfg = dict(config.get("data", {}).get("futures_extras", {}))
+        resolved_symbol = symbol or str(data.attrs.get("symbol") or "")
+        if not resolved_symbol:
+            raise ValueError("symbol is required when data.include_futures_extras=true")
+
+        if _synthetic_extras_for_tests:
+            funding_df, oi_df = synthetic_futures_extras(data)
+        else:
+            funding_df = load_derived_parquet(
+                kind="funding",
+                symbol=resolved_symbol,
+                timeframe=timeframe,
+                data_dir=derived_data_dir,
+            )
+            oi_df = load_derived_parquet(
+                kind="open_interest",
+                symbol=resolved_symbol,
+                timeframe=timeframe,
+                data_dir=derived_data_dir,
+            )
+
+        extras = build_all_futures_features(
+            df_ohlcv=data,
+            df_funding=funding_df,
+            df_oi=oi_df,
+            config={
+                "timeframe": str(extras_cfg.get("timeframe", timeframe)),
+                "max_fill_gap_bars": int(extras_cfg.get("max_fill_gap_bars", 8)),
+                "funding": dict(extras_cfg.get("funding", {})),
+                "open_interest": dict(extras_cfg.get("open_interest", {})),
+            },
+        )
+        data = data.merge(extras, on="timestamp", how="left")
+
     return data
+
+
+def _should_include_futures_extras(config: dict[str, Any] | None) -> bool:
+    if not isinstance(config, dict):
+        return False
+    data_cfg = config.get("data", {})
+    if not isinstance(data_cfg, dict):
+        return False
+    return bool(data_cfg.get("include_futures_extras", False))

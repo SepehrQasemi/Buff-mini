@@ -179,7 +179,12 @@ def run_stage0(
             logger.warning("Skipping %s after window slicing due to empty data.", symbol)
             continue
 
-        features = calculate_features(sliced)
+        features = calculate_features(
+            sliced,
+            config=config,
+            symbol=symbol,
+            timeframe=config["universe"]["timeframe"],
+        )
 
         for strategy in strategies:
             strategy_df = features.copy()

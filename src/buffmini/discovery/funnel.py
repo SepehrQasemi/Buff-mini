@@ -205,8 +205,22 @@ def run_stage1_optimization(
         end=get_universe_end(config),
         seed=resolved_seed,
     )
-    feature_data = {symbol: calculate_features(frame) for symbol, frame in raw_data.items()}
-    data_hash = _compute_data_hash(feature_data)
+    feature_data = {
+        symbol: calculate_features(
+            frame,
+            config=config,
+            symbol=symbol,
+            timeframe=config["universe"]["timeframe"],
+        )
+        for symbol, frame in raw_data.items()
+    }
+    base_data_hash = _compute_data_hash(feature_data)
+    derived_hash = _compute_derived_hash(feature_data)
+    data_hash = (
+        stable_hash({"base_data_hash": base_data_hash, "derived_hash": derived_hash}, length=16)
+        if derived_hash
+        else base_data_hash
+    )
 
     config_hash = compute_config_hash(config)
     resolved_run_id = run_id or f"{utc_now_compact()}_{config_hash}_stage1"
@@ -246,6 +260,7 @@ def run_stage1_optimization(
         "weights": weights,
         "search_space": search_space,
         "data_hash": data_hash,
+        "derived_hash": derived_hash,
         "dry_run": dry_run,
         "config_path": str(config_path),
     }
@@ -707,6 +722,7 @@ def run_stage1_optimization(
         "seed": resolved_seed,
         "config_hash": config_hash,
         "data_hash": data_hash,
+        "derived_hash": derived_hash,
         "candidate_count_stage_a": len(stage_a_results),
         "candidate_count_stage_b": len(stage_b_results),
         "candidate_count_stage_c": len(stage_c_results),
@@ -1503,6 +1519,45 @@ def _compute_data_hash(data_by_symbol: dict[str, pd.DataFrame]) -> str:
             "close_mean": float(frame["close"].astype(float).mean()) if not frame.empty else None,
             "close_std": float(frame["close"].astype(float).std(ddof=0)) if not frame.empty else None,
         }
+    return stable_hash(payload, length=16)
+
+
+def _compute_derived_hash(data_by_symbol: dict[str, pd.DataFrame]) -> str:
+    payload: dict[str, Any] = {}
+    feature_cols = [
+        "funding_rate",
+        "funding_z_30",
+        "funding_z_90",
+        "funding_trend_24",
+        "funding_abs_pctl_180d",
+        "oi",
+        "oi_chg_1",
+        "oi_chg_24",
+        "oi_z_30",
+        "oi_to_volume",
+        "oi_accel",
+        "crowd_long_risk",
+        "crowd_short_risk",
+        "leverage_building",
+    ]
+    any_present = False
+    for symbol, frame in sorted(data_by_symbol.items(), key=lambda x: x[0]):
+        present = [col for col in feature_cols if col in frame.columns]
+        if not present:
+            continue
+        any_present = True
+        symbol_payload: dict[str, Any] = {}
+        for col in present:
+            series = pd.to_numeric(frame[col], errors="coerce")
+            finite = series.replace([np.inf, -np.inf], np.nan).dropna()
+            symbol_payload[col] = {
+                "count": int(finite.shape[0]),
+                "mean": float(finite.mean()) if not finite.empty else None,
+                "std": float(finite.std(ddof=0)) if not finite.empty else None,
+            }
+        payload[symbol] = symbol_payload
+    if not any_present:
+        return ""
     return stable_hash(payload, length=16)
 
 

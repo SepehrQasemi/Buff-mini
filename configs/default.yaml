@@ -59,6 +59,20 @@ search:
 
 data:
   backend: parquet
+  include_futures_extras: false
+  futures_extras:
+    symbols: ["BTC/USDT", "ETH/USDT"]
+    timeframe: "1h"
+    max_fill_gap_bars: 8
+    funding:
+      z_windows: [30, 90]
+      trend_window: 24
+      abs_pctl_window: 4320
+      extreme_pctl: 0.95
+    open_interest:
+      chg_windows: [1, 24]
+      z_window: 30
+      oi_to_volume_window: 24
 
 portfolio:
   walkforward:
