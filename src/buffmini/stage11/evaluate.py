@@ -8,8 +8,9 @@ from typing import Any
 
 import numpy as np
 import pandas as pd
+import yaml
 
-from buffmini.config import compute_config_hash
+from buffmini.config import compute_config_hash, validate_config
 from buffmini.constants import DERIVED_DATA_DIR, RAW_DATA_DIR, RUNS_DIR
 from buffmini.mtf import (
     FEATURE_PACK_VERSION,
@@ -20,6 +21,7 @@ from buffmini.mtf import (
     compute_feature_pack,
     join_mtf_layer,
     resample_ohlcv,
+    timeframe_to_timedelta,
     validate_resampled_schema,
 )
 from buffmini.stage10.evaluate import _build_features, run_stage10
@@ -32,6 +34,7 @@ from buffmini.validation.leakage_harness import run_registered_features_harness
 
 STAGE11_DEFAULTS: dict[str, Any] = {
     "enabled": False,
+    "allow_noop": False,
     "mtf": {
         "base_timeframe": "1h",
         "layers": [
@@ -74,7 +77,8 @@ STAGE11_DEFAULTS: dict[str, Any] = {
     },
     "hooks": json.loads(json.dumps(DEFAULT_POLICY_CFG)),
     "trade_count_guard": {
-        "max_drop_pct": 15.0,
+        "bias_max_drop_pct": 2.0,
+        "confirm_max_drop_pct": 25.0,
         "material_pf_improvement": 0.05,
         "material_exp_lcb_improvement": 0.5,
     },
@@ -94,11 +98,14 @@ def run_stage11(
     data_dir: Path = RAW_DATA_DIR,
     derived_dir: Path = DERIVED_DATA_DIR,
     write_docs: bool = True,
+    allow_noop: bool | None = None,
+    window_months: int | None = None,
 ) -> dict[str, Any]:
     cfg = _normalize_stage11_config(config=config)
     stage11_cfg = cfg["evaluation"]["stage11"]
     mtf_spec = build_mtf_spec(stage11_cfg)
     enabled = bool(stage11_cfg.get("enabled", False))
+    allow_noop_effective = bool(stage11_cfg.get("allow_noop", False) if allow_noop is None else allow_noop)
     resolved_symbols = list(symbols or cfg.get("universe", {}).get("symbols", ["BTC/USDT", "ETH/USDT"]))
     resolved_timeframe = str(timeframe or mtf_spec.base_timeframe)
     if resolved_timeframe != "1h":
@@ -115,6 +122,8 @@ def run_stage11(
     )
     if not base_features:
         raise ValueError("No base features available for Stage-11")
+    if window_months is not None:
+        base_features = _slice_last_months(base_features, months=int(window_months))
 
     cache = MtfFeatureCache()
     if enabled:
@@ -185,15 +194,34 @@ def run_stage11(
         features_by_symbol_override=mtf_features,
     )
 
+    sizing_stats = _extract_sizing_stats(hooks=full_hooks if bool(full_hooks_cfg["bias"]["enabled"]) else bias_hooks)
+    confirm_stats = _extract_confirm_stats(hooks=full_hooks)
+    entry_delta = _entry_delta_snapshot(
+        cfg=cfg,
+        baseline_features=base_features,
+        mtf_features=mtf_features,
+        baseline_hooks=None,
+        candidate_hooks=full_hooks,
+    )
+
     comparison_rows = _build_comparison_rows(
         baseline=baseline,
         bias_only=bias_only,
         with_confirm=with_confirm,
     )
+    comparison_delta = _comparison_delta(
+        baseline=baseline.get("baseline_vs_stage10", {}).get("stage10", {}),
+        candidate=with_confirm.get("baseline_vs_stage10", {}).get("stage10", {}),
+        walkforward=walkforward_v2_enabled,
+        baseline_walk=baseline.get("walkforward_v2", {}),
+        candidate_walk=with_confirm.get("walkforward_v2", {}),
+    )
     guard = _trade_count_guard(
         baseline=baseline,
         candidate=with_confirm,
         cfg=stage11_cfg.get("trade_count_guard", {}),
+        bias_enabled=bool(full_hooks_cfg["bias"]["enabled"]),
+        confirm_enabled=bool(full_hooks_cfg["confirm"]["enabled"]),
     )
     walkforward = {
         "baseline_classification": str(baseline.get("walkforward_v2", {}).get("stage10_classification", "N/A")),
@@ -235,25 +263,38 @@ def run_stage11(
     run_payload = {
         "seed": int(seed),
         "dry_run": bool(dry_run),
+        "window_months": int(window_months) if window_months else None,
         "config_hash": config_hash,
         "data_hash": data_hash,
         "stage11_enabled": bool(enabled),
         "signature": signature,
     }
-    run_id = f"{utc_now_compact()}_{stable_hash(run_payload, length=12)}_stage11"
+    run_id = f"{utc_now_compact()}_{stable_hash(run_payload, length=12)}_stage11_1"
     run_dir = runs_root / run_id
     run_dir.mkdir(parents=True, exist_ok=True)
 
-    layer_stats_path = run_dir / "mtf_layer_stats.json"
+    layer_stats_path = run_dir / "mtf_join_stats.json"
     layer_stats_path.write_text(json.dumps(layer_stats, indent=2, allow_nan=False), encoding="utf-8")
     pd.DataFrame(comparison_rows).to_csv(run_dir / "comparison_vs_stage10_7.csv", index=False)
+    (run_dir / "comparison_vs_baseline.json").write_text(json.dumps(comparison_delta, indent=2, allow_nan=False), encoding="utf-8")
+    (run_dir / "sizing_stats.json").write_text(json.dumps(sizing_stats, indent=2, allow_nan=False), encoding="utf-8")
+    (run_dir / "confirm_stats.json").write_text(json.dumps(confirm_stats, indent=2, allow_nan=False), encoding="utf-8")
     _write_layer_regime_distribution_csv(
         out_path=run_dir / "regime_distribution.csv",
         features_by_symbol=mtf_features,
     )
 
+    noop_bug, noop_reasons = _detect_noop_bug(
+        enabled=enabled,
+        bias_enabled=bool(full_hooks_cfg["bias"]["enabled"]),
+        confirm_enabled=bool(full_hooks_cfg["confirm"]["enabled"]),
+        sizing_stats=sizing_stats,
+        confirm_stats=confirm_stats,
+        entry_delta=entry_delta,
+    )
+
     summary = {
-        "stage": "11",
+        "stage": "11.1",
         "run_id": run_id,
         "mtf_spec": _spec_to_dict(mtf_spec),
         "causality": causality,
@@ -268,17 +309,26 @@ def run_stage11(
             "stage11_bias_only": bias_only.get("baseline_vs_stage10", {}).get("stage10", {}),
             "stage11_with_confirm": with_confirm.get("baseline_vs_stage10", {}).get("stage10", {}),
             "comparison_table_path": str(run_dir / "comparison_vs_stage10_7.csv"),
+            "comparison_vs_baseline_path": str(run_dir / "comparison_vs_baseline.json"),
         },
+        "sizing_stats": sizing_stats,
+        "confirm_stats": confirm_stats,
+        "entry_delta": entry_delta,
         "trade_count_guard": guard,
         "walkforward": walkforward,
         "seed": int(seed),
         "config_hash": config_hash,
         "data_hash": data_hash,
         "determinism_signature": signature,
-        "final_verdict": _final_verdict(guard=guard, baseline=baseline, candidate=with_confirm),
+        "noop_bug_detected": bool(noop_bug),
+        "noop_bug_reasons": list(noop_reasons),
+        "final_verdict": _final_verdict(guard=guard, baseline=baseline, candidate=with_confirm, noop_bug=noop_bug),
     }
     validate_stage11_summary_schema(summary)
     (run_dir / "stage11_summary.json").write_text(json.dumps(summary, indent=2, allow_nan=False), encoding="utf-8")
+
+    if bool(noop_bug) and not bool(allow_noop_effective):
+        raise RuntimeError(f"NO-OP BUG: {'; '.join(noop_reasons)}")
 
     if bool(write_docs):
         docs_dir.mkdir(parents=True, exist_ok=True)
@@ -334,6 +384,160 @@ def run_disabled_equivalence_snapshot(
     return snapshots
 
 
+def _slice_last_months(features_by_symbol: dict[str, pd.DataFrame], months: int) -> dict[str, pd.DataFrame]:
+    if int(months) <= 0:
+        return {symbol: frame.copy() for symbol, frame in features_by_symbol.items()}
+    out: dict[str, pd.DataFrame] = {}
+    delta = pd.Timedelta(days=int(months) * 30)
+    for symbol, frame in features_by_symbol.items():
+        work = frame.copy().sort_values("timestamp").reset_index(drop=True)
+        ts = pd.to_datetime(work["timestamp"], utc=True, errors="coerce")
+        if ts.dropna().empty:
+            out[symbol] = work
+            continue
+        end_ts = ts.dropna().iloc[-1]
+        start_ts = end_ts - delta
+        out[symbol] = work.loc[ts >= start_ts].reset_index(drop=True)
+    return out
+
+
+def _extract_sizing_stats(hooks: dict[str, Any]) -> dict[str, Any]:
+    bias_hook = hooks.get("bias")
+    if hasattr(bias_hook, "get_stats") and callable(getattr(bias_hook, "get_stats")):
+        payload = dict(bias_hook.get_stats())
+    else:
+        payload = {
+            "values": [],
+            "mean_multiplier": 1.0,
+            "p05": 1.0,
+            "p50": 1.0,
+            "p95": 1.0,
+            "pct_not_1_0": 0.0,
+        }
+    return {
+        "mean_multiplier": float(payload.get("mean_multiplier", 1.0)),
+        "p05": float(payload.get("p05", 1.0)),
+        "p50": float(payload.get("p50", 1.0)),
+        "p95": float(payload.get("p95", 1.0)),
+        "pct_not_1_0": float(payload.get("pct_not_1_0", 0.0)),
+    }
+
+
+def _extract_confirm_stats(hooks: dict[str, Any]) -> dict[str, Any]:
+    confirm_hook = hooks.get("confirm")
+    if hasattr(confirm_hook, "get_stats") and callable(getattr(confirm_hook, "get_stats")):
+        payload = dict(confirm_hook.get_stats())
+    else:
+        payload = {
+            "signals_seen": 0,
+            "confirmed": 0,
+            "skipped": 0,
+            "confirm_rate": 0.0,
+            "median_delay_bars": 0.0,
+            "entry_delay_bars": [],
+        }
+    signals_seen = int(payload.get("signals_seen", 0))
+    confirmed = int(payload.get("confirmed", 0))
+    skipped = int(payload.get("skipped", 0))
+    # Normalize any accounting drift deterministically.
+    if signals_seen > 0 and (confirmed + skipped) != signals_seen:
+        skipped = max(0, signals_seen - confirmed)
+    confirm_rate = float(confirmed / signals_seen) if signals_seen > 0 else 0.0
+    return {
+        "signals_seen": signals_seen,
+        "confirmed": confirmed,
+        "skipped": skipped,
+        "confirm_rate": confirm_rate,
+        "median_delay_bars": float(payload.get("median_delay_bars", 0.0)),
+    }
+
+
+def _entry_delta_snapshot(
+    cfg: dict[str, Any],
+    baseline_features: dict[str, pd.DataFrame],
+    mtf_features: dict[str, pd.DataFrame],
+    baseline_hooks: dict[str, Any] | None,
+    candidate_hooks: dict[str, Any] | None,
+) -> dict[str, Any]:
+    from buffmini.stage10.evaluate import _evaluate_stage10
+
+    left = _evaluate_stage10(baseline_features, cfg, hooks=baseline_hooks, return_paths=True)
+    right = _evaluate_stage10(mtf_features, cfg, hooks=candidate_hooks, return_paths=True)
+
+    total_delta = 0
+    per_symbol: dict[str, Any] = {}
+    for symbol in sorted(set(left.get("best_paths", {})) | set(right.get("best_paths", {}))):
+        left_trades = left.get("best_paths", {}).get(symbol, {}).get("trades", pd.DataFrame())
+        right_trades = right.get("best_paths", {}).get(symbol, {}).get("trades", pd.DataFrame())
+        left_times = _timestamp_list(left_trades, "entry_time")
+        right_times = _timestamp_list(right_trades, "entry_time")
+        delta = int(sum(1 for a, b in zip(left_times, right_times, strict=False) if a != b) + abs(len(left_times) - len(right_times)))
+        total_delta += delta
+        per_symbol[symbol] = {
+            "baseline_entries": left_times,
+            "candidate_entries": right_times,
+            "delta_count": delta,
+            "identical": bool(delta == 0),
+        }
+    return {
+        "total_delta_count": int(total_delta),
+        "identical": bool(total_delta == 0),
+        "per_symbol": per_symbol,
+    }
+
+
+def _comparison_delta(
+    baseline: dict[str, Any],
+    candidate: dict[str, Any],
+    walkforward: bool,
+    baseline_walk: dict[str, Any],
+    candidate_walk: dict[str, Any],
+) -> dict[str, Any]:
+    delta = {
+        "trade_count_delta": float(candidate.get("trade_count", 0.0) - baseline.get("trade_count", 0.0)),
+        "trade_count_delta_pct": (
+            float((candidate.get("trade_count", 0.0) - baseline.get("trade_count", 0.0)) / baseline.get("trade_count", 1.0) * 100.0)
+            if float(baseline.get("trade_count", 0.0)) > 0
+            else 0.0
+        ),
+        "pf_delta": float(candidate.get("profit_factor", 0.0) - baseline.get("profit_factor", 0.0)),
+        "expectancy_delta": float(candidate.get("expectancy", 0.0) - baseline.get("expectancy", 0.0)),
+        "maxdd_delta": float(candidate.get("max_drawdown", 0.0) - baseline.get("max_drawdown", 0.0)),
+        "exp_lcb_delta": float(candidate.get("exp_lcb", 0.0) - baseline.get("exp_lcb", 0.0)),
+    }
+    if walkforward:
+        delta["usable_windows_delta"] = int(
+            (candidate_walk.get("stage10", {}) or {}).get("usable_windows", 0)
+            - (baseline_walk.get("stage10", {}) or {}).get("usable_windows", 0)
+        )
+        delta["classification_change"] = f"{baseline_walk.get('stage10_classification', 'N/A')}->{candidate_walk.get('stage10_classification', 'N/A')}"
+    else:
+        delta["usable_windows_delta"] = 0
+        delta["classification_change"] = "N/A->N/A"
+    return delta
+
+
+def _detect_noop_bug(
+    enabled: bool,
+    bias_enabled: bool,
+    confirm_enabled: bool,
+    sizing_stats: dict[str, Any],
+    confirm_stats: dict[str, Any],
+    entry_delta: dict[str, Any],
+) -> tuple[bool, list[str]]:
+    reasons: list[str] = []
+    if not bool(enabled):
+        return False, reasons
+    if bool(bias_enabled) and float(sizing_stats.get("pct_not_1_0", 0.0)) == 0.0:
+        reasons.append("bias_hook_enabled_but_all_multipliers_equal_1")
+    confirm_rate = float(confirm_stats.get("confirm_rate", 0.0))
+    signals_seen = int(confirm_stats.get("signals_seen", 0))
+    entries_identical = bool(entry_delta.get("identical", True))
+    if bool(confirm_enabled) and signals_seen > 0 and confirm_rate in {0.0, 1.0} and entries_identical:
+        reasons.append("confirm_hook_enabled_but_entries_identical_with_extreme_confirm_rate")
+    return bool(reasons), reasons
+
+
 def validate_stage11_summary_schema(summary: dict[str, Any]) -> None:
     required = {
         "stage",
@@ -343,6 +547,9 @@ def validate_stage11_summary_schema(summary: dict[str, Any]) -> None:
         "leakage",
         "cache",
         "comparisons",
+        "sizing_stats",
+        "confirm_stats",
+        "entry_delta",
         "trade_count_guard",
         "walkforward",
         "final_verdict",
@@ -350,14 +557,14 @@ def validate_stage11_summary_schema(summary: dict[str, Any]) -> None:
     missing = required.difference(summary.keys())
     if missing:
         raise ValueError(f"Missing Stage-11 summary keys: {sorted(missing)}")
-    if str(summary["stage"]) != "11":
-        raise ValueError("stage must be '11'")
+    if str(summary["stage"]) != "11.1":
+        raise ValueError("stage must be '11.1'")
     if str(summary["causality"].get("status")) not in {"PASS", "FAIL"}:
         raise ValueError("causality.status must be PASS/FAIL")
     if str(summary["leakage"].get("status")) not in {"PASS", "FAIL"}:
         raise ValueError("leakage.status must be PASS/FAIL")
-    if str(summary["final_verdict"]) not in {"IMPROVEMENT", "NEUTRAL", "REGRESSION"}:
-        raise ValueError("final_verdict must be IMPROVEMENT/NEUTRAL/REGRESSION")
+    if str(summary["final_verdict"]) not in {"IMPROVEMENT", "NEUTRAL", "REGRESSION", "NO-OP BUG"}:
+        raise ValueError("final_verdict must be IMPROVEMENT/NEUTRAL/REGRESSION/NO-OP BUG")
 
 
 def _build_mtf_features(
@@ -408,6 +615,10 @@ def _build_mtf_features(
                 "role": layer.role,
                 "cache_key": cache_key,
                 "cache_hit": bool(cache_hit),
+                "pct_matched": float(100.0 - float(align_stats.get("unmatched_pct", 100.0))),
+                "pct_unmatched": float(align_stats.get("unmatched_pct", 100.0)),
+                "max_lookback_seconds": float(align_stats.get("max_lookback_bars", 0.0))
+                * float(timeframe_to_timedelta(layer.timeframe).total_seconds()),
             }
             row.update(align_stats)
             stats.append(row)
@@ -470,12 +681,23 @@ def _build_comparison_rows(
     return rows
 
 
-def _trade_count_guard(baseline: dict[str, Any], candidate: dict[str, Any], cfg: dict[str, Any]) -> dict[str, Any]:
+def _trade_count_guard(
+    baseline: dict[str, Any],
+    candidate: dict[str, Any],
+    cfg: dict[str, Any],
+    bias_enabled: bool,
+    confirm_enabled: bool,
+) -> dict[str, Any]:
     baseline_metrics = dict(baseline.get("baseline_vs_stage10", {}).get("stage10", {}))
     candidate_metrics = dict(candidate.get("baseline_vs_stage10", {}).get("stage10", {}))
     base_trades = float(baseline_metrics.get("trade_count", 0.0))
     cand_trades = float(candidate_metrics.get("trade_count", 0.0))
-    max_drop_pct = float(cfg.get("max_drop_pct", 15.0))
+    if bool(confirm_enabled):
+        max_drop_pct = float(cfg.get("confirm_max_drop_pct", 25.0))
+    elif bool(bias_enabled):
+        max_drop_pct = float(cfg.get("bias_max_drop_pct", 2.0))
+    else:
+        max_drop_pct = float(cfg.get("confirm_max_drop_pct", 25.0))
     pf_threshold = float(cfg.get("material_pf_improvement", 0.05))
     exp_lcb_threshold = float(cfg.get("material_exp_lcb_improvement", 0.5))
 
@@ -494,6 +716,7 @@ def _trade_count_guard(baseline: dict[str, Any], candidate: dict[str, Any], cfg:
         "pf_delta": pf_delta,
         "exp_lcb_delta": exp_lcb_delta,
         "material_improvement": material_improvement,
+        "mode": "confirm" if bool(confirm_enabled) else ("bias" if bool(bias_enabled) else "baseline"),
     }
 
 
@@ -510,7 +733,9 @@ def _causality_status(layer_stats: list[dict[str, Any]]) -> dict[str, Any]:
     }
 
 
-def _final_verdict(guard: dict[str, Any], baseline: dict[str, Any], candidate: dict[str, Any]) -> str:
+def _final_verdict(guard: dict[str, Any], baseline: dict[str, Any], candidate: dict[str, Any], noop_bug: bool) -> str:
+    if bool(noop_bug):
+        return "NO-OP BUG"
     if not bool(guard.get("pass", False)):
         return "REGRESSION"
     base = dict(baseline.get("baseline_vs_stage10", {}).get("stage10", {}))
@@ -545,6 +770,13 @@ def _normalize_stage11_config(config: dict[str, Any]) -> dict[str, Any]:
     evaluation["stage11"] = stage11
     cfg["evaluation"] = evaluation
     return cfg
+
+
+def apply_stage11_preset(config: dict[str, Any], preset_path: Path) -> dict[str, Any]:
+    payload = yaml.safe_load(Path(preset_path).read_text(encoding="utf-8")) or {}
+    merged = _merge_defaults(json.loads(json.dumps(config)), payload if isinstance(payload, dict) else {})
+    validate_config(merged)
+    return merged
 
 
 def _policy_cfg_from_stage11(stage11_cfg: dict[str, Any], enable_confirm: bool, enable_exit: bool) -> dict[str, Any]:
@@ -652,6 +884,14 @@ def _write_stage11_report(summary: dict[str, Any], out_md: Path, out_json: Path)
             f"{float(row.get('expectancy', 0.0)):.6f} | {float(row.get('max_drawdown', 0.0)):.6f} | "
             f"{float(row.get('exp_lcb', 0.0)):.6f} |"
         )
+    lines.append("")
+    lines.append("## Effectiveness")
+    lines.append(f"- sizing_stats: `{summary.get('sizing_stats', {})}`")
+    lines.append(f"- confirm_stats: `{summary.get('confirm_stats', {})}`")
+    lines.append(f"- entry_delta: `{summary.get('entry_delta', {})}`")
+    lines.append(f"- noop_bug_detected: `{summary.get('noop_bug_detected', False)}`")
+    if summary.get("noop_bug_reasons"):
+        lines.append(f"- noop_bug_reasons: `{summary.get('noop_bug_reasons')}`")
     lines.append("")
     lines.append("## Trade Count Guard")
     guard = summary["trade_count_guard"]

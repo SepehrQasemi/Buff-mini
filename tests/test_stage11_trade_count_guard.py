@@ -21,10 +21,12 @@ def test_stage11_trade_count_guard_fails_without_material_improvement() -> None:
     guard = _trade_count_guard(
         baseline=baseline,
         candidate=candidate,
-        cfg={"max_drop_pct": 15.0, "material_pf_improvement": 0.2, "material_exp_lcb_improvement": 0.5},
+        cfg={"confirm_max_drop_pct": 25.0, "material_pf_improvement": 0.2, "material_exp_lcb_improvement": 0.5},
+        bias_enabled=False,
+        confirm_enabled=True,
     )
     assert guard["pass"] is False
-    assert guard["observed_drop_pct"] > 15.0
+    assert guard["observed_drop_pct"] > 25.0
 
 
 def test_stage11_trade_count_guard_passes_with_material_improvement() -> None:
@@ -33,8 +35,9 @@ def test_stage11_trade_count_guard_passes_with_material_improvement() -> None:
     guard = _trade_count_guard(
         baseline=baseline,
         candidate=candidate,
-        cfg={"max_drop_pct": 15.0, "material_pf_improvement": 0.2, "material_exp_lcb_improvement": 0.5},
+        cfg={"confirm_max_drop_pct": 25.0, "material_pf_improvement": 0.2, "material_exp_lcb_improvement": 0.5},
+        bias_enabled=False,
+        confirm_enabled=True,
     )
     assert guard["material_improvement"] is True
     assert guard["pass"] is True
-

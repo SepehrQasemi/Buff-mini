@@ -296,7 +296,7 @@ Stage-11.1 presets:
 Use with:
 
 ```bash
-python scripts/run_stage11.py --config configs/presets/stage11_bias.yaml --seed 42
+python scripts/run_stage11.py --preset configs/presets/stage11_bias.yaml --seed 42
 ```
 
 Outputs:

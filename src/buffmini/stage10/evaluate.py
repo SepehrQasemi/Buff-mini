@@ -623,6 +623,8 @@ def _apply_confirm_hook_to_signal_frame(
     out = signal_frame.copy()
     if not callable(confirm_hook):
         return out
+    if hasattr(confirm_hook, "start_sequence") and callable(getattr(confirm_hook, "start_sequence")):
+        confirm_hook.start_sequence()
     timestamps = pd.to_datetime(base_frame.get("timestamp"), utc=True, errors="coerce")
     revised: list[int] = []
     for idx, signal in enumerate(out["signal"].astype(int).tolist()):
@@ -649,6 +651,8 @@ def _apply_confirm_hook_to_signal_frame(
     out["signal"] = pd.Series(revised, index=out.index, dtype=int)
     out["long_entry"] = out["signal"] == 1
     out["short_entry"] = out["signal"] == -1
+    if hasattr(confirm_hook, "finalize_sequence") and callable(getattr(confirm_hook, "finalize_sequence")):
+        confirm_hook.finalize_sequence()
     return out
 
 

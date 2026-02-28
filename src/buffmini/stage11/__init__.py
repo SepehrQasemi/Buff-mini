@@ -8,4 +8,3 @@ __all__ = [
     "build_noop_hooks",
     "build_stage11_policy_hooks",
 ]
-

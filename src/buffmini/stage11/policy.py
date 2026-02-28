@@ -24,6 +24,7 @@ DEFAULT_POLICY_CFG: dict[str, Any] = {
     "confirm": {
         "enabled": False,
         "threshold": 0.55,
+        "max_delay_bars": 3,
     },
     "exit": {
         "enabled": False,
@@ -55,55 +56,137 @@ def _build_bias_hook(cfg: dict[str, Any]):
     vol_cut = float(cfg.get("vol_cut", 0.95))
     trend_slope_scale = max(1e-6, float(cfg.get("trend_slope_scale", 0.01)))
 
-    def _hook(
-        *,
-        timestamp: pd.Timestamp,
-        symbol: str,
-        signal_family: str,
-        signal: int,
-        base_row: dict[str, Any],
-        activation_multiplier: float,
-    ) -> float:
-        _ = (timestamp, symbol, signal)
-        family_type = signal_family_type(signal_family)
-        trend_score = _score_trend(base_row, trend_slope_scale)
-        range_score = _score_range(base_row, trend_score)
-        vol_score = _score_vol_expansion(base_row)
+    class _BiasHook:
+        def __init__(self) -> None:
+            self._multipliers: list[float] = []
 
-        raw = 1.0
-        if family_type == "trend":
-            raw *= 1.0 + (trend_boost - 1.0) * trend_score
-        elif family_type == "mean_reversion":
-            raw *= 1.0 + (range_boost - 1.0) * range_score
-        raw *= 1.0 - (1.0 - vol_cut) * vol_score
+        def __call__(
+            self,
+            *,
+            timestamp: pd.Timestamp,
+            symbol: str,
+            signal_family: str,
+            signal: int,
+            base_row: dict[str, Any],
+            activation_multiplier: float,
+        ) -> float:
+            _ = (timestamp, symbol, signal, activation_multiplier)
+            family_type = signal_family_type(signal_family)
+            trend_score = _score_trend(base_row, trend_slope_scale)
+            range_score = _score_range(base_row, trend_score)
+            vol_score = _score_vol_expansion(base_row)
 
-        confidence = max(trend_score, range_score, vol_score)
-        smooth = 1.0 + (raw - 1.0) * confidence
-        return float(np.clip(smooth, m_min, m_max))
+            raw = 1.0
+            if family_type == "trend":
+                raw *= 1.0 + (trend_boost - 1.0) * trend_score
+            elif family_type == "mean_reversion":
+                raw *= 1.0 + (range_boost - 1.0) * range_score
+            raw *= 1.0 - (1.0 - vol_cut) * vol_score
 
-    return _hook
+            confidence = max(trend_score, range_score, vol_score)
+            smooth = 1.0 + (raw - 1.0) * confidence
+            value = float(np.clip(smooth, m_min, m_max))
+            self._multipliers.append(value)
+            return value
+
+        def get_stats(self) -> dict[str, Any]:
+            if not self._multipliers:
+                return {
+                    "values": [],
+                    "mean_multiplier": 1.0,
+                    "p05": 1.0,
+                    "p50": 1.0,
+                    "p95": 1.0,
+                    "pct_not_1_0": 0.0,
+                }
+            arr = np.asarray(self._multipliers, dtype=float)
+            return {
+                "values": [float(item) for item in arr.tolist()],
+                "mean_multiplier": float(arr.mean()),
+                "p05": float(np.quantile(arr, 0.05)),
+                "p50": float(np.quantile(arr, 0.50)),
+                "p95": float(np.quantile(arr, 0.95)),
+                "pct_not_1_0": float(np.mean(np.abs(arr - 1.0) > 1e-12)),
+            }
+
+    return _BiasHook()
 
 
 def _build_confirm_hook(cfg: dict[str, Any]):
     threshold = float(cfg.get("threshold", 0.55))
+    max_delay_bars = max(0, int(cfg.get("max_delay_bars", 3)))
 
-    def _hook(
-        *,
-        timestamp: pd.Timestamp,
-        symbol: str,
-        signal_family: str,
-        signal: int,
-        base_row: dict[str, Any],
-    ) -> int:
-        _ = (timestamp, symbol, signal_family)
-        if int(signal) == 0:
-            return 0
-        score = _score_confirm(base_row)
-        if score >= threshold:
-            return int(signal)
-        return 0
+    class _ConfirmDelayHook:
+        def __init__(self) -> None:
+            self._pending: list[dict[str, int]] = []
+            self._signals_seen = 0
+            self._confirmed = 0
+            self._skipped = 0
+            self._delays: list[int] = []
+            self._entry_deltas: list[int] = []
 
-    return _hook
+        def start_sequence(self) -> None:
+            self._pending = []
+
+        def __call__(
+            self,
+            *,
+            timestamp: pd.Timestamp,
+            symbol: str,
+            signal_family: str,
+            signal: int,
+            base_row: dict[str, Any],
+        ) -> int:
+            _ = (timestamp, symbol, signal_family)
+            emitted = 0
+            score = _score_confirm(base_row)
+
+            if int(signal) != 0:
+                self._signals_seen += 1
+                self._pending.append({"signal": int(np.sign(signal)), "delay": 0, "remaining": max_delay_bars})
+
+            next_pending: list[dict[str, int]] = []
+            emitted_once = False
+            for item in self._pending:
+                slope = _to_float(base_row.get("stage11_confirm_ema_slope_50", base_row.get("ema_slope_50", 0.0)))
+                direction_ok = (int(item["signal"]) > 0 and slope >= 0.0) or (int(item["signal"]) < 0 and slope <= 0.0)
+                if not emitted_once and score >= threshold and direction_ok:
+                    emitted = int(item["signal"])
+                    emitted_once = True
+                    self._confirmed += 1
+                    self._delays.append(int(item["delay"]))
+                    self._entry_deltas.append(int(item["delay"]))
+                    continue
+                item["delay"] = int(item["delay"]) + 1
+                item["remaining"] = int(item["remaining"]) - 1
+                if int(item["remaining"]) < 0:
+                    self._skipped += 1
+                else:
+                    next_pending.append(item)
+            self._pending = next_pending
+            return int(emitted)
+
+        def finalize_sequence(self) -> None:
+            if self._pending:
+                self._skipped += len(self._pending)
+            self._pending = []
+
+        def get_stats(self) -> dict[str, Any]:
+            seen = int(self._signals_seen)
+            confirmed = int(self._confirmed)
+            skipped = int(self._skipped)
+            delays = np.asarray(self._delays, dtype=float) if self._delays else np.asarray([], dtype=float)
+            confirm_rate = float(confirmed / seen) if seen > 0 else 0.0
+            return {
+                "signals_seen": seen,
+                "confirmed": confirmed,
+                "skipped": skipped,
+                "confirm_rate": confirm_rate,
+                "median_delay_bars": float(np.median(delays)) if delays.size else 0.0,
+                "entry_delay_bars": [int(item) for item in self._entry_deltas],
+            }
+
+    return _ConfirmDelayHook()
 
 
 def _build_exit_hook(cfg: dict[str, Any]):
@@ -152,7 +235,7 @@ def _score_vol_expansion(row: dict[str, Any]) -> float:
 
 
 def _score_range(row: dict[str, Any], trend_score: float) -> float:
-    atr_rank = _to_float(row.get("atr_pct_rank_252", 0.5))
+    atr_rank = _to_float(row.get("stage11_context_atr_pct_rank_252", row.get("atr_pct_rank_252", 0.5)))
     mid_vol = 1.0 - abs(atr_rank - 0.5) / 0.25
     return _clip01((1.0 - trend_score) * max(0.0, mid_vol))
 
@@ -160,7 +243,9 @@ def _score_range(row: dict[str, Any], trend_score: float) -> float:
 def _score_confirm(row: dict[str, Any]) -> float:
     volume_z = _to_float(row.get("stage11_confirm_volume_z_120", row.get("volume_z_120", 0.0)))
     slope = abs(_to_float(row.get("stage11_confirm_ema_slope_50", row.get("ema_slope_50", 0.0))))
-    return _clip01(0.5 * _sigmoid(volume_z) + 0.5 * _sigmoid(slope / 0.01))
+    volume_score = _clip01((volume_z + 1.0) / 2.0)
+    slope_score = _clip01(slope / 0.02)
+    return _clip01(0.5 * volume_score + 0.5 * slope_score)
 
 
 def _merge(base: dict[str, Any], override: dict[str, Any]) -> dict[str, Any]:
