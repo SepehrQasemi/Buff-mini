@@ -16,7 +16,7 @@ from buffmini.backtest.engine import run_backtest
 from buffmini.baselines.stage0 import generate_signals, trend_pullback
 from buffmini.config import compute_config_hash, load_config
 from buffmini.constants import DEFAULT_CONFIG_PATH, DERIVED_DATA_DIR, RAW_DATA_DIR, RUNS_DIR
-from buffmini.data.cache import FeatureFrameCache, compute_features_cached, ohlcv_data_hash
+from buffmini.data.cache import FeatureComputeSession, FeatureFrameCache, cache_limits_from_config, ohlcv_data_hash
 from buffmini.data.features import calculate_features
 from buffmini.data.store import build_data_store
 from buffmini.data.storage import save_parquet
@@ -27,12 +27,13 @@ from buffmini.utils.time import utc_now_compact
 def parse_args() -> argparse.Namespace:
     parser = argparse.ArgumentParser(description="Stage-11.5 deterministic engine benchmark")
     parser.add_argument("--config", type=Path, default=DEFAULT_CONFIG_PATH)
-    parser.add_argument("--symbols", type=str, default="BTC/USDT,ETH/USDT")
+    parser.add_argument("--symbols", type=str, default="BTC/USDT")
     parser.add_argument("--base-timeframe", type=str, default="1m")
     parser.add_argument("--tfs", type=str, default="15m,1h,2h,4h")
     parser.add_argument("--seed", type=int, default=42)
     parser.add_argument("--data-dir", type=Path, default=RAW_DATA_DIR)
     parser.add_argument("--derived-dir", type=Path, default=DERIVED_DATA_DIR)
+    parser.add_argument("--feature-cache-dir", type=Path, default=None)
     parser.add_argument("--runs-dir", type=Path, default=RUNS_DIR)
     parser.add_argument("--dry-run", action="store_true")
     parser.add_argument("--dry-run-rows", type=int, default=6000)
@@ -48,6 +49,7 @@ def run_stage11_5_bench(
     seed: int,
     data_dir: Path,
     derived_dir: Path,
+    feature_cache_dir: Path | None,
     runs_dir: Path,
     dry_run: bool,
     dry_run_rows: int,
@@ -69,8 +71,22 @@ def run_stage11_5_bench(
             data_dir=data_dir,
         )
 
-    first = _bench_once(cfg=cfg, symbols=symbols, tfs=tfs, data_dir=data_dir, derived_dir=derived_dir)
-    second = _bench_once(cfg=cfg, symbols=symbols, tfs=tfs, data_dir=data_dir, derived_dir=derived_dir)
+    first = _bench_once(
+        cfg=cfg,
+        symbols=symbols,
+        tfs=tfs,
+        data_dir=data_dir,
+        derived_dir=derived_dir,
+        feature_cache_dir=feature_cache_dir,
+    )
+    second = _bench_once(
+        cfg=cfg,
+        symbols=symbols,
+        tfs=tfs,
+        data_dir=data_dir,
+        derived_dir=derived_dir,
+        feature_cache_dir=feature_cache_dir,
+    )
 
     payload = {
         "seed": int(seed),
@@ -87,6 +103,8 @@ def run_stage11_5_bench(
         ),
         "derived_cache_hit_rate": float(second["cache"]["derived_hit_rate"]),
         "feature_cache_hit_rate": float(second["cache"]["feature_hit_rate"]),
+        "cold_run_feature_calls_per_tf": dict(first["cache"]["features_compute_calls_per_tf"]),
+        "rerun_feature_calls_per_tf": dict(second["cache"]["features_compute_calls_per_tf"]),
         "first_breakdown": dict(first["breakdown"]),
         "second_breakdown": dict(second["breakdown"]),
         "first_cache": dict(first["cache"]),
@@ -110,11 +128,14 @@ def _bench_once(
     tfs: list[str],
     data_dir: Path,
     derived_dir: Path,
+    feature_cache_dir: Path | None,
 ) -> dict[str, Any]:
     started_total = time.perf_counter()
     breakdown = {"load": 0.0, "features": 0.0, "backtest": 0.0}
     data_hash_by_tf: dict[str, str] = {}
-    feature_cache = FeatureFrameCache()
+    cache_limits = cache_limits_from_config(cfg)
+    feature_cache = FeatureFrameCache(root_dir=feature_cache_dir or (Path("data") / "features_cache"), limits=cache_limits)
+    feature_session = FeatureComputeSession(feature_cache)
     strategy = trend_pullback()
     resolved_end_ts = str(cfg.get("universe", {}).get("resolved_end_ts") or "")
     config_hash = compute_config_hash(cfg)
@@ -130,6 +151,7 @@ def _bench_once(
         partial_last_bucket=bool(cfg.get("data", {}).get("partial_last_bucket", False)),
         config_hash=config_hash,
         resolved_end_ts=resolved_end_ts,
+        cache_limits=cache_limits,
     )
     breakdown["load"] += float(time.perf_counter() - t0)
 
@@ -153,8 +175,7 @@ def _bench_once(
                 length=16,
             )
             t_feat = time.perf_counter()
-            features, _, _ = compute_features_cached(
-                cache=feature_cache,
+            features, _, _ = feature_session.get_or_build(
                 symbol=str(symbol),
                 timeframe=str(timeframe),
                 resolved_end_ts=resolved_end_ts,
@@ -208,6 +229,8 @@ def _bench_once(
             "feature_misses": feature_misses,
             "feature_hit_rate": 0.0 if feature_total <= 0 else float(feature_hits / feature_total),
             "features_compute_calls_per_tf": dict(feature_cache.stats.compute_calls_per_tf),
+            "features_requests_per_tf": dict(feature_session.requests_per_tf),
+            "feature_memory_hits": int(feature_session.memory_hits),
         },
         "data_hash_by_tf": data_hash_by_tf,
     }
@@ -276,6 +299,7 @@ def main() -> None:
         seed=int(args.seed),
         data_dir=args.data_dir,
         derived_dir=args.derived_dir,
+        feature_cache_dir=args.feature_cache_dir,
         runs_dir=args.runs_dir,
         dry_run=bool(args.dry_run),
         dry_run_rows=int(args.dry_run_rows),
@@ -285,6 +309,8 @@ def main() -> None:
     print(f"second_run_seconds: {float(payload['second_run_seconds']):.4f}")
     print(f"derived_cache_hit_rate: {float(payload['derived_cache_hit_rate']):.4f}")
     print(f"feature_cache_hit_rate: {float(payload['feature_cache_hit_rate']):.4f}")
+    print(f"cold_run_feature_calls_per_tf: {payload['cold_run_feature_calls_per_tf']}")
+    print(f"rerun_feature_calls_per_tf: {payload['rerun_feature_calls_per_tf']}")
 
 
 if __name__ == "__main__":

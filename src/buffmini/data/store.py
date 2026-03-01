@@ -8,7 +8,7 @@ from typing import Any, Protocol
 import pandas as pd
 
 from buffmini.constants import RAW_DATA_DIR
-from buffmini.data.cache import DerivedTimeframeCache, get_or_build_derived_ohlcv, ohlcv_data_hash
+from buffmini.data.cache import CacheLimits, DerivedTimeframeCache, get_or_build_derived_ohlcv, ohlcv_data_hash
 from buffmini.data.resample import resample_ohlcv, resample_settings_hash
 from buffmini.data.storage import load_parquet, parquet_path, save_parquet
 from buffmini.utils.hashing import stable_hash
@@ -49,6 +49,7 @@ class ParquetStore:
         partial_last_bucket: bool = False,
         config_hash: str | None = None,
         resolved_end_ts: str | None = None,
+        cache_limits: CacheLimits | None = None,
     ) -> None:
         self.data_dir = Path(data_dir)
         self.base_timeframe = str(base_timeframe).strip().lower() if base_timeframe else None
@@ -57,7 +58,7 @@ class ParquetStore:
         self.config_hash = str(config_hash or "na")
         self.resolved_end_ts = str(resolved_end_ts or "")
         resolved_derived_dir = Path(derived_dir) if derived_dir is not None else (self.data_dir.parent / "derived")
-        self.derived_cache = DerivedTimeframeCache(resolved_derived_dir)
+        self.derived_cache = DerivedTimeframeCache(resolved_derived_dir, limits=cache_limits)
 
     def load_ohlcv(
         self,
@@ -328,6 +329,7 @@ def build_data_store(
     partial_last_bucket: bool = False,
     config_hash: str | None = None,
     resolved_end_ts: str | None = None,
+    cache_limits: CacheLimits | None = None,
 ) -> DataStore:
     """Construct the configured datastore."""
 
@@ -341,6 +343,7 @@ def build_data_store(
         partial_last_bucket=partial_last_bucket,
         config_hash=config_hash,
         resolved_end_ts=resolved_end_ts,
+        cache_limits=cache_limits,
     )
 
 

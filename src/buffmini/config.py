@@ -325,6 +325,13 @@ STAGE11_DEFAULTS = {
     },
 }
 
+STAGE11_55_DEFAULTS = {
+    "cache": {
+        "max_entries_per_tf": 5,
+        "max_total_mb": 2048,
+    }
+}
+
 UI_STAGE5_DEFAULTS = {
     "stage5": {
         "presets": {
@@ -1054,6 +1061,14 @@ def validate_config(config: ConfigDict) -> None:
     float(guard_cfg["material_pf_improvement"])
     float(guard_cfg["material_exp_lcb_improvement"])
     evaluation["stage11"] = stage11
+
+    stage11_55 = _merge_defaults(STAGE11_55_DEFAULTS, evaluation.get("stage11_55", {}))
+    cache_cfg = stage11_55["cache"]
+    if int(cache_cfg["max_entries_per_tf"]) < 1:
+        raise ValueError("evaluation.stage11_55.cache.max_entries_per_tf must be >= 1")
+    if float(cache_cfg["max_total_mb"]) <= 0:
+        raise ValueError("evaluation.stage11_55.cache.max_total_mb must be > 0")
+    evaluation["stage11_55"] = stage11_55
 
     ui = _merge_defaults(UI_STAGE5_DEFAULTS, config.get("ui", {}))
     stage5_ui = ui.get("stage5", {})

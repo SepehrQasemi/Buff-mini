@@ -389,6 +389,10 @@ evaluation:
       confirm_max_drop_pct: 25.0
       material_pf_improvement: 0.05
       material_exp_lcb_improvement: 0.5
+  stage11_55:
+    cache:
+      max_entries_per_tf: 5
+      max_total_mb: 2048
 
 ui:
   stage5:

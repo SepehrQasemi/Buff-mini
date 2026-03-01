@@ -16,7 +16,7 @@ from buffmini.backtest.engine import run_backtest
 from buffmini.baselines.stage0 import generate_signals, trend_pullback
 from buffmini.config import compute_config_hash, load_config
 from buffmini.constants import DEFAULT_CONFIG_PATH, DERIVED_DATA_DIR, RAW_DATA_DIR, RUNS_DIR
-from buffmini.data.cache import FeatureFrameCache, compute_features_cached, ohlcv_data_hash
+from buffmini.data.cache import FeatureComputeSession, FeatureFrameCache, cache_limits_from_config, ohlcv_data_hash
 from buffmini.data.features import calculate_features
 from buffmini.data.store import build_data_store
 from buffmini.data.storage import save_parquet
@@ -96,6 +96,7 @@ def _bench_once(cfg: dict[str, Any], data_dir: Path, derived_dir: Path) -> dict[
     start_total = time.perf_counter()
 
     t0 = time.perf_counter()
+    cache_limits = cache_limits_from_config(cfg)
     store = build_data_store(
         backend=str(cfg.get("data", {}).get("backend", "parquet")),
         data_dir=data_dir,
@@ -105,6 +106,7 @@ def _bench_once(cfg: dict[str, Any], data_dir: Path, derived_dir: Path) -> dict[
         partial_last_bucket=bool(cfg.get("data", {}).get("partial_last_bucket", False)),
         config_hash=compute_config_hash(cfg),
         resolved_end_ts=str(cfg.get("universe", {}).get("resolved_end_ts") or ""),
+        cache_limits=cache_limits,
     )
     symbols = list(cfg["universe"]["symbols"])
     operational_tf = str(cfg["universe"]["operational_timeframe"])
@@ -114,7 +116,8 @@ def _bench_once(cfg: dict[str, Any], data_dir: Path, derived_dir: Path) -> dict[
     timings["load_seconds"] = time.perf_counter() - t0
 
     t1 = time.perf_counter()
-    feature_cache = FeatureFrameCache()
+    feature_cache = FeatureFrameCache(limits=cache_limits)
+    feature_session = FeatureComputeSession(feature_cache)
     features_by_symbol: dict[str, pd.DataFrame] = {}
     resolved_end_ts = str(cfg.get("universe", {}).get("resolved_end_ts") or "")
     for symbol, frame in frames.items():
@@ -128,8 +131,7 @@ def _bench_once(cfg: dict[str, Any], data_dir: Path, derived_dir: Path) -> dict[
             },
             length=16,
         )
-        features, _, _ = compute_features_cached(
-            cache=feature_cache,
+        features, _, _ = feature_session.get_or_build(
             symbol=str(symbol),
             timeframe=str(operational_tf),
             resolved_end_ts=resolved_end_ts,

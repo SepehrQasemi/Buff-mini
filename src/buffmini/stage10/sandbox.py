@@ -13,7 +13,7 @@ import pandas as pd
 from buffmini.backtest.engine import run_backtest
 from buffmini.config import compute_config_hash, get_universe_end
 from buffmini.constants import DERIVED_DATA_DIR, RAW_DATA_DIR, RUNS_DIR
-from buffmini.data.cache import FeatureFrameCache, compute_features_cached, ohlcv_data_hash
+from buffmini.data.cache import FeatureComputeSession, FeatureFrameCache, cache_limits_from_config, ohlcv_data_hash
 from buffmini.data.features import calculate_features
 from buffmini.data.store import build_data_store
 from buffmini.stage10.exits import normalize_exit_mode
@@ -249,7 +249,9 @@ def _build_features(
 ) -> dict[str, pd.DataFrame]:
     frames: dict[str, pd.DataFrame] = {}
     feature_cache_enabled = bool(config.get("data", {}).get("feature_cache", {}).get("enabled", True))
-    feature_cache = FeatureFrameCache() if feature_cache_enabled else None
+    cache_limits = cache_limits_from_config(config)
+    feature_cache = FeatureFrameCache(limits=cache_limits) if feature_cache_enabled else None
+    feature_session = FeatureComputeSession(feature_cache)
     rows = int(config["evaluation"]["stage10"]["evaluation"].get("dry_run_rows", 2400))
     if dry_run:
         for symbol in symbols:
@@ -268,6 +270,7 @@ def _build_features(
         partial_last_bucket=bool(config.get("data", {}).get("partial_last_bucket", False)),
         config_hash=compute_config_hash(config),
         resolved_end_ts=str(config.get("universe", {}).get("resolved_end_ts") or ""),
+        cache_limits=cache_limits,
     )
     resolved_end_ts = str(config.get("universe", {}).get("resolved_end_ts") or "")
     for symbol in symbols:
@@ -284,8 +287,7 @@ def _build_features(
             },
             length=16,
         )
-        features, _, _ = compute_features_cached(
-            cache=feature_cache,
+        features, _, _ = feature_session.get_or_build(
             symbol=str(symbol),
             timeframe=str(timeframe),
             resolved_end_ts=resolved_end_ts,

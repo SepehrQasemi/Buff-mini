@@ -16,7 +16,7 @@ from buffmini.backtest.engine import run_backtest
 from buffmini.baselines.stage0 import generate_signals, trend_pullback
 from buffmini.config import compute_config_hash, load_config
 from buffmini.constants import DEFAULT_CONFIG_PATH, DERIVED_DATA_DIR, RAW_DATA_DIR
-from buffmini.data.cache import FeatureFrameCache, compute_features_cached, ohlcv_data_hash
+from buffmini.data.cache import FeatureComputeSession, FeatureFrameCache, cache_limits_from_config, ohlcv_data_hash
 from buffmini.data.features import calculate_features
 from buffmini.data.store import build_data_store
 from buffmini.utils.hashing import stable_hash
@@ -95,7 +95,9 @@ def _evaluate_single_timeframe(
     derived_dir: Path,
 ) -> dict[str, float]:
     feature_cache_enabled = bool(cfg.get("data", {}).get("feature_cache", {}).get("enabled", True))
-    feature_cache = FeatureFrameCache() if feature_cache_enabled else None
+    cache_limits = cache_limits_from_config(cfg)
+    feature_cache = FeatureFrameCache(limits=cache_limits) if feature_cache_enabled else None
+    feature_session = FeatureComputeSession(feature_cache)
     store = build_data_store(
         backend=str(cfg.get("data", {}).get("backend", "parquet")),
         data_dir=data_dir,
@@ -105,6 +107,7 @@ def _evaluate_single_timeframe(
         partial_last_bucket=bool(cfg.get("data", {}).get("partial_last_bucket", False)),
         config_hash=compute_config_hash(cfg),
         resolved_end_ts=str(cfg.get("universe", {}).get("resolved_end_ts") or ""),
+        cache_limits=cache_limits,
     )
     strategy = trend_pullback()
     metrics_rows: list[dict[str, float]] = []
@@ -123,8 +126,7 @@ def _evaluate_single_timeframe(
             },
             length=16,
         )
-        features, _, _ = compute_features_cached(
-            cache=feature_cache,
+        features, _, _ = feature_session.get_or_build(
             symbol=str(symbol),
             timeframe=str(timeframe),
             resolved_end_ts=resolved_end_ts,

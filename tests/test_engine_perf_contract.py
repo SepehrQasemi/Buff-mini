@@ -35,6 +35,7 @@ def test_stage11_5_bench_emits_required_fields(tmp_path: Path) -> None:
         seed=42,
         data_dir=data_dir,
         derived_dir=derived_dir,
+        feature_cache_dir=tmp_path / "features_cache",
         runs_dir=runs_dir,
         dry_run=True,
         dry_run_rows=1800,
@@ -50,6 +51,8 @@ def test_stage11_5_bench_emits_required_fields(tmp_path: Path) -> None:
         "second_breakdown",
         "first_cache",
         "second_cache",
+        "cold_run_feature_calls_per_tf",
+        "rerun_feature_calls_per_tf",
         "data_hash",
         "config_hash",
     }
