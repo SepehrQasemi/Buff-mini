@@ -33,14 +33,14 @@ def trailing_stop_series(
 ) -> pd.Series:
     """Deterministic volatility-adjusted trailing stop path."""
 
-    c = pd.to_numeric(close, errors="coerce").fillna(method="ffill").fillna(0.0)
-    a = pd.to_numeric(atr, errors="coerce").replace(0.0, np.nan).fillna(method="ffill").fillna(1.0)
+    c = pd.to_numeric(close, errors="coerce").ffill().fillna(0.0)
+    a = pd.to_numeric(atr, errors="coerce").replace(0.0, np.nan).ffill().fillna(1.0)
     if side >= 0:
         peak = c.cummax()
-        stop = peak - float(trailing_k) * a
+        stop = (peak - float(trailing_k) * a).cummax()
     else:
         trough = c.cummin()
-        stop = trough + float(trailing_k) * a
+        stop = (trough + float(trailing_k) * a).cummin()
     return stop.astype(float)
 
 
@@ -55,8 +55,8 @@ def progress_stop_flags(
 ) -> pd.Series:
     """Exit flag when no minimum progress after N bars."""
 
-    c = pd.to_numeric(close, errors="coerce").fillna(method="ffill").fillna(0.0)
-    a = pd.to_numeric(atr, errors="coerce").replace(0.0, np.nan).fillna(method="ffill").fillna(1.0)
+    c = pd.to_numeric(close, errors="coerce").ffill().fillna(0.0)
+    a = pd.to_numeric(atr, errors="coerce").replace(0.0, np.nan).ffill().fillna(1.0)
     flags = np.zeros(len(c), dtype=bool)
     if entry_index < 0 or entry_index >= len(c):
         return pd.Series(flags, index=c.index, dtype=bool)
@@ -77,4 +77,3 @@ def mae_mfe_tightening_multiplier(mae: float, mfe: float) -> float:
         return 1.0
     ratio = float(max(0.0, mae) / max(1e-12, mfe))
     return float(np.clip(1.0 - 0.3 * ratio, 0.5, 1.0))
-
