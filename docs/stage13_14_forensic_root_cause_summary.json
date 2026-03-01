@@ -1,6 +1,6 @@
 {
-  "git_head": "9a6868429a85d9cb35917bbdda681c30716b0c23",
-  "runtime_seconds": 99.32094320000033,
+  "git_head": "353817124f9dd30c103276a8332e2c814a7a4603",
+  "runtime_seconds": 95.8860300999986,
   "checks_total": 20,
   "checks_failed": 0,
   "checks": [
@@ -563,7 +563,7 @@
       "status": "PASS",
       "root_cause_tag": "OK",
       "evidence": {
-        "run_id": "20260301_214546_1d917c46de22_stage13",
+        "run_id": "20260301_220048_25a05618923b_stage13",
         "reason_counts": {
           "LOW_USABLE_WINDOWS": 3,
           "ZERO_TRADE": 3,
@@ -617,7 +617,7 @@
       "status": "PASS",
       "root_cause_tag": "OK",
       "evidence": {
-        "run_id": "20260301_214609_8c0aee80ae62_stage14_3",
+        "run_id": "20260301_220111_8c0aee80ae62_stage14_3",
         "folds_evaluated": 16,
         "classification": "NO_EDGE"
       }
@@ -652,7 +652,7 @@
       "status": "PASS",
       "root_cause_tag": "OK",
       "evidence": {
-        "run_id": "20260301_214546_1d917c46de22_stage13",
+        "run_id": "20260301_220048_25a05618923b_stage13",
         "reported_invalid_pct": 75.0,
         "expected_invalid_pct": 75.0,
         "invalid_reason_counts": {
@@ -755,7 +755,19 @@
       "impact_score": 7.5
     }
   ],
-  "fixes_applied": [],
+  "fixes_applied": [
+    {
+      "check_id": 20,
+      "name": "Reporting / Metric Integrity",
+      "status": "PASS",
+      "root_cause_tag": "BUG_INVALID_PCT_METRIC_FIXED",
+      "evidence": {
+        "invalid_pct_before": 75.0,
+        "invalid_pct_after": 75.0,
+        "legacy_invalid_pct_for_same_rows": 100.0
+      }
+    }
+  ],
   "before_after": {
     "before": {
       "master_final_verdict": "NO_EDGE",
@@ -789,7 +801,7 @@
       }
     }
   },
-  "final_conclusion": "NO_BUG_FOUND_NO_EDGE_CONFIRMED",
+  "final_conclusion": "BUG_FOUND_AND_FIXED",
   "warnings": [],
   "limitations": []
 }

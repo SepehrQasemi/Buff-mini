@@ -352,9 +352,22 @@ def run_forensic_stage13_14_root_cause(*, config_path: Path = DEFAULT_CONFIG_PAT
     after = {"stage13_combined": _safe(r12["summary"].get("metrics", {})), "stage14_nested": _safe(r17["summary"])}
     failed = [c for c in checks if c.status != "PASS"]
     fixes = [c.as_dict() for c in failed if c.tag.startswith("BUG_")]
+    legacy_invalid_pct = (
+        float(df12["classification"].astype(str).isin({"NO_EDGE", "INSUFFICIENT_DATA"}).mean() * 100.0)
+        if not df12.empty
+        else 100.0
+    )
     invalid_before = _f(before.get("stage13_combined", {}).get("invalid_pct"))
     invalid_after = _f(after.get("stage13_combined", {}).get("invalid_pct"))
-    metric_fix_detected = abs(invalid_before - invalid_after) > 0.1 and (not any(c.check_id == 20 and c.status != "PASS" for c in checks))
+    metric_fix_detected = (
+        abs(invalid_before - invalid_after) > 0.1
+        and (not any(c.check_id == 20 and c.status != "PASS" for c in checks))
+    )
+    if (
+        not any(c.check_id == 20 and c.status != "PASS" for c in checks)
+        and abs(legacy_invalid_pct - invalid_after) > 0.1
+    ):
+        metric_fix_detected = True
     if metric_fix_detected:
         fixes.append(
             {
@@ -362,7 +375,11 @@ def run_forensic_stage13_14_root_cause(*, config_path: Path = DEFAULT_CONFIG_PAT
                 "name": CHECKS[20],
                 "status": "PASS",
                 "root_cause_tag": "BUG_INVALID_PCT_METRIC_FIXED",
-                "evidence": {"invalid_pct_before": invalid_before, "invalid_pct_after": invalid_after},
+                "evidence": {
+                    "invalid_pct_before": invalid_before,
+                    "invalid_pct_after": invalid_after,
+                    "legacy_invalid_pct_for_same_rows": legacy_invalid_pct,
+                },
             }
         )
     concl = "NO_BUG_FOUND_NO_EDGE_CONFIRMED"

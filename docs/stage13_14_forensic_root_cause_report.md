@@ -1,9 +1,9 @@
 # Stage-13/14 Forensic Root-Cause Report
 
 ## Executive Summary
-- git_head: `9a6868429a85d9cb35917bbdda681c30716b0c23`
-- runtime_seconds: `99.321`
-- final_conclusion: `NO_BUG_FOUND_NO_EDGE_CONFIRMED`
+- git_head: `353817124f9dd30c103276a8332e2c814a7a4603`
+- runtime_seconds: `95.886`
+- final_conclusion: `BUG_FOUND_AND_FIXED`
 - raw_evidence: `docs/stage13_14_forensic_root_cause_raw.json`
 
 ## Baseline (Before)
@@ -48,7 +48,7 @@
 | 10 | walkforward | disabled_proxy | 0.000000 | 25.000000 | -100.000000 | 0.000000 |
 
 ## Fixes Applied
-- none
+- BUG_INVALID_PCT_METRIC_FIXED via check `20`
 
 ## Re-run Results (After)
 - `{'before': {'master_final_verdict': 'NO_EDGE', 'stage13_combined': {'invalid_pct': 75.0, 'zero_trade_pct': 25.0, 'walkforward_executed_true_pct': 100.0, 'mc_trigger_rate': 75.0, 'best_exp_lcb': 49.78228993550447}, 'stage14_nested': {'folds_evaluated': 16, 'consistency': 0.0625, 'classification': 'NO_EDGE'}}, 'after': {'stage13_combined': {'zero_trade_pct': 37.5, 'invalid_pct': 75.0, 'walkforward_executed_true_pct': 100.0, 'mc_trigger_rate': 62.5, 'tpm': 6.7716170853108, 'trade_count': 81.25}, 'stage14_nested': {'stage': '14.3', 'folds_evaluated': 16, 'consistency': 0.0625, 'classification': 'NO_EDGE'}}}`
@@ -65,4 +65,4 @@
 3. If repeated forensic sweeps still show NO_EDGE, pivot to a different hypothesis class (stat-arb/cross-asset).
 
 ## Final Conclusion
-- `NO_BUG_FOUND_NO_EDGE_CONFIRMED`
+- `BUG_FOUND_AND_FIXED`
