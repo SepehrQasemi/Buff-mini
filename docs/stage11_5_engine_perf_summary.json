@@ -1,0 +1,47 @@
+{
+  "stage": "11.5",
+  "baseline_seconds": {
+    "first_run": 0.2062947999802418,
+    "second_run": 0.11809170001652092
+  },
+  "after_seconds": {
+    "first_run": 0.2429227999818977,
+    "second_run": 0.1165575000050012
+  },
+  "speedup_factor": {
+    "first_run_after_vs_baseline": 0.8491912882487739,
+    "second_run_after_vs_baseline": 1.0131610381946136,
+    "multi_tf_rerun_speedup": 2.962329917022349
+  },
+  "derived_cache": {
+    "hit_rate_rerun": 1.0,
+    "first_hits": 0,
+    "first_misses": 8,
+    "second_hits": 8,
+    "second_misses": 0
+  },
+  "feature_cache": {
+    "hit_rate_rerun": 1.0,
+    "first_hits": 2,
+    "first_misses": 6,
+    "second_hits": 8,
+    "second_misses": 0,
+    "first_compute_calls_per_tf": {
+      "15m": 2,
+      "2h": 2,
+      "4h": 2
+    },
+    "second_compute_calls_per_tf": {}
+  },
+  "semantic_equivalence": {
+    "status": "PASS",
+    "equity_hash_match": true,
+    "trades_hash_match": true,
+    "pandas_equity_hash": "0a82dfb2d8244074",
+    "numpy_equity_hash": "0a82dfb2d8244074",
+    "pandas_trades_hash": "17c50ab96f319d3d",
+    "numpy_trades_hash": "17c50ab96f319d3d"
+  },
+  "pytest_pass_count": 222,
+  "deterministic": true
+}
