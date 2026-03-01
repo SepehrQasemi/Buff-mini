@@ -10,7 +10,9 @@ def estimate_stage12_runtime(config: dict[str, Any], bench_metrics: dict[str, An
     """Estimate Stage-12 runtime using structural counts and empirical bench timings."""
 
     stage12_cfg = config.get("evaluation", {}).get("stage12", {}) if isinstance(config, dict) else {}
-    timeframes = stage12_cfg.get("timeframes")
+    timeframes = list(bench_metrics.get("tfs", [])) if isinstance(bench_metrics.get("tfs", []), list) else []
+    if not timeframes:
+        timeframes = stage12_cfg.get("timeframes")
     if not isinstance(timeframes, list) or not timeframes:
         timeframes = list(bench_metrics.get("tfs", []))
     if not timeframes:

@@ -393,6 +393,44 @@ evaluation:
     cache:
       max_entries_per_tf: 5
       max_total_mb: 2048
+  stage12:
+    enabled: false
+    symbols: ["BTC/USDT", "ETH/USDT"]
+    timeframes: ["15m", "30m", "1h", "2h", "4h", "1d"]
+    include_stage06_baselines: true
+    include_stage10_families: true
+    exits:
+      variants: ["fixed_atr", "structure_trailing", "time_based"]
+      time_based_stop_atr_multiple: 1000000.0
+      time_based_take_profit_atr_multiple: 1000000.0
+    cost_scenarios:
+      low:
+        slippage_bps_base: 0.25
+        slippage_bps_vol_mult: 1.0
+        spread_bps: 0.25
+        delay_bars: 0
+      realistic:
+        use_config_default: true
+      high:
+        slippage_bps_base: 1.5
+        slippage_bps_vol_mult: 3.0
+        spread_bps: 1.5
+        delay_bars: 1
+    robustness:
+      instability_penalty:
+        STABLE: 0.0
+        UNSTABLE: 0.5
+        INSUFFICIENT_DATA: 1.0
+      cost_sensitivity_penalty_weight: 1.0
+    min_usable_windows_valid: 3
+    monte_carlo:
+      enabled: true
+      top_pct: 0.2
+      bootstrap: block
+      block_size_trades: 10
+      n_paths: 5000
+      initial_equity: 10000
+      ruin_dd_threshold: 0.5
 
 ui:
   stage5:

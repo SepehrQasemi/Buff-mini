@@ -332,6 +332,54 @@ STAGE11_55_DEFAULTS = {
     }
 }
 
+STAGE12_DEFAULTS = {
+    "enabled": False,
+    "symbols": ["BTC/USDT", "ETH/USDT"],
+    "timeframes": ["15m", "30m", "1h", "2h", "4h", "1d"],
+    "include_stage06_baselines": True,
+    "include_stage10_families": True,
+    "exits": {
+        "variants": ["fixed_atr", "structure_trailing", "time_based"],
+        "time_based_stop_atr_multiple": 1_000_000.0,
+        "time_based_take_profit_atr_multiple": 1_000_000.0,
+    },
+    "cost_scenarios": {
+        "low": {
+            "slippage_bps_base": 0.25,
+            "slippage_bps_vol_mult": 1.0,
+            "spread_bps": 0.25,
+            "delay_bars": 0,
+        },
+        "realistic": {
+            "use_config_default": True,
+        },
+        "high": {
+            "slippage_bps_base": 1.5,
+            "slippage_bps_vol_mult": 3.0,
+            "spread_bps": 1.5,
+            "delay_bars": 1,
+        },
+    },
+    "robustness": {
+        "instability_penalty": {
+            "STABLE": 0.0,
+            "UNSTABLE": 0.5,
+            "INSUFFICIENT_DATA": 1.0,
+        },
+        "cost_sensitivity_penalty_weight": 1.0,
+    },
+    "min_usable_windows_valid": 3,
+    "monte_carlo": {
+        "enabled": True,
+        "top_pct": 0.2,
+        "bootstrap": "block",
+        "block_size_trades": 10,
+        "n_paths": 5000,
+        "initial_equity": 10000.0,
+        "ruin_dd_threshold": 0.5,
+    },
+}
+
 UI_STAGE5_DEFAULTS = {
     "stage5": {
         "presets": {
@@ -1069,6 +1117,88 @@ def validate_config(config: ConfigDict) -> None:
     if float(cache_cfg["max_total_mb"]) <= 0:
         raise ValueError("evaluation.stage11_55.cache.max_total_mb must be > 0")
     evaluation["stage11_55"] = stage11_55
+
+    stage12 = _merge_defaults(STAGE12_DEFAULTS, evaluation.get("stage12", {}))
+    if not isinstance(stage12["enabled"], bool):
+        raise ValueError("evaluation.stage12.enabled must be bool")
+    symbols = stage12.get("symbols", [])
+    if not isinstance(symbols, list) or not symbols:
+        raise ValueError("evaluation.stage12.symbols must be a non-empty list")
+    if any(not str(symbol).strip() for symbol in symbols):
+        raise ValueError("evaluation.stage12.symbols entries must be non-empty strings")
+    timeframes = stage12.get("timeframes", [])
+    if not isinstance(timeframes, list) or not timeframes:
+        raise ValueError("evaluation.stage12.timeframes must be a non-empty list")
+    for idx, timeframe in enumerate(timeframes):
+        if str(timeframe).strip().lower() not in SUPPORTED_TIMEFRAMES:
+            raise ValueError(f"evaluation.stage12.timeframes[{idx}] must be one of {SUPPORTED_TIMEFRAMES}")
+    if not isinstance(stage12.get("include_stage06_baselines", True), bool):
+        raise ValueError("evaluation.stage12.include_stage06_baselines must be bool")
+    if not isinstance(stage12.get("include_stage10_families", True), bool):
+        raise ValueError("evaluation.stage12.include_stage10_families must be bool")
+
+    exits = stage12["exits"]
+    variants = exits.get("variants", [])
+    if not isinstance(variants, list) or not variants:
+        raise ValueError("evaluation.stage12.exits.variants must be a non-empty list")
+    allowed_variants = {"fixed_atr", "structure_trailing", "time_based"}
+    if any(str(item) not in allowed_variants for item in variants):
+        raise ValueError("evaluation.stage12.exits.variants has unsupported value")
+    if float(exits["time_based_stop_atr_multiple"]) <= 0:
+        raise ValueError("evaluation.stage12.exits.time_based_stop_atr_multiple must be > 0")
+    if float(exits["time_based_take_profit_atr_multiple"]) <= 0:
+        raise ValueError("evaluation.stage12.exits.time_based_take_profit_atr_multiple must be > 0")
+
+    cost_scenarios = stage12.get("cost_scenarios", {})
+    if not isinstance(cost_scenarios, dict):
+        raise ValueError("evaluation.stage12.cost_scenarios must be a mapping")
+    for name in ("low", "realistic", "high"):
+        if name not in cost_scenarios:
+            raise ValueError("evaluation.stage12.cost_scenarios must include low/realistic/high")
+    low_cfg = cost_scenarios["low"]
+    high_cfg = cost_scenarios["high"]
+    realistic_cfg = cost_scenarios["realistic"]
+    for prefix, payload in (("low", low_cfg), ("high", high_cfg)):
+        if not isinstance(payload, dict):
+            raise ValueError(f"evaluation.stage12.cost_scenarios.{prefix} must be mapping")
+        for field in ("slippage_bps_base", "slippage_bps_vol_mult", "spread_bps"):
+            if float(payload[field]) < 0:
+                raise ValueError(f"evaluation.stage12.cost_scenarios.{prefix}.{field} must be >= 0")
+        if int(payload["delay_bars"]) < 0:
+            raise ValueError(f"evaluation.stage12.cost_scenarios.{prefix}.delay_bars must be >= 0")
+    if not isinstance(realistic_cfg, dict):
+        raise ValueError("evaluation.stage12.cost_scenarios.realistic must be mapping")
+    if not isinstance(realistic_cfg.get("use_config_default", True), bool):
+        raise ValueError("evaluation.stage12.cost_scenarios.realistic.use_config_default must be bool")
+
+    robustness = stage12.get("robustness", {})
+    penalties = robustness.get("instability_penalty", {})
+    if not isinstance(penalties, dict):
+        raise ValueError("evaluation.stage12.robustness.instability_penalty must be mapping")
+    for label in ("STABLE", "UNSTABLE", "INSUFFICIENT_DATA"):
+        if float(penalties.get(label, 0.0)) < 0:
+            raise ValueError(f"evaluation.stage12.robustness.instability_penalty.{label} must be >= 0")
+    if float(robustness.get("cost_sensitivity_penalty_weight", 1.0)) < 0:
+        raise ValueError("evaluation.stage12.robustness.cost_sensitivity_penalty_weight must be >= 0")
+    if int(stage12.get("min_usable_windows_valid", 1)) < 1:
+        raise ValueError("evaluation.stage12.min_usable_windows_valid must be >= 1")
+
+    mc_cfg = stage12.get("monte_carlo", {})
+    if not isinstance(mc_cfg.get("enabled", True), bool):
+        raise ValueError("evaluation.stage12.monte_carlo.enabled must be bool")
+    if not 0 < float(mc_cfg.get("top_pct", 0.2)) <= 1:
+        raise ValueError("evaluation.stage12.monte_carlo.top_pct must be in (0,1]")
+    if str(mc_cfg.get("bootstrap", "block")) not in {"iid", "block"}:
+        raise ValueError("evaluation.stage12.monte_carlo.bootstrap must be iid or block")
+    if int(mc_cfg.get("block_size_trades", 10)) < 1:
+        raise ValueError("evaluation.stage12.monte_carlo.block_size_trades must be >= 1")
+    if int(mc_cfg.get("n_paths", 5000)) < 100:
+        raise ValueError("evaluation.stage12.monte_carlo.n_paths must be >= 100")
+    if float(mc_cfg.get("initial_equity", 10000.0)) <= 0:
+        raise ValueError("evaluation.stage12.monte_carlo.initial_equity must be > 0")
+    if not 0 < float(mc_cfg.get("ruin_dd_threshold", 0.5)) < 1:
+        raise ValueError("evaluation.stage12.monte_carlo.ruin_dd_threshold must be in (0,1)")
+    evaluation["stage12"] = stage12
 
     ui = _merge_defaults(UI_STAGE5_DEFAULTS, config.get("ui", {}))
     stage5_ui = ui.get("stage5", {})
