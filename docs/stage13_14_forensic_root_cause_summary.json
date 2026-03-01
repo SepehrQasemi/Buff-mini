@@ -1,0 +1,809 @@
+{
+  "git_head": "f291ee61659fa2c6cdc13f28917f8700ea2bb8a2",
+  "runtime_seconds": 94.91056290000051,
+  "checks_total": 20,
+  "checks_failed": 1,
+  "checks": [
+    {
+      "check_id": 1,
+      "name": "Data Integrity & Size",
+      "status": "PASS",
+      "root_cause_tag": "OK",
+      "evidence": {
+        "files": [
+          {
+            "path": "data/raw/BTC-USDT_1m.parquet",
+            "rows": 6000,
+            "duplicates": 0,
+            "monotonic": 1,
+            "missing_estimate": 0
+          },
+          {
+            "path": "data/raw/BTC-USDT_1h.parquet",
+            "rows": 27657,
+            "duplicates": 0,
+            "monotonic": 1,
+            "missing_estimate": 1
+          },
+          {
+            "path": "data/raw/ETH-USDT_1m.parquet",
+            "rows": 6000,
+            "duplicates": 0,
+            "monotonic": 1,
+            "missing_estimate": 0
+          },
+          {
+            "path": "data/raw/ETH-USDT_1h.parquet",
+            "rows": 27657,
+            "duplicates": 0,
+            "monotonic": 1,
+            "missing_estimate": 1
+          }
+        ]
+      }
+    },
+    {
+      "check_id": 2,
+      "name": "Resample/Derived Timeframe Correctness",
+      "status": "PASS",
+      "root_cause_tag": "OK",
+      "evidence": {
+        "first_5m": {
+          "timestamp": "2026-01-01T00:00:00+00:00",
+          "open": 100.0,
+          "high": 104.5,
+          "low": 99.5,
+          "close": 104.2,
+          "volume": 5.0
+        }
+      }
+    },
+    {
+      "check_id": 3,
+      "name": "Feature Cache Semantics",
+      "status": "PASS",
+      "root_cause_tag": "OK",
+      "evidence": {
+        "compute_calls": 1,
+        "memory_hit": 1,
+        "disk_hit": 1
+      }
+    },
+    {
+      "check_id": 4,
+      "name": "Leakage Harness Coverage",
+      "status": "PASS",
+      "root_cause_tag": "OK",
+      "evidence": {
+        "registered_harness": {
+          "features_checked": 52,
+          "leaks_found": 0,
+          "leaked_features": [],
+          "safe_region_end": 159,
+          "shock_index": 420,
+          "checks": [
+            {
+              "feature": "ema_20",
+              "leaked": 0,
+              "max_abs_diff": 0.0,
+              "checked_points": 160
+            },
+            {
+              "feature": "ema_50",
+              "leaked": 0,
+              "max_abs_diff": 0.0,
+              "checked_points": 160
+            },
+            {
+              "feature": "ema_100",
+              "leaked": 0,
+              "max_abs_diff": 0.0,
+              "checked_points": 160
+            },
+            {
+              "feature": "ema_200",
+              "leaked": 0,
+              "max_abs_diff": 0.0,
+              "checked_points": 160
+            },
+            {
+              "feature": "rsi_14",
+              "leaked": 0,
+              "max_abs_diff": 0.0,
+              "checked_points": 160
+            },
+            {
+              "feature": "atr_14",
+              "leaked": 0,
+              "max_abs_diff": 0.0,
+              "checked_points": 160
+            },
+            {
+              "feature": "atr_14_sma_50",
+              "leaked": 0,
+              "max_abs_diff": 0.0,
+              "checked_points": 160
+            },
+            {
+              "feature": "bb_mid_20",
+              "leaked": 0,
+              "max_abs_diff": 0.0,
+              "checked_points": 160
+            },
+            {
+              "feature": "bb_std_20",
+              "leaked": 0,
+              "max_abs_diff": 0.0,
+              "checked_points": 160
+            },
+            {
+              "feature": "bb_upper_20_2",
+              "leaked": 0,
+              "max_abs_diff": 0.0,
+              "checked_points": 160
+            },
+            {
+              "feature": "bb_lower_20_2",
+              "leaked": 0,
+              "max_abs_diff": 0.0,
+              "checked_points": 160
+            },
+            {
+              "feature": "donchian_high_20",
+              "leaked": 0,
+              "max_abs_diff": 0.0,
+              "checked_points": 160
+            },
+            {
+              "feature": "donchian_low_20",
+              "leaked": 0,
+              "max_abs_diff": 0.0,
+              "checked_points": 160
+            },
+            {
+              "feature": "donchian_high_55",
+              "leaked": 0,
+              "max_abs_diff": 0.0,
+              "checked_points": 160
+            },
+            {
+              "feature": "donchian_low_55",
+              "leaked": 0,
+              "max_abs_diff": 0.0,
+              "checked_points": 160
+            },
+            {
+              "feature": "donchian_high_100",
+              "leaked": 0,
+              "max_abs_diff": 0.0,
+              "checked_points": 160
+            },
+            {
+              "feature": "donchian_low_100",
+              "leaked": 0,
+              "max_abs_diff": 0.0,
+              "checked_points": 160
+            },
+            {
+              "feature": "trend_strength",
+              "leaked": 0,
+              "max_abs_diff": 0.0,
+              "checked_points": 160
+            },
+            {
+              "feature": "atr_percentile_252",
+              "leaked": 0,
+              "max_abs_diff": 0.0,
+              "checked_points": 160
+            },
+            {
+              "feature": "regime",
+              "leaked": 0,
+              "max_abs_diff": 0.0,
+              "checked_points": 160
+            },
+            {
+              "feature": "bb_bandwidth_20",
+              "leaked": 0,
+              "max_abs_diff": 0.0,
+              "checked_points": 160
+            },
+            {
+              "feature": "bb_bandwidth_z_120",
+              "leaked": 0,
+              "max_abs_diff": 0.0,
+              "checked_points": 160
+            },
+            {
+              "feature": "atr_pct",
+              "leaked": 0,
+              "max_abs_diff": 0.0,
+              "checked_points": 160
+            },
+            {
+              "feature": "atr_pct_rank_252",
+              "leaked": 0,
+              "max_abs_diff": 0.0,
+              "checked_points": 160
+            },
+            {
+              "feature": "ema_slope_50",
+              "leaked": 0,
+              "max_abs_diff": 0.0,
+              "checked_points": 160
+            },
+            {
+              "feature": "trend_strength_stage10",
+              "leaked": 0,
+              "max_abs_diff": 0.0,
+              "checked_points": 160
+            },
+            {
+              "feature": "trend_strength_rank_252",
+              "leaked": 0,
+              "max_abs_diff": 0.0,
+              "checked_points": 160
+            },
+            {
+              "feature": "ema_slope_flip_rate_48",
+              "leaked": 0,
+              "max_abs_diff": 0.0,
+              "checked_points": 160
+            },
+            {
+              "feature": "volume_z_120",
+              "leaked": 0,
+              "max_abs_diff": 0.0,
+              "checked_points": 160
+            },
+            {
+              "feature": "score_trend",
+              "leaked": 0,
+              "max_abs_diff": 0.0,
+              "checked_points": 160
+            },
+            {
+              "feature": "score_range",
+              "leaked": 0,
+              "max_abs_diff": 0.0,
+              "checked_points": 160
+            },
+            {
+              "feature": "score_vol_expansion",
+              "leaked": 0,
+              "max_abs_diff": 0.0,
+              "checked_points": 160
+            },
+            {
+              "feature": "score_vol_compression",
+              "leaked": 0,
+              "max_abs_diff": 0.0,
+              "checked_points": 160
+            },
+            {
+              "feature": "score_chop",
+              "leaked": 0,
+              "max_abs_diff": 0.0,
+              "checked_points": 160
+            },
+            {
+              "feature": "regime_label_stage10",
+              "leaked": 0,
+              "max_abs_diff": 0.0,
+              "checked_points": 160
+            },
+            {
+              "feature": "regime_confidence_stage10",
+              "leaked": 0,
+              "max_abs_diff": 0.0,
+              "checked_points": 160
+            },
+            {
+              "feature": "funding_rate",
+              "leaked": 0,
+              "max_abs_diff": 0.0,
+              "checked_points": 160
+            },
+            {
+              "feature": "funding_z_30",
+              "leaked": 0,
+              "max_abs_diff": 0.0,
+              "checked_points": 160
+            },
+            {
+              "feature": "funding_z_90",
+              "leaked": 0,
+              "max_abs_diff": 0.0,
+              "checked_points": 160
+            },
+            {
+              "feature": "funding_trend_24",
+              "leaked": 0,
+              "max_abs_diff": 0.0,
+              "checked_points": 160
+            },
+            {
+              "feature": "funding_abs_pctl_180d",
+              "leaked": 0,
+              "max_abs_diff": 0.0,
+              "checked_points": 160
+            },
+            {
+              "feature": "funding_extreme_pos",
+              "leaked": 0,
+              "max_abs_diff": 0.0,
+              "checked_points": 160
+            },
+            {
+              "feature": "funding_extreme_neg",
+              "leaked": 0,
+              "max_abs_diff": 0.0,
+              "checked_points": 160
+            },
+            {
+              "feature": "oi",
+              "leaked": 0,
+              "max_abs_diff": 0.0,
+              "checked_points": 160
+            },
+            {
+              "feature": "oi_chg_1",
+              "leaked": 0,
+              "max_abs_diff": 0.0,
+              "checked_points": 160
+            },
+            {
+              "feature": "oi_chg_24",
+              "leaked": 0,
+              "max_abs_diff": 0.0,
+              "checked_points": 160
+            },
+            {
+              "feature": "oi_z_30",
+              "leaked": 0,
+              "max_abs_diff": 0.0,
+              "checked_points": 160
+            },
+            {
+              "feature": "oi_to_volume",
+              "leaked": 0,
+              "max_abs_diff": 0.0,
+              "checked_points": 160
+            },
+            {
+              "feature": "oi_accel",
+              "leaked": 0,
+              "max_abs_diff": 0.0,
+              "checked_points": 160
+            },
+            {
+              "feature": "crowd_long_risk",
+              "leaked": 0,
+              "max_abs_diff": 0.0,
+              "checked_points": 160
+            },
+            {
+              "feature": "crowd_short_risk",
+              "leaked": 0,
+              "max_abs_diff": 0.0,
+              "checked_points": 160
+            },
+            {
+              "feature": "leverage_building",
+              "leaked": 0,
+              "max_abs_diff": 0.0,
+              "checked_points": 160
+            }
+          ]
+        },
+        "leaky_probe": {
+          "features_checked": 2,
+          "leaks_found": 1,
+          "leaked_features": [
+            "leaky"
+          ],
+          "safe_region_end": 119,
+          "shock_index": 200,
+          "checks": [
+            {
+              "feature": "leaky",
+              "leaked": 1,
+              "max_abs_diff": 655.4507174819782,
+              "checked_points": 120
+            },
+            {
+              "feature": "safe",
+              "leaked": 0,
+              "max_abs_diff": 0.0,
+              "checked_points": 120
+            }
+          ]
+        },
+        "missing_required": {},
+        "registered_features": 52
+      }
+    },
+    {
+      "check_id": 5,
+      "name": "Signal Score Range & Distribution",
+      "status": "PASS",
+      "root_cause_tag": "OK",
+      "evidence": {
+        "rows": [
+          {
+            "family": "price",
+            "min": -0.3211642542692429,
+            "max": 0.4236887984117579,
+            "pct_zero": 74.82011787250967
+          },
+          {
+            "family": "volatility",
+            "min": -0.19616829742146522,
+            "max": 0.19443989692231736,
+            "pct_zero": 0.09039302888961202
+          },
+          {
+            "family": "flow",
+            "min": -0.5862158488177363,
+            "max": 0.8,
+            "pct_zero": 0.04338865386701378
+          }
+        ]
+      }
+    },
+    {
+      "check_id": 6,
+      "name": "Threshold Application Logic",
+      "status": "PASS",
+      "root_cause_tag": "OK",
+      "evidence": {
+        "rows": [
+          {
+            "family": "price",
+            "entry_counts": [
+              780,
+              99,
+              6
+            ],
+            "monotonic_nonincreasing": 1
+          },
+          {
+            "family": "volatility",
+            "entry_counts": [
+              0,
+              0,
+              0
+            ],
+            "monotonic_nonincreasing": 1
+          },
+          {
+            "family": "flow",
+            "entry_counts": [
+              3113,
+              1773,
+              1051
+            ],
+            "monotonic_nonincreasing": 1
+          }
+        ]
+      }
+    },
+    {
+      "check_id": 7,
+      "name": "Entry Construction",
+      "status": "PASS",
+      "root_cause_tag": "OK",
+      "evidence": {
+        "issues": []
+      }
+    },
+    {
+      "check_id": 8,
+      "name": "Exit Construction & Engine Semantics",
+      "status": "PASS",
+      "root_cause_tag": "OK",
+      "evidence": {
+        "numpy_trade_count": 25.0,
+        "pandas_trade_count": 25.0
+      }
+    },
+    {
+      "check_id": 9,
+      "name": "Trade Generation Sanity",
+      "status": "PASS",
+      "root_cause_tag": "TRADE_SANITY",
+      "evidence": {
+        "rows": [
+          {
+            "family": "price",
+            "trade_count": 88.0,
+            "tpm": 2.2909209241783275,
+            "exposure_ratio": 0.026503236070434248
+          },
+          {
+            "family": "volatility",
+            "trade_count": 0.0,
+            "tpm": 0.0,
+            "exposure_ratio": 0.0
+          },
+          {
+            "family": "flow",
+            "trade_count": 1012.0,
+            "tpm": 26.345590628050765,
+            "exposure_ratio": 0.3330802328524424
+          }
+        ]
+      }
+    },
+    {
+      "check_id": 10,
+      "name": "Zero-trade Causes Attribution",
+      "status": "FAIL",
+      "root_cause_tag": "ZERO_TRADE_UNATTRIBUTED",
+      "evidence": {
+        "cause_counts": {
+          "MASKING_OR_POST_FILTER": 6,
+          "SCORE_BELOW_THRESHOLD": 3
+        }
+      }
+    },
+    {
+      "check_id": 11,
+      "name": "NaN / Masking Safety",
+      "status": "PASS",
+      "root_cause_tag": "NAN_PROPAGATION",
+      "evidence": {
+        "score_finite": 1
+      }
+    },
+    {
+      "check_id": 12,
+      "name": "Walkforward v2 Preconditions",
+      "status": "PASS",
+      "root_cause_tag": "OK",
+      "evidence": {
+        "run_id": "20260301_213535_687414344c27_stage13",
+        "reason_counts": {
+          "LOW_USABLE_WINDOWS": 3,
+          "ZERO_TRADE": 3,
+          "VALID": 2
+        },
+        "walkforward_executed_true_pct": 100.0
+      }
+    },
+    {
+      "check_id": 13,
+      "name": "Walkforward Window Slicing Overlap",
+      "status": "PASS",
+      "root_cause_tag": "OK",
+      "evidence": {
+        "window_count": 16,
+        "overlap_found": 0
+      }
+    },
+    {
+      "check_id": 14,
+      "name": "Monte Carlo Preconditions",
+      "status": "PASS",
+      "root_cause_tag": "OK",
+      "evidence": {
+        "trade_count_nonzero_rows": 5
+      }
+    },
+    {
+      "check_id": 15,
+      "name": "Cost Model v2 Finite-Safety and Magnitude",
+      "status": "PASS",
+      "root_cause_tag": "OK",
+      "evidence": {
+        "max_total_bps": 10.0,
+        "cap_bps": 10.0
+      }
+    },
+    {
+      "check_id": 16,
+      "name": "Execution Drag Sensitivity",
+      "status": "PASS",
+      "root_cause_tag": "OK",
+      "evidence": {
+        "base_best_exp_lcb": -20.422242749488653,
+        "stress_best_exp_lcb": -26.549900368731933
+      }
+    },
+    {
+      "check_id": 17,
+      "name": "ML Fold Construction (Stage-14.3)",
+      "status": "PASS",
+      "root_cause_tag": "OK",
+      "evidence": {
+        "run_id": "20260301_213558_8c0aee80ae62_stage14_3",
+        "folds_evaluated": 16,
+        "classification": "NO_EDGE"
+      }
+    },
+    {
+      "check_id": 18,
+      "name": "ML Regularization / Feature Limits",
+      "status": "PASS",
+      "root_cause_tag": "OK",
+      "evidence": {
+        "coef_hash_a": "e60e8e726ec574fb",
+        "coef_hash_b": "e60e8e726ec574fb",
+        "max_features": 20
+      }
+    },
+    {
+      "check_id": 19,
+      "name": "Composer / Ensemble Wiring",
+      "status": "PASS",
+      "root_cause_tag": "OK",
+      "evidence": {
+        "score_hashes": {
+          "vote": "85f4d47cdc0dc712",
+          "weighted_sum": "a0512738e3aea406",
+          "gated": "90493da46c39eb19"
+        }
+      }
+    },
+    {
+      "check_id": 20,
+      "name": "Reporting / Metric Integrity",
+      "status": "PASS",
+      "root_cause_tag": "OK",
+      "evidence": {
+        "run_id": "20260301_213535_687414344c27_stage13",
+        "reported_invalid_pct": 75.0,
+        "expected_invalid_pct": 75.0,
+        "invalid_reason_counts": {
+          "LOW_USABLE_WINDOWS": 3,
+          "ZERO_TRADE": 3,
+          "VALID": 2
+        }
+      }
+    }
+  ],
+  "top_impact_drivers": [
+    {
+      "driver": "family",
+      "variant": "price",
+      "delta_exp_lcb": -53.67363984924532,
+      "delta_invalid_pct": 25.0,
+      "delta_walkforward_pct": 0.0,
+      "delta_tpm": -4.187984720453756,
+      "impact_score": 56.257399543654394
+    },
+    {
+      "driver": "threshold",
+      "variant": "price:med",
+      "delta_exp_lcb": -53.67363984924532,
+      "delta_invalid_pct": 25.0,
+      "delta_walkforward_pct": 0.0,
+      "delta_tpm": -4.187984720453756,
+      "impact_score": 56.257399543654394
+    },
+    {
+      "driver": "threshold",
+      "variant": "price:high",
+      "delta_exp_lcb": -46.63359628190403,
+      "delta_invalid_pct": 25.0,
+      "delta_walkforward_pct": 0.0,
+      "delta_tpm": -6.354902187753212,
+      "impact_score": 49.260694325659095
+    },
+    {
+      "driver": "threshold",
+      "variant": "flow:high",
+      "delta_exp_lcb": -23.334237687136813,
+      "delta_invalid_pct": -75.0,
+      "delta_walkforward_pct": 0.0,
+      "delta_tpm": 10.730408612107883,
+      "impact_score": 31.04884585937897
+    },
+    {
+      "driver": "family",
+      "variant": "flow",
+      "delta_exp_lcb": -20.422242749488653,
+      "delta_invalid_pct": -75.0,
+      "delta_walkforward_pct": 0.0,
+      "delta_tpm": 17.689547401319597,
+      "impact_score": 28.276033697515047
+    },
+    {
+      "driver": "threshold",
+      "variant": "flow:med",
+      "delta_exp_lcb": -20.422242749488653,
+      "delta_invalid_pct": -75.0,
+      "delta_walkforward_pct": 0.0,
+      "delta_tpm": 17.689547401319597,
+      "impact_score": 28.276033697515047
+    },
+    {
+      "driver": "threshold",
+      "variant": "price:low",
+      "delta_exp_lcb": -24.326892171693878,
+      "delta_invalid_pct": -25.0,
+      "delta_walkforward_pct": 0.0,
+      "delta_tpm": 2.2294247019330955,
+      "impact_score": 26.87148066573254
+    },
+    {
+      "driver": "threshold",
+      "variant": "flow:low",
+      "delta_exp_lcb": -17.851768430954117,
+      "delta_invalid_pct": -75.0,
+      "delta_walkforward_pct": 0.0,
+      "delta_tpm": 28.399120268549602,
+      "impact_score": 25.919750836325107
+    },
+    {
+      "driver": "stage14",
+      "variant": "weighting_best",
+      "delta_exp_lcb": 0.0,
+      "delta_invalid_pct": -75.0,
+      "delta_walkforward_pct": -100.0,
+      "delta_tpm": -6.7716170853108,
+      "impact_score": 12.635432341706217
+    },
+    {
+      "driver": "walkforward",
+      "variant": "disabled_proxy",
+      "delta_exp_lcb": 0.0,
+      "delta_invalid_pct": 25.0,
+      "delta_walkforward_pct": -100.0,
+      "delta_tpm": 0.0,
+      "impact_score": 7.5
+    }
+  ],
+  "fixes_applied": [
+    {
+      "check_id": 20,
+      "name": "Reporting / Metric Integrity",
+      "status": "PASS",
+      "root_cause_tag": "BUG_INVALID_PCT_METRIC_FIXED",
+      "evidence": {
+        "invalid_pct_before": 100.0,
+        "invalid_pct_after": 75.0
+      }
+    }
+  ],
+  "before_after": {
+    "before": {
+      "master_final_verdict": "NO_EDGE",
+      "stage13_combined": {
+        "invalid_pct": 100.0,
+        "zero_trade_pct": 25.0,
+        "walkforward_executed_true_pct": 100.0,
+        "mc_trigger_rate": 75.0,
+        "best_exp_lcb": 49.78228993550447
+      },
+      "stage14_nested": {
+        "folds_evaluated": 16,
+        "consistency": 0.0625,
+        "classification": "NO_EDGE"
+      }
+    },
+    "after": {
+      "stage13_combined": {
+        "zero_trade_pct": 37.5,
+        "invalid_pct": 75.0,
+        "walkforward_executed_true_pct": 100.0,
+        "mc_trigger_rate": 62.5,
+        "tpm": 6.7716170853108,
+        "trade_count": 81.25
+      },
+      "stage14_nested": {
+        "stage": "14.3",
+        "folds_evaluated": 16,
+        "consistency": 0.0625,
+        "classification": "NO_EDGE"
+      }
+    }
+  },
+  "final_conclusion": "BUG_FOUND_AND_FIXED",
+  "warnings": [
+    "1 checks failed"
+  ],
+  "limitations": [
+    "zero-trade attribution still has unclassified buckets"
+  ]
+}

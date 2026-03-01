@@ -566,7 +566,8 @@ def _gate_metrics(rows_df: pd.DataFrame) -> dict[str, float]:
             "trade_count": 0.0,
         }
     trade_count = pd.to_numeric(rows_df["trade_count"], errors="coerce").fillna(0.0)
-    invalid = rows_df["classification"].astype(str).isin({"NO_EDGE", "INSUFFICIENT_DATA"})
+    invalid_reason = rows_df.get("invalid_reason", pd.Series(["VALID"] * len(rows_df), index=rows_df.index))
+    invalid = invalid_reason.astype(str) != "VALID"
     wf_ex = rows_df["walkforward_executed"].astype(bool)
     mc = rows_df["mc_executed"].astype(bool)
     tpm = pd.to_numeric(rows_df["tpm"], errors="coerce").fillna(0.0)
