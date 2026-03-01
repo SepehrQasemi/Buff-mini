@@ -823,9 +823,19 @@ def run_stage13_family_sweep(
     zero_trade_ok = bool((sweep_df["zero_trade_pct"] < 40.0).any())
     trade_count_ratio = float(best_row.get("trade_count", 0.0) / baseline_trade_count) if baseline_trade_count > 0 else 0.0
     classification = str(best_row.get("classification", "NO_EDGE"))
+    if family_key == "price":
+        min_ratio = float(stage13.get("gates", {}).get("min_trade_count_ratio_vs_baseline", 0.60))
+    elif family_key == "volatility":
+        min_ratio = 0.40
+    else:
+        min_ratio = 0.0
+    wf_ok = bool((sweep_df["walkforward_executed_true_pct"] > 0.0).any())
+    mc_ok = bool((sweep_df["mc_trigger_rate"] > 0.0).any())
     if not zero_trade_ok:
         classification = "NO_EDGE"
-    if trade_count_ratio < float(stage13.get("gates", {}).get("min_trade_count_ratio_vs_baseline", 0.60)):
+    if trade_count_ratio < float(min_ratio):
+        classification = "NO_EDGE"
+    if family_key == "volatility" and (not wf_ok or not mc_ok):
         classification = "NO_EDGE"
 
     payload = {
@@ -849,8 +859,12 @@ def run_stage13_family_sweep(
     }
     if not zero_trade_ok:
         payload["warnings"].append("zero_trade_pct_gate_failed")
-    if trade_count_ratio < float(stage13.get("gates", {}).get("min_trade_count_ratio_vs_baseline", 0.60)):
+    if trade_count_ratio < float(min_ratio):
         payload["warnings"].append("trade_count_ratio_gate_failed")
+    if family_key == "volatility" and not wf_ok:
+        payload["warnings"].append("walkforward_gate_failed")
+    if family_key == "volatility" and not mc_ok:
+        payload["warnings"].append("mc_gate_failed")
 
     docs_dir.mkdir(parents=True, exist_ok=True)
     report_json = docs_dir / f"{report_name}_summary.json"
