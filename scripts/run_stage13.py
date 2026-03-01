@@ -15,6 +15,13 @@ from buffmini.stage13.evaluate import (
     run_stage13_robustness,
     validate_stage13_summary_schema,
 )
+from buffmini.stage14.evaluate import (
+    run_stage13_14_master_report,
+    run_stage14_meta_family,
+    run_stage14_nested_walkforward,
+    run_stage14_threshold_calibration,
+    run_stage14_weighting,
+)
 
 
 def parse_args() -> argparse.Namespace:
@@ -132,6 +139,80 @@ def main() -> None:
         summary = dict(result["summary"])
         print(f"classification: {summary.get('classification','')}")
         print(f"horizon_consistency_score: {float(summary.get('horizon_consistency_score', 0.0)):.6f}")
+        print(f"report_md: {result['report_md']}")
+        print(f"report_json: {result['report_json']}")
+        return
+    if substage == "14.1":
+        result = run_stage14_weighting(
+            config=cfg,
+            seed=int(args.seed),
+            dry_run=bool(args.dry_run),
+            symbols=symbols,
+            timeframe=str(args.timeframe),
+            runs_root=args.runs_dir,
+            docs_dir=Path("docs"),
+            data_dir=args.data_dir,
+            derived_dir=args.derived_dir,
+            stage_tag="14.1",
+            report_name="stage14_1_weighting",
+        )
+        print(f"classification: {result['summary']['classification']}")
+        print(f"report_md: {result['report_md']}")
+        print(f"report_json: {result['report_json']}")
+        return
+    if substage == "14.2":
+        result = run_stage14_threshold_calibration(
+            config=cfg,
+            seed=int(args.seed),
+            dry_run=bool(args.dry_run),
+            symbols=symbols,
+            timeframe=str(args.timeframe),
+            runs_root=args.runs_dir,
+            docs_dir=Path("docs"),
+            data_dir=args.data_dir,
+            derived_dir=args.derived_dir,
+            stage_tag="14.2",
+            report_name="stage14_2_threshold",
+        )
+        print(f"classification: {result['summary']['classification']}")
+        print(f"report_md: {result['report_md']}")
+        print(f"report_json: {result['report_json']}")
+        return
+    if substage == "14.3":
+        result = run_stage14_nested_walkforward(
+            config=cfg,
+            seed=int(args.seed),
+            dry_run=bool(args.dry_run),
+            symbols=symbols,
+            timeframe=str(args.timeframe),
+            runs_root=args.runs_dir,
+            docs_dir=Path("docs"),
+            data_dir=args.data_dir,
+            derived_dir=args.derived_dir,
+            stage_tag="14.3",
+            report_name="stage14_3_nested_wf",
+        )
+        print(f"classification: {result['summary']['classification']}")
+        print(f"report_md: {result['report_md']}")
+        print(f"report_json: {result['report_json']}")
+        return
+    if substage == "14.4":
+        result = run_stage14_meta_family(
+            config=cfg,
+            seed=int(args.seed),
+            dry_run=bool(args.dry_run),
+            symbols=symbols,
+            timeframe=str(args.timeframe),
+            runs_root=args.runs_dir,
+            docs_dir=Path("docs"),
+            data_dir=args.data_dir,
+            derived_dir=args.derived_dir,
+            stage_tag="14.4",
+            report_name="stage14_4_meta_family",
+        )
+        master = run_stage13_14_master_report(docs_dir=Path("docs"))
+        print(f"classification: {result['summary']['classification']}")
+        print(f"master_final_verdict: {master.get('final_verdict','')}")
         print(f"report_md: {result['report_md']}")
         print(f"report_json: {result['report_json']}")
         return
