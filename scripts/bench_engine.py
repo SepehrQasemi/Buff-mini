@@ -16,7 +16,7 @@ from buffmini.backtest.engine import run_backtest
 from buffmini.baselines.stage0 import generate_signals, trend_pullback
 from buffmini.config import compute_config_hash, load_config
 from buffmini.constants import DEFAULT_CONFIG_PATH, DERIVED_DATA_DIR, RAW_DATA_DIR, RUNS_DIR
-from buffmini.data.cache import FeatureFrameCache, ohlcv_data_hash
+from buffmini.data.cache import FeatureFrameCache, compute_features_cached, ohlcv_data_hash
 from buffmini.data.features import calculate_features
 from buffmini.data.store import build_data_store
 from buffmini.data.storage import save_parquet
@@ -103,6 +103,8 @@ def _bench_once(cfg: dict[str, Any], data_dir: Path, derived_dir: Path) -> dict[
         resample_source=str(cfg.get("data", {}).get("resample_source", "direct")),
         derived_dir=derived_dir,
         partial_last_bucket=bool(cfg.get("data", {}).get("partial_last_bucket", False)),
+        config_hash=compute_config_hash(cfg),
+        resolved_end_ts=str(cfg.get("universe", {}).get("resolved_end_ts") or ""),
     )
     symbols = list(cfg["universe"]["symbols"])
     operational_tf = str(cfg["universe"]["operational_timeframe"])
@@ -114,9 +116,10 @@ def _bench_once(cfg: dict[str, Any], data_dir: Path, derived_dir: Path) -> dict[
     t1 = time.perf_counter()
     feature_cache = FeatureFrameCache()
     features_by_symbol: dict[str, pd.DataFrame] = {}
+    resolved_end_ts = str(cfg.get("universe", {}).get("resolved_end_ts") or "")
     for symbol, frame in frames.items():
         data_hash = ohlcv_data_hash(frame)
-        params_hash = stable_hash(
+        feature_config_hash = stable_hash(
             {
                 "timeframe": operational_tf,
                 "include_futures_extras": bool(cfg.get("data", {}).get("include_futures_extras", False)),
@@ -125,9 +128,13 @@ def _bench_once(cfg: dict[str, Any], data_dir: Path, derived_dir: Path) -> dict[
             },
             length=16,
         )
-        key = feature_cache.key(symbol=symbol, timeframe=operational_tf, data_hash=data_hash, params_hash=params_hash)
-        features, _ = feature_cache.get_or_build(
-            key=key,
+        features, _, _ = compute_features_cached(
+            cache=feature_cache,
+            symbol=str(symbol),
+            timeframe=str(operational_tf),
+            resolved_end_ts=resolved_end_ts,
+            feature_config_hash=str(feature_config_hash),
+            data_hash=str(data_hash),
             builder=lambda r=frame, s=symbol: calculate_features(
                 r,
                 config=cfg,
@@ -135,7 +142,6 @@ def _bench_once(cfg: dict[str, Any], data_dir: Path, derived_dir: Path) -> dict[
                 timeframe=operational_tf,
                 derived_data_dir=derived_dir,
             ),
-            meta={"symbol": symbol, "timeframe": operational_tf, "data_hash": data_hash, "params_hash": params_hash},
         )
         features_by_symbol[symbol] = features
     timings["features_seconds"] = time.perf_counter() - t1
@@ -266,4 +272,3 @@ def _timeframe_delta(timeframe: str) -> pd.Timedelta:
 
 if __name__ == "__main__":
     main()
-

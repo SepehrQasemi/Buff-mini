@@ -16,7 +16,7 @@ from buffmini.backtest.engine import run_backtest
 from buffmini.baselines.stage0 import generate_signals, trend_pullback
 from buffmini.config import compute_config_hash, load_config
 from buffmini.constants import DEFAULT_CONFIG_PATH, DERIVED_DATA_DIR, RAW_DATA_DIR
-from buffmini.data.cache import ohlcv_data_hash
+from buffmini.data.cache import FeatureFrameCache, compute_features_cached, ohlcv_data_hash
 from buffmini.data.features import calculate_features
 from buffmini.data.store import build_data_store
 from buffmini.utils.hashing import stable_hash
@@ -94,6 +94,8 @@ def _evaluate_single_timeframe(
     data_dir: Path,
     derived_dir: Path,
 ) -> dict[str, float]:
+    feature_cache_enabled = bool(cfg.get("data", {}).get("feature_cache", {}).get("enabled", True))
+    feature_cache = FeatureFrameCache() if feature_cache_enabled else None
     store = build_data_store(
         backend=str(cfg.get("data", {}).get("backend", "parquet")),
         data_dir=data_dir,
@@ -101,15 +103,41 @@ def _evaluate_single_timeframe(
         resample_source=str(cfg["data"]["resample_source"]),
         derived_dir=derived_dir,
         partial_last_bucket=bool(cfg.get("data", {}).get("partial_last_bucket", False)),
+        config_hash=compute_config_hash(cfg),
+        resolved_end_ts=str(cfg.get("universe", {}).get("resolved_end_ts") or ""),
     )
     strategy = trend_pullback()
     metrics_rows: list[dict[str, float]] = []
     pnls: list[float] = []
     hashes: list[str] = []
+    resolved_end_ts = str(cfg.get("universe", {}).get("resolved_end_ts") or "")
     for symbol in symbols:
         frame = store.load_ohlcv(symbol=symbol, timeframe=timeframe)
         hashes.append(ohlcv_data_hash(frame))
-        features = calculate_features(frame, config=cfg, symbol=symbol, timeframe=timeframe, derived_data_dir=derived_dir)
+        feature_config_hash = stable_hash(
+            {
+                "timeframe": str(timeframe),
+                "include_futures_extras": bool(cfg.get("data", {}).get("include_futures_extras", False)),
+                "futures_extras": cfg.get("data", {}).get("futures_extras", {}),
+                "cost_model": cfg.get("cost_model", {}),
+            },
+            length=16,
+        )
+        features, _, _ = compute_features_cached(
+            cache=feature_cache,
+            symbol=str(symbol),
+            timeframe=str(timeframe),
+            resolved_end_ts=resolved_end_ts,
+            feature_config_hash=str(feature_config_hash),
+            data_hash=str(hashes[-1]),
+            builder=lambda f=frame, s=symbol: calculate_features(
+                f,
+                config=cfg,
+                symbol=s,
+                timeframe=timeframe,
+                derived_data_dir=derived_dir,
+            ),
+        )
         features["signal"] = generate_signals(features, strategy=strategy, gating_mode="none")
         result = run_backtest(
             frame=features,
@@ -235,4 +263,3 @@ def main() -> None:
 
 if __name__ == "__main__":
     main()
-

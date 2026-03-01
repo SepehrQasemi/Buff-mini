@@ -8,7 +8,7 @@ from typing import Any, Protocol
 import pandas as pd
 
 from buffmini.constants import RAW_DATA_DIR
-from buffmini.data.cache import DerivedTimeframeCache, ohlcv_data_hash
+from buffmini.data.cache import DerivedTimeframeCache, get_or_build_derived_ohlcv, ohlcv_data_hash
 from buffmini.data.resample import resample_ohlcv, resample_settings_hash
 from buffmini.data.storage import load_parquet, parquet_path, save_parquet
 from buffmini.utils.hashing import stable_hash
@@ -47,11 +47,15 @@ class ParquetStore:
         resample_source: str = "direct",
         derived_dir: str | Path | None = None,
         partial_last_bucket: bool = False,
+        config_hash: str | None = None,
+        resolved_end_ts: str | None = None,
     ) -> None:
         self.data_dir = Path(data_dir)
         self.base_timeframe = str(base_timeframe).strip().lower() if base_timeframe else None
         self.resample_source = str(resample_source).strip().lower()
         self.partial_last_bucket = bool(partial_last_bucket)
+        self.config_hash = str(config_hash or "na")
+        self.resolved_end_ts = str(resolved_end_ts or "")
         resolved_derived_dir = Path(derived_dir) if derived_dir is not None else (self.data_dir.parent / "derived")
         self.derived_cache = DerivedTimeframeCache(resolved_derived_dir)
 
@@ -79,11 +83,22 @@ class ParquetStore:
                 ),
                 length=16,
             )
-            frame, _ = self.derived_cache.get_or_build(
+            frame, _ = get_or_build_derived_ohlcv(
+                cache=self.derived_cache,
                 symbol=symbol,
-                timeframe=resolved_timeframe,
-                source_hash=source_hash,
-                settings_hash=settings_hash,
+                base_tf=str(self.base_timeframe),
+                target_tf=resolved_timeframe,
+                start_ts=_stringify_ts(start),
+                end_ts=_stringify_ts(end),
+                resolved_end_ts=self.resolved_end_ts or _stringify_ts(end),
+                data_hash=stable_hash(
+                    {
+                        "base_hash": source_hash,
+                        "settings_hash": settings_hash,
+                    },
+                    length=16,
+                ),
+                config_hash=self.config_hash,
                 builder=lambda: resample_ohlcv(
                     base_frame,
                     target_timeframe=resolved_timeframe,
@@ -311,6 +326,8 @@ def build_data_store(
     resample_source: str = "direct",
     derived_dir: str | Path | None = None,
     partial_last_bucket: bool = False,
+    config_hash: str | None = None,
+    resolved_end_ts: str | None = None,
 ) -> DataStore:
     """Construct the configured datastore."""
 
@@ -322,6 +339,8 @@ def build_data_store(
         resample_source=resample_source,
         derived_dir=derived_dir,
         partial_last_bucket=partial_last_bucket,
+        config_hash=config_hash,
+        resolved_end_ts=resolved_end_ts,
     )
 
 
@@ -348,3 +367,9 @@ def _as_timestamp(value: str | pd.Timestamp) -> pd.Timestamp:
     if ts.tzinfo is None:
         return ts.tz_localize("UTC")
     return ts.tz_convert("UTC")
+
+
+def _stringify_ts(value: str | pd.Timestamp | None) -> str | None:
+    if value is None:
+        return None
+    return _as_timestamp(value).isoformat()
