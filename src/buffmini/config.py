@@ -421,6 +421,89 @@ STAGE12_4_DEFAULTS = {
     },
 }
 
+STAGE13_DEFAULTS = {
+    "enabled": False,
+    "seed": 42,
+    "families": {
+        "enabled": ["price", "volatility", "flow"],
+    },
+    "composer": {
+        "mode": "weighted_sum",
+        "weights": {"price": 0.45, "volatility": 0.35, "flow": 0.20},
+        "gated": {
+            "gate_family": "volatility",
+            "gate_threshold": 0.20,
+            "entry_threshold": 0.25,
+        },
+    },
+    "gates": {
+        "zero_trade_pct_max": 40.0,
+        "min_trade_count_ratio_vs_baseline": 0.60,
+        "min_walkforward_executed_true_pct": 1.0,
+        "min_mc_trigger_rate": 1.0,
+    },
+    "price": {
+        "entry_threshold": 0.30,
+        "donchian_period": 20,
+        "retest_bars": 6,
+        "retest_atr_k": 0.8,
+        "trend_pullback_k": 1.2,
+        "false_break_lookback": 4,
+        "seq_min_len": 2,
+        "false_signal_horizon_bars": 6,
+        "sweep_grid": {
+            "entry_threshold": [0.22, 0.28, 0.34, 0.40],
+            "retest_atr_k": [0.6, 0.8, 1.0],
+            "trend_pullback_k": [0.8, 1.2, 1.6],
+        },
+    },
+    "volatility": {
+        "entry_threshold": 0.28,
+        "compression_z": -0.8,
+        "expansion_z": 0.8,
+        "exhaustion_rank": 0.9,
+        "atr_slope_window": 12,
+        "vol_wide_stop_mult": 1.10,
+        "sweep_grid": {
+            "entry_threshold": [0.22, 0.28, 0.34],
+            "compression_z": [-1.2, -0.8, -0.4],
+            "expansion_z": [0.6, 0.8, 1.0],
+        },
+    },
+    "flow": {
+        "entry_threshold": 0.30,
+        "volume_window": 48,
+        "anomaly_cap": 3.0,
+        "riskoff_hard_gate": False,
+        "risk_off_penalty": 0.85,
+        "sweep_grid": {
+            "entry_threshold": [0.25, 0.30, 0.35],
+            "anomaly_cap": [2.0, 3.0, 4.0],
+        },
+    },
+}
+
+STAGE14_DEFAULTS = {
+    "enabled": False,
+    "seed": 42,
+    "models": {"allowed": ["logreg_l2", "ridge"]},
+    "max_features": 20,
+    "trade_rate_bounds": {"min_tpm": 5.0, "max_tpm": 80.0},
+    "weighting": {
+        "enabled": True,
+        "l2_grid": [0.1, 0.3, 1.0, 3.0],
+        "coef_clip": 3.0,
+        "drift_threshold": 0.40,
+    },
+    "threshold_calibration": {
+        "enabled": True,
+        "low_grid": [0.20, 0.25, 0.30],
+        "high_grid": [0.35, 0.45, 0.55],
+    },
+    "nested_walkforward": {"enabled": True, "folds": 3},
+    "meta_family": {"enabled": False, "min_families_required": 2},
+}
+
 UI_STAGE5_DEFAULTS = {
     "stage5": {
         "presets": {
@@ -1318,6 +1401,110 @@ def validate_config(config: ConfigDict) -> None:
     if not isinstance(cache_cfg.get("enabled", True), bool):
         raise ValueError("evaluation.stage12_4.cache.enabled must be bool")
     evaluation["stage12_4"] = stage12_4
+
+    stage13 = _merge_defaults(STAGE13_DEFAULTS, evaluation.get("stage13", {}))
+    if not isinstance(stage13.get("enabled", False), bool):
+        raise ValueError("evaluation.stage13.enabled must be bool")
+    if int(stage13.get("seed", 42)) < 0:
+        raise ValueError("evaluation.stage13.seed must be >= 0")
+    families_cfg = stage13.get("families", {})
+    enabled_families = families_cfg.get("enabled", [])
+    if not isinstance(enabled_families, list) or not enabled_families:
+        raise ValueError("evaluation.stage13.families.enabled must be a non-empty list")
+    allowed_families = {"price", "volatility", "flow"}
+    if any(str(name) not in allowed_families for name in enabled_families):
+        raise ValueError("evaluation.stage13.families.enabled contains unsupported family")
+    composer_cfg = stage13.get("composer", {})
+    if str(composer_cfg.get("mode", "weighted_sum")) not in {"vote", "weighted_sum", "gated"}:
+        raise ValueError("evaluation.stage13.composer.mode must be vote|weighted_sum|gated")
+    weights_cfg = composer_cfg.get("weights", {})
+    if not isinstance(weights_cfg, dict):
+        raise ValueError("evaluation.stage13.composer.weights must be mapping")
+    for family in allowed_families:
+        if float(weights_cfg.get(family, 0.0)) < 0:
+            raise ValueError("evaluation.stage13.composer.weights values must be >= 0")
+    gated_cfg = composer_cfg.get("gated", {})
+    if str(gated_cfg.get("gate_family", "volatility")) not in allowed_families:
+        raise ValueError("evaluation.stage13.composer.gated.gate_family must be a supported family")
+    if not 0 <= float(gated_cfg.get("gate_threshold", 0.2)) <= 1:
+        raise ValueError("evaluation.stage13.composer.gated.gate_threshold must be in [0,1]")
+    if not 0 <= float(gated_cfg.get("entry_threshold", 0.25)) <= 1:
+        raise ValueError("evaluation.stage13.composer.gated.entry_threshold must be in [0,1]")
+    gates_cfg = stage13.get("gates", {})
+    if float(gates_cfg.get("zero_trade_pct_max", 40.0)) < 0:
+        raise ValueError("evaluation.stage13.gates.zero_trade_pct_max must be >= 0")
+    if not 0 <= float(gates_cfg.get("min_trade_count_ratio_vs_baseline", 0.6)) <= 1:
+        raise ValueError("evaluation.stage13.gates.min_trade_count_ratio_vs_baseline must be in [0,1]")
+    if float(gates_cfg.get("min_walkforward_executed_true_pct", 1.0)) < 0:
+        raise ValueError("evaluation.stage13.gates.min_walkforward_executed_true_pct must be >= 0")
+    if float(gates_cfg.get("min_mc_trigger_rate", 1.0)) < 0:
+        raise ValueError("evaluation.stage13.gates.min_mc_trigger_rate must be >= 0")
+    for family in ("price", "volatility", "flow"):
+        params = stage13.get(family, {})
+        if not isinstance(params, dict):
+            raise ValueError(f"evaluation.stage13.{family} must be mapping")
+        if float(params.get("entry_threshold", 0.3)) < 0 or float(params.get("entry_threshold", 0.3)) > 1:
+            raise ValueError(f"evaluation.stage13.{family}.entry_threshold must be in [0,1]")
+        sweep_grid = params.get("sweep_grid", {})
+        if not isinstance(sweep_grid, dict):
+            raise ValueError(f"evaluation.stage13.{family}.sweep_grid must be mapping")
+        for key, values in sweep_grid.items():
+            if not isinstance(values, list) or not values:
+                raise ValueError(f"evaluation.stage13.{family}.sweep_grid.{key} must be a non-empty list")
+    evaluation["stage13"] = stage13
+
+    stage14 = _merge_defaults(STAGE14_DEFAULTS, evaluation.get("stage14", {}))
+    if not isinstance(stage14.get("enabled", False), bool):
+        raise ValueError("evaluation.stage14.enabled must be bool")
+    if int(stage14.get("seed", 42)) < 0:
+        raise ValueError("evaluation.stage14.seed must be >= 0")
+    models = stage14.get("models", {}).get("allowed", [])
+    if not isinstance(models, list) or not models:
+        raise ValueError("evaluation.stage14.models.allowed must be non-empty list")
+    if not set(str(name) for name in models).issubset({"logreg_l2", "ridge"}):
+        raise ValueError("evaluation.stage14.models.allowed supports logreg_l2|ridge")
+    max_features = int(stage14.get("max_features", 20))
+    if max_features < 1 or max_features > 20:
+        raise ValueError("evaluation.stage14.max_features must be in [1,20]")
+    trade_bounds = stage14.get("trade_rate_bounds", {})
+    min_tpm = float(trade_bounds.get("min_tpm", 5.0))
+    max_tpm = float(trade_bounds.get("max_tpm", 80.0))
+    if min_tpm < 0:
+        raise ValueError("evaluation.stage14.trade_rate_bounds.min_tpm must be >= 0")
+    if max_tpm <= 0 or max_tpm < min_tpm:
+        raise ValueError("evaluation.stage14.trade_rate_bounds.max_tpm must be >= min_tpm and > 0")
+    weighting_cfg = stage14.get("weighting", {})
+    if not isinstance(weighting_cfg.get("enabled", True), bool):
+        raise ValueError("evaluation.stage14.weighting.enabled must be bool")
+    l2_grid = weighting_cfg.get("l2_grid", [])
+    if not isinstance(l2_grid, list) or not l2_grid:
+        raise ValueError("evaluation.stage14.weighting.l2_grid must be non-empty list")
+    if any(float(v) <= 0 for v in l2_grid):
+        raise ValueError("evaluation.stage14.weighting.l2_grid values must be > 0")
+    if float(weighting_cfg.get("coef_clip", 3.0)) <= 0:
+        raise ValueError("evaluation.stage14.weighting.coef_clip must be > 0")
+    if float(weighting_cfg.get("drift_threshold", 0.4)) < 0:
+        raise ValueError("evaluation.stage14.weighting.drift_threshold must be >= 0")
+    thr_cfg = stage14.get("threshold_calibration", {})
+    if not isinstance(thr_cfg.get("enabled", True), bool):
+        raise ValueError("evaluation.stage14.threshold_calibration.enabled must be bool")
+    for key in ("low_grid", "high_grid"):
+        values = thr_cfg.get(key, [])
+        if not isinstance(values, list) or not values:
+            raise ValueError(f"evaluation.stage14.threshold_calibration.{key} must be non-empty list")
+        if any(float(v) < 0 or float(v) > 1 for v in values):
+            raise ValueError(f"evaluation.stage14.threshold_calibration.{key} values must be in [0,1]")
+    nested = stage14.get("nested_walkforward", {})
+    if not isinstance(nested.get("enabled", True), bool):
+        raise ValueError("evaluation.stage14.nested_walkforward.enabled must be bool")
+    if int(nested.get("folds", 3)) < 2:
+        raise ValueError("evaluation.stage14.nested_walkforward.folds must be >= 2")
+    meta_cfg = stage14.get("meta_family", {})
+    if not isinstance(meta_cfg.get("enabled", False), bool):
+        raise ValueError("evaluation.stage14.meta_family.enabled must be bool")
+    if int(meta_cfg.get("min_families_required", 2)) < 2:
+        raise ValueError("evaluation.stage14.meta_family.min_families_required must be >= 2")
+    evaluation["stage14"] = stage14
 
     ui = _merge_defaults(UI_STAGE5_DEFAULTS, config.get("ui", {}))
     stage5_ui = ui.get("stage5", {})

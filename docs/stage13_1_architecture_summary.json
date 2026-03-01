@@ -1,0 +1,513 @@
+{
+  "stage": "13",
+  "stage_tag": "13.1",
+  "run_id": "20260301_140450_0941cd201d3c_stage13",
+  "enabled": 1,
+  "symbols": [
+    "BTC/USDT",
+    "ETH/USDT"
+  ],
+  "timeframe": "1h",
+  "seed": 42,
+  "dry_run": 1,
+  "config_hash": "18424aca2b5d",
+  "data_hash": "333ea89bbcdcdac8",
+  "baseline_hash": "846d11b8dfee2204",
+  "leakage": {
+    "features_checked": 52,
+    "leaks_found": 0,
+    "leaked_features": [],
+    "safe_region_end": 159,
+    "shock_index": 420,
+    "checks": [
+      {
+        "feature": "ema_20",
+        "leaked": 0,
+        "max_abs_diff": 0.0,
+        "checked_points": 160
+      },
+      {
+        "feature": "ema_50",
+        "leaked": 0,
+        "max_abs_diff": 0.0,
+        "checked_points": 160
+      },
+      {
+        "feature": "ema_100",
+        "leaked": 0,
+        "max_abs_diff": 0.0,
+        "checked_points": 160
+      },
+      {
+        "feature": "ema_200",
+        "leaked": 0,
+        "max_abs_diff": 0.0,
+        "checked_points": 160
+      },
+      {
+        "feature": "rsi_14",
+        "leaked": 0,
+        "max_abs_diff": 0.0,
+        "checked_points": 160
+      },
+      {
+        "feature": "atr_14",
+        "leaked": 0,
+        "max_abs_diff": 0.0,
+        "checked_points": 160
+      },
+      {
+        "feature": "atr_14_sma_50",
+        "leaked": 0,
+        "max_abs_diff": 0.0,
+        "checked_points": 160
+      },
+      {
+        "feature": "bb_mid_20",
+        "leaked": 0,
+        "max_abs_diff": 0.0,
+        "checked_points": 160
+      },
+      {
+        "feature": "bb_std_20",
+        "leaked": 0,
+        "max_abs_diff": 0.0,
+        "checked_points": 160
+      },
+      {
+        "feature": "bb_upper_20_2",
+        "leaked": 0,
+        "max_abs_diff": 0.0,
+        "checked_points": 160
+      },
+      {
+        "feature": "bb_lower_20_2",
+        "leaked": 0,
+        "max_abs_diff": 0.0,
+        "checked_points": 160
+      },
+      {
+        "feature": "donchian_high_20",
+        "leaked": 0,
+        "max_abs_diff": 0.0,
+        "checked_points": 160
+      },
+      {
+        "feature": "donchian_low_20",
+        "leaked": 0,
+        "max_abs_diff": 0.0,
+        "checked_points": 160
+      },
+      {
+        "feature": "donchian_high_55",
+        "leaked": 0,
+        "max_abs_diff": 0.0,
+        "checked_points": 160
+      },
+      {
+        "feature": "donchian_low_55",
+        "leaked": 0,
+        "max_abs_diff": 0.0,
+        "checked_points": 160
+      },
+      {
+        "feature": "donchian_high_100",
+        "leaked": 0,
+        "max_abs_diff": 0.0,
+        "checked_points": 160
+      },
+      {
+        "feature": "donchian_low_100",
+        "leaked": 0,
+        "max_abs_diff": 0.0,
+        "checked_points": 160
+      },
+      {
+        "feature": "trend_strength",
+        "leaked": 0,
+        "max_abs_diff": 0.0,
+        "checked_points": 160
+      },
+      {
+        "feature": "atr_percentile_252",
+        "leaked": 0,
+        "max_abs_diff": 0.0,
+        "checked_points": 160
+      },
+      {
+        "feature": "regime",
+        "leaked": 0,
+        "max_abs_diff": 0.0,
+        "checked_points": 160
+      },
+      {
+        "feature": "bb_bandwidth_20",
+        "leaked": 0,
+        "max_abs_diff": 0.0,
+        "checked_points": 160
+      },
+      {
+        "feature": "bb_bandwidth_z_120",
+        "leaked": 0,
+        "max_abs_diff": 0.0,
+        "checked_points": 160
+      },
+      {
+        "feature": "atr_pct",
+        "leaked": 0,
+        "max_abs_diff": 0.0,
+        "checked_points": 160
+      },
+      {
+        "feature": "atr_pct_rank_252",
+        "leaked": 0,
+        "max_abs_diff": 0.0,
+        "checked_points": 160
+      },
+      {
+        "feature": "ema_slope_50",
+        "leaked": 0,
+        "max_abs_diff": 0.0,
+        "checked_points": 160
+      },
+      {
+        "feature": "trend_strength_stage10",
+        "leaked": 0,
+        "max_abs_diff": 0.0,
+        "checked_points": 160
+      },
+      {
+        "feature": "trend_strength_rank_252",
+        "leaked": 0,
+        "max_abs_diff": 0.0,
+        "checked_points": 160
+      },
+      {
+        "feature": "ema_slope_flip_rate_48",
+        "leaked": 0,
+        "max_abs_diff": 0.0,
+        "checked_points": 160
+      },
+      {
+        "feature": "volume_z_120",
+        "leaked": 0,
+        "max_abs_diff": 0.0,
+        "checked_points": 160
+      },
+      {
+        "feature": "score_trend",
+        "leaked": 0,
+        "max_abs_diff": 0.0,
+        "checked_points": 160
+      },
+      {
+        "feature": "score_range",
+        "leaked": 0,
+        "max_abs_diff": 0.0,
+        "checked_points": 160
+      },
+      {
+        "feature": "score_vol_expansion",
+        "leaked": 0,
+        "max_abs_diff": 0.0,
+        "checked_points": 160
+      },
+      {
+        "feature": "score_vol_compression",
+        "leaked": 0,
+        "max_abs_diff": 0.0,
+        "checked_points": 160
+      },
+      {
+        "feature": "score_chop",
+        "leaked": 0,
+        "max_abs_diff": 0.0,
+        "checked_points": 160
+      },
+      {
+        "feature": "regime_label_stage10",
+        "leaked": 0,
+        "max_abs_diff": 0.0,
+        "checked_points": 160
+      },
+      {
+        "feature": "regime_confidence_stage10",
+        "leaked": 0,
+        "max_abs_diff": 0.0,
+        "checked_points": 160
+      },
+      {
+        "feature": "funding_rate",
+        "leaked": 0,
+        "max_abs_diff": 0.0,
+        "checked_points": 160
+      },
+      {
+        "feature": "funding_z_30",
+        "leaked": 0,
+        "max_abs_diff": 0.0,
+        "checked_points": 160
+      },
+      {
+        "feature": "funding_z_90",
+        "leaked": 0,
+        "max_abs_diff": 0.0,
+        "checked_points": 160
+      },
+      {
+        "feature": "funding_trend_24",
+        "leaked": 0,
+        "max_abs_diff": 0.0,
+        "checked_points": 160
+      },
+      {
+        "feature": "funding_abs_pctl_180d",
+        "leaked": 0,
+        "max_abs_diff": 0.0,
+        "checked_points": 160
+      },
+      {
+        "feature": "funding_extreme_pos",
+        "leaked": 0,
+        "max_abs_diff": 0.0,
+        "checked_points": 160
+      },
+      {
+        "feature": "funding_extreme_neg",
+        "leaked": 0,
+        "max_abs_diff": 0.0,
+        "checked_points": 160
+      },
+      {
+        "feature": "oi",
+        "leaked": 0,
+        "max_abs_diff": 0.0,
+        "checked_points": 160
+      },
+      {
+        "feature": "oi_chg_1",
+        "leaked": 0,
+        "max_abs_diff": 0.0,
+        "checked_points": 160
+      },
+      {
+        "feature": "oi_chg_24",
+        "leaked": 0,
+        "max_abs_diff": 0.0,
+        "checked_points": 160
+      },
+      {
+        "feature": "oi_z_30",
+        "leaked": 0,
+        "max_abs_diff": 0.0,
+        "checked_points": 160
+      },
+      {
+        "feature": "oi_to_volume",
+        "leaked": 0,
+        "max_abs_diff": 0.0,
+        "checked_points": 160
+      },
+      {
+        "feature": "oi_accel",
+        "leaked": 0,
+        "max_abs_diff": 0.0,
+        "checked_points": 160
+      },
+      {
+        "feature": "crowd_long_risk",
+        "leaked": 0,
+        "max_abs_diff": 0.0,
+        "checked_points": 160
+      },
+      {
+        "feature": "crowd_short_risk",
+        "leaked": 0,
+        "max_abs_diff": 0.0,
+        "checked_points": 160
+      },
+      {
+        "feature": "leverage_building",
+        "leaked": 0,
+        "max_abs_diff": 0.0,
+        "checked_points": 160
+      }
+    ]
+  },
+  "metrics": {
+    "zero_trade_pct": 50.0,
+    "invalid_pct": 100.0,
+    "walkforward_executed_true_pct": 0.0,
+    "mc_trigger_rate": 50.0,
+    "tpm": 4.689453939141309,
+    "trade_count": 15.625
+  },
+  "top_rows": [
+    {
+      "symbol": "BTC/USDT",
+      "timeframe": "1h",
+      "family": "volatility",
+      "composer_mode": "none",
+      "trade_count": 0.0,
+      "tpm": 0.0,
+      "PF": 0.0,
+      "expectancy": 0.0,
+      "exp_lcb": 0.0,
+      "maxDD": 0.0,
+      "walkforward_executed": 0,
+      "walkforward_usable_windows": 0,
+      "walkforward_expected_windows": 0,
+      "walkforward_classification": "INSUFFICIENT_DATA",
+      "mc_executed": 0,
+      "mc_p_ruin": null,
+      "invalid_reason": "ZERO_TRADE",
+      "classification": "INSUFFICIENT_DATA"
+    },
+    {
+      "symbol": "BTC/USDT",
+      "timeframe": "1h",
+      "family": "combined",
+      "composer_mode": "weighted_sum",
+      "trade_count": 0.0,
+      "tpm": 0.0,
+      "PF": 0.0,
+      "expectancy": 0.0,
+      "exp_lcb": 0.0,
+      "maxDD": 0.0,
+      "walkforward_executed": 0,
+      "walkforward_usable_windows": 0,
+      "walkforward_expected_windows": 0,
+      "walkforward_classification": "INSUFFICIENT_DATA",
+      "mc_executed": 0,
+      "mc_p_ruin": null,
+      "invalid_reason": "ZERO_TRADE",
+      "classification": "INSUFFICIENT_DATA"
+    },
+    {
+      "symbol": "ETH/USDT",
+      "timeframe": "1h",
+      "family": "volatility",
+      "composer_mode": "none",
+      "trade_count": 0.0,
+      "tpm": 0.0,
+      "PF": 0.0,
+      "expectancy": 0.0,
+      "exp_lcb": 0.0,
+      "maxDD": 0.0,
+      "walkforward_executed": 0,
+      "walkforward_usable_windows": 0,
+      "walkforward_expected_windows": 0,
+      "walkforward_classification": "INSUFFICIENT_DATA",
+      "mc_executed": 0,
+      "mc_p_ruin": null,
+      "invalid_reason": "ZERO_TRADE",
+      "classification": "INSUFFICIENT_DATA"
+    },
+    {
+      "symbol": "ETH/USDT",
+      "timeframe": "1h",
+      "family": "combined",
+      "composer_mode": "weighted_sum",
+      "trade_count": 0.0,
+      "tpm": 0.0,
+      "PF": 0.0,
+      "expectancy": 0.0,
+      "exp_lcb": 0.0,
+      "maxDD": 0.0,
+      "walkforward_executed": 0,
+      "walkforward_usable_windows": 0,
+      "walkforward_expected_windows": 0,
+      "walkforward_classification": "INSUFFICIENT_DATA",
+      "mc_executed": 0,
+      "mc_p_ruin": null,
+      "invalid_reason": "ZERO_TRADE",
+      "classification": "INSUFFICIENT_DATA"
+    },
+    {
+      "symbol": "ETH/USDT",
+      "timeframe": "1h",
+      "family": "price",
+      "composer_mode": "none",
+      "trade_count": 10.0,
+      "tpm": 3.0012505210504377,
+      "PF": 1.289905670431899,
+      "expectancy": 23.29270553232728,
+      "exp_lcb": -39.07769114006838,
+      "maxDD": 0.06674347898801752,
+      "walkforward_executed": 0,
+      "walkforward_usable_windows": 0,
+      "walkforward_expected_windows": 0,
+      "walkforward_classification": "INSUFFICIENT_DATA",
+      "mc_executed": 1,
+      "mc_p_ruin": 0.0,
+      "invalid_reason": "NO_WF",
+      "classification": "INSUFFICIENT_DATA"
+    },
+    {
+      "symbol": "ETH/USDT",
+      "timeframe": "1h",
+      "family": "flow",
+      "composer_mode": "none",
+      "trade_count": 43.0,
+      "tpm": 12.905377240516883,
+      "PF": 0.9052613630854253,
+      "expectancy": -10.14127624745821,
+      "exp_lcb": -42.61601882358132,
+      "maxDD": 0.1419183301521193,
+      "walkforward_executed": 0,
+      "walkforward_usable_windows": 0,
+      "walkforward_expected_windows": 0,
+      "walkforward_classification": "INSUFFICIENT_DATA",
+      "mc_executed": 1,
+      "mc_p_ruin": 0.0,
+      "invalid_reason": "NO_WF",
+      "classification": "INSUFFICIENT_DATA"
+    },
+    {
+      "symbol": "BTC/USDT",
+      "timeframe": "1h",
+      "family": "flow",
+      "composer_mode": "none",
+      "trade_count": 52.0,
+      "tpm": 15.606502709462276,
+      "PF": 0.5616343140161305,
+      "expectancy": -47.83670660151333,
+      "exp_lcb": -71.58984379892152,
+      "maxDD": 0.34483915532444454,
+      "walkforward_executed": 0,
+      "walkforward_usable_windows": 0,
+      "walkforward_expected_windows": 0,
+      "walkforward_classification": "INSUFFICIENT_DATA",
+      "mc_executed": 1,
+      "mc_p_ruin": 0.0806,
+      "invalid_reason": "NO_WF",
+      "classification": "INSUFFICIENT_DATA"
+    },
+    {
+      "symbol": "BTC/USDT",
+      "timeframe": "1h",
+      "family": "price",
+      "composer_mode": "none",
+      "trade_count": 20.0,
+      "tpm": 6.002501042100875,
+      "PF": 0.6927691807498648,
+      "expectancy": -34.82025886815735,
+      "exp_lcb": -80.7040932112302,
+      "maxDD": 0.15522031918928914,
+      "walkforward_executed": 0,
+      "walkforward_usable_windows": 0,
+      "walkforward_expected_windows": 0,
+      "walkforward_classification": "INSUFFICIENT_DATA",
+      "mc_executed": 1,
+      "mc_p_ruin": 0.0,
+      "invalid_reason": "NO_WF",
+      "classification": "INSUFFICIENT_DATA"
+    }
+  ],
+  "classification": "NO_EDGE",
+  "runtime_seconds": 0.6853574000001572,
+  "warnings": [
+    "all_configs_invalid",
+    "walkforward_not_executed"
+  ]
+}
