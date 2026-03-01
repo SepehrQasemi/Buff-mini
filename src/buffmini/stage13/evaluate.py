@@ -6,6 +6,7 @@ import json
 import math
 import time
 from dataclasses import dataclass
+from itertools import product
 from pathlib import Path
 from typing import Any
 
@@ -86,6 +87,8 @@ def run_stage13(
     derived_dir: Path = DERIVED_DATA_DIR,
     stage_tag: str = "13.1",
     report_name: str = "stage13_1_architecture",
+    write_docs: bool = True,
+    window_months: int | None = None,
 ) -> dict[str, Any]:
     """Run Stage-13 family evaluation and write deterministic artifacts."""
 
@@ -108,6 +111,20 @@ def run_stage13(
     )
     if not features_by_symbol:
         raise RuntimeError("Stage-13: no features loaded")
+    if window_months is not None:
+        months = max(1, int(window_months))
+        trimmed: dict[str, pd.DataFrame] = {}
+        for symbol, frame in features_by_symbol.items():
+            ts = pd.to_datetime(frame["timestamp"], utc=True, errors="coerce")
+            if ts.dropna().empty:
+                continue
+            end_ts = ts.max()
+            start_ts = end_ts - pd.Timedelta(days=30 * months)
+            out = frame.loc[ts >= start_ts].copy().reset_index(drop=True)
+            if not out.empty:
+                trimmed[symbol] = out
+        if trimmed:
+            features_by_symbol = trimmed
 
     data_hash = stable_hash(
         {
@@ -240,10 +257,11 @@ def run_stage13(
     (run_dir / "stage13_summary.json").write_text(json.dumps(safe_summary, indent=2, allow_nan=False), encoding="utf-8")
     (run_dir / "resolved_config.json").write_text(json.dumps(cfg, indent=2, allow_nan=False), encoding="utf-8")
 
-    docs_dir.mkdir(parents=True, exist_ok=True)
     report_md = docs_dir / f"{report_name}_report.md"
     report_json = docs_dir / f"{report_name}_summary.json"
-    _write_stage13_report(report_md=report_md, report_json=report_json, summary=safe_summary, rows=rows_df)
+    if bool(write_docs):
+        docs_dir.mkdir(parents=True, exist_ok=True)
+        _write_stage13_report(report_md=report_md, report_json=report_json, summary=safe_summary, rows=rows_df)
     return {
         "run_id": run_id,
         "run_dir": run_dir,
@@ -690,3 +708,198 @@ def _json_safe(value: Any) -> Any:
     if isinstance(value, (np.bool_, bool)):
         return bool(value)
     return value
+
+
+def run_stage13_family_sweep(
+    *,
+    config: dict[str, Any],
+    family: str,
+    seed: int = 42,
+    dry_run: bool = True,
+    symbols: list[str] | None = None,
+    timeframe: str = "1h",
+    runs_root: Path = RUNS_DIR,
+    docs_dir: Path = Path("docs"),
+    data_dir: Path = RAW_DATA_DIR,
+    derived_dir: Path = DERIVED_DATA_DIR,
+    stage_tag: str = "13.2",
+    report_name: str = "stage13_2_price_family",
+) -> dict[str, Any]:
+    """Run bounded grid sweep for one Stage-13 family."""
+
+    cfg = json.loads(json.dumps(config))
+    stage13 = dict(((cfg.get("evaluation", {}) or {}).get("stage13", {})))
+    family_key = str(family)
+    if family_key not in {"price", "volatility", "flow"}:
+        raise ValueError("family must be price|volatility|flow")
+    family_cfg = dict(stage13.get(family_key, {}))
+    sweep_grid = dict(family_cfg.get("sweep_grid", {}))
+    keys = sorted(sweep_grid.keys())
+    values = [list(sweep_grid[key]) for key in keys]
+    combos: list[dict[str, Any]] = []
+    if keys and all(values):
+        for row in product(*values):
+            combos.append({key: row[idx] for idx, key in enumerate(keys)})
+    else:
+        combos.append({})
+    if len(combos) > 80:
+        combos = combos[:80]
+
+    baseline_cfg = json.loads(json.dumps(cfg))
+    baseline_cfg.setdefault("evaluation", {}).setdefault("stage13", {})["enabled"] = False
+    baseline = run_stage13(
+        config=baseline_cfg,
+        seed=int(seed),
+        dry_run=bool(dry_run),
+        symbols=symbols,
+        timeframe=timeframe,
+        families=[family_key],
+        composer_mode="none",
+        runs_root=runs_root,
+        docs_dir=docs_dir,
+        data_dir=data_dir,
+        derived_dir=derived_dir,
+        stage_tag=stage_tag,
+        report_name=f"{report_name}_baseline",
+        write_docs=False,
+    )
+    baseline_trade_count = float(dict(baseline["summary"].get("metrics", {})).get("trade_count", 0.0))
+
+    sweep_rows: list[dict[str, Any]] = []
+    run_ids: list[str] = []
+    for idx, combo in enumerate(combos):
+        cfg_i = json.loads(json.dumps(cfg))
+        cfg_i.setdefault("evaluation", {}).setdefault("stage13", {})["enabled"] = True
+        cfg_i["evaluation"]["stage13"].setdefault("families", {})["enabled"] = [family_key]
+        cfg_i["evaluation"]["stage13"][family_key] = {
+            **dict(cfg_i["evaluation"]["stage13"].get(family_key, {})),
+            **combo,
+        }
+        result = run_stage13(
+            config=cfg_i,
+            seed=int(seed),
+            dry_run=bool(dry_run),
+            symbols=symbols,
+            timeframe=timeframe,
+            families=[family_key],
+            composer_mode="none",
+            runs_root=runs_root,
+            docs_dir=docs_dir,
+            data_dir=data_dir,
+            derived_dir=derived_dir,
+            stage_tag=stage_tag,
+            report_name=f"{report_name}_combo_{idx}",
+            write_docs=False,
+        )
+        summary = dict(result["summary"])
+        metrics = dict(summary.get("metrics", {}))
+        run_ids.append(str(summary["run_id"]))
+        rows = result["rows"]
+        best = rows.sort_values(["exp_lcb", "PF", "trade_count"], ascending=[False, False, False]).head(1)
+        top = best.iloc[0].to_dict() if not best.empty else {}
+        sweep_rows.append(
+            {
+                "combo_idx": idx,
+                "run_id": summary["run_id"],
+                "params": combo,
+                "zero_trade_pct": float(metrics.get("zero_trade_pct", 100.0)),
+                "invalid_pct": float(metrics.get("invalid_pct", 100.0)),
+                "walkforward_executed_true_pct": float(metrics.get("walkforward_executed_true_pct", 0.0)),
+                "mc_trigger_rate": float(metrics.get("mc_trigger_rate", 0.0)),
+                "trade_count": float(metrics.get("trade_count", 0.0)),
+                "tpm": float(metrics.get("tpm", 0.0)),
+                "best_PF": float(top.get("PF", 0.0)) if top else 0.0,
+                "best_expectancy": float(top.get("expectancy", 0.0)) if top else 0.0,
+                "best_exp_lcb": float(top.get("exp_lcb", 0.0)) if top else 0.0,
+                "best_maxDD": float(top.get("maxDD", 0.0)) if top else 0.0,
+                "classification": str(summary.get("classification", "NO_EDGE")),
+            }
+        )
+
+    sweep_df = pd.DataFrame(sweep_rows)
+    if sweep_df.empty:
+        raise RuntimeError("Stage-13 sweep produced no rows")
+    best_row = sweep_df.sort_values(["best_exp_lcb", "best_PF", "trade_count"], ascending=[False, False, False]).iloc[0].to_dict()
+    zero_trade_ok = bool((sweep_df["zero_trade_pct"] < 40.0).any())
+    trade_count_ratio = float(best_row.get("trade_count", 0.0) / baseline_trade_count) if baseline_trade_count > 0 else 0.0
+    classification = str(best_row.get("classification", "NO_EDGE"))
+    if not zero_trade_ok:
+        classification = "NO_EDGE"
+    if trade_count_ratio < float(stage13.get("gates", {}).get("min_trade_count_ratio_vs_baseline", 0.60)):
+        classification = "NO_EDGE"
+
+    payload = {
+        "git_commit": "",
+        "stage": str(stage_tag),
+        "family": family_key,
+        "run_ids": run_ids,
+        "seed": int(seed),
+        "dry_run": bool(dry_run),
+        "config_hash": compute_config_hash(cfg),
+        "data_hash": stable_hash(sweep_df["run_id"].tolist(), length=16),
+        "baseline_trade_count": baseline_trade_count,
+        "best_combo": _json_safe(best_row),
+        "trade_count_ratio_vs_baseline": float(trade_count_ratio),
+        "zero_trade_pct_min": float(sweep_df["zero_trade_pct"].min()),
+        "walkforward_executed_true_pct_max": float(sweep_df["walkforward_executed_true_pct"].max()),
+        "mc_trigger_rate_max": float(sweep_df["mc_trigger_rate"].max()),
+        "classification": classification,
+        "runtime_seconds": 0.0,
+        "warnings": [],
+    }
+    if not zero_trade_ok:
+        payload["warnings"].append("zero_trade_pct_gate_failed")
+    if trade_count_ratio < float(stage13.get("gates", {}).get("min_trade_count_ratio_vs_baseline", 0.60)):
+        payload["warnings"].append("trade_count_ratio_gate_failed")
+
+    docs_dir.mkdir(parents=True, exist_ok=True)
+    report_json = docs_dir / f"{report_name}_summary.json"
+    report_md = docs_dir / f"{report_name}_report.md"
+    sweep_table_path = docs_dir / f"{report_name}_table.csv"
+    sweep_df.to_csv(sweep_table_path, index=False)
+    report_json.write_text(json.dumps(_json_safe(payload), indent=2, allow_nan=False), encoding="utf-8")
+    lines = [
+        f"# Stage-{stage_tag} {family_key.title()} Family Report",
+        "",
+        "## 1) What changed",
+        f"- Ran bounded sweep for `{family_key}` family with deterministic configs.",
+        "",
+        "## 2) How to run (dry-run + real)",
+        f"- dry-run: `python scripts/run_stage13.py --substage {stage_tag} --family {family_key} --dry-run --seed 42`",
+        f"- real: `python scripts/run_stage13.py --substage {stage_tag} --family {family_key} --seed 42`",
+        "",
+        "## 3) Validation gates & results",
+        f"- zero_trade_pct_min: `{payload['zero_trade_pct_min']:.6f}`",
+        f"- trade_count_ratio_vs_baseline: `{payload['trade_count_ratio_vs_baseline']:.6f}`",
+        f"- walkforward_executed_true_pct_max: `{payload['walkforward_executed_true_pct_max']:.6f}`",
+        f"- mc_trigger_rate_max: `{payload['mc_trigger_rate_max']:.6f}`",
+        "",
+        "## 4) Key metrics tables (trade_count, tpm, PF, expectancy, exp_lcb, maxDD, wf, mc)",
+        f"- sweep table: `{sweep_table_path.as_posix()}`",
+        "",
+        "## 5) Failures + reasons",
+    ]
+    if payload["warnings"]:
+        for warning in payload["warnings"]:
+            lines.append(f"- {warning}")
+    else:
+        lines.append("- none")
+    lines.extend(
+        [
+            "",
+            "## 6) Next actions",
+            "- Use best family configs in combined composer matrix (Stage-13.5).",
+            "",
+            "## Summary",
+            f"- classification: `{payload['classification']}`",
+            f"- best_exp_lcb: `{float(best_row.get('best_exp_lcb', 0.0)):.6f}`",
+            f"- best_trade_count: `{float(best_row.get('trade_count', 0.0)):.2f}`",
+        ]
+    )
+    report_md.write_text("\n".join(lines).strip() + "\n", encoding="utf-8")
+    return {
+        "summary": payload,
+        "table": sweep_df,
+        "report_md": report_md,
+        "report_json": report_json,
+    }

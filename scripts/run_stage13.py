@@ -7,7 +7,7 @@ from pathlib import Path
 
 from buffmini.config import load_config
 from buffmini.constants import DEFAULT_CONFIG_PATH, DERIVED_DATA_DIR, RAW_DATA_DIR, RUNS_DIR
-from buffmini.stage13.evaluate import run_stage13, validate_stage13_summary_schema
+from buffmini.stage13.evaluate import run_stage13, run_stage13_family_sweep, validate_stage13_summary_schema
 
 
 def parse_args() -> argparse.Namespace:
@@ -24,6 +24,8 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument("--derived-dir", type=Path, default=DERIVED_DATA_DIR)
     parser.add_argument("--stage-tag", type=str, default="13.1")
     parser.add_argument("--report-name", type=str, default="stage13_1_architecture")
+    parser.add_argument("--substage", type=str, default="13.1", choices=["13.1", "13.2", "13.3", "13.4", "13.5", "13.6", "13.7", "14.1", "14.2", "14.3", "14.4"])
+    parser.add_argument("--family", type=str, default="price", choices=["price", "volatility", "flow"])
     parser.add_argument("--enable", action="store_true", help="Force enable evaluation.stage13.enabled")
     parser.add_argument("--disable", action="store_true", help="Force disable evaluation.stage13.enabled")
     return parser.parse_args()
@@ -38,6 +40,36 @@ def main() -> None:
         cfg.setdefault("evaluation", {}).setdefault("stage13", {})["enabled"] = False
     symbols = [item.strip() for item in str(args.symbols).split(",") if item.strip()] if args.symbols else None
     families = [item.strip() for item in str(args.families).split(",") if item.strip()] if args.families else None
+    substage = str(args.substage)
+    if substage in {"13.2", "13.3", "13.4"}:
+        stage_map = {
+            "13.2": ("stage13_2_price_family", "price"),
+            "13.3": ("stage13_3_volatility_family", "volatility"),
+            "13.4": ("stage13_4_flow_family", "flow"),
+        }
+        report_name, default_family = stage_map[substage]
+        family = str(args.family or default_family)
+        result = run_stage13_family_sweep(
+            config=cfg,
+            family=family,
+            seed=int(args.seed),
+            dry_run=bool(args.dry_run),
+            symbols=symbols,
+            timeframe=str(args.timeframe),
+            runs_root=args.runs_dir,
+            docs_dir=Path("docs"),
+            data_dir=args.data_dir,
+            derived_dir=args.derived_dir,
+            stage_tag=substage,
+            report_name=report_name,
+        )
+        summary = dict(result["summary"])
+        print(f"classification: {summary.get('classification','')}")
+        print(f"trade_count_ratio_vs_baseline: {float(summary.get('trade_count_ratio_vs_baseline',0.0)):.6f}")
+        print(f"report_md: {result['report_md']}")
+        print(f"report_json: {result['report_json']}")
+        return
+
     result = run_stage13(
         config=cfg,
         seed=int(args.seed),
@@ -68,4 +100,3 @@ def main() -> None:
 
 if __name__ == "__main__":
     main()
-
