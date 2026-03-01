@@ -354,6 +354,38 @@ Outputs:
 - `docs/stage11_4_1m_and_perf_report_summary.json`
 - `docs/timeframe_sweep_from_1m.md`
 
+## Stage-12 Full Price-Family Sweep
+
+Stage-12 runs a deterministic matrix sweep for the price-based family across:
+
+- Symbols: `BTC/USDT`, `ETH/USDT`
+- Timeframes: `15m,30m,1h,2h,4h,1d`
+- Strategy family: Stage-0.6 price baselines + Stage-10 price signal families
+- Exit variants: `fixed_atr`, `structure_trailing`, `time_based`
+- Cost scenarios: `low`, `realistic`, `high` (all via `cost_model.v2`)
+- Walk-forward v2 robustness + Monte Carlo on top combinations
+
+Run:
+
+```bash
+python scripts/run_stage12.py --seed 42
+```
+
+Optional synthetic/offline dry-run:
+
+```bash
+python scripts/run_stage12.py --dry-run --seed 42
+```
+
+Outputs:
+
+- `runs/<run_id>_stage12/leaderboard.csv`
+- `runs/<run_id>_stage12/window_metrics.csv`
+- `runs/<run_id>_stage12/runtime_by_timeframe.csv`
+- `runs/<run_id>_stage12/stage12_summary.json`
+- `docs/stage12_report.md`
+- `docs/stage12_report_summary.json`
+
 ## Output Structure
 
 - Raw market data: `data/raw/*.parquet`

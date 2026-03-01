@@ -334,6 +334,7 @@ STAGE11_55_DEFAULTS = {
 
 STAGE12_DEFAULTS = {
     "enabled": False,
+    "base_timeframe": "1m",
     "symbols": ["BTC/USDT", "ETH/USDT"],
     "timeframes": ["15m", "30m", "1h", "2h", "4h", "1d"],
     "include_stage06_baselines": True,
@@ -1121,6 +1122,8 @@ def validate_config(config: ConfigDict) -> None:
     stage12 = _merge_defaults(STAGE12_DEFAULTS, evaluation.get("stage12", {}))
     if not isinstance(stage12["enabled"], bool):
         raise ValueError("evaluation.stage12.enabled must be bool")
+    if str(stage12.get("base_timeframe", "1m")).strip().lower() not in SUPPORTED_TIMEFRAMES:
+        raise ValueError(f"evaluation.stage12.base_timeframe must be one of {SUPPORTED_TIMEFRAMES}")
     symbols = stage12.get("symbols", [])
     if not isinstance(symbols, list) or not symbols:
         raise ValueError("evaluation.stage12.symbols must be a non-empty list")

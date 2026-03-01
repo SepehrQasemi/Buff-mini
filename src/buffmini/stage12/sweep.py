@@ -92,7 +92,11 @@ def run_stage12_sweep(
 
     for timeframe in resolved_timeframes:
         tf_started = time.perf_counter()
-        cfg_tf = _config_for_timeframe(cfg=cfg, timeframe=str(timeframe))
+        cfg_tf = _config_for_timeframe(
+            cfg=cfg,
+            timeframe=str(timeframe),
+            base_timeframe=str(stage12_cfg.get("base_timeframe", "1m")),
+        )
         features_by_symbol = _build_features(
             config=cfg_tf,
             symbols=resolved_symbols,
@@ -365,10 +369,11 @@ def _resolve_cost_scenarios(cfg: dict[str, Any], stage12_cfg: dict[str, Any]) ->
     return out
 
 
-def _config_for_timeframe(cfg: dict[str, Any], timeframe: str) -> dict[str, Any]:
+def _config_for_timeframe(cfg: dict[str, Any], timeframe: str, base_timeframe: str) -> dict[str, Any]:
     out = deepcopy(cfg)
     universe = out.setdefault("universe", {})
-    base_tf = str(universe.get("base_timeframe", timeframe))
+    base_tf = str(base_timeframe)
+    universe["base_timeframe"] = base_tf
     universe["timeframe"] = str(timeframe)
     universe["operational_timeframe"] = str(timeframe)
     if base_tf == "1m" and str(timeframe) != "1m":
