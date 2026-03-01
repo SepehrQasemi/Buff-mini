@@ -1,0 +1,22 @@
+{
+  "git_commit": "",
+  "stage": "13.6",
+  "classification": "NO_EDGE",
+  "best": {
+    "candidate_idx": 4,
+    "families": "price,volatility",
+    "composer_mode": "weighted_sum",
+    "cost_level": "robust_summary",
+    "best_exp_lcb": 0.0,
+    "classification": "NO_EDGE",
+    "trade_count": 5.0,
+    "walkforward_executed_true_pct": 0.0,
+    "drag_penalty": 0.0,
+    "instability_penalty": 1.0,
+    "regime_shift_penalty": 0.0,
+    "robust_score": -1.0
+  },
+  "warnings": [
+    "cost_or_drag_collapse"
+  ]
+}

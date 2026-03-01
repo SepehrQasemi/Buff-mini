@@ -11,6 +11,8 @@ from buffmini.stage13.evaluate import (
     run_stage13,
     run_stage13_combined_matrix,
     run_stage13_family_sweep,
+    run_stage13_multihorizon,
+    run_stage13_robustness,
     validate_stage13_summary_schema,
 )
 
@@ -91,6 +93,45 @@ def main() -> None:
         summary = dict(result["summary"])
         print(f"classification: {summary.get('classification','')}")
         print(f"gate_pass: {bool(summary.get('gate_pass', False))}")
+        print(f"report_md: {result['report_md']}")
+        print(f"report_json: {result['report_json']}")
+        return
+    if substage == "13.6":
+        result = run_stage13_robustness(
+            config=cfg,
+            seed=int(args.seed),
+            dry_run=bool(args.dry_run),
+            symbols=symbols,
+            timeframe=str(args.timeframe),
+            runs_root=args.runs_dir,
+            docs_dir=Path("docs"),
+            data_dir=args.data_dir,
+            derived_dir=args.derived_dir,
+            stage_tag="13.6",
+            report_name="stage13_6_robustness",
+        )
+        summary = dict(result["summary"])
+        print(f"classification: {summary.get('classification','')}")
+        print(f"report_md: {result['report_md']}")
+        print(f"report_json: {result['report_json']}")
+        return
+    if substage == "13.7":
+        result = run_stage13_multihorizon(
+            config=cfg,
+            seed=int(args.seed),
+            dry_run=bool(args.dry_run),
+            symbols=symbols,
+            timeframe=str(args.timeframe),
+            runs_root=args.runs_dir,
+            docs_dir=Path("docs"),
+            data_dir=args.data_dir,
+            derived_dir=args.derived_dir,
+            stage_tag="13.7",
+            report_name="stage13_7_multihorizon",
+        )
+        summary = dict(result["summary"])
+        print(f"classification: {summary.get('classification','')}")
+        print(f"horizon_consistency_score: {float(summary.get('horizon_consistency_score', 0.0)):.6f}")
         print(f"report_md: {result['report_md']}")
         print(f"report_json: {result['report_json']}")
         return

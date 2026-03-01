@@ -89,6 +89,7 @@ def run_stage13(
     report_name: str = "stage13_1_architecture",
     write_docs: bool = True,
     window_months: int | None = None,
+    window_offset_months: int = 0,
 ) -> dict[str, Any]:
     """Run Stage-13 family evaluation and write deterministic artifacts."""
 
@@ -113,14 +114,15 @@ def run_stage13(
         raise RuntimeError("Stage-13: no features loaded")
     if window_months is not None:
         months = max(1, int(window_months))
+        offset = max(0, int(window_offset_months))
         trimmed: dict[str, pd.DataFrame] = {}
         for symbol, frame in features_by_symbol.items():
             ts = pd.to_datetime(frame["timestamp"], utc=True, errors="coerce")
             if ts.dropna().empty:
                 continue
-            end_ts = ts.max()
+            end_ts = ts.max() - pd.Timedelta(days=30 * offset)
             start_ts = end_ts - pd.Timedelta(days=30 * months)
-            out = frame.loc[ts >= start_ts].copy().reset_index(drop=True)
+            out = frame.loc[(ts > start_ts) & (ts <= end_ts)].copy().reset_index(drop=True)
             if not out.empty:
                 trimmed[symbol] = out
         if trimmed:
@@ -1137,4 +1139,324 @@ def _interaction_analysis(
         "overlap_rows": overlap_rows,
         "correlation_rows": corr_rows,
         "conflict_rows": conflict_rows,
+    }
+
+
+def run_stage13_robustness(
+    *,
+    config: dict[str, Any],
+    seed: int = 42,
+    dry_run: bool = True,
+    symbols: list[str] | None = None,
+    timeframe: str = "1h",
+    runs_root: Path = RUNS_DIR,
+    docs_dir: Path = Path("docs"),
+    data_dir: Path = RAW_DATA_DIR,
+    derived_dir: Path = DERIVED_DATA_DIR,
+    stage_tag: str = "13.6",
+    report_name: str = "stage13_6_robustness",
+) -> dict[str, Any]:
+    """Run deterministic robustness sweeps (cost/drag/regime-stress proxy)."""
+
+    cfg = json.loads(json.dumps(config))
+    matrix = run_stage13_combined_matrix(
+        config=cfg,
+        seed=int(seed),
+        dry_run=bool(dry_run),
+        symbols=symbols,
+        timeframe=timeframe,
+        runs_root=runs_root,
+        docs_dir=docs_dir,
+        data_dir=data_dir,
+        derived_dir=derived_dir,
+        stage_tag="13.5",
+        report_name="stage13_5_combined",
+    )["table"]
+    if matrix.empty:
+        raise RuntimeError("Stage-13.6 requires Stage-13.5 matrix rows")
+
+    top = matrix.sort_values(["best_exp_lcb", "best_pf", "trade_count"], ascending=[False, False, False]).head(5)
+    cost_scenarios = (((cfg.get("evaluation", {}) or {}).get("stage12", {}) or {}).get("cost_scenarios", {}))
+    inst_penalties = {"ROBUST_EDGE": 0.0, "WEAK_EDGE": 0.5, "NO_EDGE": 1.0, "INSUFFICIENT_DATA": 1.0}
+    rows: list[dict[str, Any]] = []
+    for idx, base in top.reset_index(drop=True).iterrows():
+        families = [item for item in str(base["families"]).split(",") if item]
+        composer_mode = str(base["composer_mode"])
+        if composer_mode == "none":
+            composer_mode = "weighted_sum"
+        exp_lcb_by_cost: list[float] = []
+        for cost_level in ("low", "realistic", "high"):
+            cfg_i = json.loads(json.dumps(cfg))
+            cfg_i.setdefault("evaluation", {}).setdefault("stage13", {})["enabled"] = True
+            cfg_i["evaluation"]["stage13"].setdefault("families", {})["enabled"] = families
+            if cost_level != "realistic":
+                override = dict(cost_scenarios.get(cost_level, {}))
+                if isinstance(override, dict):
+                    v2 = cfg_i.setdefault("cost_model", {}).setdefault("v2", {})
+                    v2["slippage_bps_base"] = float(override.get("slippage_bps_base", v2.get("slippage_bps_base", 0.5)))
+                    v2["slippage_bps_vol_mult"] = float(override.get("slippage_bps_vol_mult", v2.get("slippage_bps_vol_mult", 2.0)))
+                    v2["spread_bps"] = float(override.get("spread_bps", v2.get("spread_bps", 0.5)))
+                    v2["delay_bars"] = int(override.get("delay_bars", v2.get("delay_bars", 0)))
+            result = run_stage13(
+                config=cfg_i,
+                seed=int(seed) + idx,
+                dry_run=bool(dry_run),
+                symbols=symbols,
+                timeframe=timeframe,
+                families=families,
+                composer_mode=composer_mode,
+                runs_root=runs_root,
+                docs_dir=docs_dir,
+                data_dir=data_dir,
+                derived_dir=derived_dir,
+                stage_tag=stage_tag,
+                report_name=f"{report_name}_tmp_{idx}_{cost_level}",
+                write_docs=False,
+            )
+            best_exp = float(result["rows"]["exp_lcb"].max()) if not result["rows"].empty else 0.0
+            exp_lcb_by_cost.append(best_exp)
+            if cost_level == "realistic":
+                base_exp = best_exp
+            rows.append(
+                {
+                    "candidate_idx": int(idx),
+                    "families": ",".join(families),
+                    "composer_mode": composer_mode,
+                    "cost_level": cost_level,
+                    "best_exp_lcb": best_exp,
+                    "classification": str(result["summary"]["classification"]),
+                    "trade_count": float(result["summary"]["metrics"]["trade_count"]),
+                    "walkforward_executed_true_pct": float(result["summary"]["metrics"]["walkforward_executed_true_pct"]),
+                }
+            )
+        # Drag stress run: +delay and +spread/slippage
+        cfg_drag = json.loads(json.dumps(cfg))
+        v2 = cfg_drag.setdefault("cost_model", {}).setdefault("v2", {})
+        v2["delay_bars"] = int(v2.get("delay_bars", 0)) + 1
+        v2["spread_bps"] = float(v2.get("spread_bps", 0.5)) + 1.0
+        v2["slippage_bps_base"] = float(v2.get("slippage_bps_base", 0.5)) + 1.0
+        drag_run = run_stage13(
+            config=cfg_drag,
+            seed=int(seed) + 10_000 + idx,
+            dry_run=bool(dry_run),
+            symbols=symbols,
+            timeframe=timeframe,
+            families=families,
+            composer_mode=composer_mode,
+            runs_root=runs_root,
+            docs_dir=docs_dir,
+            data_dir=data_dir,
+            derived_dir=derived_dir,
+            stage_tag=stage_tag,
+            report_name=f"{report_name}_tmp_{idx}_drag",
+            write_docs=False,
+        )
+        drag_exp = float(drag_run["rows"]["exp_lcb"].max()) if not drag_run["rows"].empty else 0.0
+        drag_penalty = max(0.0, float(base_exp - drag_exp))
+        regime_stress_penalty = float(np.std(np.asarray(exp_lcb_by_cost, dtype=float))) if exp_lcb_by_cost else 0.0
+        inst_penalty = inst_penalties.get(str(base.get("classification", "NO_EDGE")), 1.0)
+        robust_score = float(np.median(np.asarray(exp_lcb_by_cost, dtype=float)) - drag_penalty - inst_penalty - regime_stress_penalty)
+        rows.append(
+            {
+                "candidate_idx": int(idx),
+                "families": ",".join(families),
+                "composer_mode": composer_mode,
+                "cost_level": "robust_summary",
+                "best_exp_lcb": float(np.median(np.asarray(exp_lcb_by_cost, dtype=float))) if exp_lcb_by_cost else 0.0,
+                "classification": "ROBUST_EDGE" if robust_score > 0.0 else "NO_EDGE",
+                "trade_count": float(base.get("trade_count", 0.0)),
+                "walkforward_executed_true_pct": float(base.get("walkforward_executed_true_pct", 0.0)),
+                "drag_penalty": drag_penalty,
+                "instability_penalty": inst_penalty,
+                "regime_shift_penalty": regime_stress_penalty,
+                "robust_score": robust_score,
+            }
+        )
+    table = pd.DataFrame(rows)
+    robust_table = table.loc[table["cost_level"] == "robust_summary"].copy()
+    if robust_table.empty:
+        classification = "NO_EDGE"
+        best = {}
+    else:
+        best_row = robust_table.sort_values("robust_score", ascending=False).iloc[0].to_dict()
+        classification = "ROBUST_EDGE" if float(best_row.get("robust_score", 0.0)) > 0 else "NO_EDGE"
+        if int((robust_table["robust_score"] > 0).sum()) == 1:
+            classification = "WEAK_EDGE"
+        best = best_row
+
+    payload = {
+        "git_commit": "",
+        "stage": str(stage_tag),
+        "classification": classification,
+        "best": _json_safe(best),
+        "warnings": [] if classification != "NO_EDGE" else ["cost_or_drag_collapse"],
+    }
+    docs_dir.mkdir(parents=True, exist_ok=True)
+    report_json = docs_dir / f"{report_name}_summary.json"
+    report_md = docs_dir / f"{report_name}_report.md"
+    table_path = docs_dir / f"{report_name}_table.csv"
+    table.to_csv(table_path, index=False)
+    report_json.write_text(json.dumps(_json_safe(payload), indent=2, allow_nan=False), encoding="utf-8")
+    lines = [
+        f"# Stage-{stage_tag} Robustness Report",
+        "",
+        "## 1) What changed",
+        "- Added cost sensitivity, execution drag, and deterministic regime-stress proxy sweeps.",
+        "",
+        "## 2) How to run (dry-run + real)",
+        f"- dry-run: `python scripts/run_stage13.py --substage {stage_tag} --dry-run --seed 42`",
+        f"- real: `python scripts/run_stage13.py --substage {stage_tag} --seed 42`",
+        "",
+        "## 3) Validation gates & results",
+        f"- classification: `{classification}`",
+        f"- best robust_score: `{float(best.get('robust_score', 0.0)):.6f}`",
+        "",
+        "## 4) Key metrics tables (trade_count, tpm, PF, expectancy, exp_lcb, maxDD, wf, mc)",
+        f"- table: `{table_path.as_posix()}`",
+        "",
+        "## 5) Failures + reasons",
+    ]
+    if payload["warnings"]:
+        lines.extend([f"- {warning}" for warning in payload["warnings"]])
+    else:
+        lines.append("- none")
+    lines.extend(["", "## 6) Next actions", "- Use best robust config for multi-horizon validation."])
+    report_md.write_text("\n".join(lines).strip() + "\n", encoding="utf-8")
+    return {
+        "summary": payload,
+        "table": table,
+        "report_md": report_md,
+        "report_json": report_json,
+    }
+
+
+def run_stage13_multihorizon(
+    *,
+    config: dict[str, Any],
+    seed: int = 42,
+    dry_run: bool = True,
+    symbols: list[str] | None = None,
+    timeframe: str = "1h",
+    runs_root: Path = RUNS_DIR,
+    docs_dir: Path = Path("docs"),
+    data_dir: Path = RAW_DATA_DIR,
+    derived_dir: Path = DERIVED_DATA_DIR,
+    stage_tag: str = "13.7",
+    report_name: str = "stage13_7_multihorizon",
+) -> dict[str, Any]:
+    """Run rolling multi-horizon validation (3m/6m/12m)."""
+
+    cfg = json.loads(json.dumps(config))
+    robust = run_stage13_robustness(
+        config=cfg,
+        seed=int(seed),
+        dry_run=bool(dry_run),
+        symbols=symbols,
+        timeframe=timeframe,
+        runs_root=runs_root,
+        docs_dir=docs_dir,
+        data_dir=data_dir,
+        derived_dir=derived_dir,
+        stage_tag="13.6",
+        report_name="stage13_6_robustness",
+    )
+    best = dict(robust["summary"].get("best", {}))
+    families = [item for item in str(best.get("families", "price,volatility")).split(",") if item] or ["price", "volatility"]
+    composer_mode = str(best.get("composer_mode", "weighted_sum"))
+    horizons = [3, 6, 12]
+    rows: list[dict[str, Any]] = []
+    for horizon in horizons:
+        for offset in range(0, horizon * 3, horizon):
+            result = run_stage13(
+                config=cfg,
+                seed=int(seed) + horizon + offset,
+                dry_run=bool(dry_run),
+                symbols=symbols,
+                timeframe=timeframe,
+                families=families,
+                composer_mode=composer_mode,
+                runs_root=runs_root,
+                docs_dir=docs_dir,
+                data_dir=data_dir,
+                derived_dir=derived_dir,
+                stage_tag=stage_tag,
+                report_name=f"{report_name}_{horizon}m_{offset}",
+                write_docs=False,
+                window_months=horizon,
+                window_offset_months=offset,
+            )
+            metrics = dict(result["summary"]["metrics"])
+            rows.append(
+                {
+                    "horizon_months": horizon,
+                    "offset_months": offset,
+                    "run_id": result["summary"]["run_id"],
+                    "classification": result["summary"]["classification"],
+                    "trade_count": float(metrics.get("trade_count", 0.0)),
+                    "tpm": float(metrics.get("tpm", 0.0)),
+                    "zero_trade_pct": float(metrics.get("zero_trade_pct", 100.0)),
+                    "walkforward_executed_true_pct": float(metrics.get("walkforward_executed_true_pct", 0.0)),
+                    "mc_trigger_rate": float(metrics.get("mc_trigger_rate", 0.0)),
+                }
+            )
+    table = pd.DataFrame(rows)
+    score_rows = []
+    for horizon, group in table.groupby("horizon_months", sort=True):
+        weak_or_better = group["classification"].isin({"ROBUST_EDGE", "WEAK_EDGE"}).mean()
+        recency_overfit = float(group.sort_values("offset_months")["classification"].iloc[0] in {"ROBUST_EDGE", "WEAK_EDGE"} and group["classification"].isin({"ROBUST_EDGE", "WEAK_EDGE"}).sum() == 1)
+        score = float(max(0.0, weak_or_better - 0.2 * recency_overfit))
+        score_rows.append({"horizon_months": int(horizon), "horizon_consistency_score": score})
+    score_df = pd.DataFrame(score_rows)
+    overall = float(score_df["horizon_consistency_score"].mean()) if not score_df.empty else 0.0
+    classification = "ROBUST_EDGE" if overall >= 0.6 else "WEAK_EDGE" if overall >= 0.3 else "NO_EDGE"
+
+    payload = {
+        "git_commit": "",
+        "stage": str(stage_tag),
+        "families": families,
+        "composer_mode": composer_mode,
+        "horizon_consistency_score": overall,
+        "classification": classification,
+        "warnings": [] if overall > 0 else ["insufficient_horizon_consistency"],
+    }
+    docs_dir.mkdir(parents=True, exist_ok=True)
+    report_json = docs_dir / f"{report_name}_summary.json"
+    report_md = docs_dir / f"{report_name}_report.md"
+    table_path = docs_dir / f"{report_name}_table.csv"
+    score_path = docs_dir / f"{report_name}_scores.csv"
+    table.to_csv(table_path, index=False)
+    score_df.to_csv(score_path, index=False)
+    report_json.write_text(json.dumps(_json_safe(payload), indent=2, allow_nan=False), encoding="utf-8")
+    lines = [
+        f"# Stage-{stage_tag} Multi-Horizon Report",
+        "",
+        "## 1) What changed",
+        "- Added rolling 3m/6m/12m non-overlapping horizon checks.",
+        "",
+        "## 2) How to run (dry-run + real)",
+        f"- dry-run: `python scripts/run_stage13.py --substage {stage_tag} --dry-run --seed 42`",
+        f"- real: `python scripts/run_stage13.py --substage {stage_tag} --seed 42`",
+        "",
+        "## 3) Validation gates & results",
+        f"- horizon_consistency_score: `{overall:.6f}`",
+        f"- classification: `{classification}`",
+        "",
+        "## 4) Key metrics tables (trade_count, tpm, PF, expectancy, exp_lcb, maxDD, wf, mc)",
+        f"- windows table: `{table_path.as_posix()}`",
+        f"- horizon scores: `{score_path.as_posix()}`",
+        "",
+        "## 5) Failures + reasons",
+    ]
+    if payload["warnings"]:
+        lines.extend([f"- {item}" for item in payload["warnings"]])
+    else:
+        lines.append("- none")
+    lines.extend(["", "## 6) Next actions", "- Feed stable horizons into Stage-14 ML-lite calibration."])
+    report_md.write_text("\n".join(lines).strip() + "\n", encoding="utf-8")
+    return {
+        "summary": payload,
+        "table": table,
+        "scores": score_df,
+        "report_md": report_md,
+        "report_json": report_json,
     }
