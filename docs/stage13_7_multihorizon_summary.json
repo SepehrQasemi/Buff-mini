@@ -1,0 +1,14 @@
+{
+  "git_commit": "",
+  "stage": "13.7",
+  "families": [
+    "price",
+    "volatility"
+  ],
+  "composer_mode": "weighted_sum",
+  "horizon_consistency_score": 0.0,
+  "classification": "NO_EDGE",
+  "warnings": [
+    "insufficient_horizon_consistency"
+  ]
+}
