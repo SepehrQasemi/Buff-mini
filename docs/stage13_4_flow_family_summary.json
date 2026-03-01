@@ -1,0 +1,47 @@
+{
+  "git_commit": "",
+  "stage": "13.4",
+  "family": "flow",
+  "run_ids": [
+    "20260301_141846_704dc222eb4d_stage13",
+    "20260301_141847_21b809f7d1a0_stage13",
+    "20260301_141847_5342da1109d8_stage13",
+    "20260301_141848_1579eb50beaa_stage13",
+    "20260301_141849_d09a9559e6eb_stage13",
+    "20260301_141849_33b39784993b_stage13",
+    "20260301_141850_837cee0d3ff7_stage13",
+    "20260301_141851_8147f7cbaa18_stage13",
+    "20260301_141851_514d2d246ece_stage13"
+  ],
+  "seed": 42,
+  "dry_run": 1,
+  "config_hash": "46824450e5e7",
+  "data_hash": "d039713d9acb1db7",
+  "baseline_trade_count": 16.5,
+  "best_combo": {
+    "combo_idx": 8,
+    "run_id": "20260301_141851_514d2d246ece_stage13",
+    "params": {
+      "anomaly_cap": 4.0,
+      "entry_threshold": 0.35
+    },
+    "zero_trade_pct": 0.0,
+    "invalid_pct": 100.0,
+    "walkforward_executed_true_pct": 0.0,
+    "mc_trigger_rate": 100.0,
+    "trade_count": 1.0,
+    "tpm": 0.30012505210504375,
+    "best_PF": 0.0,
+    "best_expectancy": 309.0708386869274,
+    "best_exp_lcb": 309.0708386869274,
+    "best_maxDD": 0.0005,
+    "classification": "NO_EDGE"
+  },
+  "trade_count_ratio_vs_baseline": 0.06060606060606061,
+  "zero_trade_pct_min": 0.0,
+  "walkforward_executed_true_pct_max": 0.0,
+  "mc_trigger_rate_max": 100.0,
+  "classification": "NO_EDGE",
+  "runtime_seconds": 0.0,
+  "warnings": []
+}
