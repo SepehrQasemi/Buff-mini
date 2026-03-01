@@ -52,6 +52,7 @@ def main() -> None:
     signal_forensics = dict(result.get("signal_forensics_summary", {}))
     stage12_3_metrics = dict(result.get("stage12_3_metrics", {}))
     stage12_4_metrics = dict(result.get("stage12_4_metrics", {}))
+    stage12_trace = dict(result.get("stage12_trace", {}))
     validate_stage12_summary_schema(summary)
 
     report_json = Path("docs") / "stage12_report_summary.json"
@@ -92,6 +93,12 @@ def main() -> None:
         )
         print(f"stage12_4_MC_trigger_rate: {float(stage12_4_metrics.get('MC_trigger_rate', 0.0)):.6f}")
         print(f"stage12_4_invalid_pct: {float(stage12_4_metrics.get('invalid_pct', 0.0)):.6f}")
+    if stage12_trace:
+        s3 = stage12_trace.get("stage12_3", {})
+        s4 = stage12_trace.get("stage12_4", {})
+        print(f"trace_soft_weight_applied_count: {int(s3.get('applied_soft_weight_count', 0))}")
+        print(f"trace_score_computed_count: {int(s4.get('score_computed_count', 0))}")
+        print(f"trace_threshold_eval_count: {int(s4.get('threshold_eval_count', 0))}")
     top_rows = summary.get("top_robust", [])[:3]
     for idx, row in enumerate(top_rows, start=1):
         print(
@@ -108,6 +115,9 @@ def main() -> None:
     print("wrote: docs/stage12_3_summary.json")
     print("wrote: docs/stage12_4_report.md")
     print("wrote: docs/stage12_4_summary.json")
+    print(f"trace: {result['run_dir'] / 'stage12_trace.json'}")
+    print(f"reject_pipeline: {result['run_dir'] / 'stage12_reject_pipeline.csv'}")
+    print(f"resolved_config: {result['run_dir'] / 'resolved_config.json'}")
     print(f"leaderboard: {result['run_dir'] / 'leaderboard.csv'}")
 
 

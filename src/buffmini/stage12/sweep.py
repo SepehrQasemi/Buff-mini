@@ -34,7 +34,7 @@ from buffmini.stage12.forensics import (
 )
 from buffmini.utils.hashing import stable_hash
 from buffmini.utils.time import utc_now_compact
-from buffmini.validation.walkforward_v2 import aggregate_windows, build_windows
+from buffmini.validation.walkforward_v2 import WindowTriplet, aggregate_windows, build_windows
 
 
 _COST_LEVEL_ORDER = {"low": 0, "realistic": 1, "high": 2}
@@ -101,12 +101,29 @@ def run_stage12_sweep(
     window_details_rows: list[dict[str, Any]] = []
     forensic_rows: list[dict[str, Any]] = []
     trade_context_rows: list[dict[str, Any]] = []
+    reject_pipeline_rows: list[dict[str, Any]] = []
     min_usable_windows_valid = int(stage12_cfg.get("min_usable_windows_valid", 3))
     stage12_3_cfg = dict(cfg.get("evaluation", {}).get("stage12_3", {}))
     stage12_4_cfg = dict(cfg.get("evaluation", {}).get("stage12_4", {}))
     forensic_cfg = dict(stage12_cfg.get("forensics", {}))
     context_cfg = dict(forensic_cfg.get("context_model", {}))
     stage12_4_rows: list[dict[str, Any]] = []
+    trace: dict[str, Any] = {
+        "stage12_3": {
+            "enabled": bool(stage12_3_cfg.get("enabled", False)),
+            "applied_soft_weight_count": 0,
+            "combos_seen": 0,
+            "adaptive_usability_samples": [],
+            "fallback_windows_used_count": 0,
+        },
+        "stage12_4": {
+            "enabled": bool(stage12_4_cfg.get("enabled", False)),
+            "score_computed_count": 0,
+            "threshold_eval_count": 0,
+            "cache_hit_count": 0,
+            "cache_miss_count": 0,
+        },
+    }
 
     for timeframe in resolved_timeframes:
         tf_started = time.perf_counter()
@@ -135,7 +152,12 @@ def run_stage12_sweep(
                 continue
             frame_sorted = frame.copy().sort_values("timestamp").reset_index(drop=True)
             frame_sorted.attrs["timeframe"] = str(timeframe)
-            windows = _build_windows_for_frame(frame_sorted, cfg_tf)
+            windows = _build_windows_for_frame(
+                frame=frame_sorted,
+                cfg=cfg_tf,
+                stage12_3_cfg=stage12_3_cfg,
+                trace=trace,
+            )
             for strategy in strategies:
                 for exit_variant in exits:
                     for cost_level, cost_model_cfg in cost_scenarios.items():
@@ -160,6 +182,7 @@ def run_stage12_sweep(
                             stage12_3_cfg=stage12_3_cfg,
                             stage12_4_cfg=stage12_4_cfg,
                             seed=int(seed),
+                            trace=trace,
                         )
                         combo_eval["combo_key"] = combo_key
                         forensic_rows.append(
@@ -186,6 +209,26 @@ def run_stage12_sweep(
                                 "metric_logic_stability_threshold_ok": bool(combo_eval["_metric_logic"]["stability_threshold_ok"]),
                                 "avg_weight": float(combo_eval["_avg_weight"]),
                                 "min_trades_required_per_window": int(combo_eval["_min_trades_required_per_window"]),
+                            }
+                        )
+                        reject_pipeline_rows.append(
+                            {
+                                "combo_id": combo_key,
+                                "symbol": symbol,
+                                "timeframe": str(timeframe),
+                                "strategy": strategy.strategy_name,
+                                "exit_variant": exit_variant.exit_type,
+                                "cost_level": cost_level,
+                                "reason": combo_eval["_invalid_reason"] if combo_eval["_invalid_reason"] is not None else "VALID",
+                                "stage": _reject_stage_label(
+                                    invalid_reason=combo_eval["_invalid_reason"],
+                                    raw_trade_count=float(combo_eval["_raw_trade_count"]),
+                                    posthook_trade_count=float(combo_eval["trade_count"]),
+                                ),
+                                "raw_trade_count": float(combo_eval["_raw_trade_count"]),
+                                "posthook_trade_count": float(combo_eval["trade_count"]),
+                                "wf_required_trades": int(combo_eval["_min_trades_required_per_window"]),
+                                "wf_actual_trades": float(combo_eval["_wf_avg_forward_trade_count"]),
                             }
                         )
                         trade_pnls_by_combo[combo_key] = combo_eval.pop("_trade_pnls")
@@ -287,9 +330,14 @@ def run_stage12_sweep(
     run_dir = runs_root / run_id
     run_dir.mkdir(parents=True, exist_ok=True)
 
+    (run_dir / "resolved_config.json").write_text(
+        json.dumps(cfg, indent=2, allow_nan=False),
+        encoding="utf-8",
+    )
     leaderboard.to_csv(run_dir / "leaderboard.csv", index=False)
     pd.DataFrame(window_details_rows).to_csv(run_dir / "window_metrics.csv", index=False)
     forensic_matrix.to_csv(run_dir / "stage12_forensic_matrix.csv", index=False)
+    pd.DataFrame(reject_pipeline_rows).to_csv(run_dir / "stage12_reject_pipeline.csv", index=False)
     pd.DataFrame(
         [{"timeframe": tf, "runtime_seconds": seconds} for tf, seconds in runtime_by_tf.items()]
     ).to_csv(run_dir / "runtime_by_timeframe.csv", index=False)
@@ -306,6 +354,10 @@ def run_stage12_sweep(
     forensic_summary["final_stage12_1_classification"] = stage12_1_classification
     (run_dir / "stage12_forensic_summary.json").write_text(
         json.dumps(forensic_summary, indent=2, allow_nan=False),
+        encoding="utf-8",
+    )
+    (run_dir / "stage12_trace.json").write_text(
+        json.dumps(trace, indent=2, allow_nan=False),
         encoding="utf-8",
     )
 
@@ -408,6 +460,7 @@ def run_stage12_sweep(
         "signal_forensics_summary": signal_forensics_summary,
         "stage12_3_metrics": stage12_3_metrics,
         "stage12_4_metrics": stage12_4_metrics,
+        "stage12_trace": trace,
         "report_md": report_md,
         "report_json": report_json,
     }
@@ -561,11 +614,17 @@ def _config_for_timeframe(cfg: dict[str, Any], timeframe: str, base_timeframe: s
     return out
 
 
-def _build_windows_for_frame(frame: pd.DataFrame, cfg: dict[str, Any]) -> list[Any]:
+def _build_windows_for_frame(
+    *,
+    frame: pd.DataFrame,
+    cfg: dict[str, Any],
+    stage12_3_cfg: dict[str, Any],
+    trace: dict[str, Any],
+) -> list[WindowTriplet]:
     wf_cfg = cfg.get("evaluation", {}).get("stage8", {}).get("walkforward_v2", {})
     if frame.empty:
         return []
-    return build_windows(
+    windows = build_windows(
         start_ts=frame["timestamp"].iloc[0],
         end_ts=frame["timestamp"].iloc[-1],
         train_days=int(wf_cfg.get("train_days", 180)),
@@ -574,6 +633,63 @@ def _build_windows_for_frame(frame: pd.DataFrame, cfg: dict[str, Any]) -> list[A
         step_days=int(wf_cfg.get("step_days", 30)),
         reserve_tail_days=int(wf_cfg.get("reserve_tail_days", 0)),
     )
+    if windows:
+        return windows
+    # Stage-12.3 fallback: keep walkforward execution active on short histories.
+    if not bool(stage12_3_cfg.get("enabled", False)):
+        return windows
+    fallback = _build_fallback_windows(frame)
+    if fallback:
+        trace["stage12_3"]["fallback_windows_used_count"] = int(trace["stage12_3"].get("fallback_windows_used_count", 0)) + 1
+    return fallback
+
+
+def _build_fallback_windows(frame: pd.DataFrame) -> list[WindowTriplet]:
+    ts = pd.to_datetime(frame["timestamp"], utc=True, errors="coerce").dropna()
+    if ts.empty:
+        return []
+    ts = ts.sort_values().reset_index(drop=True)
+    n = int(len(ts))
+    if n < 30:
+        return []
+    delta = ts.diff().dropna()
+    bar_step = delta.median() if not delta.empty else pd.Timedelta(hours=1)
+    train_bars = max(12, int(round(n * 0.50)))
+    holdout_bars = max(6, int(round(n * 0.25)))
+    forward_bars = max(6, int(round(n * 0.25)))
+    if train_bars + holdout_bars + forward_bars > n:
+        train_bars = max(10, int(round(n * 0.45)))
+        rem = max(2, n - train_bars)
+        holdout_bars = max(1, rem // 2)
+        forward_bars = max(1, rem - holdout_bars)
+    if train_bars < 1 or holdout_bars < 1 or forward_bars < 1:
+        return []
+
+    windows: list[WindowTriplet] = []
+    idx = 0
+    train_end_idx = train_bars
+    step = max(1, forward_bars)
+    while train_end_idx + holdout_bars + forward_bars <= n:
+        train_start_idx = train_end_idx - train_bars
+        holdout_start_idx = train_end_idx
+        holdout_end_idx = holdout_start_idx + holdout_bars
+        forward_start_idx = holdout_end_idx
+        forward_end_idx = forward_start_idx + forward_bars
+        forward_end_ts = ts.iloc[forward_end_idx] if forward_end_idx < n else ts.iloc[-1] + bar_step
+        windows.append(
+            WindowTriplet(
+                window_idx=idx,
+                train_start=ts.iloc[train_start_idx],
+                train_end=ts.iloc[train_end_idx],
+                holdout_start=ts.iloc[holdout_start_idx],
+                holdout_end=ts.iloc[holdout_end_idx],
+                forward_start=ts.iloc[forward_start_idx],
+                forward_end=forward_end_ts,
+            )
+        )
+        idx += 1
+        train_end_idx += step
+    return windows
 
 
 def _evaluate_combo(
@@ -590,14 +706,28 @@ def _evaluate_combo(
     stage12_3_cfg: dict[str, Any],
     stage12_4_cfg: dict[str, Any],
     seed: int,
+    trace: dict[str, Any],
 ) -> dict[str, Any]:
     raw_signal_series = strategy.signal_builder(frame)
+    raw_trade_count = math.nan
+    if bool(stage12_4_cfg.get("enabled", False)):
+        raw_result = _run_backtest_with_signal(
+            frame=frame,
+            signal=raw_signal_series,
+            symbol=symbol,
+            strategy_name=strategy.strategy_name,
+            exit_variant=exit_variant,
+            cfg=cfg,
+            cost_model_cfg=cost_model_cfg,
+        )
+        raw_trade_count = float(raw_result.metrics.get("trade_count", 0.0))
     signal_series, stage12_4_meta = _stage12_4_scored_signal(
         frame=frame,
         strategy=strategy,
         raw_signal=raw_signal_series,
         stage12_4_cfg=stage12_4_cfg,
         seed=int(seed),
+        trace=trace,
     )
     signal_abs = pd.to_numeric(signal_series, errors="coerce").fillna(0).abs()
     weight_series = _soft_weight_series(
@@ -609,6 +739,10 @@ def _evaluate_combo(
         avg_weight = float((weight_series * signal_abs).sum() / signal_abs.sum())
     else:
         avg_weight = float(weight_series.mean()) if len(weight_series) else 1.0
+    trace["stage12_3"]["combos_seen"] = int(trace["stage12_3"].get("combos_seen", 0)) + 1
+    if bool(stage12_3_cfg.get("enabled", False)):
+        reduced = int(((weight_series < 1.0) & (signal_abs > 0)).sum())
+        trace["stage12_3"]["applied_soft_weight_count"] = int(trace["stage12_3"].get("applied_soft_weight_count", 0)) + reduced
 
     bt_started = time.perf_counter()
     backtest_result = _run_backtest_with_signal(
@@ -633,6 +767,9 @@ def _evaluate_combo(
         windows=windows,
         trades_per_month=float(metrics["trades_per_month"]),
         stage12_3_cfg=stage12_3_cfg,
+        stage12_4_cfg=stage12_4_cfg,
+        seed=int(seed),
+        trace=trace,
     )
     walkforward_seconds = float(time.perf_counter() - wf_started)
     expected_windows = int(len(windows))
@@ -693,6 +830,7 @@ def _evaluate_combo(
         "MC_maxDD_p95": math.nan,
         "MC_expected_log_growth": math.nan,
         "avg_weight": float(avg_weight),
+        "raw_trade_count": float(raw_trade_count) if np.isfinite(raw_trade_count) else float(metrics["trade_count"]),
         "_raw_backtest_seconds": raw_backtest_seconds,
         "_walkforward_windows_count": evaluated_windows,
         "_walkforward_expected_windows": expected_windows,
@@ -701,6 +839,8 @@ def _evaluate_combo(
         "_walkforward_integrity_ok": walkforward_integrity_ok,
         "_invalid_reason": invalid_reason,
         "_metric_logic": metric_logic,
+        "_raw_trade_count": float(raw_trade_count) if np.isfinite(raw_trade_count) else float(metrics["trade_count"]),
+        "_wf_avg_forward_trade_count": float(wf_summary.get("avg_forward_trade_count", 0.0)),
         "_avg_weight": float(avg_weight),
         "_min_trades_required_per_window": int(wf_summary.get("min_trades_required_per_window", 0)),
         "_trade_context_rows": extract_trade_context_rows(
@@ -774,6 +914,9 @@ def _evaluate_walkforward_combo(
     windows: list[Any],
     trades_per_month: float,
     stage12_3_cfg: dict[str, Any],
+    stage12_4_cfg: dict[str, Any],
+    seed: int,
+    trace: dict[str, Any],
 ) -> tuple[list[dict[str, Any]], dict[str, Any]]:
     if not windows:
         return [], {"classification": "INSUFFICIENT_DATA", "usable_windows": 0, "min_trades_required_per_window": 0}
@@ -789,8 +932,24 @@ def _evaluate_walkforward_combo(
     for window in windows:
         holdout = frame.loc[(ts >= window.holdout_start) & (ts < window.holdout_end)].copy().reset_index(drop=True)
         forward = frame.loc[(ts >= window.forward_start) & (ts < window.forward_end)].copy().reset_index(drop=True)
-        hold_signal = strategy.signal_builder(holdout) if not holdout.empty else pd.Series(dtype=int)
-        fwd_signal = strategy.signal_builder(forward) if not forward.empty else pd.Series(dtype=int)
+        hold_signal_raw = strategy.signal_builder(holdout) if not holdout.empty else pd.Series(dtype=int)
+        fwd_signal_raw = strategy.signal_builder(forward) if not forward.empty else pd.Series(dtype=int)
+        hold_signal, _ = _stage12_4_scored_signal(
+            frame=holdout,
+            strategy=strategy,
+            raw_signal=hold_signal_raw,
+            stage12_4_cfg=stage12_4_cfg,
+            seed=int(seed) + int(window.window_idx) + 10_000,
+            trace=trace,
+        ) if not holdout.empty else (pd.Series(dtype=int), {})
+        fwd_signal, _ = _stage12_4_scored_signal(
+            frame=forward,
+            strategy=strategy,
+            raw_signal=fwd_signal_raw,
+            stage12_4_cfg=stage12_4_cfg,
+            seed=int(seed) + int(window.window_idx) + 20_000,
+            trace=trace,
+        ) if not forward.empty else (pd.Series(dtype=int), {})
         hold_result = _run_backtest_with_signal(
             frame=holdout,
             signal=hold_signal,
@@ -847,6 +1006,20 @@ def _evaluate_walkforward_combo(
         )
     summary = aggregate_windows(rows, cfg=cfg)
     summary["min_trades_required_per_window"] = int(min_trades_required)
+    if rows:
+        summary["avg_forward_trade_count"] = float(np.mean([float(row.get("forward_trade_count", 0.0)) for row in rows]))
+    else:
+        summary["avg_forward_trade_count"] = 0.0
+    samples = trace["stage12_3"].get("adaptive_usability_samples", [])
+    if len(samples) < 50:
+        samples.append(
+            {
+                "window_count": int(len(rows)),
+                "min_trades_required_per_window": int(min_trades_required),
+                "avg_forward_trade_count": float(summary["avg_forward_trade_count"]),
+            }
+        )
+        trace["stage12_3"]["adaptive_usability_samples"] = samples
     return rows, summary
 
 
@@ -914,6 +1087,7 @@ def _stage12_4_scored_signal(
     raw_signal: pd.Series,
     stage12_4_cfg: dict[str, Any],
     seed: int,
+    trace: dict[str, Any],
 ) -> tuple[pd.Series, dict[str, Any]]:
     raw = pd.to_numeric(raw_signal, errors="coerce").fillna(0).astype(int)
     if frame.empty:
@@ -941,6 +1115,7 @@ def _stage12_4_scored_signal(
         cached = dict(_STAGE12_4_SCORE_CACHE[cache_key])
         gated_values = np.asarray(cached.get("gated_signal_values", []), dtype=int)
         if gated_values.shape[0] == len(frame):
+            trace["stage12_4"]["cache_hit_count"] = int(trace["stage12_4"].get("cache_hit_count", 0)) + 1
             return pd.Series(gated_values, index=frame.index, dtype=int), {
                 "enabled": True,
                 "cache_hit": True,
@@ -952,6 +1127,8 @@ def _stage12_4_scored_signal(
             }
 
     components = _stage12_4_score_components(frame=frame)
+    trace["stage12_4"]["score_computed_count"] = int(trace["stage12_4"].get("score_computed_count", 0)) + 1
+    trace["stage12_4"]["cache_miss_count"] = int(trace["stage12_4"].get("cache_miss_count", 0)) + 1
     threshold_grid = [float(v) for v in stage12_4_cfg.get("threshold_grid", [0.5])]
     weight_values = [float(v) for v in stage12_4_cfg.get("weight_values", [1.0])]
     tpm_cfg = dict(stage12_4_cfg.get("trade_rate_target", {}))
@@ -991,6 +1168,7 @@ def _stage12_4_scored_signal(
                         best_weights = (float(w1), float(w2), float(w3))
                         best_signal = gated
 
+    trace["stage12_4"]["threshold_eval_count"] = int(trace["stage12_4"].get("threshold_eval_count", 0)) + int(evaluations)
     out_signal = pd.Series(best_signal, index=frame.index, dtype=int)
     meta = {
         "enabled": True,
@@ -1574,6 +1752,20 @@ def _write_stage12_4_docs(
     lines.append(f"- search_evaluations_mean: `{float(payload.get('search_evaluations_mean', 0.0)):.6f}`")
 
     report_md.write_text("\n".join(lines).strip() + "\n", encoding="utf-8")
+
+
+def _reject_stage_label(*, invalid_reason: str | None, raw_trade_count: float, posthook_trade_count: float) -> str:
+    reason = str(invalid_reason or "")
+    if reason == "ZERO_TRADE":
+        if float(raw_trade_count) <= 0:
+            return "prehook"
+        if float(posthook_trade_count) <= 0:
+            return "posthook"
+    if reason == "LOW_USABLE_WINDOWS":
+        return "posthook"
+    if reason:
+        return "posthook"
+    return "posthook"
 
 
 def _family_display_name(family: str) -> str:

@@ -46,6 +46,25 @@ def _cfg() -> dict:
     }
 
 
+def _trace() -> dict:
+    return {
+        "stage12_3": {
+            "enabled": False,
+            "applied_soft_weight_count": 0,
+            "combos_seen": 0,
+            "adaptive_usability_samples": [],
+            "fallback_windows_used_count": 0,
+        },
+        "stage12_4": {
+            "enabled": True,
+            "score_computed_count": 0,
+            "threshold_eval_count": 0,
+            "cache_hit_count": 0,
+            "cache_miss_count": 0,
+        },
+    }
+
+
 def test_stage12_4_determinism_and_bounded_search() -> None:
     frame = _frame()
     raw = _raw_signal(frame)
@@ -62,6 +81,7 @@ def test_stage12_4_determinism_and_bounded_search() -> None:
         raw_signal=raw,
         stage12_4_cfg=_cfg(),
         seed=42,
+        trace=_trace(),
     )
     signal_b, meta_b = sweep._stage12_4_scored_signal(
         frame=frame,
@@ -69,6 +89,7 @@ def test_stage12_4_determinism_and_bounded_search() -> None:
         raw_signal=raw,
         stage12_4_cfg=_cfg(),
         seed=42,
+        trace=_trace(),
     )
     pd.testing.assert_series_equal(signal_a, signal_b, check_exact=True)
     assert meta_a["chosen_threshold"] == meta_b["chosen_threshold"]
@@ -94,6 +115,7 @@ def test_stage12_4_does_not_mutate_raw_signal_and_cache_hits() -> None:
         raw_signal=raw,
         stage12_4_cfg=_cfg(),
         seed=7,
+        trace=_trace(),
     )
     _, meta_second = sweep._stage12_4_scored_signal(
         frame=frame,
@@ -101,6 +123,7 @@ def test_stage12_4_does_not_mutate_raw_signal_and_cache_hits() -> None:
         raw_signal=raw,
         stage12_4_cfg=_cfg(),
         seed=7,
+        trace=_trace(),
     )
     pd.testing.assert_series_equal(raw, raw_before, check_exact=True)
     assert meta_first["cache_hit"] is False

@@ -80,6 +80,7 @@ def test_soft_weighting_does_not_change_trade_timestamps() -> None:
         stage12_3_cfg={"enabled": False},
         stage12_4_cfg={"enabled": False},
         seed=42,
+        trace={"stage12_3": {"enabled": False, "applied_soft_weight_count": 0, "combos_seen": 0, "adaptive_usability_samples": [], "fallback_windows_used_count": 0}, "stage12_4": {"enabled": False, "score_computed_count": 0, "threshold_eval_count": 0, "cache_hit_count": 0, "cache_miss_count": 0}},
     )
     on = _evaluate_combo(
         frame=frame,
@@ -102,6 +103,7 @@ def test_soft_weighting_does_not_change_trade_timestamps() -> None:
         },
         stage12_4_cfg={"enabled": False},
         seed=42,
+        trace={"stage12_3": {"enabled": True, "applied_soft_weight_count": 0, "combos_seen": 0, "adaptive_usability_samples": [], "fallback_windows_used_count": 0}, "stage12_4": {"enabled": False, "score_computed_count": 0, "threshold_eval_count": 0, "cache_hit_count": 0, "cache_miss_count": 0}},
     )
     assert off["_trade_timestamps"] == on["_trade_timestamps"]
     assert int(off["trade_count"]) == int(on["trade_count"])
