@@ -26,8 +26,11 @@ from buffmini.stage12.forensics import (
     aggregate_execution_diagnostics,
     classify_invalid_reason,
     classify_stage12_1,
+    extract_trade_context_rows,
     metric_logic_validation,
+    summarize_signal_forensics,
     write_stage12_1_docs,
+    write_stage12_2_docs,
 )
 from buffmini.utils.hashing import stable_hash
 from buffmini.utils.time import utc_now_compact
@@ -96,7 +99,10 @@ def run_stage12_sweep(
     trade_pnls_by_combo: dict[str, np.ndarray] = {}
     window_details_rows: list[dict[str, Any]] = []
     forensic_rows: list[dict[str, Any]] = []
+    trade_context_rows: list[dict[str, Any]] = []
     min_usable_windows_valid = int(stage12_cfg.get("min_usable_windows_valid", 3))
+    forensic_cfg = dict(stage12_cfg.get("forensics", {}))
+    context_cfg = dict(forensic_cfg.get("context_model", {}))
 
     for timeframe in resolved_timeframes:
         tf_started = time.perf_counter()
@@ -146,6 +152,7 @@ def run_stage12_sweep(
                             cfg=cfg_tf,
                             windows=windows,
                             min_usable_windows_valid=min_usable_windows_valid,
+                            context_cfg=context_cfg,
                         )
                         combo_eval["combo_key"] = combo_key
                         forensic_rows.append(
@@ -185,6 +192,10 @@ def run_stage12_sweep(
                                     **window_row,
                                 }
                             )
+                        context_rows = combo_eval.pop("_trade_context_rows")
+                        for item in context_rows:
+                            item["combo_key"] = combo_key
+                        trade_context_rows.extend(context_rows)
                         for internal_key in (
                             "_raw_backtest_seconds",
                             "_walkforward_windows_count",
@@ -257,7 +268,6 @@ def run_stage12_sweep(
         [{"timeframe": tf, "runtime_seconds": seconds} for tf, seconds in runtime_by_tf.items()]
     ).to_csv(run_dir / "runtime_by_timeframe.csv", index=False)
 
-    forensic_cfg = dict(stage12_cfg.get("forensics", {}))
     suspicious_ms_threshold = float(forensic_cfg.get("suspicious_backtest_ms_threshold", 5.0))
     forensic_summary = aggregate_execution_diagnostics(
         matrix=forensic_matrix,
@@ -270,6 +280,18 @@ def run_stage12_sweep(
     forensic_summary["final_stage12_1_classification"] = stage12_1_classification
     (run_dir / "stage12_forensic_summary.json").write_text(
         json.dumps(forensic_summary, indent=2, allow_nan=False),
+        encoding="utf-8",
+    )
+
+    trade_context_df = pd.DataFrame(trade_context_rows)
+    false_positive_map, signal_forensics_summary, by_strategy = summarize_signal_forensics(
+        trade_context=trade_context_df,
+        context_cfg=context_cfg,
+    )
+    false_positive_map.to_csv(run_dir / "stage12_false_positive_map.csv", index=False)
+    by_strategy.to_csv(run_dir / "stage12_signal_forensics_by_strategy.csv", index=False)
+    (run_dir / "stage12_signal_forensics_summary.json").write_text(
+        json.dumps(signal_forensics_summary, indent=2, allow_nan=False),
         encoding="utf-8",
     )
 
@@ -295,12 +317,20 @@ def run_stage12_sweep(
         diagnostics=forensic_summary,
         classification=stage12_1_classification,
     )
+    write_stage12_2_docs(
+        report_md=docs_dir / "stage12_2_signal_forensics_report.md",
+        report_json=docs_dir / "stage12_2_signal_forensics_summary.json",
+        run_id=run_id,
+        summary=signal_forensics_summary,
+        by_strategy=by_strategy,
+    )
     return {
         "run_id": run_id,
         "run_dir": run_dir,
         "summary": summary_payload,
         "leaderboard": leaderboard,
         "forensic_summary": forensic_summary,
+        "signal_forensics_summary": signal_forensics_summary,
         "report_md": report_md,
         "report_json": report_json,
     }
@@ -479,6 +509,7 @@ def _evaluate_combo(
     cfg: dict[str, Any],
     windows: list[Any],
     min_usable_windows_valid: int,
+    context_cfg: dict[str, Any],
 ) -> dict[str, Any]:
     signal_series = strategy.signal_builder(frame)
     bt_started = time.perf_counter()
@@ -569,6 +600,19 @@ def _evaluate_combo(
         "_walkforward_integrity_ok": walkforward_integrity_ok,
         "_invalid_reason": invalid_reason,
         "_metric_logic": metric_logic,
+        "_trade_context_rows": extract_trade_context_rows(
+            combo_key="",
+            symbol=str(symbol),
+            timeframe=str(frame.attrs.get("timeframe", "unknown")),
+            strategy=strategy.strategy_name,
+            strategy_key=str(strategy.strategy_key),
+            strategy_source=str(strategy.source),
+            exit_type=str(exit_variant.exit_type),
+            cost_level=str(frame.attrs.get("cost_level", "unknown")),
+            frame=frame,
+            trades=backtest_result.trades.copy(),
+            context_cfg=context_cfg,
+        ),
         "_trade_pnls": pd.to_numeric(backtest_result.trades.get("pnl", pd.Series(dtype=float)), errors="coerce")
         .dropna()
         .to_numpy(dtype=float),

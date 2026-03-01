@@ -1,0 +1,12 @@
+{
+  "total_trades": 3328,
+  "losing_trades": 2067,
+  "winning_trades": 1261,
+  "avg_context_score_winners": 0.2022183634446065,
+  "avg_context_score_losers": 0.2007703531867206,
+  "context_score_diff": 0.0014480102578859066,
+  "context_separation_effect_size": 0.01101270246675698,
+  "context_separation_detected": false,
+  "final_stage12_2_verdict": "RANDOM_NOISE",
+  "run_id": "20260301_041932_2fc2823beb24_stage12"
+}

@@ -1,22 +1,22 @@
 # Stage-12 Full Price-Family Robustness Sweep
 
-- run_id: `20260301_031603_c2b4805cb0cc_stage12`
+- run_id: `20260301_041932_2fc2823beb24_stage12`
 - symbols: `BTC/USDT, ETH/USDT`
 - timeframes: `15m, 30m, 1h, 2h, 4h, 1d`
 - total_combinations: `1188`
 - valid_combinations: `0`
-- runtime_seconds: `18.408`
+- runtime_seconds: `19.998`
 - verdict: `NO ROBUST EDGE`
 
 ## Runtime Breakdown by Timeframe
 | timeframe | runtime_seconds |
 | --- | ---: |
-| 15m | 6.5688 |
-| 1d | 1.3904 |
-| 1h | 2.4927 |
-| 2h | 1.7666 |
-| 30m | 3.6191 |
-| 4h | 1.4901 |
+| 15m | 7.3017 |
+| 1d | 1.2325 |
+| 1h | 2.7388 |
+| 2h | 1.9274 |
+| 30m | 4.2936 |
+| 4h | 1.4516 |
 
 ## Top 10 Robust Combinations
 | symbol | timeframe | strategy | exit_type | cost_level | exp_lcb | PF | expectancy | robust_score | cost_sensitivity | stability | MC_p_ruin | MC_p_return_negative |
@@ -49,20 +49,20 @@
 | ETH/USDT | 594 | 0 | 0.000000 | 589.202124 |
 
 ## Stability Heatmap Table
-| symbol | timeframe | STABLE | UNSTABLE | INVALID | INSUFFICIENT_DATA |
-| --- | --- | ---: | ---: | ---: | ---: |
-| BTC/USDT | 15m | 0 | 0 | 99 | 0 |
-| BTC/USDT | 1d | 0 | 0 | 99 | 0 |
-| BTC/USDT | 1h | 0 | 0 | 99 | 0 |
-| BTC/USDT | 2h | 0 | 0 | 99 | 0 |
-| BTC/USDT | 30m | 0 | 0 | 99 | 0 |
-| BTC/USDT | 4h | 0 | 0 | 99 | 0 |
-| ETH/USDT | 15m | 0 | 0 | 99 | 0 |
-| ETH/USDT | 1d | 0 | 0 | 99 | 0 |
-| ETH/USDT | 1h | 0 | 0 | 99 | 0 |
-| ETH/USDT | 2h | 0 | 0 | 99 | 0 |
-| ETH/USDT | 30m | 0 | 0 | 99 | 0 |
-| ETH/USDT | 4h | 0 | 0 | 99 | 0 |
+| symbol | timeframe | STABLE | UNSTABLE | ZERO_TRADE | INVALID | INSUFFICIENT_DATA |
+| --- | --- | ---: | ---: | ---: | ---: | ---: |
+| BTC/USDT | 15m | 0 | 0 | 27 | 72 | 0 |
+| BTC/USDT | 1d | 0 | 0 | 99 | 0 | 0 |
+| BTC/USDT | 1h | 0 | 0 | 54 | 45 | 0 |
+| BTC/USDT | 2h | 0 | 0 | 63 | 36 | 0 |
+| BTC/USDT | 30m | 0 | 0 | 45 | 54 | 0 |
+| BTC/USDT | 4h | 0 | 0 | 99 | 0 | 0 |
+| ETH/USDT | 15m | 0 | 0 | 18 | 81 | 0 |
+| ETH/USDT | 1d | 0 | 0 | 99 | 0 | 0 |
+| ETH/USDT | 1h | 0 | 0 | 45 | 54 | 0 |
+| ETH/USDT | 2h | 0 | 0 | 63 | 36 | 0 |
+| ETH/USDT | 30m | 0 | 0 | 45 | 54 | 0 |
+| ETH/USDT | 4h | 0 | 0 | 90 | 9 | 0 |
 
 ## Cost Sensitivity Chart Data
 | symbol | timeframe | strategy | exit_type | cost_level | exp_lcb |

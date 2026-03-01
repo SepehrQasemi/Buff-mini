@@ -43,6 +43,7 @@ def main() -> None:
     )
     summary = dict(result["summary"])
     forensic = dict(result.get("forensic_summary", {}))
+    signal_forensics = dict(result.get("signal_forensics_summary", {}))
     validate_stage12_summary_schema(summary)
 
     report_json = Path("docs") / "stage12_report_summary.json"
@@ -62,6 +63,9 @@ def main() -> None:
         print(f"walkforward_executed_true_pct: {float(forensic.get('walkforward_executed_true_pct', 0.0)):.6f}")
         print(f"mc_trigger_rate: {float(forensic.get('mc_trigger_rate', 0.0)):.6f}")
         print(f"stage12_1_classification: {forensic.get('final_stage12_1_classification', '')}")
+    if signal_forensics:
+        print(f"context_separation_detected: {bool(signal_forensics.get('context_separation_detected', False))}")
+        print(f"stage12_2_verdict: {signal_forensics.get('final_stage12_2_verdict', '')}")
     top_rows = summary.get("top_robust", [])[:3]
     for idx, row in enumerate(top_rows, start=1):
         print(
@@ -72,6 +76,8 @@ def main() -> None:
     print("wrote: docs/stage12_report_summary.json")
     print("wrote: docs/stage12_1_execution_forensics_report.md")
     print("wrote: docs/stage12_1_execution_forensics_summary.json")
+    print("wrote: docs/stage12_2_signal_forensics_report.md")
+    print("wrote: docs/stage12_2_signal_forensics_summary.json")
     print(f"leaderboard: {result['run_dir'] / 'leaderboard.csv'}")
 
 
