@@ -1,0 +1,52 @@
+{
+  "stage": "14.2",
+  "best_by_regime": {
+    "CHOP": {
+      "regime": "CHOP",
+      "low": 0.2,
+      "high": 0.35,
+      "threshold": 0.275,
+      "exp_lcb": 0.0,
+      "tpm": 0.0,
+      "accepted": 0
+    },
+    "RANGE": {
+      "regime": "RANGE",
+      "low": 0.2,
+      "high": 0.35,
+      "threshold": 0.275,
+      "exp_lcb": 0.0,
+      "tpm": 0.0,
+      "accepted": 0
+    },
+    "TREND": {
+      "regime": "TREND",
+      "low": 0.2,
+      "high": 0.35,
+      "threshold": 0.275,
+      "exp_lcb": 0.0,
+      "tpm": 0.0,
+      "accepted": 0
+    },
+    "VOL_COMPRESSION": {
+      "regime": "VOL_COMPRESSION",
+      "low": 0.2,
+      "high": 0.35,
+      "threshold": 0.275,
+      "exp_lcb": 0.0,
+      "tpm": 0.0,
+      "accepted": 0
+    },
+    "VOL_EXPANSION": {
+      "regime": "VOL_EXPANSION",
+      "low": 0.2,
+      "high": 0.35,
+      "threshold": 0.275,
+      "exp_lcb": 0.0,
+      "tpm": 0.0,
+      "accepted": 0
+    }
+  },
+  "classification": "NO_EDGE",
+  "seed": 42
+}
