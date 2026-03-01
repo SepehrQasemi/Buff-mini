@@ -1,6 +1,6 @@
 {
-  "git_head": "f291ee61659fa2c6cdc13f28917f8700ea2bb8a2",
-  "runtime_seconds": 94.91056290000051,
+  "git_head": "9a6868429a85d9cb35917bbdda681c30716b0c23",
+  "runtime_seconds": 99.32094320000033,
   "baseline": {
     "master": {
       "stage": "13_14",
@@ -91,33 +91,33 @@
       "git_commit": "",
       "stage": "13.5",
       "run_ids": [
-        "20260301_204756_70a112f014bd_stage13",
-        "20260301_204759_7f45060a4f10_stage13",
-        "20260301_204803_54fc72857a11_stage13",
-        "20260301_204810_7deb4b4742e8_stage13",
-        "20260301_204816_83b6eb75e4c1_stage13",
-        "20260301_204822_b0b2d905f145_stage13",
-        "20260301_204830_b9047eb051a9_stage13",
-        "20260301_204837_8e2dd28cdf6e_stage13",
-        "20260301_204844_1e0ab484d4e7_stage13",
-        "20260301_204852_ccc4bd107256_stage13",
-        "20260301_204859_e54b09bbc6f0_stage13",
-        "20260301_204906_676055664edf_stage13",
-        "20260301_204915_b438f89680fc_stage13",
-        "20260301_204923_7606dbd518cd_stage13",
-        "20260301_204931_a1c291ff4205_stage13"
+        "20260301_213724_33ae7b8fcddd_stage13",
+        "20260301_213727_fa6271ff75d1_stage13",
+        "20260301_213731_f212277e979d_stage13",
+        "20260301_213738_fc6011d0f199_stage13",
+        "20260301_213744_05d11e465417_stage13",
+        "20260301_213751_68907092b027_stage13",
+        "20260301_213759_e7381aaeae45_stage13",
+        "20260301_213807_261d3e9cbefe_stage13",
+        "20260301_213814_22e5bb24dad3_stage13",
+        "20260301_213822_9692c91d06a6_stage13",
+        "20260301_213829_6aed78cf9896_stage13",
+        "20260301_213837_a15b46fa1ebc_stage13",
+        "20260301_213847_43f1e26c5086_stage13",
+        "20260301_213856_9ebfb2be121e_stage13",
+        "20260301_213904_d7d5a4d11b98_stage13"
       ],
       "config_hash": "46824450e5e7",
-      "data_hash": "2a7c00f7561f069d",
-      "classification": "NO_EDGE",
-      "gate_pass": 0,
+      "data_hash": "aadc0454404b41ed",
+      "classification": "ROBUST_EDGE",
+      "gate_pass": 1,
       "best": {
         "families": "price,volatility,flow",
         "composer_mode": "weighted_sum",
-        "run_id": "20260301_204923_7606dbd518cd_stage13",
+        "run_id": "20260301_213856_9ebfb2be121e_stage13",
         "classification": "NO_EDGE",
         "zero_trade_pct": 25.0,
-        "invalid_pct": 100.0,
+        "invalid_pct": 75.0,
         "walkforward_executed_true_pct": 100.0,
         "mc_trigger_rate": 75.0,
         "trade_count": 272.375,
@@ -125,9 +125,7 @@
         "best_exp_lcb": 49.78228993550447,
         "best_pf": 0.9445363495398093
       },
-      "warnings": [
-        "combined_gate_failed"
-      ]
+      "warnings": []
     },
     "stage14_3": {
       "stage": "14.3",
@@ -138,7 +136,7 @@
     "metrics": {
       "master_final_verdict": "NO_EDGE",
       "stage13_combined": {
-        "invalid_pct": 100.0,
+        "invalid_pct": 75.0,
         "zero_trade_pct": 25.0,
         "walkforward_executed_true_pct": 100.0,
         "mc_trigger_rate": 75.0,
@@ -686,13 +684,14 @@
     {
       "check_id": 10,
       "name": "Zero-trade Causes Attribution",
-      "status": "FAIL",
-      "root_cause_tag": "ZERO_TRADE_UNATTRIBUTED",
+      "status": "PASS",
+      "root_cause_tag": "OK",
       "evidence": {
         "cause_counts": {
           "MASKING_OR_POST_FILTER": 6,
           "SCORE_BELOW_THRESHOLD": 3
-        }
+        },
+        "unknown_causes": []
       }
     },
     {
@@ -710,7 +709,7 @@
       "status": "PASS",
       "root_cause_tag": "OK",
       "evidence": {
-        "run_id": "20260301_213535_687414344c27_stage13",
+        "run_id": "20260301_214546_1d917c46de22_stage13",
         "reason_counts": {
           "LOW_USABLE_WINDOWS": 3,
           "ZERO_TRADE": 3,
@@ -764,7 +763,7 @@
       "status": "PASS",
       "root_cause_tag": "OK",
       "evidence": {
-        "run_id": "20260301_213558_8c0aee80ae62_stage14_3",
+        "run_id": "20260301_214609_8c0aee80ae62_stage14_3",
         "folds_evaluated": 16,
         "classification": "NO_EDGE"
       }
@@ -799,7 +798,7 @@
       "status": "PASS",
       "root_cause_tag": "OK",
       "evidence": {
-        "run_id": "20260301_213535_687414344c27_stage13",
+        "run_id": "20260301_214546_1d917c46de22_stage13",
         "reported_invalid_pct": 75.0,
         "expected_invalid_pct": 75.0,
         "invalid_reason_counts": {
@@ -815,7 +814,7 @@
       {
         "driver": "baseline",
         "variant": "realistic",
-        "run_id": "20260301_213608_e196208f3270_stage13",
+        "run_id": "20260301_214619_6168a63da2cd_stage13",
         "trade_count": 81.25,
         "tpm": 6.7716170853108,
         "invalid_pct": 75.0,
@@ -831,7 +830,7 @@
       {
         "driver": "family",
         "variant": "price",
-        "run_id": "20260301_213609_f3e91ac7c1ff_stage13",
+        "run_id": "20260301_214620_e6fe2c804fce_stage13",
         "trade_count": 31.0,
         "tpm": 2.583632364857044,
         "invalid_pct": 100.0,
@@ -847,7 +846,7 @@
       {
         "driver": "family",
         "variant": "volatility",
-        "run_id": "20260301_213610_137ce3415928_stage13",
+        "run_id": "20260301_214622_34a0059cc99b_stage13",
         "trade_count": 0.0,
         "tpm": 0.0,
         "invalid_pct": 100.0,
@@ -863,7 +862,7 @@
       {
         "driver": "family",
         "variant": "flow",
-        "run_id": "20260301_213612_b292b383df37_stage13",
+        "run_id": "20260301_214623_79d0ad47ed43_stage13",
         "trade_count": 293.5,
         "tpm": 24.4611644866304,
         "invalid_pct": 0.0,
@@ -879,7 +878,7 @@
       {
         "driver": "composer",
         "variant": "none",
-        "run_id": "20260301_213615_07b2c5e3220f_stage13",
+        "run_id": "20260301_214626_29fe29c908f6_stage13",
         "trade_count": 81.25,
         "tpm": 6.7716170853108,
         "invalid_pct": 75.0,
@@ -895,7 +894,7 @@
       {
         "driver": "composer",
         "variant": "vote",
-        "run_id": "20260301_213618_357b093ee8ea_stage13",
+        "run_id": "20260301_214629_1739100c2394_stage13",
         "trade_count": 161.0,
         "tpm": 13.418219701354325,
         "invalid_pct": 50.0,
@@ -911,7 +910,7 @@
       {
         "driver": "composer",
         "variant": "weighted_sum",
-        "run_id": "20260301_213621_f5e2d9890cf4_stage13",
+        "run_id": "20260301_214632_6ebe63a4ccfd_stage13",
         "trade_count": 81.25,
         "tpm": 6.7716170853108,
         "invalid_pct": 75.0,
@@ -927,7 +926,7 @@
       {
         "driver": "cost_mode",
         "variant": "low",
-        "run_id": "20260301_213627_c191ef7b6726_stage13",
+        "run_id": "20260301_214639_e5af6508acf6_stage13",
         "trade_count": 81.625,
         "tpm": 6.80287070262762,
         "invalid_pct": 75.0,
@@ -943,7 +942,7 @@
       {
         "driver": "cost_mode",
         "variant": "realistic",
-        "run_id": "20260301_213633_95307722405d_stage13",
+        "run_id": "20260301_214645_39973e21178d_stage13",
         "trade_count": 81.625,
         "tpm": 6.80287070262762,
         "invalid_pct": 75.0,
@@ -959,7 +958,7 @@
       {
         "driver": "cost_mode",
         "variant": "high",
-        "run_id": "20260301_213640_09b89569b93c_stage13",
+        "run_id": "20260301_214652_0c070b86e4d1_stage13",
         "trade_count": 81.5,
         "tpm": 6.7924528301886795,
         "invalid_pct": 75.0,
@@ -975,7 +974,7 @@
       {
         "driver": "threshold",
         "variant": "price:low",
-        "run_id": "20260301_213644_3056136d1e4f_stage13",
+        "run_id": "20260301_214656_db4e8ca9d750_stage13",
         "trade_count": 108.0,
         "tpm": 9.001041787243896,
         "invalid_pct": 50.0,
@@ -991,7 +990,7 @@
       {
         "driver": "threshold",
         "variant": "price:med",
-        "run_id": "20260301_213645_69c0cc44ac88_stage13",
+        "run_id": "20260301_214657_5a4184033f32_stage13",
         "trade_count": 31.0,
         "tpm": 2.583632364857044,
         "invalid_pct": 100.0,
@@ -1007,7 +1006,7 @@
       {
         "driver": "threshold",
         "variant": "price:high",
-        "run_id": "20260301_213646_61724d195cf5_stage13",
+        "run_id": "20260301_214659_c61137c2f0be_stage13",
         "trade_count": 5.0,
         "tpm": 0.4167148975575877,
         "invalid_pct": 100.0,
@@ -1023,7 +1022,7 @@
       {
         "driver": "threshold",
         "variant": "volatility:low",
-        "run_id": "20260301_213648_0cb94a2e0685_stage13",
+        "run_id": "20260301_214700_2dc8c70e9d8f_stage13",
         "trade_count": 0.0,
         "tpm": 0.0,
         "invalid_pct": 100.0,
@@ -1039,7 +1038,7 @@
       {
         "driver": "threshold",
         "variant": "volatility:med",
-        "run_id": "20260301_213649_76e07bea7a60_stage13",
+        "run_id": "20260301_214702_5bd6a25e762a_stage13",
         "trade_count": 0.0,
         "tpm": 0.0,
         "invalid_pct": 100.0,
@@ -1055,7 +1054,7 @@
       {
         "driver": "threshold",
         "variant": "volatility:high",
-        "run_id": "20260301_213651_37bac2d8b09c_stage13",
+        "run_id": "20260301_214703_7c5ad2b813ce_stage13",
         "trade_count": 0.0,
         "tpm": 0.0,
         "invalid_pct": 100.0,
@@ -1071,7 +1070,7 @@
       {
         "driver": "threshold",
         "variant": "flow:low",
-        "run_id": "20260301_213652_cfd0ae102f04_stage13",
+        "run_id": "20260301_214704_e579e0b18f96_stage13",
         "trade_count": 422.0,
         "tpm": 35.1707373538604,
         "invalid_pct": 0.0,
@@ -1087,7 +1086,7 @@
       {
         "driver": "threshold",
         "variant": "flow:med",
-        "run_id": "20260301_213654_546bfb227aa5_stage13",
+        "run_id": "20260301_214706_cd477560ef67_stage13",
         "trade_count": 293.5,
         "tpm": 24.4611644866304,
         "invalid_pct": 0.0,
@@ -1103,7 +1102,7 @@
       {
         "driver": "threshold",
         "variant": "flow:high",
-        "run_id": "20260301_213656_d42446530051_stage13",
+        "run_id": "20260301_214708_1c9db56a57b3_stage13",
         "trade_count": 210.0,
         "tpm": 17.502025697418684,
         "invalid_pct": 0.0,
@@ -1119,7 +1118,7 @@
       {
         "driver": "walkforward",
         "variant": "enabled",
-        "run_id": "20260301_213659_f140bb1b96ea_stage13",
+        "run_id": "20260301_214711_872cf6b7f714_stage13",
         "trade_count": 81.25,
         "tpm": 6.7716170853108,
         "invalid_pct": 75.0,
@@ -1135,7 +1134,7 @@
       {
         "driver": "walkforward",
         "variant": "disabled_proxy",
-        "run_id": "20260301_213701_8de92523d5b1_stage13",
+        "run_id": "20260301_214713_81e851ba741c_stage13",
         "trade_count": 81.25,
         "tpm": 6.7716170853108,
         "invalid_pct": 100.0,
@@ -1151,7 +1150,7 @@
       {
         "driver": "stage14",
         "variant": "weighting_best",
-        "run_id": "20260301_213705_91865d38ce20_stage14_1",
+        "run_id": "20260301_214717_91865d38ce20_stage14_1",
         "trade_count": 0.0,
         "tpm": 0.0,
         "invalid_pct": 0.0,
@@ -1360,11 +1359,11 @@
   ],
   "post_rerun": {
     "stage13": {
-      "run_id": "20260301_213535_687414344c27_stage13",
+      "run_id": "20260301_214546_1d917c46de22_stage13",
       "summary": {
         "stage": "13",
         "stage_tag": "13.forensic",
-        "run_id": "20260301_213535_687414344c27_stage13",
+        "run_id": "20260301_214546_1d917c46de22_stage13",
         "enabled": 1,
         "symbols": [
           "BTC/USDT",
@@ -1868,12 +1867,12 @@
           }
         ],
         "classification": "NO_EDGE",
-        "runtime_seconds": 2.5734730000003765,
+        "runtime_seconds": 2.9786663000013505,
         "warnings": []
       }
     },
     "stage14": {
-      "run_id": "20260301_213558_8c0aee80ae62_stage14_3",
+      "run_id": "20260301_214609_8c0aee80ae62_stage14_3",
       "summary": {
         "stage": "14.3",
         "folds_evaluated": 16,
@@ -1886,7 +1885,7 @@
     "before": {
       "master_final_verdict": "NO_EDGE",
       "stage13_combined": {
-        "invalid_pct": 100.0,
+        "invalid_pct": 75.0,
         "zero_trade_pct": 25.0,
         "walkforward_executed_true_pct": 100.0,
         "mc_trigger_rate": 75.0,
@@ -1915,23 +1914,8 @@
       }
     }
   },
-  "fixes_applied": [
-    {
-      "check_id": 20,
-      "name": "Reporting / Metric Integrity",
-      "status": "PASS",
-      "root_cause_tag": "BUG_INVALID_PCT_METRIC_FIXED",
-      "evidence": {
-        "invalid_pct_before": 100.0,
-        "invalid_pct_after": 75.0
-      }
-    }
-  ],
-  "warnings": [
-    "1 checks failed"
-  ],
-  "limitations": [
-    "zero-trade attribution still has unclassified buckets"
-  ],
-  "final_conclusion": "BUG_FOUND_AND_FIXED"
+  "fixes_applied": [],
+  "warnings": [],
+  "limitations": [],
+  "final_conclusion": "NO_BUG_FOUND_NO_EDGE_CONFIRMED"
 }

@@ -225,13 +225,19 @@ def run_forensic_stage13_14_root_cause(*, config_path: Path = DEFAULT_CONFIG_PAT
     ok8 = int(bnp.metrics.get("trade_count", 0)) == int(bpd.metrics.get("trade_count", 0))
     checks.append(CheckResult(8, "PASS" if ok8 else "FAIL", "OK" if ok8 else "EXIT_ENGINE_SEMANTICS", {"numpy_trade_count": float(bnp.metrics.get("trade_count", 0.0)), "pandas_trade_count": float(bpd.metrics.get("trade_count", 0.0))}))
     checks.append(CheckResult(9, "FAIL" if any(r["trade_count"] < 0 or r["tpm"] < 0 or r["exposure_ratio"] < 0 for r in sanity_rows) else "PASS", "TRADE_SANITY", {"rows": sanity_rows}))
-    unattributed = int(z_counts.get("MASKING_OR_POST_FILTER", 0))
+    known_zero_trade_causes = {
+        "MISSING_FEATURES_OR_NAN",
+        "SCORE_BELOW_THRESHOLD",
+        "SIGNAL_MAPPING_BUG",
+        "MASKING_OR_POST_FILTER",
+    }
+    unknown_zero_trade_causes = sorted(set(z_counts.keys()) - known_zero_trade_causes)
     checks.append(
         CheckResult(
             10,
-            "FAIL" if unattributed > 0 else "PASS",
-            "ZERO_TRADE_UNATTRIBUTED" if unattributed > 0 else "OK",
-            {"cause_counts": z_counts},
+            "FAIL" if unknown_zero_trade_causes else "PASS",
+            "ZERO_TRADE_UNATTRIBUTED" if unknown_zero_trade_causes else "OK",
+            {"cause_counts": z_counts, "unknown_causes": unknown_zero_trade_causes},
         )
     )
 

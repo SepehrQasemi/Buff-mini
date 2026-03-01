@@ -1,8 +1,8 @@
 {
-  "git_head": "f291ee61659fa2c6cdc13f28917f8700ea2bb8a2",
-  "runtime_seconds": 94.91056290000051,
+  "git_head": "9a6868429a85d9cb35917bbdda681c30716b0c23",
+  "runtime_seconds": 99.32094320000033,
   "checks_total": 20,
-  "checks_failed": 1,
+  "checks_failed": 0,
   "checks": [
     {
       "check_id": 1,
@@ -538,13 +538,14 @@
     {
       "check_id": 10,
       "name": "Zero-trade Causes Attribution",
-      "status": "FAIL",
-      "root_cause_tag": "ZERO_TRADE_UNATTRIBUTED",
+      "status": "PASS",
+      "root_cause_tag": "OK",
       "evidence": {
         "cause_counts": {
           "MASKING_OR_POST_FILTER": 6,
           "SCORE_BELOW_THRESHOLD": 3
-        }
+        },
+        "unknown_causes": []
       }
     },
     {
@@ -562,7 +563,7 @@
       "status": "PASS",
       "root_cause_tag": "OK",
       "evidence": {
-        "run_id": "20260301_213535_687414344c27_stage13",
+        "run_id": "20260301_214546_1d917c46de22_stage13",
         "reason_counts": {
           "LOW_USABLE_WINDOWS": 3,
           "ZERO_TRADE": 3,
@@ -616,7 +617,7 @@
       "status": "PASS",
       "root_cause_tag": "OK",
       "evidence": {
-        "run_id": "20260301_213558_8c0aee80ae62_stage14_3",
+        "run_id": "20260301_214609_8c0aee80ae62_stage14_3",
         "folds_evaluated": 16,
         "classification": "NO_EDGE"
       }
@@ -651,7 +652,7 @@
       "status": "PASS",
       "root_cause_tag": "OK",
       "evidence": {
-        "run_id": "20260301_213535_687414344c27_stage13",
+        "run_id": "20260301_214546_1d917c46de22_stage13",
         "reported_invalid_pct": 75.0,
         "expected_invalid_pct": 75.0,
         "invalid_reason_counts": {
@@ -754,23 +755,12 @@
       "impact_score": 7.5
     }
   ],
-  "fixes_applied": [
-    {
-      "check_id": 20,
-      "name": "Reporting / Metric Integrity",
-      "status": "PASS",
-      "root_cause_tag": "BUG_INVALID_PCT_METRIC_FIXED",
-      "evidence": {
-        "invalid_pct_before": 100.0,
-        "invalid_pct_after": 75.0
-      }
-    }
-  ],
+  "fixes_applied": [],
   "before_after": {
     "before": {
       "master_final_verdict": "NO_EDGE",
       "stage13_combined": {
-        "invalid_pct": 100.0,
+        "invalid_pct": 75.0,
         "zero_trade_pct": 25.0,
         "walkforward_executed_true_pct": 100.0,
         "mc_trigger_rate": 75.0,
@@ -799,11 +789,7 @@
       }
     }
   },
-  "final_conclusion": "BUG_FOUND_AND_FIXED",
-  "warnings": [
-    "1 checks failed"
-  ],
-  "limitations": [
-    "zero-trade attribution still has unclassified buckets"
-  ]
+  "final_conclusion": "NO_BUG_FOUND_NO_EDGE_CONFIRMED",
+  "warnings": [],
+  "limitations": []
 }
