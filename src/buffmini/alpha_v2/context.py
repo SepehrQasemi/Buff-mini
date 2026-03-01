@@ -69,27 +69,33 @@ def context_persistence_summary(frame_with_context: pd.DataFrame) -> tuple[pd.Da
         )
     s = state.astype(str).reset_index(drop=True)
     grp = (s != s.shift(1)).cumsum()
-    run_len = grp.groupby(grp).transform("size").astype(int)
-    run_state = s.groupby(grp).first().astype(str)
+    run_df = pd.DataFrame({"state": s, "grp": grp})
+    run_lengths = run_df.groupby("grp", sort=False).size().astype(int)
+    run_states = run_df.groupby("grp", sort=False)["state"].first().astype(str)
 
     duration_rows = []
     for st in STATES:
-        d = run_len.loc[run_state[grp].to_numpy(dtype=bool) if False else (run_state.reindex(grp).to_numpy(dtype=str) == st)]
-        # simpler deterministic extraction:
-        vals = run_len[s == st].to_numpy(dtype=float)
+        vals = run_lengths.loc[run_states == st].to_numpy(dtype=float)
         if vals.size == 0:
-            p50 = 0.0
-            p90 = 0.0
-        else:
-            p50 = float(np.percentile(vals, 50))
-            p90 = float(np.percentile(vals, 90))
-        duration_rows.append({"state": st, "p50_duration": p50, "p90_duration": p90})
+            duration_rows.append({"state": st, "run_count": 0, "p50_duration": 0.0, "p90_duration": 0.0})
+            continue
+        duration_rows.append(
+            {
+                "state": st,
+                "run_count": int(vals.size),
+                "p50_duration": float(np.percentile(vals, 50)),
+                "p90_duration": float(np.percentile(vals, 90)),
+            }
+        )
 
     trans = pd.DataFrame(np.zeros((len(STATES), len(STATES)), dtype=float), index=STATES, columns=STATES)
     prev = s.shift(1)
     for a, b in zip(prev.iloc[1:], s.iloc[1:]):
         if a in STATES and b in STATES:
             trans.loc[str(a), str(b)] += 1.0
+    for st in STATES:
+        if float(trans.loc[st].sum()) <= 0.0:
+            trans.loc[st, st] = 1.0
     row_sum = trans.sum(axis=1).replace(0.0, 1.0)
     trans = trans.div(row_sum, axis=0)
     return pd.DataFrame(duration_rows), trans
@@ -103,3 +109,12 @@ def context_weight_series(frame_with_context: pd.DataFrame) -> pd.Series:
     base = np.where(state == "TREND", 1.05, np.where(state == "RANGE", 1.00, np.where(state == "CHOP", 0.90, 0.95)))
     return pd.Series(np.clip(1.0 + (base - 1.0) * conf.to_numpy(dtype=float), 0.80, 1.20), index=frame_with_context.index, dtype=float)
 
+
+def context_distribution(frame_with_context: pd.DataFrame) -> dict[str, float]:
+    """Return deterministic context distribution in pct."""
+
+    state = frame_with_context.get("ctx_state")
+    if state is None or len(state) == 0:
+        return {st: 0.0 for st in STATES}
+    counts = state.astype(str).value_counts(normalize=True)
+    return {st: float(counts.get(st, 0.0) * 100.0) for st in STATES}

@@ -10,6 +10,7 @@ import numpy as np
 import pandas as pd
 
 from buffmini.alpha_v2.contracts import AlphaRole, ClassicFamilyAdapter
+from buffmini.alpha_v2.context import compute_context_states, context_distribution, context_weight_series
 from buffmini.alpha_v2.orchestrator import OrchestratorConfig, run_orchestrator
 from buffmini.backtest.engine import run_backtest
 from buffmini.baselines.stage0 import generate_signals, trend_pullback
@@ -32,6 +33,7 @@ def run_ab_compare(
     data_dir: Path = RAW_DATA_DIR,
     derived_dir: Path = DERIVED_DATA_DIR,
     alpha_enabled: bool = True,
+    context_enabled: bool = False,
     max_rows: int = 1200,
 ) -> dict[str, Any]:
     cfg = json.loads(json.dumps(config))
@@ -76,7 +78,13 @@ def run_ab_compare(
         alpha_rows: list[dict[str, Any]] = []
         act_rows: list[dict[str, float]] = []
         for symbol, frame in sorted(frames.items()):
-            alpha_row, act = _run_alpha_for_symbol(frame=frame, symbol=symbol, cfg=cfg, seed=int(seed))
+            alpha_row, act = _run_alpha_for_symbol(
+                frame=frame,
+                symbol=symbol,
+                cfg=cfg,
+                seed=int(seed),
+                context_enabled=bool(context_enabled),
+            )
             alpha_rows.append(alpha_row)
             act_rows.append(act)
         alpha = _aggregate(rows=alpha_rows)
@@ -94,6 +102,7 @@ def run_ab_compare(
         "data_hash": data_hash,
         "resolved_end_ts": resolved_end_ts,
         "alpha_enabled": bool(alpha_enabled),
+        "context_enabled": bool(context_enabled),
         "classic": classic,
         "alpha_v2": alpha,
         "activation_stats": activation_stats,
@@ -133,7 +142,14 @@ def _run_classic_for_symbol(*, frame: pd.DataFrame, symbol: str, cfg: dict[str, 
     return _metrics(bt=bt, frame=work)
 
 
-def _run_alpha_for_symbol(*, frame: pd.DataFrame, symbol: str, cfg: dict[str, Any], seed: int) -> tuple[dict[str, Any], dict[str, float]]:
+def _run_alpha_for_symbol(
+    *,
+    frame: pd.DataFrame,
+    symbol: str,
+    cfg: dict[str, Any],
+    seed: int,
+    context_enabled: bool,
+) -> tuple[dict[str, Any], dict[str, float]]:
     stage13_cfg = (((cfg.get("evaluation", {}) or {}).get("stage13", {}) or {}))
     enabled = list(stage13_cfg.get("families", {}).get("enabled", ["price", "volatility", "flow"]))
     families = build_families(enabled=enabled, cfg=cfg)
@@ -147,12 +163,14 @@ def _run_alpha_for_symbol(*, frame: pd.DataFrame, symbol: str, cfg: dict[str, An
         )
         for name, family in families.items()
     ]
+    work_context = compute_context_states(frame) if context_enabled else frame
     intents, stats = run_orchestrator(
         frame=frame,
         contracts=contracts,
         seed=int(seed),
         config=cfg,
         orchestrator_cfg=OrchestratorConfig(entry_threshold=0.25, min_confidence=0.05),
+        context_weights=context_weight_series(work_context) if context_enabled else None,
     )
     work = frame.copy()
     work["signal"] = intents["side"].shift(1).fillna(0).astype(int)
@@ -174,6 +192,7 @@ def _run_alpha_for_symbol(*, frame: pd.DataFrame, symbol: str, cfg: dict[str, An
         "contracts_evaluated": float(stats["contracts_evaluated"]),
         "pct_not_neutral_multiplier": float(stats["pct_not_neutral_multiplier"]),
         "pct_nonzero_confidence": float((pd.to_numeric(intents["confidence"], errors="coerce").fillna(0.0) > 0).mean() * 100.0),
+        "context_distribution": context_distribution(work_context) if context_enabled else {},
     }
     return metrics, act
 

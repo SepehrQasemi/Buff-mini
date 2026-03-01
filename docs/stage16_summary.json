@@ -1,0 +1,37 @@
+{
+  "run_id": "20260301_233850_fc5bd541a924_stage15",
+  "seed": 42,
+  "config_hash": "46824450e5e7",
+  "data_hash": "9ee4982b93e3ac04",
+  "resolved_end_ts": "2026-02-26T09:00:00+00:00",
+  "classic_trade_count": 14.0,
+  "alpha_trade_count": 0.0,
+  "classic_exp_lcb": 30.099127775582197,
+  "alpha_exp_lcb": 0.0,
+  "max_state_share_pct": 70.60057128394259,
+  "summary_hash": "35795e411b0ccadb",
+  "status": "PASS",
+  "warnings": [],
+  "context_distribution": [
+    {
+      "symbol": "BTC/USDT",
+      "TREND": 63.89702426148895,
+      "RANGE": 19.5248942401562,
+      "VOL_EXPANSION": 4.375022598257222,
+      "VOL_COMPRESSION": 12.123513034674765,
+      "CHOP": 0.07954586542285859
+    },
+    {
+      "symbol": "ETH/USDT",
+      "TREND": 70.60057128394259,
+      "RANGE": 15.732002747948078,
+      "VOL_EXPANSION": 2.849188270600571,
+      "VOL_COMPRESSION": 10.695303178218897,
+      "CHOP": 0.12293451928987237
+    }
+  ],
+  "artifacts": {
+    "context_persistence": "C:/dev/Buff-mini/runs/20260301_233850_fc5bd541a924_stage15/context_persistence.csv",
+    "context_transition_matrix": "C:/dev/Buff-mini/runs/20260301_233850_fc5bd541a924_stage15/context_transition_matrix.csv"
+  }
+}
