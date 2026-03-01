@@ -87,7 +87,8 @@ def aggregate_execution_diagnostics(
 
     backtest_ms = pd.to_numeric(matrix["raw_backtest_seconds"], errors="coerce").fillna(0.0) * 1000.0
     total = float(len(matrix))
-    invalid_mask = matrix["invalid_reason"].notna()
+    invalid_reason_series = matrix["invalid_reason"].astype(str)
+    invalid_mask = matrix["invalid_reason"].notna() & (invalid_reason_series != "ZERO_TRADE")
     zero_trade_mask = matrix["invalid_reason"].astype(str) == "ZERO_TRADE"
     walkforward_exec = matrix["walkforward_executed"].astype(bool)
     mc_exec = matrix["MC_executed"].astype(bool)

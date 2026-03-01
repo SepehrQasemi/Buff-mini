@@ -274,6 +274,9 @@ def run_stage12_sweep(
                             "_avg_weight",
                             "_min_trades_required_per_window",
                             "_trade_timestamps",
+                            "_effective_min_usable_windows",
+                            "_wf_avg_forward_trade_count",
+                            "_raw_trade_count",
                         ):
                             combo_eval.pop(internal_key, None)
                         rows.append(combo_eval)
@@ -780,8 +783,21 @@ def _evaluate_combo(
             f"Walkforward integrity mismatch for {symbol}/{frame.attrs.get('timeframe','')}/{strategy.strategy_key}: "
             f"expected_windows={expected_windows}, evaluated_windows={evaluated_windows}"
         )
+    configured_min_usable = int(min_usable_windows_valid)
+    effective_min_usable = _resolve_min_usable_windows_required(
+        expected_windows=expected_windows,
+        configured_min_usable_windows=configured_min_usable,
+        stage12_3_cfg=stage12_3_cfg,
+    )
     stability_classification = str(wf_summary.get("classification", "INSUFFICIENT_DATA"))
     usable_windows = int(wf_summary.get("usable_windows", 0))
+    if (
+        bool(stage12_3_cfg.get("enabled", False))
+        and expected_windows > 0
+        and usable_windows >= int(effective_min_usable)
+        and stability_classification == "INSUFFICIENT_DATA"
+    ):
+        stability_classification = "UNSTABLE"
     metric_logic = metric_logic_validation(
         trade_count=float(metrics["trade_count"]),
         profit_factor=float(metrics["profit_factor"]),
@@ -791,15 +807,15 @@ def _evaluate_combo(
         exp_lcb_reported=float(metrics["exp_lcb"]),
         stability_classification=stability_classification,
         usable_windows=usable_windows,
-        min_usable_windows_valid=int(min_usable_windows_valid),
+        min_usable_windows_valid=int(effective_min_usable),
     )
     invalid_reason = classify_invalid_reason(
         trade_count=float(metrics["trade_count"]),
         stability_classification=stability_classification,
         usable_windows=usable_windows,
-        min_usable_windows_valid=int(min_usable_windows_valid),
+        min_usable_windows_valid=int(effective_min_usable),
     )
-    if usable_windows < int(min_usable_windows_valid):
+    if usable_windows < int(effective_min_usable):
         stability_effective = "ZERO_TRADE" if str(invalid_reason) == "ZERO_TRADE" else "INVALID"
         is_valid = False
     else:
@@ -843,6 +859,7 @@ def _evaluate_combo(
         "_wf_avg_forward_trade_count": float(wf_summary.get("avg_forward_trade_count", 0.0)),
         "_avg_weight": float(avg_weight),
         "_min_trades_required_per_window": int(wf_summary.get("min_trades_required_per_window", 0)),
+        "_effective_min_usable_windows": int(effective_min_usable),
         "_trade_context_rows": extract_trade_context_rows(
             combo_key="",
             symbol=str(symbol),
@@ -921,9 +938,11 @@ def _evaluate_walkforward_combo(
     if not windows:
         return [], {"classification": "INSUFFICIENT_DATA", "usable_windows": 0, "min_trades_required_per_window": 0}
     wf_cfg = cfg.get("evaluation", {}).get("stage8", {}).get("walkforward_v2", {})
+    default_forward_days = int(wf_cfg.get("forward_days", 30))
+    window_days_effective = _effective_window_days(windows=windows, default_days=default_forward_days)
     min_trades_required = _resolve_min_trades_required(
         trades_per_month=trades_per_month,
-        window_days=int(wf_cfg.get("forward_days", 30)),
+        window_days=int(window_days_effective),
         base_min_trades=float(wf_cfg.get("min_trades", 10)),
         stage12_3_cfg=stage12_3_cfg,
     )
@@ -1078,6 +1097,39 @@ def _resolve_min_trades_required(
     adaptive = int(math.floor(expected * max(0.0, alpha)))
     clipped = int(max(min_floor, min(max_floor, adaptive)))
     return int(max(1, clipped))
+
+
+def _resolve_min_usable_windows_required(
+    *,
+    expected_windows: int,
+    configured_min_usable_windows: int,
+    stage12_3_cfg: dict[str, Any],
+) -> int:
+    base = int(max(1, configured_min_usable_windows))
+    if not bool(stage12_3_cfg.get("enabled", False)):
+        return base
+    expected = int(max(0, expected_windows))
+    if expected <= 0:
+        return base
+    return int(max(1, min(base, expected)))
+
+
+def _effective_window_days(*, windows: list[Any], default_days: int) -> int:
+    durations: list[float] = []
+    for window in windows:
+        try:
+            start = pd.to_datetime(window.forward_start, utc=True, errors="coerce")
+            end = pd.to_datetime(window.forward_end, utc=True, errors="coerce")
+        except Exception:
+            continue
+        if pd.isna(start) or pd.isna(end):
+            continue
+        days = float((end - start).total_seconds() / 86400.0)
+        if days > 0:
+            durations.append(days)
+    if not durations:
+        return int(max(1, default_days))
+    return int(max(1, round(float(np.median(np.asarray(durations, dtype=float))))))
 
 
 def _stage12_4_scored_signal(

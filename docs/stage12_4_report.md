@@ -1,15 +1,15 @@
 # Stage-12.4 Score-Based Signal Family Report
 
-- run_id: `20260301_051916_7adfeefe759b_stage12`
+- run_id: `20260301_060514_8bb2fcf2c8c0_stage12`
 - status: `FAILED`
 
 ## Stage-12.3 vs Stage-12.4 Metrics
 | metric | stage12_3 | stage12_4 |
 | --- | ---: | ---: |
 | zero_trade_pct | 71.969697 | 71.969697 |
-| walkforward_executed_true_pct | 0.000000 | 0.000000 |
+| walkforward_executed_true_pct | 66.666667 | 66.666667 |
 | MC_trigger_rate | 0.000000 | 0.000000 |
-| invalid_pct | 100.000000 | 100.000000 |
+| invalid_pct | 28.030303 | 28.030303 |
 
 ## Threshold Distribution
 | threshold | share |

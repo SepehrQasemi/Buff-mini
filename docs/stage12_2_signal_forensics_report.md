@@ -1,6 +1,6 @@
 # Stage-12.2 Signal Forensics & Context Modeling Foundation
 
-- run_id: `20260301_051916_7adfeefe759b_stage12`
+- run_id: `20260301_060514_8bb2fcf2c8c0_stage12`
 - total_trades: `720`
 - winning_trades: `308`
 - losing_trades: `412`

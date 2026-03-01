@@ -1,22 +1,22 @@
 # Stage-12 Full Price-Family Robustness Sweep
 
-- run_id: `20260301_051916_7adfeefe759b_stage12`
+- run_id: `20260301_060514_8bb2fcf2c8c0_stage12`
 - symbols: `BTC/USDT, ETH/USDT`
 - timeframes: `15m, 30m, 1h, 2h, 4h, 1d`
 - total_combinations: `1188`
 - valid_combinations: `0`
-- runtime_seconds: `19.608`
+- runtime_seconds: `50.431`
 - verdict: `NO ROBUST EDGE`
 
 ## Runtime Breakdown by Timeframe
 | timeframe | runtime_seconds |
 | --- | ---: |
-| 15m | 5.7438 |
-| 1d | 1.7043 |
-| 1h | 3.1503 |
-| 2h | 2.1377 |
-| 30m | 3.8866 |
-| 4h | 1.8287 |
+| 15m | 17.1663 |
+| 1d | 2.5342 |
+| 1h | 9.2598 |
+| 2h | 6.4689 |
+| 30m | 11.0832 |
+| 4h | 2.6721 |
 
 ## Top 10 Robust Combinations
 | symbol | timeframe | strategy | exit_type | cost_level | exp_lcb | PF | expectancy | robust_score | cost_sensitivity | stability | MC_p_ruin | MC_p_return_negative |
