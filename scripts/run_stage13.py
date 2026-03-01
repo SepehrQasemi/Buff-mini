@@ -7,7 +7,12 @@ from pathlib import Path
 
 from buffmini.config import load_config
 from buffmini.constants import DEFAULT_CONFIG_PATH, DERIVED_DATA_DIR, RAW_DATA_DIR, RUNS_DIR
-from buffmini.stage13.evaluate import run_stage13, run_stage13_family_sweep, validate_stage13_summary_schema
+from buffmini.stage13.evaluate import (
+    run_stage13,
+    run_stage13_combined_matrix,
+    run_stage13_family_sweep,
+    validate_stage13_summary_schema,
+)
 
 
 def parse_args() -> argparse.Namespace:
@@ -66,6 +71,26 @@ def main() -> None:
         summary = dict(result["summary"])
         print(f"classification: {summary.get('classification','')}")
         print(f"trade_count_ratio_vs_baseline: {float(summary.get('trade_count_ratio_vs_baseline',0.0)):.6f}")
+        print(f"report_md: {result['report_md']}")
+        print(f"report_json: {result['report_json']}")
+        return
+    if substage == "13.5":
+        result = run_stage13_combined_matrix(
+            config=cfg,
+            seed=int(args.seed),
+            dry_run=bool(args.dry_run),
+            symbols=symbols,
+            timeframe=str(args.timeframe),
+            runs_root=args.runs_dir,
+            docs_dir=Path("docs"),
+            data_dir=args.data_dir,
+            derived_dir=args.derived_dir,
+            stage_tag="13.5",
+            report_name="stage13_5_combined",
+        )
+        summary = dict(result["summary"])
+        print(f"classification: {summary.get('classification','')}")
+        print(f"gate_pass: {bool(summary.get('gate_pass', False))}")
         print(f"report_md: {result['report_md']}")
         print(f"report_json: {result['report_json']}")
         return

@@ -917,3 +917,224 @@ def run_stage13_family_sweep(
         "report_md": report_md,
         "report_json": report_json,
     }
+
+
+def run_stage13_combined_matrix(
+    *,
+    config: dict[str, Any],
+    seed: int = 42,
+    dry_run: bool = True,
+    symbols: list[str] | None = None,
+    timeframe: str = "1h",
+    runs_root: Path = RUNS_DIR,
+    docs_dir: Path = Path("docs"),
+    data_dir: Path = RAW_DATA_DIR,
+    derived_dir: Path = DERIVED_DATA_DIR,
+    stage_tag: str = "13.5",
+    report_name: str = "stage13_5_combined",
+) -> dict[str, Any]:
+    """Run family-alone/pairwise/all matrix with composer modes."""
+
+    cfg = json.loads(json.dumps(config))
+    family_sets = [
+        ["price"],
+        ["volatility"],
+        ["flow"],
+        ["price", "volatility"],
+        ["price", "flow"],
+        ["volatility", "flow"],
+        ["price", "volatility", "flow"],
+    ]
+    rows: list[dict[str, Any]] = []
+    run_ids: list[str] = []
+    for fams in family_sets:
+        modes = ["none"] if len(fams) == 1 else ["vote", "weighted_sum", "gated"]
+        for mode in modes:
+            cfg_i = json.loads(json.dumps(cfg))
+            cfg_i.setdefault("evaluation", {}).setdefault("stage13", {})["enabled"] = True
+            cfg_i["evaluation"]["stage13"].setdefault("families", {})["enabled"] = list(fams)
+            result = run_stage13(
+                config=cfg_i,
+                seed=int(seed),
+                dry_run=bool(dry_run),
+                symbols=symbols,
+                timeframe=timeframe,
+                families=list(fams),
+                composer_mode=mode,
+                runs_root=runs_root,
+                docs_dir=docs_dir,
+                data_dir=data_dir,
+                derived_dir=derived_dir,
+                stage_tag=stage_tag,
+                report_name=f"{report_name}_{'_'.join(fams)}_{mode}",
+                write_docs=False,
+            )
+            summary = dict(result["summary"])
+            metrics = dict(summary.get("metrics", {}))
+            run_ids.append(str(summary["run_id"]))
+            rows.append(
+                {
+                    "families": ",".join(fams),
+                    "composer_mode": mode,
+                    "run_id": summary["run_id"],
+                    "classification": summary["classification"],
+                    "zero_trade_pct": float(metrics.get("zero_trade_pct", 100.0)),
+                    "invalid_pct": float(metrics.get("invalid_pct", 100.0)),
+                    "walkforward_executed_true_pct": float(metrics.get("walkforward_executed_true_pct", 0.0)),
+                    "mc_trigger_rate": float(metrics.get("mc_trigger_rate", 0.0)),
+                    "trade_count": float(metrics.get("trade_count", 0.0)),
+                    "tpm": float(metrics.get("tpm", 0.0)),
+                    "best_exp_lcb": float(result["rows"]["exp_lcb"].max()) if not result["rows"].empty else 0.0,
+                    "best_pf": float(result["rows"]["PF"].max()) if not result["rows"].empty else 0.0,
+                }
+            )
+
+    matrix_df = pd.DataFrame(rows)
+    pass_gate = bool(
+        (
+            (matrix_df["walkforward_executed_true_pct"] >= 50.0)
+            & (matrix_df["mc_trigger_rate"] > 0.0)
+            & (matrix_df["invalid_pct"] < 50.0)
+        ).any()
+    )
+    classification = "ROBUST_EDGE" if pass_gate else "NO_EDGE"
+    best_row = matrix_df.sort_values(["best_exp_lcb", "best_pf", "trade_count"], ascending=[False, False, False]).iloc[0].to_dict()
+
+    interaction = _interaction_analysis(
+        config=cfg,
+        seed=int(seed),
+        dry_run=bool(dry_run),
+        symbols=symbols,
+        timeframe=timeframe,
+        data_dir=data_dir,
+        derived_dir=derived_dir,
+    )
+    overlap_df = pd.DataFrame(interaction["overlap_rows"])
+    corr_df = pd.DataFrame(interaction["correlation_rows"])
+    conflict_df = pd.DataFrame(interaction["conflict_rows"])
+
+    payload = {
+        "git_commit": "",
+        "stage": str(stage_tag),
+        "run_ids": run_ids,
+        "config_hash": compute_config_hash(cfg),
+        "data_hash": stable_hash(run_ids, length=16),
+        "classification": classification,
+        "gate_pass": pass_gate,
+        "best": _json_safe(best_row),
+        "warnings": [] if pass_gate else ["combined_gate_failed"],
+    }
+    docs_dir.mkdir(parents=True, exist_ok=True)
+    report_json = docs_dir / f"{report_name}_summary.json"
+    report_md = docs_dir / f"{report_name}_report.md"
+    matrix_path = docs_dir / f"{report_name}_matrix.csv"
+    overlap_path = docs_dir / f"{report_name}_overlap.csv"
+    corr_path = docs_dir / f"{report_name}_return_corr.csv"
+    conflict_path = docs_dir / f"{report_name}_conflict.csv"
+    matrix_df.to_csv(matrix_path, index=False)
+    overlap_df.to_csv(overlap_path, index=False)
+    corr_df.to_csv(corr_path, index=False)
+    conflict_df.to_csv(conflict_path, index=False)
+    report_json.write_text(json.dumps(_json_safe(payload), indent=2, allow_nan=False), encoding="utf-8")
+    lines = [
+        f"# Stage-{stage_tag} Combined Composer Report",
+        "",
+        "## 1) What changed",
+        "- Ran family-alone, pairwise, and all-family composer matrix.",
+        "- Added interaction analysis: overlap, return-correlation, conflict rate.",
+        "",
+        "## 2) How to run (dry-run + real)",
+        f"- dry-run: `python scripts/run_stage13.py --substage {stage_tag} --dry-run --seed 42`",
+        f"- real: `python scripts/run_stage13.py --substage {stage_tag} --seed 42`",
+        "",
+        "## 3) Validation gates & results",
+        f"- gate_pass: `{pass_gate}`",
+        f"- classification: `{classification}`",
+        "",
+        "## 4) Key metrics tables (trade_count, tpm, PF, expectancy, exp_lcb, maxDD, wf, mc)",
+        f"- matrix: `{matrix_path.as_posix()}`",
+        f"- overlap: `{overlap_path.as_posix()}`",
+        f"- return correlation: `{corr_path.as_posix()}`",
+        f"- conflict: `{conflict_path.as_posix()}`",
+        "",
+        "## 5) Failures + reasons",
+    ]
+    if payload["warnings"]:
+        lines.extend([f"- {item}" for item in payload["warnings"]])
+    else:
+        lines.append("- none")
+    lines.extend(
+        [
+            "",
+            "## 6) Next actions",
+            "- Feed best combined mode into robustness sweeps (Stage-13.6).",
+            "",
+            "## Summary",
+            f"- best families: `{best_row.get('families','')}`",
+            f"- best composer_mode: `{best_row.get('composer_mode','')}`",
+            f"- best_exp_lcb: `{float(best_row.get('best_exp_lcb', 0.0)):.6f}`",
+        ]
+    )
+    report_md.write_text("\n".join(lines).strip() + "\n", encoding="utf-8")
+    return {
+        "summary": payload,
+        "table": matrix_df,
+        "report_md": report_md,
+        "report_json": report_json,
+    }
+
+
+def _interaction_analysis(
+    *,
+    config: dict[str, Any],
+    seed: int,
+    dry_run: bool,
+    symbols: list[str] | None,
+    timeframe: str,
+    data_dir: Path,
+    derived_dir: Path,
+) -> dict[str, Any]:
+    cfg = json.loads(json.dumps(config))
+    resolved_symbols = list(symbols or cfg.get("universe", {}).get("symbols", ["BTC/USDT", "ETH/USDT"]))
+    features_by_symbol = _build_features(
+        config=cfg,
+        symbols=resolved_symbols,
+        timeframe=str(timeframe),
+        dry_run=bool(dry_run),
+        seed=int(seed),
+        data_dir=data_dir,
+        derived_dir=derived_dir,
+    )
+    overlap_rows: list[dict[str, Any]] = []
+    corr_rows: list[dict[str, Any]] = []
+    conflict_rows: list[dict[str, Any]] = []
+    for symbol, frame in sorted(features_by_symbol.items()):
+        fams = build_families(enabled=["price", "volatility", "flow"], cfg=cfg)
+        outputs: dict[str, pd.DataFrame] = {}
+        ctx = FamilyContext(symbol=str(symbol), timeframe=str(timeframe), seed=int(seed), config=cfg, params={})
+        for name, family in fams.items():
+            out = family.propose_entries(family.compute_scores(frame, ctx), frame, ctx)
+            outputs[name] = out
+        fam_names = sorted(outputs.keys())
+        returns = pd.to_numeric(frame["close"], errors="coerce").pct_change().fillna(0.0)
+        for i, a in enumerate(fam_names):
+            for b in fam_names[i + 1 :]:
+                sig_a = pd.to_numeric(outputs[a]["direction"], errors="coerce").fillna(0.0)
+                sig_b = pd.to_numeric(outputs[b]["direction"], errors="coerce").fillna(0.0)
+                act_a = sig_a != 0
+                act_b = sig_b != 0
+                both = act_a & act_b
+                union = act_a | act_b
+                overlap = float(both.sum() / max(1, union.sum()))
+                conflict = float(((sig_a * sig_b) < 0).sum() / max(1, both.sum()))
+                ret_a = (sig_a.shift(1).fillna(0.0) * returns).astype(float)
+                ret_b = (sig_b.shift(1).fillna(0.0) * returns).astype(float)
+                corr = float(ret_a.corr(ret_b)) if ret_a.std(ddof=0) > 0 and ret_b.std(ddof=0) > 0 else 0.0
+                overlap_rows.append({"symbol": symbol, "pair": f"{a}|{b}", "overlap": overlap})
+                corr_rows.append({"symbol": symbol, "pair": f"{a}|{b}", "return_corr": corr})
+                conflict_rows.append({"symbol": symbol, "pair": f"{a}|{b}", "conflict_rate": conflict})
+    return {
+        "overlap_rows": overlap_rows,
+        "correlation_rows": corr_rows,
+        "conflict_rows": conflict_rows,
+    }

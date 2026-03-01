@@ -1,0 +1,7 @@
+symbol,pair,conflict_rate
+BTC/USDT,flow|price,0.0
+BTC/USDT,flow|volatility,0.0
+BTC/USDT,price|volatility,0.0
+ETH/USDT,flow|price,0.0
+ETH/USDT,flow|volatility,0.0
+ETH/USDT,price|volatility,0.0
