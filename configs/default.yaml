@@ -441,6 +441,18 @@ evaluation:
         chop_penalty_weight: 0.20
         separation_effect_size_threshold: 0.10
         min_samples: 30
+  stage12_3:
+    enabled: false
+    soft_weights:
+      enabled: true
+      min_weight: 0.25
+      regime_mismatch_weight: 0.5
+      vol_mismatch_weight: 0.5
+    usability_adaptive:
+      enabled: true
+      min_floor: 5
+      alpha: 0.35
+      max_floor: 80
 
 ui:
   stage5:

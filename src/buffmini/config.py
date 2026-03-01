@@ -392,6 +392,22 @@ STAGE12_DEFAULTS = {
     },
 }
 
+STAGE12_3_DEFAULTS = {
+    "enabled": False,
+    "soft_weights": {
+        "enabled": True,
+        "min_weight": 0.25,
+        "regime_mismatch_weight": 0.5,
+        "vol_mismatch_weight": 0.5,
+    },
+    "usability_adaptive": {
+        "enabled": True,
+        "min_floor": 5,
+        "alpha": 0.35,
+        "max_floor": 80,
+    },
+}
+
 UI_STAGE5_DEFAULTS = {
     "stage5": {
         "presets": {
@@ -1229,6 +1245,36 @@ def validate_config(config: ConfigDict) -> None:
     if int(context_cfg.get("min_samples", 30)) < 1:
         raise ValueError("evaluation.stage12.forensics.context_model.min_samples must be >= 1")
     evaluation["stage12"] = stage12
+
+    stage12_3 = _merge_defaults(STAGE12_3_DEFAULTS, evaluation.get("stage12_3", {}))
+    if not isinstance(stage12_3.get("enabled", False), bool):
+        raise ValueError("evaluation.stage12_3.enabled must be bool")
+    soft_weights = stage12_3.get("soft_weights", {})
+    if not isinstance(soft_weights.get("enabled", True), bool):
+        raise ValueError("evaluation.stage12_3.soft_weights.enabled must be bool")
+    min_weight = float(soft_weights.get("min_weight", 0.25))
+    if not 0 < min_weight <= 1:
+        raise ValueError("evaluation.stage12_3.soft_weights.min_weight must be in (0,1]")
+    regime_weight = float(soft_weights.get("regime_mismatch_weight", 0.5))
+    vol_weight = float(soft_weights.get("vol_mismatch_weight", 0.5))
+    if not 0 < regime_weight <= 1:
+        raise ValueError("evaluation.stage12_3.soft_weights.regime_mismatch_weight must be in (0,1]")
+    if not 0 < vol_weight <= 1:
+        raise ValueError("evaluation.stage12_3.soft_weights.vol_mismatch_weight must be in (0,1]")
+
+    usability_adaptive = stage12_3.get("usability_adaptive", {})
+    if not isinstance(usability_adaptive.get("enabled", True), bool):
+        raise ValueError("evaluation.stage12_3.usability_adaptive.enabled must be bool")
+    min_floor = int(usability_adaptive.get("min_floor", 5))
+    max_floor = int(usability_adaptive.get("max_floor", 80))
+    alpha = float(usability_adaptive.get("alpha", 0.35))
+    if min_floor < 1:
+        raise ValueError("evaluation.stage12_3.usability_adaptive.min_floor must be >= 1")
+    if max_floor < min_floor:
+        raise ValueError("evaluation.stage12_3.usability_adaptive.max_floor must be >= min_floor")
+    if alpha < 0:
+        raise ValueError("evaluation.stage12_3.usability_adaptive.alpha must be >= 0")
+    evaluation["stage12_3"] = stage12_3
 
     ui = _merge_defaults(UI_STAGE5_DEFAULTS, config.get("ui", {}))
     stage5_ui = ui.get("stage5", {})

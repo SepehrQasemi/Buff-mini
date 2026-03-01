@@ -101,6 +101,7 @@ def run_stage12_sweep(
     forensic_rows: list[dict[str, Any]] = []
     trade_context_rows: list[dict[str, Any]] = []
     min_usable_windows_valid = int(stage12_cfg.get("min_usable_windows_valid", 3))
+    stage12_3_cfg = dict(cfg.get("evaluation", {}).get("stage12_3", {}))
     forensic_cfg = dict(stage12_cfg.get("forensics", {}))
     context_cfg = dict(forensic_cfg.get("context_model", {}))
 
@@ -153,6 +154,7 @@ def run_stage12_sweep(
                             windows=windows,
                             min_usable_windows_valid=min_usable_windows_valid,
                             context_cfg=context_cfg,
+                            stage12_3_cfg=stage12_3_cfg,
                         )
                         combo_eval["combo_key"] = combo_key
                         forensic_rows.append(
@@ -177,6 +179,8 @@ def run_stage12_sweep(
                                 "metric_logic_zero_trade_pf_ok": bool(combo_eval["_metric_logic"]["zero_trade_pf_ok"]),
                                 "metric_logic_no_losing_pf_ok": bool(combo_eval["_metric_logic"]["no_losing_pf_ok"]),
                                 "metric_logic_stability_threshold_ok": bool(combo_eval["_metric_logic"]["stability_threshold_ok"]),
+                                "avg_weight": float(combo_eval["_avg_weight"]),
+                                "min_trades_required_per_window": int(combo_eval["_min_trades_required_per_window"]),
                             }
                         )
                         trade_pnls_by_combo[combo_key] = combo_eval.pop("_trade_pnls")
@@ -205,6 +209,9 @@ def run_stage12_sweep(
                             "_walkforward_integrity_ok",
                             "_invalid_reason",
                             "_metric_logic",
+                            "_avg_weight",
+                            "_min_trades_required_per_window",
+                            "_trade_timestamps",
                         ):
                             combo_eval.pop(internal_key, None)
                         rows.append(combo_eval)
@@ -283,6 +290,26 @@ def run_stage12_sweep(
         encoding="utf-8",
     )
 
+    trade_rate_audit = _build_trade_rate_audit(
+        leaderboard=leaderboard,
+        forensic_matrix=forensic_matrix,
+        min_usable_windows_valid=min_usable_windows_valid,
+    )
+    trade_rate_audit.to_csv(run_dir / "stage12_trade_rate_audit.csv", index=False)
+    stage12_3_metrics = _build_stage12_3_metrics(
+        forensic_summary=forensic_summary,
+        target_thresholds={
+            "zero_trade_pct_max": 25.0,
+            "walkforward_executed_true_pct_min": 40.0,
+            "mc_trigger_rate_min": 10.0,
+            "invalid_pct_max": 60.0,
+        },
+    )
+    (run_dir / "stage12_3_metrics.json").write_text(
+        json.dumps(stage12_3_metrics, indent=2, allow_nan=False),
+        encoding="utf-8",
+    )
+
     trade_context_df = pd.DataFrame(trade_context_rows)
     false_positive_map, signal_forensics_summary, by_strategy = summarize_signal_forensics(
         trade_context=trade_context_df,
@@ -324,6 +351,15 @@ def run_stage12_sweep(
         summary=signal_forensics_summary,
         by_strategy=by_strategy,
     )
+    _write_stage12_3_docs(
+        report_md=docs_dir / "stage12_3_report.md",
+        report_json=docs_dir / "stage12_3_summary.json",
+        run_id=run_id,
+        stage12_3_metrics=stage12_3_metrics,
+        trade_rate_audit=trade_rate_audit,
+        leaderboard=leaderboard,
+        baseline_stage12_1=docs_dir / "stage12_1_execution_forensics_summary.json",
+    )
     return {
         "run_id": run_id,
         "run_dir": run_dir,
@@ -331,6 +367,7 @@ def run_stage12_sweep(
         "leaderboard": leaderboard,
         "forensic_summary": forensic_summary,
         "signal_forensics_summary": signal_forensics_summary,
+        "stage12_3_metrics": stage12_3_metrics,
         "report_md": report_md,
         "report_json": report_json,
     }
@@ -510,8 +547,20 @@ def _evaluate_combo(
     windows: list[Any],
     min_usable_windows_valid: int,
     context_cfg: dict[str, Any],
+    stage12_3_cfg: dict[str, Any],
 ) -> dict[str, Any]:
     signal_series = strategy.signal_builder(frame)
+    signal_abs = pd.to_numeric(signal_series, errors="coerce").fillna(0).abs()
+    weight_series = _soft_weight_series(
+        frame=frame,
+        strategy=strategy,
+        stage12_3_cfg=stage12_3_cfg,
+    )
+    if float(signal_abs.sum()) > 0:
+        avg_weight = float((weight_series * signal_abs).sum() / signal_abs.sum())
+    else:
+        avg_weight = float(weight_series.mean()) if len(weight_series) else 1.0
+
     bt_started = time.perf_counter()
     backtest_result = _run_backtest_with_signal(
         frame=frame,
@@ -533,6 +582,8 @@ def _evaluate_combo(
         cfg=cfg,
         cost_model_cfg=cost_model_cfg,
         windows=windows,
+        trades_per_month=float(metrics["trades_per_month"]),
+        stage12_3_cfg=stage12_3_cfg,
     )
     walkforward_seconds = float(time.perf_counter() - wf_started)
     expected_windows = int(len(windows))
@@ -592,6 +643,7 @@ def _evaluate_combo(
         "MC_p_return_negative": math.nan,
         "MC_maxDD_p95": math.nan,
         "MC_expected_log_growth": math.nan,
+        "avg_weight": float(avg_weight),
         "_raw_backtest_seconds": raw_backtest_seconds,
         "_walkforward_windows_count": evaluated_windows,
         "_walkforward_expected_windows": expected_windows,
@@ -600,6 +652,8 @@ def _evaluate_combo(
         "_walkforward_integrity_ok": walkforward_integrity_ok,
         "_invalid_reason": invalid_reason,
         "_metric_logic": metric_logic,
+        "_avg_weight": float(avg_weight),
+        "_min_trades_required_per_window": int(wf_summary.get("min_trades_required_per_window", 0)),
         "_trade_context_rows": extract_trade_context_rows(
             combo_key="",
             symbol=str(symbol),
@@ -616,6 +670,13 @@ def _evaluate_combo(
         "_trade_pnls": pd.to_numeric(backtest_result.trades.get("pnl", pd.Series(dtype=float)), errors="coerce")
         .dropna()
         .to_numpy(dtype=float),
+        "_trade_timestamps": [
+            (
+                _to_iso_utc(row.get("entry_time")),
+                _to_iso_utc(row.get("exit_time")),
+            )
+            for row in backtest_result.trades.to_dict(orient="records")
+        ],
         "_window_rows": window_rows,
     }
     return output
@@ -661,10 +722,18 @@ def _evaluate_walkforward_combo(
     cfg: dict[str, Any],
     cost_model_cfg: dict[str, Any],
     windows: list[Any],
+    trades_per_month: float,
+    stage12_3_cfg: dict[str, Any],
 ) -> tuple[list[dict[str, Any]], dict[str, Any]]:
     if not windows:
-        return [], {"classification": "INSUFFICIENT_DATA", "usable_windows": 0}
+        return [], {"classification": "INSUFFICIENT_DATA", "usable_windows": 0, "min_trades_required_per_window": 0}
     wf_cfg = cfg.get("evaluation", {}).get("stage8", {}).get("walkforward_v2", {})
+    min_trades_required = _resolve_min_trades_required(
+        trades_per_month=trades_per_month,
+        window_days=int(wf_cfg.get("forward_days", 30)),
+        base_min_trades=float(wf_cfg.get("min_trades", 10)),
+        stage12_3_cfg=stage12_3_cfg,
+    )
     ts = pd.to_datetime(frame["timestamp"], utc=True, errors="coerce")
     rows: list[dict[str, Any]] = []
     for window in windows:
@@ -694,7 +763,7 @@ def _evaluate_walkforward_combo(
         fwd_metrics = _window_metrics(result=fwd_result, frame=forward)
         usable, reasons = _usable_window(
             forward_metrics=fwd_metrics,
-            min_trades=float(wf_cfg.get("min_trades", 10)),
+            min_trades=float(min_trades_required),
             min_exposure=float(wf_cfg.get("min_exposure", 0.01)),
         )
         rows.append(
@@ -723,9 +792,12 @@ def _evaluate_walkforward_combo(
                 "forward_return_pct": float(fwd_metrics["return_pct"]),
                 "forward_trade_count": int(fwd_metrics["trade_count"]),
                 "forward_exposure_ratio": float(fwd_metrics["exposure_ratio"]),
+                "min_trades_required": int(min_trades_required),
             }
         )
-    return rows, aggregate_windows(rows, cfg=cfg)
+    summary = aggregate_windows(rows, cfg=cfg)
+    summary["min_trades_required_per_window"] = int(min_trades_required)
+    return rows, summary
 
 
 def _window_metrics(result: Any, frame: pd.DataFrame) -> dict[str, float]:
@@ -761,6 +833,81 @@ def _window_metrics(result: Any, frame: pd.DataFrame) -> dict[str, float]:
     }
     payload["finite"] = all(np.isfinite(float(value)) for value in payload.values())
     return payload
+
+
+def _resolve_min_trades_required(
+    *,
+    trades_per_month: float,
+    window_days: int,
+    base_min_trades: float,
+    stage12_3_cfg: dict[str, Any],
+) -> int:
+    min_required = int(max(1, round(float(base_min_trades))))
+    if not bool(stage12_3_cfg.get("enabled", False)):
+        return min_required
+    adaptive_cfg = dict(stage12_3_cfg.get("usability_adaptive", {}))
+    if not bool(adaptive_cfg.get("enabled", True)):
+        return min_required
+    min_floor = int(adaptive_cfg.get("min_floor", 5))
+    max_floor = int(adaptive_cfg.get("max_floor", 80))
+    alpha = float(adaptive_cfg.get("alpha", 0.35))
+    expected = float(max(0.0, trades_per_month) * (max(1, int(window_days)) / 30.0))
+    adaptive = int(math.floor(expected * max(0.0, alpha)))
+    clipped = int(max(min_floor, min(max_floor, adaptive)))
+    return int(max(1, clipped))
+
+
+def _soft_weight_series(
+    *,
+    frame: pd.DataFrame,
+    strategy: StrategyVariant,
+    stage12_3_cfg: dict[str, Any],
+) -> pd.Series:
+    if frame.empty:
+        return pd.Series(dtype=float)
+    idx = frame.index
+    if not bool(stage12_3_cfg.get("enabled", False)):
+        return pd.Series(np.ones(len(frame), dtype=float), index=idx, dtype=float)
+    soft_cfg = dict(stage12_3_cfg.get("soft_weights", {}))
+    if not bool(soft_cfg.get("enabled", True)):
+        return pd.Series(np.ones(len(frame), dtype=float), index=idx, dtype=float)
+
+    min_weight = float(soft_cfg.get("min_weight", 0.25))
+    regime_mismatch_weight = float(soft_cfg.get("regime_mismatch_weight", 0.5))
+    vol_mismatch_weight = float(soft_cfg.get("vol_mismatch_weight", 0.5))
+
+    trend_score = pd.to_numeric(frame.get("score_trend", 0.5), errors="coerce").fillna(0.5).to_numpy(dtype=float)
+    range_score = pd.to_numeric(frame.get("score_range", 0.5), errors="coerce").fillna(0.5).to_numpy(dtype=float)
+    vol_rank = pd.to_numeric(frame.get("atr_pct_rank_252", 0.5), errors="coerce").fillna(0.5).to_numpy(dtype=float)
+    family = _strategy_family_label(strategy=strategy)
+
+    if family == "mean_reversion":
+        regime_match = range_score >= trend_score
+        vol_match = vol_rank <= 0.75
+    elif family in {"trend", "breakout"}:
+        regime_match = trend_score >= range_score
+        vol_match = vol_rank >= 0.25
+    else:
+        regime_match = np.ones(len(frame), dtype=bool)
+        vol_match = np.ones(len(frame), dtype=bool)
+
+    regime_weight = np.where(regime_match, 1.0, regime_mismatch_weight)
+    vol_weight = np.where(vol_match, 1.0, vol_mismatch_weight)
+    final = np.clip(regime_weight * vol_weight, min_weight, 1.0)
+    return pd.Series(final.astype(float), index=idx, dtype=float)
+
+
+def _strategy_family_label(*, strategy: StrategyVariant) -> str:
+    key = str(strategy.strategy_key)
+    if key in {"BreakoutRetest", "MA_SlopePullback"}:
+        return "trend"
+    if key in {"VolCompressionBreakout", "Donchian_Breakout", "Range_Breakout_w/_EMA_Trend_Filter"}:
+        return "breakout"
+    if key in {"BollingerSnapBack", "ATR_DistanceRevert", "RangeFade", "RSI_Mean_Reversion"}:
+        return "mean_reversion"
+    if "Trend_Pullback" in key or key == "Trend_Pullback":
+        return "trend"
+    return "other"
 
 
 def _usable_window(forward_metrics: dict[str, float], min_trades: float, min_exposure: float) -> tuple[bool, list[str]]:
@@ -936,6 +1083,177 @@ def _top_robust_rows(leaderboard: pd.DataFrame, limit: int) -> list[dict[str, An
                 safe_row[key] = value
         out.append(safe_row)
     return out
+
+
+def _build_trade_rate_audit(
+    *,
+    leaderboard: pd.DataFrame,
+    forensic_matrix: pd.DataFrame,
+    min_usable_windows_valid: int,
+) -> pd.DataFrame:
+    joined = leaderboard.merge(
+        forensic_matrix[
+            [
+                "combo_key",
+                "invalid_reason",
+                "walkforward_expected_windows",
+                "walkforward_windows_count",
+                "min_trades_required_per_window",
+            ]
+        ],
+        on="combo_key",
+        how="left",
+    )
+    joined["zero_trade"] = pd.to_numeric(joined["trade_count"], errors="coerce").fillna(0.0) <= 0.0
+    joined["top_reject_reason"] = joined["invalid_reason"].fillna("VALID")
+    joined["walkforward_usable_windows"] = pd.to_numeric(joined["usable_windows"], errors="coerce").fillna(0).astype(int)
+    joined["walkforward_expected_windows"] = (
+        pd.to_numeric(joined["walkforward_expected_windows"], errors="coerce").fillna(0).astype(int)
+    )
+    joined["min_trades_required_per_window"] = (
+        pd.to_numeric(joined["min_trades_required_per_window"], errors="coerce").fillna(0).astype(int)
+    )
+    joined["avg_weight"] = pd.to_numeric(joined["avg_weight"], errors="coerce").fillna(1.0).astype(float)
+    joined["usability_passed"] = joined["walkforward_usable_windows"] >= int(min_usable_windows_valid)
+
+    cols = [
+        "symbol",
+        "timeframe",
+        "strategy",
+        "exit_type",
+        "cost_level",
+        "trade_count",
+        "trades_per_month",
+        "zero_trade",
+        "top_reject_reason",
+        "walkforward_expected_windows",
+        "walkforward_usable_windows",
+        "min_trades_required_per_window",
+        "avg_weight",
+        "usability_passed",
+    ]
+    out = joined.loc[:, cols].copy()
+    out = out.rename(columns={"trade_count": "trade_count_total", "exit_type": "exit"})
+    return out.sort_values(["symbol", "timeframe", "strategy", "exit", "cost_level"]).reset_index(drop=True)
+
+
+def _build_stage12_3_metrics(
+    *,
+    forensic_summary: dict[str, Any],
+    target_thresholds: dict[str, float],
+) -> dict[str, Any]:
+    zero_trade_pct = float(forensic_summary.get("zero_trade_pct", 0.0))
+    walkforward_pct = float(forensic_summary.get("walkforward_executed_true_pct", 0.0))
+    mc_trigger_rate = float(forensic_summary.get("mc_trigger_rate", 0.0))
+    invalid_pct = float(forensic_summary.get("invalid_pct", 0.0))
+    pass_map = {
+        "zero_trade_pct": zero_trade_pct <= float(target_thresholds["zero_trade_pct_max"]),
+        "walkforward_executed_true_pct": walkforward_pct >= float(target_thresholds["walkforward_executed_true_pct_min"]),
+        "MC_trigger_rate": mc_trigger_rate >= float(target_thresholds["mc_trigger_rate_min"]),
+        "invalid_pct": invalid_pct <= float(target_thresholds["invalid_pct_max"]),
+    }
+    return {
+        "zero_trade_pct": zero_trade_pct,
+        "walkforward_executed_true_pct": walkforward_pct,
+        "MC_trigger_rate": mc_trigger_rate,
+        "invalid_pct": invalid_pct,
+        "targets": dict(target_thresholds),
+        "target_pass_map": pass_map,
+        "passed": bool(all(pass_map.values())),
+        "status": "PASSED" if all(pass_map.values()) else "FAILED",
+    }
+
+
+def _write_stage12_3_docs(
+    *,
+    report_md: Path,
+    report_json: Path,
+    run_id: str,
+    stage12_3_metrics: dict[str, Any],
+    trade_rate_audit: pd.DataFrame,
+    leaderboard: pd.DataFrame,
+    baseline_stage12_1: Path,
+) -> None:
+    payload = dict(stage12_3_metrics)
+    payload["run_id"] = str(run_id)
+    report_json.write_text(json.dumps(payload, indent=2, allow_nan=False), encoding="utf-8")
+
+    baseline = {}
+    if baseline_stage12_1.exists():
+        try:
+            baseline = json.loads(baseline_stage12_1.read_text(encoding="utf-8"))
+        except Exception:
+            baseline = {}
+
+    reason_breakdown = (
+        trade_rate_audit["top_reject_reason"].astype(str).value_counts(normalize=True).sort_index() * 100.0
+        if not trade_rate_audit.empty
+        else pd.Series(dtype=float)
+    )
+    valid_top = leaderboard.loc[leaderboard["is_valid"] == True].sort_values("robust_score", ascending=False).head(10)  # noqa: E712
+
+    lines: list[str] = []
+    lines.append("# Stage-12.3 Unblocking Report")
+    lines.append("")
+    lines.append(f"- run_id: `{run_id}`")
+    lines.append(f"- status: `Stage-12.3 {payload['status']}`")
+    lines.append("")
+    lines.append("## Target Metrics")
+    lines.append("| metric | value | target | pass |")
+    lines.append("| --- | ---: | ---: | --- |")
+    lines.append(
+        f"| zero_trade_pct | {float(payload['zero_trade_pct']):.6f} | <= {float(payload['targets']['zero_trade_pct_max']):.6f} | {bool(payload['target_pass_map']['zero_trade_pct'])} |"
+    )
+    lines.append(
+        f"| walkforward_executed_true_pct | {float(payload['walkforward_executed_true_pct']):.6f} | >= {float(payload['targets']['walkforward_executed_true_pct_min']):.6f} | {bool(payload['target_pass_map']['walkforward_executed_true_pct'])} |"
+    )
+    lines.append(
+        f"| MC_trigger_rate | {float(payload['MC_trigger_rate']):.6f} | >= {float(payload['targets']['mc_trigger_rate_min']):.6f} | {bool(payload['target_pass_map']['MC_trigger_rate'])} |"
+    )
+    lines.append(
+        f"| invalid_pct | {float(payload['invalid_pct']):.6f} | <= {float(payload['targets']['invalid_pct_max']):.6f} | {bool(payload['target_pass_map']['invalid_pct'])} |"
+    )
+    lines.append("")
+    lines.append("## Before vs After (Stage-12.1 baseline, if available)")
+    lines.append("| metric | baseline | stage12_3 |")
+    lines.append("| --- | ---: | ---: |")
+    for key in ("zero_trade_pct", "walkforward_executed_true_pct", "mc_trigger_rate", "invalid_pct"):
+        baseline_value = baseline.get(key, None)
+        if baseline_value is None:
+            baseline_text = "N/A"
+        else:
+            baseline_text = f"{float(baseline_value):.6f}"
+        lines.append(f"| {key} | {baseline_text} | {float(payload.get(key if key != 'mc_trigger_rate' else 'MC_trigger_rate', 0.0)):.6f} |")
+    lines.append("")
+    lines.append("## Reject Reason Breakdown")
+    lines.append("| reason | pct |")
+    lines.append("| --- | ---: |")
+    for reason, pct in reason_breakdown.items():
+        lines.append(f"| {reason} | {float(pct):.6f} |")
+    lines.append("")
+    lines.append("## Top 10 VALID by robust_score")
+    if valid_top.empty:
+        lines.append("- no valid combinations")
+    else:
+        lines.append("| symbol | timeframe | strategy | exit | cost_level | robust_score |")
+        lines.append("| --- | --- | --- | --- | --- | ---: |")
+        for row in valid_top.to_dict(orient="records"):
+            lines.append(
+                f"| {row.get('symbol','')} | {row.get('timeframe','')} | {row.get('strategy','')} | "
+                f"{row.get('exit_type','')} | {row.get('cost_level','')} | {float(row.get('robust_score', 0.0)):.6f} |"
+            )
+    lines.append("")
+    if not bool(payload["passed"]):
+        lines.append("## Why Stage-12.3 failed and what will be changed in Stage-12.4")
+        lines.append(
+            "- Stage-12.3 soft weighting and adaptive usability improved diagnostics coverage but did not satisfy all target metrics. "
+            "Stage-12.4 will add a deterministic score-based qualification wrapper with bounded search and explicit trade-rate constraints."
+        )
+    else:
+        lines.append("## Conclusion")
+        lines.append("- Stage-12.3 PASSED")
+
+    report_md.write_text("\n".join(lines).strip() + "\n", encoding="utf-8")
 
 
 def _family_display_name(family: str) -> str:
@@ -1115,3 +1433,10 @@ def _safe_float(value: Any, default: float = math.nan) -> float:
     if not np.isfinite(number):
         return float(default)
     return float(number)
+
+
+def _to_iso_utc(value: Any) -> str:
+    ts = pd.to_datetime(value, utc=True, errors="coerce")
+    if pd.isna(ts):
+        return ""
+    return ts.isoformat()
