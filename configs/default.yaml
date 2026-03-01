@@ -453,6 +453,15 @@ evaluation:
       min_floor: 5
       alpha: 0.35
       max_floor: 80
+  stage12_4:
+    enabled: false
+    threshold_grid: [0.20, 0.30, 0.40, 0.50, 0.60, 0.70, 0.80]
+    weight_values: [0.5, 1.0, 1.5]
+    trade_rate_target:
+      tpm_min: 2.0
+      tpm_max: 40.0
+    cache:
+      enabled: true
 
 ui:
   stage5:

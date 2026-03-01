@@ -78,6 +78,8 @@ def test_soft_weighting_does_not_change_trade_timestamps() -> None:
         min_usable_windows_valid=1,
         context_cfg={},
         stage12_3_cfg={"enabled": False},
+        stage12_4_cfg={"enabled": False},
+        seed=42,
     )
     on = _evaluate_combo(
         frame=frame,
@@ -98,6 +100,8 @@ def test_soft_weighting_does_not_change_trade_timestamps() -> None:
                 "vol_mismatch_weight": 0.5,
             },
         },
+        stage12_4_cfg={"enabled": False},
+        seed=42,
     )
     assert off["_trade_timestamps"] == on["_trade_timestamps"]
     assert int(off["trade_count"]) == int(on["trade_count"])

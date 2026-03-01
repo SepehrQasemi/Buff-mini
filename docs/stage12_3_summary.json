@@ -1,0 +1,21 @@
+{
+  "zero_trade_pct": 71.96969696969697,
+  "walkforward_executed_true_pct": 0.0,
+  "MC_trigger_rate": 0.0,
+  "invalid_pct": 100.0,
+  "targets": {
+    "zero_trade_pct_max": 25.0,
+    "walkforward_executed_true_pct_min": 40.0,
+    "mc_trigger_rate_min": 10.0,
+    "invalid_pct_max": 60.0
+  },
+  "target_pass_map": {
+    "zero_trade_pct": false,
+    "walkforward_executed_true_pct": false,
+    "MC_trigger_rate": false,
+    "invalid_pct": false
+  },
+  "passed": false,
+  "status": "FAILED",
+  "run_id": "20260301_051916_7adfeefe759b_stage12"
+}

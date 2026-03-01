@@ -22,6 +22,7 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument("--data-dir", type=Path, default=RAW_DATA_DIR)
     parser.add_argument("--derived-dir", type=Path, default=DERIVED_DATA_DIR)
     parser.add_argument("--stage12-3-enabled", action="store_true", help="Enable Stage-12.3 softening mode")
+    parser.add_argument("--stage12-4-enabled", action="store_true", help="Enable Stage-12.4 score-wrapper mode")
     return parser.parse_args()
 
 
@@ -30,6 +31,8 @@ def main() -> None:
     config = load_config(args.config)
     if bool(args.stage12_3_enabled):
         config.setdefault("evaluation", {}).setdefault("stage12_3", {})["enabled"] = True
+    if bool(args.stage12_4_enabled):
+        config.setdefault("evaluation", {}).setdefault("stage12_4", {})["enabled"] = True
     symbols = [item.strip() for item in str(args.symbols).split(",") if item.strip()] if args.symbols else None
     timeframes = [item.strip().lower() for item in str(args.timeframes).split(",") if item.strip()] if args.timeframes else None
 
@@ -48,6 +51,7 @@ def main() -> None:
     forensic = dict(result.get("forensic_summary", {}))
     signal_forensics = dict(result.get("signal_forensics_summary", {}))
     stage12_3_metrics = dict(result.get("stage12_3_metrics", {}))
+    stage12_4_metrics = dict(result.get("stage12_4_metrics", {}))
     validate_stage12_summary_schema(summary)
 
     report_json = Path("docs") / "stage12_report_summary.json"
@@ -79,6 +83,15 @@ def main() -> None:
         )
         print(f"stage12_3_MC_trigger_rate: {float(stage12_3_metrics.get('MC_trigger_rate', 0.0)):.6f}")
         print(f"stage12_3_invalid_pct: {float(stage12_3_metrics.get('invalid_pct', 0.0)):.6f}")
+    if stage12_4_metrics:
+        print(f"stage12_4_status: {stage12_4_metrics.get('status', '')}")
+        print(f"stage12_4_zero_trade_pct: {float(stage12_4_metrics.get('zero_trade_pct', 0.0)):.6f}")
+        print(
+            "stage12_4_walkforward_executed_true_pct: "
+            f"{float(stage12_4_metrics.get('walkforward_executed_true_pct', 0.0)):.6f}"
+        )
+        print(f"stage12_4_MC_trigger_rate: {float(stage12_4_metrics.get('MC_trigger_rate', 0.0)):.6f}")
+        print(f"stage12_4_invalid_pct: {float(stage12_4_metrics.get('invalid_pct', 0.0)):.6f}")
     top_rows = summary.get("top_robust", [])[:3]
     for idx, row in enumerate(top_rows, start=1):
         print(
@@ -93,6 +106,8 @@ def main() -> None:
     print("wrote: docs/stage12_2_signal_forensics_summary.json")
     print("wrote: docs/stage12_3_report.md")
     print("wrote: docs/stage12_3_summary.json")
+    print("wrote: docs/stage12_4_report.md")
+    print("wrote: docs/stage12_4_summary.json")
     print(f"leaderboard: {result['run_dir'] / 'leaderboard.csv'}")
 
 

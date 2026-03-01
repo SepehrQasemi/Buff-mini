@@ -1,11 +1,11 @@
 # Stage-12.1 Execution Forensics & Sanity Audit
 
-- run_id: `20260301_041932_2fc2823beb24_stage12`
+- run_id: `20260301_051916_7adfeefe759b_stage12`
 - total_combinations: `1188`
-- avg_backtest_ms_per_combo: `9.777373`
-- min_backtest_ms: `1.981500`
-- max_backtest_ms: `95.536200`
-- zero_trade_pct: `62.878788`
+- avg_backtest_ms_per_combo: `6.157022`
+- min_backtest_ms: `2.073100`
+- max_backtest_ms: `47.206400`
+- zero_trade_pct: `71.969697`
 - invalid_pct: `100.000000`
 - walkforward_executed_true_pct: `0.000000`
 - mc_trigger_rate: `0.000000`
@@ -16,8 +16,8 @@
 ## Invalid Reason Distribution
 | reason | pct |
 | --- | ---: |
-| LOW_USABLE_WINDOWS | 37.121212 |
-| ZERO_TRADE | 62.878788 |
+| LOW_USABLE_WINDOWS | 28.030303 |
+| ZERO_TRADE | 71.969697 |
 
 ## Classification
 - `TRUE_NO_EDGE`

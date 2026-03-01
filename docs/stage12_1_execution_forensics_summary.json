@@ -1,13 +1,13 @@
 {
   "total_combinations": 1188,
-  "avg_backtest_ms_per_combo": 9.7773734850359,
-  "min_backtest_ms": 1.9815000123344362,
-  "max_backtest_ms": 95.53620000951923,
-  "zero_trade_pct": 62.878787878787875,
+  "avg_backtest_ms_per_combo": 6.157021801597329,
+  "min_backtest_ms": 2.0730999822262675,
+  "max_backtest_ms": 47.20639999140985,
+  "zero_trade_pct": 71.96969696969697,
   "invalid_pct": 100.0,
   "invalid_by_reason_pct": {
-    "LOW_USABLE_WINDOWS": 37.121212121212125,
-    "ZERO_TRADE": 62.878787878787875
+    "LOW_USABLE_WINDOWS": 28.030303030303028,
+    "ZERO_TRADE": 71.96969696969697
   },
   "walkforward_executed_true_pct": 0.0,
   "mc_trigger_rate": 0.0,
@@ -15,5 +15,5 @@
   "walkforward_integrity_failures": 0,
   "suspicious_execution": false,
   "final_stage12_1_classification": "TRUE_NO_EDGE",
-  "run_id": "20260301_041932_2fc2823beb24_stage12"
+  "run_id": "20260301_051916_7adfeefe759b_stage12"
 }

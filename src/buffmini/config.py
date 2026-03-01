@@ -408,6 +408,19 @@ STAGE12_3_DEFAULTS = {
     },
 }
 
+STAGE12_4_DEFAULTS = {
+    "enabled": False,
+    "threshold_grid": [0.20, 0.30, 0.40, 0.50, 0.60, 0.70, 0.80],
+    "weight_values": [0.5, 1.0, 1.5],
+    "trade_rate_target": {
+        "tpm_min": 2.0,
+        "tpm_max": 40.0,
+    },
+    "cache": {
+        "enabled": True,
+    },
+}
+
 UI_STAGE5_DEFAULTS = {
     "stage5": {
         "presets": {
@@ -1275,6 +1288,36 @@ def validate_config(config: ConfigDict) -> None:
     if alpha < 0:
         raise ValueError("evaluation.stage12_3.usability_adaptive.alpha must be >= 0")
     evaluation["stage12_3"] = stage12_3
+
+    stage12_4 = _merge_defaults(STAGE12_4_DEFAULTS, evaluation.get("stage12_4", {}))
+    if not isinstance(stage12_4.get("enabled", False), bool):
+        raise ValueError("evaluation.stage12_4.enabled must be bool")
+    threshold_grid = stage12_4.get("threshold_grid", [])
+    if not isinstance(threshold_grid, list) or not threshold_grid:
+        raise ValueError("evaluation.stage12_4.threshold_grid must be a non-empty list")
+    for idx, value in enumerate(threshold_grid):
+        threshold = float(value)
+        if not 0 <= threshold <= 1:
+            raise ValueError(f"evaluation.stage12_4.threshold_grid[{idx}] must be in [0,1]")
+    weight_values = stage12_4.get("weight_values", [])
+    if not isinstance(weight_values, list) or not weight_values:
+        raise ValueError("evaluation.stage12_4.weight_values must be a non-empty list")
+    for idx, value in enumerate(weight_values):
+        if float(value) <= 0:
+            raise ValueError(f"evaluation.stage12_4.weight_values[{idx}] must be > 0")
+    target = stage12_4.get("trade_rate_target", {})
+    tpm_min = float(target.get("tpm_min", 2.0))
+    tpm_max = float(target.get("tpm_max", 40.0))
+    if tpm_min < 0:
+        raise ValueError("evaluation.stage12_4.trade_rate_target.tpm_min must be >= 0")
+    if tpm_max <= 0:
+        raise ValueError("evaluation.stage12_4.trade_rate_target.tpm_max must be > 0")
+    if tpm_max < tpm_min:
+        raise ValueError("evaluation.stage12_4.trade_rate_target.tpm_max must be >= tpm_min")
+    cache_cfg = stage12_4.get("cache", {})
+    if not isinstance(cache_cfg.get("enabled", True), bool):
+        raise ValueError("evaluation.stage12_4.cache.enabled must be bool")
+    evaluation["stage12_4"] = stage12_4
 
     ui = _merge_defaults(UI_STAGE5_DEFAULTS, config.get("ui", {}))
     stage5_ui = ui.get("stage5", {})

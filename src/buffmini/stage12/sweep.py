@@ -39,6 +39,7 @@ from buffmini.validation.walkforward_v2 import aggregate_windows, build_windows
 
 _COST_LEVEL_ORDER = {"low": 0, "realistic": 1, "high": 2}
 _SUMMARY_STAGE = "12"
+_STAGE12_4_SCORE_CACHE: dict[str, dict[str, Any]] = {}
 
 
 @dataclass(frozen=True)
@@ -102,8 +103,10 @@ def run_stage12_sweep(
     trade_context_rows: list[dict[str, Any]] = []
     min_usable_windows_valid = int(stage12_cfg.get("min_usable_windows_valid", 3))
     stage12_3_cfg = dict(cfg.get("evaluation", {}).get("stage12_3", {}))
+    stage12_4_cfg = dict(cfg.get("evaluation", {}).get("stage12_4", {}))
     forensic_cfg = dict(stage12_cfg.get("forensics", {}))
     context_cfg = dict(forensic_cfg.get("context_model", {}))
+    stage12_4_rows: list[dict[str, Any]] = []
 
     for timeframe in resolved_timeframes:
         tf_started = time.perf_counter()
@@ -155,6 +158,8 @@ def run_stage12_sweep(
                             min_usable_windows_valid=min_usable_windows_valid,
                             context_cfg=context_cfg,
                             stage12_3_cfg=stage12_3_cfg,
+                            stage12_4_cfg=stage12_4_cfg,
+                            seed=int(seed),
                         )
                         combo_eval["combo_key"] = combo_key
                         forensic_rows.append(
@@ -200,6 +205,20 @@ def run_stage12_sweep(
                         for item in context_rows:
                             item["combo_key"] = combo_key
                         trade_context_rows.extend(context_rows)
+                        stage12_4_meta = dict(combo_eval.pop("_stage12_4_meta", {}))
+                        if stage12_4_meta:
+                            stage12_4_rows.append(
+                                {
+                                    "combo_key": combo_key,
+                                    "symbol": symbol,
+                                    "timeframe": str(timeframe),
+                                    "strategy": strategy.strategy_name,
+                                    "strategy_key": strategy.strategy_key,
+                                    "exit_type": exit_variant.exit_type,
+                                    "cost_level": cost_level,
+                                    **stage12_4_meta,
+                                }
+                            )
                         for internal_key in (
                             "_raw_backtest_seconds",
                             "_walkforward_windows_count",
@@ -360,6 +379,26 @@ def run_stage12_sweep(
         leaderboard=leaderboard,
         baseline_stage12_1=docs_dir / "stage12_1_execution_forensics_summary.json",
     )
+    stage12_4_table = pd.DataFrame(stage12_4_rows)
+    if not stage12_4_table.empty:
+        stage12_4_table.to_csv(run_dir / "stage12_4_selection.csv", index=False)
+    stage12_4_metrics = _build_stage12_4_metrics(
+        stage12_4_table=stage12_4_table,
+        forensic_summary=forensic_summary,
+        leaderboard=leaderboard,
+        enabled=bool(stage12_4_cfg.get("enabled", False)),
+    )
+    (run_dir / "stage12_4_metrics.json").write_text(
+        json.dumps(stage12_4_metrics, indent=2, allow_nan=False),
+        encoding="utf-8",
+    )
+    _write_stage12_4_docs(
+        report_md=docs_dir / "stage12_4_report.md",
+        report_json=docs_dir / "stage12_4_summary.json",
+        run_id=run_id,
+        stage12_4_metrics=stage12_4_metrics,
+        stage12_3_metrics=stage12_3_metrics,
+    )
     return {
         "run_id": run_id,
         "run_dir": run_dir,
@@ -368,6 +407,7 @@ def run_stage12_sweep(
         "forensic_summary": forensic_summary,
         "signal_forensics_summary": signal_forensics_summary,
         "stage12_3_metrics": stage12_3_metrics,
+        "stage12_4_metrics": stage12_4_metrics,
         "report_md": report_md,
         "report_json": report_json,
     }
@@ -548,8 +588,17 @@ def _evaluate_combo(
     min_usable_windows_valid: int,
     context_cfg: dict[str, Any],
     stage12_3_cfg: dict[str, Any],
+    stage12_4_cfg: dict[str, Any],
+    seed: int,
 ) -> dict[str, Any]:
-    signal_series = strategy.signal_builder(frame)
+    raw_signal_series = strategy.signal_builder(frame)
+    signal_series, stage12_4_meta = _stage12_4_scored_signal(
+        frame=frame,
+        strategy=strategy,
+        raw_signal=raw_signal_series,
+        stage12_4_cfg=stage12_4_cfg,
+        seed=int(seed),
+    )
     signal_abs = pd.to_numeric(signal_series, errors="coerce").fillna(0).abs()
     weight_series = _soft_weight_series(
         frame=frame,
@@ -678,6 +727,7 @@ def _evaluate_combo(
             for row in backtest_result.trades.to_dict(orient="records")
         ],
         "_window_rows": window_rows,
+        "_stage12_4_meta": stage12_4_meta,
     }
     return output
 
@@ -855,6 +905,130 @@ def _resolve_min_trades_required(
     adaptive = int(math.floor(expected * max(0.0, alpha)))
     clipped = int(max(min_floor, min(max_floor, adaptive)))
     return int(max(1, clipped))
+
+
+def _stage12_4_scored_signal(
+    *,
+    frame: pd.DataFrame,
+    strategy: StrategyVariant,
+    raw_signal: pd.Series,
+    stage12_4_cfg: dict[str, Any],
+    seed: int,
+) -> tuple[pd.Series, dict[str, Any]]:
+    raw = pd.to_numeric(raw_signal, errors="coerce").fillna(0).astype(int)
+    if frame.empty:
+        return raw, {"enabled": False, "cache_hit": False, "search_evaluations": 0}
+    if not bool(stage12_4_cfg.get("enabled", False)):
+        return raw, {"enabled": False, "cache_hit": False, "search_evaluations": 0}
+
+    cache_cfg = dict(stage12_4_cfg.get("cache", {}))
+    cache_enabled = bool(cache_cfg.get("enabled", True))
+    key_payload = {
+        "strategy_key": str(strategy.strategy_key),
+        "rows": int(len(frame)),
+        "seed": int(seed),
+        "threshold_grid": list(stage12_4_cfg.get("threshold_grid", [])),
+        "weight_values": list(stage12_4_cfg.get("weight_values", [])),
+        "frame_hash": stable_hash(
+            frame.loc[:, [c for c in ("timestamp", "close", "atr_14", "ema_50", "bb_mid_20", "atr_pct_rank_252") if c in frame.columns]]
+            .to_dict(orient="list"),
+            length=16,
+        ),
+        "signal_hash": stable_hash(raw.tolist(), length=16),
+    }
+    cache_key = stable_hash(key_payload, length=24)
+    if cache_enabled and cache_key in _STAGE12_4_SCORE_CACHE:
+        cached = dict(_STAGE12_4_SCORE_CACHE[cache_key])
+        gated_values = np.asarray(cached.get("gated_signal_values", []), dtype=int)
+        if gated_values.shape[0] == len(frame):
+            return pd.Series(gated_values, index=frame.index, dtype=int), {
+                "enabled": True,
+                "cache_hit": True,
+                "search_evaluations": int(cached.get("search_evaluations", 0)),
+                "chosen_threshold": float(cached.get("chosen_threshold", 0.0)),
+                "chosen_weights": list(cached.get("chosen_weights", [1.0, 1.0, 1.0])),
+                "raw_signal_count": int((raw != 0).sum()),
+                "gated_signal_count": int((gated_values != 0).sum()),
+            }
+
+    components = _stage12_4_score_components(frame=frame)
+    threshold_grid = [float(v) for v in stage12_4_cfg.get("threshold_grid", [0.5])]
+    weight_values = [float(v) for v in stage12_4_cfg.get("weight_values", [1.0])]
+    tpm_cfg = dict(stage12_4_cfg.get("trade_rate_target", {}))
+    tpm_min = float(tpm_cfg.get("tpm_min", 2.0))
+    tpm_max = float(tpm_cfg.get("tpm_max", 40.0))
+    months = _estimate_months(frame)
+    raw_count = int((raw != 0).sum())
+    active_mask = (raw != 0).to_numpy(dtype=bool)
+
+    best_score = -float("inf")
+    best_threshold = threshold_grid[0]
+    best_weights = (1.0, 1.0, 1.0)
+    best_signal = raw.to_numpy(dtype=int, copy=True)
+    evaluations = 0
+    for w1 in weight_values:
+        for w2 in weight_values:
+            for w3 in weight_values:
+                weight_sum = float(max(1e-12, w1 + w2 + w3))
+                combined = (w1 * components[:, 0] + w2 * components[:, 1] + w3 * components[:, 2]) / weight_sum
+                for threshold in threshold_grid:
+                    evaluations += 1
+                    gated = raw.to_numpy(dtype=int, copy=True)
+                    gated[(active_mask) & (combined < float(threshold))] = 0
+                    gated_count = int(np.count_nonzero(gated))
+                    tpm = float(gated_count / months) if months > 0 else 0.0
+                    in_band = float(tpm_min <= tpm <= tpm_max)
+                    band_penalty = 0.0
+                    if tpm < tpm_min:
+                        band_penalty = float(tpm_min - tpm)
+                    elif tpm > tpm_max:
+                        band_penalty = float(tpm - tpm_max)
+                    keep_ratio = float(gated_count / raw_count) if raw_count > 0 else 0.0
+                    objective = (5.0 * in_band) + keep_ratio - (0.1 * band_penalty)
+                    if objective > best_score:
+                        best_score = objective
+                        best_threshold = float(threshold)
+                        best_weights = (float(w1), float(w2), float(w3))
+                        best_signal = gated
+
+    out_signal = pd.Series(best_signal, index=frame.index, dtype=int)
+    meta = {
+        "enabled": True,
+        "cache_hit": False,
+        "search_evaluations": int(evaluations),
+        "chosen_threshold": float(best_threshold),
+        "chosen_weights": [float(best_weights[0]), float(best_weights[1]), float(best_weights[2])],
+        "raw_signal_count": int(raw_count),
+        "gated_signal_count": int(np.count_nonzero(best_signal)),
+    }
+    if cache_enabled:
+        _STAGE12_4_SCORE_CACHE[cache_key] = {
+            **meta,
+            "gated_signal_values": out_signal.to_numpy(dtype=int).tolist(),
+        }
+    return out_signal, meta
+
+
+def _stage12_4_score_components(frame: pd.DataFrame) -> np.ndarray:
+    n = len(frame)
+    if n == 0:
+        return np.zeros((0, 3), dtype=float)
+    close = pd.to_numeric(frame.get("close", np.nan), errors="coerce").astype(float)
+    ema50 = pd.to_numeric(frame.get("ema_50", close), errors="coerce").astype(float)
+    atr = pd.to_numeric(frame.get("atr_14", 1.0), errors="coerce").astype(float).replace(0.0, np.nan)
+    atr_rank = pd.to_numeric(frame.get("atr_pct_rank_252", 0.5), errors="coerce").astype(float)
+    slope = pd.to_numeric(frame.get("ema_slope_50", 0.0), errors="coerce").astype(float)
+    bb_mid = pd.to_numeric(frame.get("bb_mid_20", close), errors="coerce").astype(float)
+
+    comp_trend = np.clip(np.nan_to_num(np.abs(slope.to_numpy(dtype=float)) / 0.01, nan=0.0), 0.0, 1.0)
+    comp_vol = np.clip(np.nan_to_num(atr_rank.to_numpy(dtype=float), nan=0.0), 0.0, 1.0)
+    comp_dist = np.abs((close - ema50) / (atr + 1e-12))
+    comp_mid = np.abs((close - bb_mid) / (atr + 1e-12))
+    comp_revert = np.clip(np.nan_to_num(((comp_dist + comp_mid) / 2.0).to_numpy(dtype=float) / 3.0, nan=0.0), 0.0, 1.0)
+    out = np.column_stack([comp_trend, comp_vol, comp_revert]).astype(float, copy=False)
+    if out.shape != (n, 3):
+        return np.zeros((n, 3), dtype=float)
+    return out
 
 
 def _soft_weight_series(
@@ -1252,6 +1426,152 @@ def _write_stage12_3_docs(
     else:
         lines.append("## Conclusion")
         lines.append("- Stage-12.3 PASSED")
+
+    report_md.write_text("\n".join(lines).strip() + "\n", encoding="utf-8")
+
+
+def _build_stage12_4_metrics(
+    *,
+    stage12_4_table: pd.DataFrame,
+    forensic_summary: dict[str, Any],
+    leaderboard: pd.DataFrame,
+    enabled: bool,
+) -> dict[str, Any]:
+    if not enabled:
+        return {
+            "enabled": False,
+            "status": "SKIPPED",
+            "zero_trade_pct": float(forensic_summary.get("zero_trade_pct", 0.0)),
+            "walkforward_executed_true_pct": float(forensic_summary.get("walkforward_executed_true_pct", 0.0)),
+            "MC_trigger_rate": float(forensic_summary.get("mc_trigger_rate", 0.0)),
+            "invalid_pct": float(forensic_summary.get("invalid_pct", 0.0)),
+            "threshold_distribution": {},
+            "weight_distribution": {},
+            "trade_rate_distribution": {},
+            "cache_hit_rate": 0.0,
+        }
+    table = stage12_4_table.copy()
+    if table.empty:
+        return {
+            "enabled": True,
+            "status": "FAILED",
+            "zero_trade_pct": float(forensic_summary.get("zero_trade_pct", 0.0)),
+            "walkforward_executed_true_pct": float(forensic_summary.get("walkforward_executed_true_pct", 0.0)),
+            "MC_trigger_rate": float(forensic_summary.get("mc_trigger_rate", 0.0)),
+            "invalid_pct": float(forensic_summary.get("invalid_pct", 0.0)),
+            "threshold_distribution": {},
+            "weight_distribution": {},
+            "trade_rate_distribution": {},
+            "cache_hit_rate": 0.0,
+        }
+    threshold_dist = (
+        pd.to_numeric(table["chosen_threshold"], errors="coerce")
+        .round(4)
+        .astype(str)
+        .value_counts(normalize=True)
+        .sort_index()
+    )
+    weight_dist = (
+        table["chosen_weights"]
+        .astype(str)
+        .value_counts(normalize=True)
+        .sort_index()
+    )
+    gated_count = pd.to_numeric(table["gated_signal_count"], errors="coerce").fillna(0.0)
+    raw_count = pd.to_numeric(table["raw_signal_count"], errors="coerce").fillna(0.0)
+    kept_ratio = np.where(raw_count > 0.0, gated_count / raw_count, 0.0)
+    trade_rate_dist = (
+        pd.Series(kept_ratio, dtype=float)
+        .round(4)
+        .astype(str)
+        .value_counts(normalize=True)
+        .sort_index()
+    )
+    cache_hit_rate = float(table["cache_hit"].astype(bool).mean())
+    target_thresholds = {
+        "zero_trade_pct_max": 25.0,
+        "walkforward_executed_true_pct_min": 40.0,
+        "mc_trigger_rate_min": 10.0,
+        "invalid_pct_max": 60.0,
+    }
+    zero_trade_pct = float(forensic_summary.get("zero_trade_pct", 0.0))
+    walkforward_pct = float(forensic_summary.get("walkforward_executed_true_pct", 0.0))
+    mc_trigger_rate = float(forensic_summary.get("mc_trigger_rate", 0.0))
+    invalid_pct = float(forensic_summary.get("invalid_pct", 0.0))
+    pass_map = {
+        "zero_trade_pct": zero_trade_pct <= float(target_thresholds["zero_trade_pct_max"]),
+        "walkforward_executed_true_pct": walkforward_pct >= float(target_thresholds["walkforward_executed_true_pct_min"]),
+        "MC_trigger_rate": mc_trigger_rate >= float(target_thresholds["mc_trigger_rate_min"]),
+        "invalid_pct": invalid_pct <= float(target_thresholds["invalid_pct_max"]),
+    }
+    return {
+        "enabled": True,
+        "status": "PASSED" if all(pass_map.values()) else "FAILED",
+        "zero_trade_pct": zero_trade_pct,
+        "walkforward_executed_true_pct": walkforward_pct,
+        "MC_trigger_rate": mc_trigger_rate,
+        "invalid_pct": invalid_pct,
+        "targets": target_thresholds,
+        "target_pass_map": pass_map,
+        "threshold_distribution": {str(k): float(v) for k, v in threshold_dist.items()},
+        "weight_distribution": {str(k): float(v) for k, v in weight_dist.items()},
+        "trade_rate_distribution": {str(k): float(v) for k, v in trade_rate_dist.items()},
+        "cache_hit_rate": cache_hit_rate,
+        "search_evaluations_max": int(pd.to_numeric(table["search_evaluations"], errors="coerce").fillna(0).max()),
+        "search_evaluations_mean": float(pd.to_numeric(table["search_evaluations"], errors="coerce").fillna(0).mean()),
+        "valid_combinations": int((leaderboard["is_valid"] == True).sum()),  # noqa: E712
+    }
+
+
+def _write_stage12_4_docs(
+    *,
+    report_md: Path,
+    report_json: Path,
+    run_id: str,
+    stage12_4_metrics: dict[str, Any],
+    stage12_3_metrics: dict[str, Any],
+) -> None:
+    payload = dict(stage12_4_metrics)
+    payload["run_id"] = str(run_id)
+    report_json.write_text(json.dumps(payload, indent=2, allow_nan=False), encoding="utf-8")
+
+    lines: list[str] = []
+    lines.append("# Stage-12.4 Score-Based Signal Family Report")
+    lines.append("")
+    lines.append(f"- run_id: `{run_id}`")
+    lines.append(f"- status: `{payload.get('status', 'SKIPPED')}`")
+    lines.append("")
+    lines.append("## Stage-12.3 vs Stage-12.4 Metrics")
+    lines.append("| metric | stage12_3 | stage12_4 |")
+    lines.append("| --- | ---: | ---: |")
+    lines.append(f"| zero_trade_pct | {float(stage12_3_metrics.get('zero_trade_pct', 0.0)):.6f} | {float(payload.get('zero_trade_pct', 0.0)):.6f} |")
+    lines.append(
+        f"| walkforward_executed_true_pct | {float(stage12_3_metrics.get('walkforward_executed_true_pct', 0.0)):.6f} | {float(payload.get('walkforward_executed_true_pct', 0.0)):.6f} |"
+    )
+    lines.append(f"| MC_trigger_rate | {float(stage12_3_metrics.get('MC_trigger_rate', 0.0)):.6f} | {float(payload.get('MC_trigger_rate', 0.0)):.6f} |")
+    lines.append(f"| invalid_pct | {float(stage12_3_metrics.get('invalid_pct', 0.0)):.6f} | {float(payload.get('invalid_pct', 0.0)):.6f} |")
+    lines.append("")
+    lines.append("## Threshold Distribution")
+    lines.append("| threshold | share |")
+    lines.append("| --- | ---: |")
+    for key, value in sorted((payload.get("threshold_distribution") or {}).items()):
+        lines.append(f"| {key} | {float(value):.6f} |")
+    lines.append("")
+    lines.append("## Weight Distribution")
+    lines.append("| weights | share |")
+    lines.append("| --- | ---: |")
+    for key, value in sorted((payload.get("weight_distribution") or {}).items()):
+        lines.append(f"| {key} | {float(value):.6f} |")
+    lines.append("")
+    lines.append("## Trade-Rate Distribution (kept_signal_ratio)")
+    lines.append("| kept_ratio | share |")
+    lines.append("| --- | ---: |")
+    for key, value in sorted((payload.get("trade_rate_distribution") or {}).items()):
+        lines.append(f"| {key} | {float(value):.6f} |")
+    lines.append("")
+    lines.append(f"- cache_hit_rate: `{float(payload.get('cache_hit_rate', 0.0)):.6f}`")
+    lines.append(f"- search_evaluations_max: `{int(payload.get('search_evaluations_max', 0))}`")
+    lines.append(f"- search_evaluations_mean: `{float(payload.get('search_evaluations_mean', 0.0)):.6f}`")
 
     report_md.write_text("\n".join(lines).strip() + "\n", encoding="utf-8")
 
