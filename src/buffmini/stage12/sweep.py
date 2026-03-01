@@ -22,6 +22,13 @@ from buffmini.portfolio.monte_carlo import simulate_equity_paths, summarize_mc
 from buffmini.stage10.evaluate import _build_features
 from buffmini.stage10.exits import normalize_exit_mode
 from buffmini.stage10.signals import SIGNAL_FAMILIES, generate_signal_family
+from buffmini.stage12.forensics import (
+    aggregate_execution_diagnostics,
+    classify_invalid_reason,
+    classify_stage12_1,
+    metric_logic_validation,
+    write_stage12_1_docs,
+)
 from buffmini.utils.hashing import stable_hash
 from buffmini.utils.time import utc_now_compact
 from buffmini.validation.walkforward_v2 import aggregate_windows, build_windows
@@ -88,6 +95,7 @@ def run_stage12_sweep(
     rows: list[dict[str, Any]] = []
     trade_pnls_by_combo: dict[str, np.ndarray] = {}
     window_details_rows: list[dict[str, Any]] = []
+    forensic_rows: list[dict[str, Any]] = []
     min_usable_windows_valid = int(stage12_cfg.get("min_usable_windows_valid", 3))
 
     for timeframe in resolved_timeframes:
@@ -140,7 +148,30 @@ def run_stage12_sweep(
                             min_usable_windows_valid=min_usable_windows_valid,
                         )
                         combo_eval["combo_key"] = combo_key
-                        rows.append(combo_eval)
+                        forensic_rows.append(
+                            {
+                                "combo_key": combo_key,
+                                "symbol": symbol,
+                                "timeframe": str(timeframe),
+                                "strategy": strategy.strategy_name,
+                                "exit_variant": exit_variant.exit_type,
+                                "cost_level": cost_level,
+                                "trade_count": float(combo_eval["trade_count"]),
+                                "raw_backtest_seconds": float(combo_eval["_raw_backtest_seconds"]),
+                                "walkforward_windows_count": int(combo_eval["_walkforward_windows_count"]),
+                                "walkforward_expected_windows": int(combo_eval["_walkforward_expected_windows"]),
+                                "walkforward_seconds": float(combo_eval["_walkforward_seconds"]),
+                                "walkforward_executed": bool(combo_eval["_walkforward_executed"]),
+                                "walkforward_integrity_ok": bool(combo_eval["_walkforward_integrity_ok"]),
+                                "MC_executed": False,
+                                "invalid_reason": combo_eval["_invalid_reason"],
+                                "metric_logic_all_ok": bool(combo_eval["_metric_logic"]["all_ok"]),
+                                "metric_logic_exp_lcb_ok": bool(combo_eval["_metric_logic"]["exp_lcb_ok"]),
+                                "metric_logic_zero_trade_pf_ok": bool(combo_eval["_metric_logic"]["zero_trade_pf_ok"]),
+                                "metric_logic_no_losing_pf_ok": bool(combo_eval["_metric_logic"]["no_losing_pf_ok"]),
+                                "metric_logic_stability_threshold_ok": bool(combo_eval["_metric_logic"]["stability_threshold_ok"]),
+                            }
+                        )
                         trade_pnls_by_combo[combo_key] = combo_eval.pop("_trade_pnls")
                         for window_row in combo_eval.pop("_window_rows"):
                             window_details_rows.append(
@@ -154,21 +185,36 @@ def run_stage12_sweep(
                                     **window_row,
                                 }
                             )
+                        for internal_key in (
+                            "_raw_backtest_seconds",
+                            "_walkforward_windows_count",
+                            "_walkforward_expected_windows",
+                            "_walkforward_seconds",
+                            "_walkforward_executed",
+                            "_walkforward_integrity_ok",
+                            "_invalid_reason",
+                            "_metric_logic",
+                        ):
+                            combo_eval.pop(internal_key, None)
+                        rows.append(combo_eval)
         runtime_by_tf[str(timeframe)] = float(time.perf_counter() - tf_started)
 
     leaderboard = pd.DataFrame(rows)
     if leaderboard.empty:
         raise RuntimeError("Stage-12 produced no combinations")
     leaderboard = _apply_cost_sensitivity_and_robust_score(leaderboard=leaderboard, stage12_cfg=stage12_cfg)
-    leaderboard = _apply_monte_carlo(
+    leaderboard, mc_keys = _apply_monte_carlo(
         leaderboard=leaderboard,
         trade_pnls_by_combo=trade_pnls_by_combo,
         stage12_cfg=stage12_cfg,
         seed=int(seed),
     )
+    forensic_matrix = pd.DataFrame(forensic_rows)
+    if not forensic_matrix.empty and mc_keys:
+        forensic_matrix.loc[forensic_matrix["combo_key"].isin(list(mc_keys)), "MC_executed"] = True
 
     leaderboard["stability_rank"] = leaderboard["stability_classification"].map(
-        {"STABLE": 0, "UNSTABLE": 1, "INVALID": 2, "INSUFFICIENT_DATA": 3}
+        {"STABLE": 0, "UNSTABLE": 1, "ZERO_TRADE": 2, "INVALID": 3, "INSUFFICIENT_DATA": 4}
     ).fillna(4)
     leaderboard = leaderboard.sort_values(
         ["exp_lcb", "stability_rank", "cost_sensitivity_slope", "symbol", "timeframe", "strategy", "exit_type", "cost_level"],
@@ -206,9 +252,26 @@ def run_stage12_sweep(
 
     leaderboard.to_csv(run_dir / "leaderboard.csv", index=False)
     pd.DataFrame(window_details_rows).to_csv(run_dir / "window_metrics.csv", index=False)
+    forensic_matrix.to_csv(run_dir / "stage12_forensic_matrix.csv", index=False)
     pd.DataFrame(
         [{"timeframe": tf, "runtime_seconds": seconds} for tf, seconds in runtime_by_tf.items()]
     ).to_csv(run_dir / "runtime_by_timeframe.csv", index=False)
+
+    forensic_cfg = dict(stage12_cfg.get("forensics", {}))
+    suspicious_ms_threshold = float(forensic_cfg.get("suspicious_backtest_ms_threshold", 5.0))
+    forensic_summary = aggregate_execution_diagnostics(
+        matrix=forensic_matrix,
+        suspicious_backtest_ms_threshold=suspicious_ms_threshold,
+    )
+    stage12_1_classification = classify_stage12_1(
+        diagnostics=forensic_summary,
+        leaderboard=leaderboard,
+    )
+    forensic_summary["final_stage12_1_classification"] = stage12_1_classification
+    (run_dir / "stage12_forensic_summary.json").write_text(
+        json.dumps(forensic_summary, indent=2, allow_nan=False),
+        encoding="utf-8",
+    )
 
     summary_payload["run_id"] = run_id
     (run_dir / "stage12_summary.json").write_text(
@@ -225,11 +288,19 @@ def run_stage12_sweep(
         report_md=report_md,
         report_json=report_json,
     )
+    write_stage12_1_docs(
+        report_md=docs_dir / "stage12_1_execution_forensics_report.md",
+        report_json=docs_dir / "stage12_1_execution_forensics_summary.json",
+        run_id=run_id,
+        diagnostics=forensic_summary,
+        classification=stage12_1_classification,
+    )
     return {
         "run_id": run_id,
         "run_dir": run_dir,
         "summary": summary_payload,
         "leaderboard": leaderboard,
+        "forensic_summary": forensic_summary,
         "report_md": report_md,
         "report_json": report_json,
     }
@@ -410,6 +481,7 @@ def _evaluate_combo(
     min_usable_windows_valid: int,
 ) -> dict[str, Any]:
     signal_series = strategy.signal_builder(frame)
+    bt_started = time.perf_counter()
     backtest_result = _run_backtest_with_signal(
         frame=frame,
         signal=signal_series,
@@ -419,7 +491,9 @@ def _evaluate_combo(
         cfg=cfg,
         cost_model_cfg=cost_model_cfg,
     )
+    raw_backtest_seconds = float(time.perf_counter() - bt_started)
     metrics = _metrics_from_backtest(backtest_result=backtest_result, frame=frame)
+    wf_started = time.perf_counter()
     window_rows, wf_summary = _evaluate_walkforward_combo(
         frame=frame,
         symbol=symbol,
@@ -429,13 +503,39 @@ def _evaluate_combo(
         cost_model_cfg=cost_model_cfg,
         windows=windows,
     )
+    walkforward_seconds = float(time.perf_counter() - wf_started)
+    expected_windows = int(len(windows))
+    evaluated_windows = int(len(window_rows))
+    walkforward_integrity_ok = bool(expected_windows <= 0 or expected_windows == evaluated_windows)
+    if expected_windows > 0 and not walkforward_integrity_ok:
+        raise RuntimeError(
+            f"Walkforward integrity mismatch for {symbol}/{frame.attrs.get('timeframe','')}/{strategy.strategy_key}: "
+            f"expected_windows={expected_windows}, evaluated_windows={evaluated_windows}"
+        )
     stability_classification = str(wf_summary.get("classification", "INSUFFICIENT_DATA"))
     usable_windows = int(wf_summary.get("usable_windows", 0))
+    metric_logic = metric_logic_validation(
+        trade_count=float(metrics["trade_count"]),
+        profit_factor=float(metrics["profit_factor"]),
+        pnl_values=pd.to_numeric(backtest_result.trades.get("pnl", pd.Series(dtype=float)), errors="coerce")
+        .dropna()
+        .to_numpy(dtype=float),
+        exp_lcb_reported=float(metrics["exp_lcb"]),
+        stability_classification=stability_classification,
+        usable_windows=usable_windows,
+        min_usable_windows_valid=int(min_usable_windows_valid),
+    )
+    invalid_reason = classify_invalid_reason(
+        trade_count=float(metrics["trade_count"]),
+        stability_classification=stability_classification,
+        usable_windows=usable_windows,
+        min_usable_windows_valid=int(min_usable_windows_valid),
+    )
     if usable_windows < int(min_usable_windows_valid):
-        stability_effective = "INVALID"
+        stability_effective = "ZERO_TRADE" if str(invalid_reason) == "ZERO_TRADE" else "INVALID"
         is_valid = False
     else:
-        stability_effective = stability_classification
+        stability_effective = "ZERO_TRADE" if str(invalid_reason) == "ZERO_TRADE" else stability_classification
         is_valid = stability_classification != "INSUFFICIENT_DATA"
     output = {
         "symbol": str(symbol),
@@ -461,6 +561,14 @@ def _evaluate_combo(
         "MC_p_return_negative": math.nan,
         "MC_maxDD_p95": math.nan,
         "MC_expected_log_growth": math.nan,
+        "_raw_backtest_seconds": raw_backtest_seconds,
+        "_walkforward_windows_count": evaluated_windows,
+        "_walkforward_expected_windows": expected_windows,
+        "_walkforward_seconds": walkforward_seconds,
+        "_walkforward_executed": bool(expected_windows > 0 and evaluated_windows > 0),
+        "_walkforward_integrity_ok": walkforward_integrity_ok,
+        "_invalid_reason": invalid_reason,
+        "_metric_logic": metric_logic,
         "_trade_pnls": pd.to_numeric(backtest_result.trades.get("pnl", pd.Series(dtype=float)), errors="coerce")
         .dropna()
         .to_numpy(dtype=float),
@@ -693,18 +801,19 @@ def _apply_monte_carlo(
     trade_pnls_by_combo: dict[str, np.ndarray],
     stage12_cfg: dict[str, Any],
     seed: int,
-) -> pd.DataFrame:
+) -> tuple[pd.DataFrame, set[str]]:
     mc_cfg = stage12_cfg.get("monte_carlo", {})
     if not bool(mc_cfg.get("enabled", True)):
-        return leaderboard
+        return leaderboard, set()
     frame = leaderboard.copy()
     valid = frame.loc[frame["is_valid"] == True].copy()  # noqa: E712
     if valid.empty:
-        return frame
+        return frame, set()
     valid = valid.sort_values("exp_lcb", ascending=False).reset_index(drop=True)
     top_pct = float(mc_cfg.get("top_pct", 0.2))
     top_n = max(1, int(math.ceil(len(valid) * top_pct)))
     selected_keys = valid.iloc[:top_n]["combo_key"].tolist()
+    executed: set[str] = set()
     for idx, combo_key in enumerate(selected_keys):
         pnls = np.asarray(trade_pnls_by_combo.get(combo_key, np.asarray([], dtype=float)), dtype=float)
         if pnls.size == 0:
@@ -731,7 +840,8 @@ def _apply_monte_carlo(
         frame.loc[frame["combo_key"] == combo_key, "MC_p_return_negative"] = float(summary["tail_probabilities"]["p_return_lt_0"])
         frame.loc[frame["combo_key"] == combo_key, "MC_maxDD_p95"] = float(summary["max_drawdown"]["p95"])
         frame.loc[frame["combo_key"] == combo_key, "MC_expected_log_growth"] = expected_log_growth
-    return frame
+        executed.add(str(combo_key))
+    return frame, executed
 
 
 def _final_verdict(leaderboard: pd.DataFrame) -> str:
@@ -899,12 +1009,12 @@ def _write_docs_report(leaderboard: pd.DataFrame, summary: dict[str, Any], repor
         .reset_index()
         .sort_values(["symbol", "timeframe"])
     )
-    lines.append("| symbol | timeframe | STABLE | UNSTABLE | INVALID | INSUFFICIENT_DATA |")
-    lines.append("| --- | --- | ---: | ---: | ---: | ---: |")
+    lines.append("| symbol | timeframe | STABLE | UNSTABLE | ZERO_TRADE | INVALID | INSUFFICIENT_DATA |")
+    lines.append("| --- | --- | ---: | ---: | ---: | ---: | ---: |")
     for row in heat.to_dict(orient="records"):
         lines.append(
             f"| {row.get('symbol','')} | {row.get('timeframe','')} | {int(row.get('STABLE',0))} | "
-            f"{int(row.get('UNSTABLE',0))} | {int(row.get('INVALID',0))} | {int(row.get('INSUFFICIENT_DATA',0))} |"
+            f"{int(row.get('UNSTABLE',0))} | {int(row.get('ZERO_TRADE',0))} | {int(row.get('INVALID',0))} | {int(row.get('INSUFFICIENT_DATA',0))} |"
         )
     lines.append("")
 

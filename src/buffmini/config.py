@@ -379,6 +379,17 @@ STAGE12_DEFAULTS = {
         "initial_equity": 10000.0,
         "ruin_dd_threshold": 0.5,
     },
+    "forensics": {
+        "suspicious_backtest_ms_threshold": 5.0,
+        "context_model": {
+            "regime_alignment_weight": 0.40,
+            "volatility_alignment_weight": 0.25,
+            "trend_strength_weight": 0.25,
+            "chop_penalty_weight": 0.20,
+            "separation_effect_size_threshold": 0.10,
+            "min_samples": 30,
+        },
+    },
 }
 
 UI_STAGE5_DEFAULTS = {
@@ -1201,6 +1212,22 @@ def validate_config(config: ConfigDict) -> None:
         raise ValueError("evaluation.stage12.monte_carlo.initial_equity must be > 0")
     if not 0 < float(mc_cfg.get("ruin_dd_threshold", 0.5)) < 1:
         raise ValueError("evaluation.stage12.monte_carlo.ruin_dd_threshold must be in (0,1)")
+
+    forensic_cfg = stage12.get("forensics", {})
+    if float(forensic_cfg.get("suspicious_backtest_ms_threshold", 5.0)) < 0:
+        raise ValueError("evaluation.stage12.forensics.suspicious_backtest_ms_threshold must be >= 0")
+    context_cfg = forensic_cfg.get("context_model", {})
+    for key in (
+        "regime_alignment_weight",
+        "volatility_alignment_weight",
+        "trend_strength_weight",
+        "chop_penalty_weight",
+        "separation_effect_size_threshold",
+    ):
+        if float(context_cfg.get(key, 0.0)) < 0:
+            raise ValueError(f"evaluation.stage12.forensics.context_model.{key} must be >= 0")
+    if int(context_cfg.get("min_samples", 30)) < 1:
+        raise ValueError("evaluation.stage12.forensics.context_model.min_samples must be >= 1")
     evaluation["stage12"] = stage12
 
     ui = _merge_defaults(UI_STAGE5_DEFAULTS, config.get("ui", {}))

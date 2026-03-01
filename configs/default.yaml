@@ -432,6 +432,15 @@ evaluation:
       n_paths: 5000
       initial_equity: 10000
       ruin_dd_threshold: 0.5
+    forensics:
+      suspicious_backtest_ms_threshold: 5.0
+      context_model:
+        regime_alignment_weight: 0.40
+        volatility_alignment_weight: 0.25
+        trend_strength_weight: 0.25
+        chop_penalty_weight: 0.20
+        separation_effect_size_threshold: 0.10
+        min_samples: 30
 
 ui:
   stage5:

@@ -42,6 +42,7 @@ def main() -> None:
         derived_dir=args.derived_dir,
     )
     summary = dict(result["summary"])
+    forensic = dict(result.get("forensic_summary", {}))
     validate_stage12_summary_schema(summary)
 
     report_json = Path("docs") / "stage12_report_summary.json"
@@ -55,6 +56,12 @@ def main() -> None:
     print(f"valid_combinations: {summary['valid_combinations']}")
     print(f"runtime_seconds: {float(summary['runtime_seconds']):.4f}")
     print(f"verdict: {summary['verdict']}")
+    if forensic:
+        print(f"avg_backtest_ms_per_combo: {float(forensic.get('avg_backtest_ms_per_combo', 0.0)):.6f}")
+        print(f"zero_trade_pct: {float(forensic.get('zero_trade_pct', 0.0)):.6f}")
+        print(f"walkforward_executed_true_pct: {float(forensic.get('walkforward_executed_true_pct', 0.0)):.6f}")
+        print(f"mc_trigger_rate: {float(forensic.get('mc_trigger_rate', 0.0)):.6f}")
+        print(f"stage12_1_classification: {forensic.get('final_stage12_1_classification', '')}")
     top_rows = summary.get("top_robust", [])[:3]
     for idx, row in enumerate(top_rows, start=1):
         print(
@@ -63,9 +70,10 @@ def main() -> None:
         )
     print("wrote: docs/stage12_report.md")
     print("wrote: docs/stage12_report_summary.json")
+    print("wrote: docs/stage12_1_execution_forensics_report.md")
+    print("wrote: docs/stage12_1_execution_forensics_summary.json")
     print(f"leaderboard: {result['run_dir'] / 'leaderboard.csv'}")
 
 
 if __name__ == "__main__":
     main()
-
