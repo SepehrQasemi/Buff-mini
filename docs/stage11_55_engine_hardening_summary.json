@@ -1,0 +1,21 @@
+{
+  "stage": "11.55",
+  "cold_run_feature_calls": {
+    "15m": 1,
+    "1h": 1,
+    "2h": 1,
+    "4h": 1
+  },
+  "rerun_feature_calls": {},
+  "derived_cache_hit_rate": 1.0,
+  "estimated_stage12_minutes": 0.13,
+  "cache_guard_enabled": true,
+  "semantic_equivalence": true,
+  "pytest_pass_count": 226,
+  "before_cold_run_feature_calls_observed": {
+    "15m": 2,
+    "2h": 2,
+    "4h": 2
+  },
+  "after_run_id": "20260301_021502_b6b5fac36c47_stage11_5_bench"
+}
