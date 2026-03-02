@@ -191,6 +191,9 @@ def main() -> None:
             "Stage-18: test conditional effects by context state.",
             "Keep same-candle exit priority unchanged in engine core.",
         ],
+        stage_type="trading",
+        expect_walkforward=False,
+        expect_mc=False,
         extras={"decomposition": decomposition},
     )
     print(f"run_id: {summary['run_id']}")
@@ -262,4 +265,3 @@ def _months(frame: pd.DataFrame) -> float:
 
 if __name__ == "__main__":
     main()
-

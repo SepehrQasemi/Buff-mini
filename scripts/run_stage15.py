@@ -49,6 +49,7 @@ def main() -> None:
         "resolved_end_ts": summary["resolved_end_ts"],
         "classic_trade_count": summary["classic"]["trade_count"],
         "alpha_trade_count": summary["alpha_v2"]["trade_count"],
+        "trade_count": float(max(float(summary["classic"]["trade_count"]), float(summary["alpha_v2"]["trade_count"]))),
         "classic_exp_lcb": summary["classic"]["exp_lcb"],
         "alpha_exp_lcb": summary["alpha_v2"]["exp_lcb"],
         "delta_exp_lcb": summary["delta"]["exp_lcb"],
@@ -72,6 +73,9 @@ def main() -> None:
             "Stage-16: add context persistence and no-leak checks.",
             "Use A/B runner hashes to detect no-op regressions.",
         ],
+        stage_type="trading",
+        expect_walkforward=False,
+        expect_mc=False,
         extras={
             "classification": "ARCHITECTURE_READY",
             "risk_of_overfitting": "A/B runner compares Classic hash vs alpha-v2 and blocks silent no-op claims.",
@@ -86,4 +90,3 @@ def main() -> None:
 
 if __name__ == "__main__":
     main()
-

@@ -1,9 +1,9 @@
 {
-  "run_id": "20260301_235232_2c624bbf1ef5_stage17",
+  "run_id": "20260302_020310_c3ab85256f08_stage17",
   "seed": 42,
   "config_hash": "46824450e5e7e3ca",
-  "data_hash": "e83c3ff37f7d9bbf",
-  "resolved_end_ts": "2026-02-26T09:00:00+00:00",
+  "data_hash": "d30513417fc4d244",
+  "resolved_end_ts": "2025-04-10T23:00:00+00:00",
   "trade_count": 0.0,
   "trades_per_month": 0.0,
   "exposure_ratio": 0.0,
@@ -17,15 +17,17 @@
   "mc_trigger_rate": 0.0,
   "invalid_pct": 0.0,
   "zero_trade_pct": 100.0,
-  "drag_sensitivity_delta_exp_lcb": 18.2152860584907,
+  "drag_sensitivity_delta_exp_lcb": 100.62118211979771,
   "runtime_seconds": 0.0,
   "cache_hit_rate": 0.0,
-  "summary_hash": "179e627d8129521a",
-  "status": "PASS",
-  "warnings": [],
+  "summary_hash": "04ec30ada5a5d91d",
+  "status": "FAILED",
+  "warnings": [
+    "truth:no_trades_executed"
+  ],
   "decomposition": {
-    "entry_only_delta_exp_lcb": 18.2152860584907,
-    "exit_only_delta_exp_lcb": 0.0,
-    "combined_delta_exp_lcb": 18.2152860584907
+    "entry_only_delta_exp_lcb": 100.62118211979771,
+    "exit_only_delta_exp_lcb": 45.83366558893825,
+    "combined_delta_exp_lcb": 100.62118211979771
   }
 }

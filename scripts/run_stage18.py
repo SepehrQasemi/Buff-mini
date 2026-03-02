@@ -136,6 +136,9 @@ def main() -> None:
             "Stage-19: map accepted contexts into transition entry components.",
             "Keep falsification rules strict when sample sizes shrink.",
         ],
+        stage_type="non_trading",
+        expect_walkforward=False,
+        expect_mc=False,
         extras={
             "policy_suggestions": policy_rows,
             "artifacts": {
@@ -152,4 +155,3 @@ def main() -> None:
 
 if __name__ == "__main__":
     main()
-

@@ -1,9 +1,9 @@
 {
-  "run_id": "20260302_003211_78e44129c6f9_stage21",
+  "run_id": "20260302_020317_78e44129c6f9_stage21",
   "seed": 42,
   "config_hash": "46824450e5e7e3ca",
   "data_hash": "35bebbef4706684b",
-  "resolved_end_ts": "2026-02-26T09:00:00+00:00",
+  "resolved_end_ts": "2025-04-10T23:00:00+00:00",
   "trade_count": 0.0,
   "trades_per_month": 0.0,
   "exposure_ratio": 0.0,
@@ -19,15 +19,16 @@
   "zero_trade_pct": 0.0,
   "evaluated_count": 90,
   "pruned_count": 90,
-  "runtime_seconds": 0.0557838000022457,
+  "runtime_seconds": 0.04822229999990668,
   "cache_hit_rate": 0.0,
-  "summary_hash": "c7ad8bf06d781785",
+  "summary_hash": "c745e884dc574dd0",
   "status": "FAILED",
   "warnings": [
     "search_returned_empty_candidate_set"
   ],
   "best_candidate": {},
   "prune_reasons": {
-    "MAX_DD_BREACH": 90
+    "MAX_DD_BREACH": 87,
+    "TPM_OUT_OF_BOUNDS|MAX_DD_BREACH": 3
   }
 }

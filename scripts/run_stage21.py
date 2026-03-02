@@ -130,6 +130,9 @@ def main() -> None:
             "Stage-22: apply MTF policy with strict no-leak alignment.",
             "Inspect prune_reasons to adjust search-space quality.",
         ],
+        stage_type="non_trading",
+        expect_walkforward=False,
+        expect_mc=False,
         extras={
             "best_candidate": best,
             "prune_reasons": result["prune_reasons"],
@@ -158,4 +161,3 @@ def _load_baseline(path: Path) -> dict:
 
 if __name__ == "__main__":
     main()
-

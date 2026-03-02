@@ -8,11 +8,11 @@
 - real-local: `python scripts/run_stage20.py --seed 42`
 
 ## 3) Validation gates & results
-- run_id: `20260302_002500_8ca55e995e03_stage20`
+- run_id: `20260302_020315_b54534f7dd84_stage20`
 - seed: `42`
 - config_hash: `46824450e5e7e3ca`
-- data_hash: `a6129de40245d242`
-- resolved_end_ts: `2026-02-26T09:00:00+00:00`
+- data_hash: `e2a6b57d1410560a`
+- resolved_end_ts: `2025-04-10T23:00:00+00:00`
 - trade_count: `0.0`
 - trades_per_month: `0.0`
 - exposure_ratio: `0.0`
@@ -27,7 +27,7 @@
 - invalid_pct: `0.0`
 - zero_trade_pct: `100.0`
 - valid_candidates: `0`
-- summary_hash: `309939e4a6e86d90`
+- summary_hash: `d4b0f3da5b20d9f2`
 
 ## 4) Key metrics tables
 - See JSON summary for full machine-readable values.

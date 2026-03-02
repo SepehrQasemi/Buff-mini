@@ -148,6 +148,9 @@ def main() -> None:
             "Stage-20: rank candidates with robust objective constraints.",
             "Keep transition score bounded to avoid signal spam.",
         ],
+        stage_type="trading",
+        expect_walkforward=False,
+        expect_mc=False,
         extras={"baseline": baseline, "with_transition": transition, "delta": delta},
     )
     print(f"run_id: {run_id}")
@@ -208,4 +211,3 @@ def _months(frame: pd.DataFrame) -> float:
 
 if __name__ == "__main__":
     main()
-

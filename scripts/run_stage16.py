@@ -121,6 +121,9 @@ def main() -> None:
             "Stage-17: evaluate exit-v2 variants with fixed entries.",
             "Use transition matrix to weight soft context routing only.",
         ],
+        stage_type="non_trading",
+        expect_walkforward=False,
+        expect_mc=False,
         extras={
             "context_distribution": dist_rows,
             "artifacts": {
@@ -137,4 +140,3 @@ def main() -> None:
 
 if __name__ == "__main__":
     main()
-

@@ -93,6 +93,9 @@ def main() -> None:
             "Stage-21: search-v2 bounded candidate generation and pruning.",
             "Keep objective constraints hard; never accept degenerate low-trade candidates.",
         ],
+        stage_type="non_trading",
+        expect_walkforward=False,
+        expect_mc=False,
         extras={"best_candidate": best, "constraints": constraints.__dict__, "candidate_table": str(report_table.as_posix())},
     )
     print(f"run_id: {run_id}")

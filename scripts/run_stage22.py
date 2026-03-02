@@ -160,6 +160,9 @@ def main() -> None:
             "Run Stage-15..22 master A/B summary.",
             "Inspect conflict mode differences (net/hedge/isolated) under same seed.",
         ],
+        stage_type="trading",
+        expect_walkforward=False,
+        expect_mc=False,
         extras={"baseline": baseline, "mtf": mtf, "delta": delta, "mtf_stats": stats_rows},
     )
     print(f"run_id: {run_id}")
