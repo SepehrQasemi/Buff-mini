@@ -1,0 +1,40 @@
+# Stage-19 Report
+
+## 1) What changed
+- status: `PASS`
+
+## 2) How to run (dry-run + real)
+- dry-run: `python scripts/run_stage19.py --dry-run --seed 42`
+- real-local: `python scripts/run_stage19.py --seed 42`
+
+## 3) Validation gates & results
+- run_id: `20260302_001218_85284796a83b_stage19`
+- seed: `42`
+- config_hash: `46824450e5e7e3ca`
+- data_hash: `2462c594898adbb7`
+- resolved_end_ts: `2026-02-26T09:00:00+00:00`
+- trade_count: `1488.5`
+- trades_per_month: `38.75040676863`
+- exposure_ratio: `0.5975159995661135`
+- PF: `0.7365188940394716`
+- PF_raw: `0.7365188940394716`
+- expectancy: `-6.3811231589938`
+- exp_lcb: `-7.960478362796625`
+- max_drawdown: `0.9544856155893615`
+- walkforward_executed_true_pct: `0.0`
+- usable_windows_count: `0`
+- mc_trigger_rate: `0.0`
+- invalid_pct: `0.0`
+- zero_trade_pct: `0.0`
+- delta_exp_lcb_vs_baseline: `-7.960478362796625`
+- summary_hash: `3d7c9f2d9a4567ec`
+
+## 4) Key metrics tables
+- See JSON summary for full machine-readable values.
+
+## 5) Failures + reasons
+- none
+
+## 6) Next actions
+- Stage-20: rank candidates with robust objective constraints.
+- Keep transition score bounded to avoid signal spam.
