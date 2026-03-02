@@ -353,11 +353,15 @@ def build_adaptive_orders(
                     rounding_mode_used = "ceil_rescue"
                     ceil_rescue_applied = True
                 elif rescue_notional > max_notional + 1e-12:
-                    cap_binding = "policy_cap"
-                    reject("POLICY_CAP_HIT", "ceil_rescue_exceeds_cap")
+                    if cap_binding == "":
+                        cap_binding = "policy_cap"
+                    reject(_binding_reject_reason(cap_binding), "ceil_rescue_exceeds_cap")
                     continue
             if rounded_size_after <= 0.0:
-                reason = "SIZE_ZERO" if not bool(sizing_fix_enabled) else "SIZE_TOO_SMALL"
+                if bool(sizing_fix_enabled) and cap_binding in {"policy_cap", "margin"}:
+                    reason = _binding_reject_reason(cap_binding)
+                else:
+                    reason = "SIZE_ZERO" if not bool(sizing_fix_enabled) else "SIZE_TOO_SMALL"
                 reject(reason, f"qty_before_round={rounded_size_before:.12f},step={float(order_builder.qty_step):.12f}")
                 continue
 
@@ -381,7 +385,10 @@ def build_adaptive_orders(
                     rounding_mode_used = str(sizing_cfg.qty_rounding_on_min_notional_bump)
                     bumped_to_min_notional = True
                 else:
-                    reject("SIZE_TOO_SMALL", "min_notional_bump_failed")
+                    if bump_notional > max_notional + 1e-12 and cap_binding in {"policy_cap", "margin"}:
+                        reject(_binding_reject_reason(cap_binding), "min_notional_bump_exceeds_binding")
+                    else:
+                        reject("SIZE_TOO_SMALL", "min_notional_bump_failed")
                     continue
             else:
                 reject("SIZE_TOO_SMALL", f"final_notional={final_notional:.6f}<min_notional={float(order_builder.min_trade_notional):.6f}")
@@ -529,6 +536,10 @@ def _summarize_sizing_trace(rows: list[dict[str, Any]]) -> dict[str, Any]:
             str(k): int(v) for k, v in reject_reason.value_counts().sort_index().items()
         },
     }
+
+
+def _binding_reject_reason(binding: str) -> str:
+    return "POLICY_CAP_HIT" if str(binding) == "policy_cap" else "MARGIN_FAIL"
 
 
 def round_qty_to_step(qty: float, step: float, mode: str) -> float:
