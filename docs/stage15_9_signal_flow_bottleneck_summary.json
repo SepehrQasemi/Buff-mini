@@ -1,86 +1,86 @@
 {
-  "head_commit": "e56510119200690aa03795bcf31f9bd7851411c0",
+  "head_commit": "f22c254e71190d369b5132e469080c9bdf4363f7",
   "run_ids": {
-    "pre_fix": "20260302_020415_0322d25efdcf_stage15_9_trace",
-    "post_fix": "20260302_020611_0322d25efdcf_stage15_9_trace"
+    "pre_fix": "20260302_214403_ad295ccc2c90_stage15_9_trace",
+    "post_fix": "20260302_214403_ad295ccc2c90_stage15_9_trace"
   },
   "top_bottlenecks": [
     {
       "gate": "death_execution",
-      "death_rate": 0.8517782238369271
+      "death_rate": 0.7861116941302039
     },
     {
       "gate": "death_orders",
-      "death_rate": 0.7298257702073141
+      "death_rate": 0.6269889110082814
     },
     {
       "gate": "death_context",
-      "death_rate": 0.6530612244897959
+      "death_rate": 0.4897959183673469
     },
     {
       "gate": "death_confirm",
-      "death_rate": 0.6530612244897959
+      "death_rate": 0.4897959183673469
     },
     {
       "gate": "death_riskgate",
-      "death_rate": 0.6530612244897959
+      "death_rate": 0.4897959183673469
     }
   ],
   "per_tf": [
     {
-      "timeframe": "4h",
+      "timeframe": "15m",
       "rows": 98,
       "top_bottleneck_gate": "death_execution",
-      "top_bottleneck_death_rate": 0.9374149659863946,
-      "death_context": 0.673469387755102,
-      "death_confirm": 0.673469387755102,
-      "death_riskgate": 0.673469387755102,
-      "death_orders": 0.8275024295432459,
-      "death_execution": 0.9374149659863946
+      "top_bottleneck_death_rate": 0.7861116941302039,
+      "death_context": 0.4897959183673469,
+      "death_confirm": 0.4897959183673469,
+      "death_riskgate": 0.4897959183673469,
+      "death_orders": 0.6269889110082815,
+      "death_execution": 0.7861116941302039
     },
     {
       "timeframe": "1h",
       "rows": 98,
       "top_bottleneck_gate": "death_execution",
-      "top_bottleneck_death_rate": 0.8483587034196753,
-      "death_context": 0.673469387755102,
-      "death_confirm": 0.673469387755102,
-      "death_riskgate": 0.673469387755102,
-      "death_orders": 0.7178963893249607,
-      "death_execution": 0.8483587034196753
+      "top_bottleneck_death_rate": 0.7861116941302039,
+      "death_context": 0.4897959183673469,
+      "death_confirm": 0.4897959183673469,
+      "death_riskgate": 0.4897959183673469,
+      "death_orders": 0.6269889110082815,
+      "death_execution": 0.7861116941302039
     },
     {
       "timeframe": "2h",
       "rows": 98,
       "top_bottleneck_gate": "death_execution",
-      "top_bottleneck_death_rate": 0.8346673734428837,
-      "death_context": 0.673469387755102,
-      "death_confirm": 0.673469387755102,
-      "death_riskgate": 0.673469387755102,
-      "death_orders": 0.7142857142857143,
-      "death_execution": 0.8346673734428837
+      "top_bottleneck_death_rate": 0.7861116941302039,
+      "death_context": 0.4897959183673469,
+      "death_confirm": 0.4897959183673469,
+      "death_riskgate": 0.4897959183673469,
+      "death_orders": 0.6269889110082815,
+      "death_execution": 0.7861116941302039
     },
     {
       "timeframe": "30m",
       "rows": 98,
       "top_bottleneck_gate": "death_execution",
-      "top_bottleneck_death_rate": 0.8256639618884517,
-      "death_context": 0.673469387755102,
-      "death_confirm": 0.673469387755102,
-      "death_riskgate": 0.673469387755102,
-      "death_orders": 0.7244279529993815,
-      "death_execution": 0.8256639618884517
+      "top_bottleneck_death_rate": 0.7861116941302039,
+      "death_context": 0.4897959183673469,
+      "death_confirm": 0.4897959183673469,
+      "death_riskgate": 0.4897959183673469,
+      "death_orders": 0.6269889110082815,
+      "death_execution": 0.7861116941302039
     },
     {
-      "timeframe": "15m",
+      "timeframe": "4h",
       "rows": 98,
       "top_bottleneck_gate": "death_execution",
-      "top_bottleneck_death_rate": 0.8127861144472299,
-      "death_context": 0.5714285714285714,
-      "death_confirm": 0.5714285714285714,
-      "death_riskgate": 0.5714285714285714,
-      "death_orders": 0.6650163648832682,
-      "death_execution": 0.8127861144472299
+      "top_bottleneck_death_rate": 0.7861116941302039,
+      "death_context": 0.4897959183673469,
+      "death_confirm": 0.4897959183673469,
+      "death_riskgate": 0.4897959183673469,
+      "death_orders": 0.6269889110082815,
+      "death_execution": 0.7861116941302039
     }
   ],
   "per_family": [
@@ -92,69 +92,69 @@
       "death_context": 1.0,
       "death_confirm": 1.0,
       "death_riskgate": 1.0,
-      "death_orders": 0.9,
-      "death_execution": 0.9273209672382465
-    },
-    {
-      "family": "price",
-      "rows": 80,
-      "top_bottleneck_gate": "death_execution",
-      "top_bottleneck_death_rate": 0.9108485292064301,
-      "death_context": 0.9,
-      "death_confirm": 0.9,
-      "death_riskgate": 0.9,
-      "death_orders": 0.85,
-      "death_execution": 0.9108485292064301
+      "death_orders": 0.875,
+      "death_execution": 0.9516620599866326
     },
     {
       "family": "combined",
       "rows": 240,
       "top_bottleneck_gate": "death_execution",
-      "top_bottleneck_death_rate": 0.8559018585653381,
+      "top_bottleneck_death_rate": 0.8495292795768431,
       "death_context": 0.6666666666666666,
       "death_confirm": 0.6666666666666666,
       "death_riskgate": 0.6666666666666666,
-      "death_orders": 0.7366448828948828,
-      "death_execution": 0.8559018585653381
+      "death_orders": 0.7205743879472694,
+      "death_execution": 0.8495292795768431
     },
     {
-      "family": "classic_trend_pullback",
-      "rows": 10,
-      "top_bottleneck_gate": "death_context",
-      "top_bottleneck_death_rate": 0.8,
-      "death_context": 0.8,
-      "death_confirm": 0.8,
-      "death_riskgate": 0.8,
-      "death_orders": 0.8,
-      "death_execution": 0.8
+      "family": "price",
+      "rows": 80,
+      "top_bottleneck_gate": "death_execution",
+      "top_bottleneck_death_rate": 0.7081602205571971,
+      "death_context": 0.0,
+      "death_confirm": 0.0,
+      "death_riskgate": 0.0,
+      "death_orders": 0.375,
+      "death_execution": 0.7081602205571971
     },
     {
       "family": "flow",
       "rows": 80,
       "top_bottleneck_gate": "death_execution",
-      "top_bottleneck_death_rate": 0.7112665488604868,
+      "top_bottleneck_death_rate": 0.576126280000412,
       "death_context": 0.0,
       "death_confirm": 0.0,
       "death_riskgate": 0.0,
-      "death_orders": 0.4102481938351503,
-      "death_execution": 0.7112665488604868
+      "death_orders": 0.4285839160839161,
+      "death_execution": 0.576126280000412
+    },
+    {
+      "family": "classic_trend_pullback",
+      "rows": 10,
+      "top_bottleneck_gate": "death_execution",
+      "top_bottleneck_death_rate": 0.24318181818181817,
+      "death_context": 0.0,
+      "death_confirm": 0.0,
+      "death_riskgate": 0.0,
+      "death_orders": 0.0,
+      "death_execution": 0.24318181818181817
     }
   ],
   "stage_pass_fail": {
     "15": {
       "rows": 60,
-      "failed_like_zero_trade_rows": 39,
-      "pass_like_rows": 21
+      "failed_like_zero_trade_rows": 30,
+      "pass_like_rows": 30
     },
     "16": {
       "rows": 60,
-      "failed_like_zero_trade_rows": 39,
-      "pass_like_rows": 21
+      "failed_like_zero_trade_rows": 30,
+      "pass_like_rows": 30
     },
     "17": {
       "rows": 60,
-      "failed_like_zero_trade_rows": 39,
-      "pass_like_rows": 21
+      "failed_like_zero_trade_rows": 30,
+      "pass_like_rows": 30
     },
     "18": {
       "rows": 60,
@@ -163,8 +163,8 @@
     },
     "19": {
       "rows": 60,
-      "failed_like_zero_trade_rows": 8,
-      "pass_like_rows": 52
+      "failed_like_zero_trade_rows": 0,
+      "pass_like_rows": 60
     },
     "20": {
       "rows": 60,
@@ -178,13 +178,13 @@
     },
     "22": {
       "rows": 60,
-      "failed_like_zero_trade_rows": 39,
-      "pass_like_rows": 21
+      "failed_like_zero_trade_rows": 30,
+      "pass_like_rows": 30
     },
     "classic": {
       "rows": 10,
-      "failed_like_zero_trade_rows": 8,
-      "pass_like_rows": 2
+      "failed_like_zero_trade_rows": 0,
+      "pass_like_rows": 10
     }
   },
   "before_after": {
@@ -193,31 +193,31 @@
       "top_bottlenecks": [
         {
           "gate": "death_execution",
-          "death_rate": 0.8786863285920379
+          "death_rate": 0.7861116941302039
         },
         {
           "gate": "death_orders",
-          "death_rate": 0.5033318374199949
-        },
-        {
-          "gate": "death_confirm",
-          "death_rate": 0.15306122448979592
-        },
-        {
-          "gate": "death_riskgate",
-          "death_rate": 0.15306122448979592
+          "death_rate": 0.6269889110082814
         },
         {
           "gate": "death_context",
-          "death_rate": -64.72834103784415
+          "death_rate": 0.4897959183673469
+        },
+        {
+          "gate": "death_confirm",
+          "death_rate": 0.4897959183673469
+        },
+        {
+          "gate": "death_riskgate",
+          "death_rate": 0.4897959183673469
         }
       ],
       "overall_gate_means": {
-        "death_context": -64.72834103784415,
-        "death_confirm": 0.15306122448979592,
-        "death_riskgate": 0.15306122448979592,
-        "death_orders": 0.5033318374199949,
-        "death_execution": 0.8786863285920379
+        "death_context": 0.4897959183673469,
+        "death_confirm": 0.4897959183673469,
+        "death_riskgate": 0.4897959183673469,
+        "death_orders": 0.6269889110082814,
+        "death_execution": 0.7861116941302039
       },
       "by_stage": [
         {
@@ -225,9 +225,9 @@
           "rows": 60,
           "top_bottleneck_gate": "death_orders",
           "top_bottleneck_death_rate": 1.0,
-          "death_context": -75.62830263938959,
-          "death_confirm": 0.06666666666666667,
-          "death_riskgate": 0.06666666666666667,
+          "death_context": 0.5,
+          "death_confirm": 0.5,
+          "death_riskgate": 0.5,
           "death_orders": 1.0,
           "death_execution": 1.0
         },
@@ -236,9 +236,9 @@
           "rows": 60,
           "top_bottleneck_gate": "death_orders",
           "top_bottleneck_death_rate": 1.0,
-          "death_context": -75.62830263938959,
-          "death_confirm": 0.06666666666666667,
-          "death_riskgate": 0.06666666666666667,
+          "death_context": 0.5,
+          "death_confirm": 0.5,
+          "death_riskgate": 0.5,
           "death_orders": 1.0,
           "death_execution": 1.0
         },
@@ -247,9 +247,9 @@
           "rows": 60,
           "top_bottleneck_gate": "death_orders",
           "top_bottleneck_death_rate": 1.0,
-          "death_context": -75.62830263938959,
-          "death_confirm": 0.06666666666666667,
-          "death_riskgate": 0.06666666666666667,
+          "death_context": 0.5,
+          "death_confirm": 0.5,
+          "death_riskgate": 0.5,
           "death_orders": 1.0,
           "death_execution": 1.0
         },
@@ -257,472 +257,124 @@
           "stage": "15",
           "rows": 60,
           "top_bottleneck_gate": "death_execution",
-          "top_bottleneck_death_rate": 0.8447155742807916,
-          "death_context": 0.65,
-          "death_confirm": 0.65,
-          "death_riskgate": 0.65,
-          "death_orders": 0.6603174603174602,
-          "death_execution": 0.8447155742807916
-        },
-        {
-          "stage": "19",
-          "rows": 60,
-          "top_bottleneck_gate": "death_execution",
-          "top_bottleneck_death_rate": 0.8398529210372725,
-          "death_context": -75.62830263938959,
-          "death_confirm": 0.06666666666666667,
-          "death_riskgate": 0.06666666666666667,
-          "death_orders": -0.0917625264390469,
-          "death_execution": 0.8398529210372725
+          "top_bottleneck_death_rate": 0.7013835137269183,
+          "death_context": 0.5,
+          "death_confirm": 0.5,
+          "death_riskgate": 0.5,
+          "death_orders": 0.5,
+          "death_execution": 0.7013835137269183
         },
         {
           "stage": "16",
           "rows": 60,
           "top_bottleneck_gate": "death_execution",
-          "top_bottleneck_death_rate": 0.8232982120750522,
-          "death_context": -75.62830263938959,
-          "death_confirm": 0.06666666666666667,
-          "death_riskgate": 0.06666666666666667,
-          "death_orders": 0.08593786132418633,
-          "death_execution": 0.8232982120750522
+          "top_bottleneck_death_rate": 0.7013835137269183,
+          "death_context": 0.5,
+          "death_confirm": 0.5,
+          "death_riskgate": 0.5,
+          "death_orders": 0.5,
+          "death_execution": 0.7013835137269183
         },
         {
           "stage": "22",
           "rows": 60,
           "top_bottleneck_gate": "death_execution",
-          "top_bottleneck_death_rate": 0.8109382254435812,
-          "death_context": -75.62830263938959,
-          "death_confirm": 0.06666666666666667,
-          "death_riskgate": 0.06666666666666667,
-          "death_orders": 0.2367793490698386,
-          "death_execution": 0.8109382254435812
-        },
-        {
-          "stage": "classic",
-          "rows": 10,
-          "top_bottleneck_gate": "death_context",
-          "top_bottleneck_death_rate": 0.8,
-          "death_context": 0.8,
-          "death_confirm": 0.8,
-          "death_riskgate": 0.8,
-          "death_orders": 0.8,
-          "death_execution": 0.8
+          "top_bottleneck_death_rate": 0.7006662752539815,
+          "death_context": 0.5,
+          "death_confirm": 0.5,
+          "death_riskgate": 0.5,
+          "death_orders": 0.6204094399009654,
+          "death_execution": 0.7006662752539815
         },
         {
           "stage": "17",
           "rows": 60,
           "top_bottleneck_gate": "death_execution",
-          "top_bottleneck_death_rate": 0.7238000839982773,
-          "death_context": -75.62830263938959,
-          "death_confirm": 0.06666666666666667,
-          "death_riskgate": 0.06666666666666667,
-          "death_orders": 0.08593786132418633,
-          "death_execution": 0.7238000839982773
-        }
-      ],
-      "by_timeframe": [
-        {
-          "timeframe": "4h",
-          "rows": 98,
-          "top_bottleneck_gate": "death_execution",
-          "top_bottleneck_death_rate": 0.9279434850863423,
-          "death_context": -3.493197278911565,
-          "death_confirm": 0.3877551020408163,
-          "death_riskgate": 0.3877551020408163,
-          "death_orders": 0.6690962099125363,
-          "death_execution": 0.9279434850863423
+          "top_bottleneck_death_rate": 0.6473356803681048,
+          "death_context": 0.5,
+          "death_confirm": 0.5,
+          "death_riskgate": 0.5,
+          "death_orders": 0.5,
+          "death_execution": 0.6473356803681048
         },
         {
-          "timeframe": "30m",
-          "rows": 98,
+          "stage": "19",
+          "rows": 60,
           "top_bottleneck_gate": "death_execution",
-          "top_bottleneck_death_rate": 0.8793119854593067,
-          "death_context": -88.23951762523191,
-          "death_confirm": 0.10204081632653061,
-          "death_riskgate": 0.10204081632653061,
-          "death_orders": 0.4778891276587081,
-          "death_execution": 0.8793119854593067
+          "top_bottleneck_death_rate": 0.6286128826237716,
+          "death_context": 0.5,
+          "death_confirm": 0.5,
+          "death_riskgate": 0.5,
+          "death_orders": 0.0,
+          "death_execution": 0.6286128826237716
         },
         {
-          "timeframe": "1h",
-          "rows": 98,
+          "stage": "classic",
+          "rows": 10,
           "top_bottleneck_gate": "death_execution",
-          "top_bottleneck_death_rate": 0.8791204279211684,
-          "death_context": -39.236970172684465,
-          "death_confirm": 0.10204081632653061,
-          "death_riskgate": 0.10204081632653061,
-          "death_orders": 0.4729147631394822,
-          "death_execution": 0.8791204279211684
-        },
-        {
-          "timeframe": "15m",
-          "rows": 98,
-          "top_bottleneck_gate": "death_execution",
-          "top_bottleneck_death_rate": 0.8568890824765488,
-          "death_context": -177.60263235729076,
-          "death_confirm": 0.07142857142857142,
-          "death_riskgate": 0.07142857142857142,
-          "death_orders": 0.4413640052798807,
-          "death_execution": 0.8568890824765488
-        },
-        {
-          "timeframe": "2h",
-          "rows": 98,
-          "top_bottleneck_gate": "death_execution",
-          "top_bottleneck_death_rate": 0.8501666620168229,
-          "death_context": -15.069387755102042,
-          "death_confirm": 0.10204081632653061,
-          "death_riskgate": 0.10204081632653061,
-          "death_orders": 0.4553950811093669,
-          "death_execution": 0.8501666620168229
-        }
-      ],
-      "by_family": [
-        {
-          "family": "volatility",
-          "rows": 80,
-          "top_bottleneck_gate": "death_execution",
-          "top_bottleneck_death_rate": 0.9494686313473715,
-          "death_context": -112.75,
-          "death_confirm": 0.3,
-          "death_riskgate": 0.3,
-          "death_orders": 0.6264380952380952,
-          "death_execution": 0.9494686313473715
-        },
-        {
-          "family": "flow",
-          "rows": 80,
-          "top_bottleneck_gate": "death_execution",
-          "top_bottleneck_death_rate": 0.8788086716919468,
-          "death_context": -7.498588856795379,
+          "top_bottleneck_death_rate": 0.24318181818181817,
+          "death_context": 0.0,
           "death_confirm": 0.0,
           "death_riskgate": 0.0,
-          "death_orders": 0.4119636574799266,
-          "death_execution": 0.8788086716919468
-        },
-        {
-          "family": "price",
-          "rows": 80,
-          "top_bottleneck_gate": "death_execution",
-          "top_bottleneck_death_rate": 0.8706783875932992,
-          "death_context": -26.3125,
-          "death_confirm": 0.2875,
-          "death_riskgate": 0.2875,
-          "death_orders": 0.564993215773452,
-          "death_execution": 0.8706783875932992
-        },
-        {
-          "family": "combined",
-          "rows": 240,
-          "top_bottleneck_gate": "death_execution",
-          "top_bottleneck_death_rate": 0.8609993573312048,
-          "death_context": -83.33333333333333,
-          "death_confirm": 0.08333333333333333,
-          "death_riskgate": 0.08333333333333333,
-          "death_orders": 0.4598375119019983,
-          "death_execution": 0.8609993573312048
-        },
-        {
-          "family": "classic_trend_pullback",
-          "rows": 10,
-          "top_bottleneck_gate": "death_context",
-          "top_bottleneck_death_rate": 0.8,
-          "death_context": 0.8,
-          "death_confirm": 0.8,
-          "death_riskgate": 0.8,
-          "death_orders": 0.8,
-          "death_execution": 0.8
-        }
-      ],
-      "by_mode": [
-        {
-          "mode": "v2",
-          "rows": 480,
-          "top_bottleneck_gate": "death_execution",
-          "top_bottleneck_death_rate": 0.8803256271043719,
-          "death_context": -66.09351480946589,
-          "death_confirm": 0.13958333333333334,
-          "death_riskgate": 0.13958333333333334,
-          "death_orders": 0.4971512506995781,
-          "death_execution": 0.8803256271043719
-        },
-        {
-          "mode": "classic",
-          "rows": 10,
-          "top_bottleneck_gate": "death_context",
-          "top_bottleneck_death_rate": 0.8,
-          "death_context": 0.8,
-          "death_confirm": 0.8,
-          "death_riskgate": 0.8,
-          "death_orders": 0.8,
-          "death_execution": 0.8
-        }
-      ],
-      "stage_pass_fail": {
-        "15": {
-          "rows": 60,
-          "failed_like_zero_trade_rows": 39,
-          "pass_like_rows": 21
-        },
-        "16": {
-          "rows": 60,
-          "failed_like_zero_trade_rows": 4,
-          "pass_like_rows": 56
-        },
-        "17": {
-          "rows": 60,
-          "failed_like_zero_trade_rows": 4,
-          "pass_like_rows": 56
-        },
-        "18": {
-          "rows": 60,
-          "failed_like_zero_trade_rows": 60,
-          "pass_like_rows": 0
-        },
-        "19": {
-          "rows": 60,
-          "failed_like_zero_trade_rows": 4,
-          "pass_like_rows": 56
-        },
-        "20": {
-          "rows": 60,
-          "failed_like_zero_trade_rows": 60,
-          "pass_like_rows": 0
-        },
-        "21": {
-          "rows": 60,
-          "failed_like_zero_trade_rows": 60,
-          "pass_like_rows": 0
-        },
-        "22": {
-          "rows": 60,
-          "failed_like_zero_trade_rows": 4,
-          "pass_like_rows": 56
-        },
-        "classic": {
-          "rows": 10,
-          "failed_like_zero_trade_rows": 8,
-          "pass_like_rows": 2
-        }
-      },
-      "reject_reason_counts": [
-        {
-          "reason": "MISSING_FEATURES",
-          "count": 320
-        },
-        {
-          "reason": "VALID",
-          "count": 76
-        },
-        {
-          "reason": "RAW_SIGNAL_ZERO",
-          "count": 64
-        },
-        {
-          "reason": "MC_NOT_TRIGGERED",
-          "count": 30
-        }
-      ],
-      "zero_trade_pct": 49.59183673469388,
-      "invalid_pct": 84.48979591836735,
-      "walkforward_executed_true_pct": 0.0,
-      "mc_trigger_rate": 22.653061224489797,
-      "run_id": "20260302_020415_0322d25efdcf_stage15_9_trace",
-      "seed": 42,
-      "config_hash": "13cd0454e095",
-      "data_hash": "b6b8ba3a212669a9",
-      "resolved_end_ts": "2025-01-05T03:45:00+00:00",
-      "head_commit": "e56510119200690aa03795bcf31f9bd7851411c0",
-      "runtime_seconds": 5.465228000000934,
-      "feature_compute_total_seconds": 0.6425740999984555
-    },
-    "post": {
-      "rows_count": 490,
-      "top_bottlenecks": [
-        {
-          "gate": "death_execution",
-          "death_rate": 0.8517782238369271
-        },
-        {
-          "gate": "death_orders",
-          "death_rate": 0.7298257702073141
-        },
-        {
-          "gate": "death_context",
-          "death_rate": 0.6530612244897959
-        },
-        {
-          "gate": "death_confirm",
-          "death_rate": 0.6530612244897959
-        },
-        {
-          "gate": "death_riskgate",
-          "death_rate": 0.6530612244897959
-        }
-      ],
-      "overall_gate_means": {
-        "death_context": 0.6530612244897959,
-        "death_confirm": 0.6530612244897959,
-        "death_riskgate": 0.6530612244897959,
-        "death_orders": 0.7298257702073141,
-        "death_execution": 0.8517782238369271
-      },
-      "by_stage": [
-        {
-          "stage": "18",
-          "rows": 60,
-          "top_bottleneck_gate": "death_orders",
-          "top_bottleneck_death_rate": 1.0,
-          "death_context": 0.65,
-          "death_confirm": 0.65,
-          "death_riskgate": 0.65,
-          "death_orders": 1.0,
-          "death_execution": 1.0
-        },
-        {
-          "stage": "20",
-          "rows": 60,
-          "top_bottleneck_gate": "death_orders",
-          "top_bottleneck_death_rate": 1.0,
-          "death_context": 0.65,
-          "death_confirm": 0.65,
-          "death_riskgate": 0.65,
-          "death_orders": 1.0,
-          "death_execution": 1.0
-        },
-        {
-          "stage": "21",
-          "rows": 60,
-          "top_bottleneck_gate": "death_orders",
-          "top_bottleneck_death_rate": 1.0,
-          "death_context": 0.65,
-          "death_confirm": 0.65,
-          "death_riskgate": 0.65,
-          "death_orders": 1.0,
-          "death_execution": 1.0
-        },
-        {
-          "stage": "15",
-          "rows": 60,
-          "top_bottleneck_gate": "death_execution",
-          "top_bottleneck_death_rate": 0.8447155742807916,
-          "death_context": 0.65,
-          "death_confirm": 0.65,
-          "death_riskgate": 0.65,
-          "death_orders": 0.6603174603174602,
-          "death_execution": 0.8447155742807916
-        },
-        {
-          "stage": "16",
-          "rows": 60,
-          "top_bottleneck_gate": "death_execution",
-          "top_bottleneck_death_rate": 0.8447155742807916,
-          "death_context": 0.65,
-          "death_confirm": 0.65,
-          "death_riskgate": 0.65,
-          "death_orders": 0.6603174603174602,
-          "death_execution": 0.8447155742807916
-        },
-        {
-          "stage": "22",
-          "rows": 60,
-          "top_bottleneck_gate": "death_execution",
-          "top_bottleneck_death_rate": 0.8415140415140415,
-          "death_context": 0.65,
-          "death_confirm": 0.65,
-          "death_riskgate": 0.65,
-          "death_orders": 0.7023072820898907,
-          "death_execution": 0.8415140415140415
-        },
-        {
-          "stage": "classic",
-          "rows": 10,
-          "top_bottleneck_gate": "death_context",
-          "top_bottleneck_death_rate": 0.8,
-          "death_context": 0.8,
-          "death_confirm": 0.8,
-          "death_riskgate": 0.8,
-          "death_orders": 0.8,
-          "death_execution": 0.8
-        },
-        {
-          "stage": "17",
-          "rows": 60,
-          "top_bottleneck_gate": "death_execution",
-          "top_bottleneck_death_rate": 0.798135511831164,
-          "death_context": 0.65,
-          "death_confirm": 0.65,
-          "death_riskgate": 0.65,
-          "death_orders": 0.6603174603174602,
-          "death_execution": 0.798135511831164
-        },
-        {
-          "stage": "19",
-          "rows": 60,
-          "top_bottleneck_gate": "death_context",
-          "top_bottleneck_death_rate": 0.65,
-          "death_context": 0.65,
-          "death_confirm": 0.65,
-          "death_riskgate": 0.65,
-          "death_orders": 0.14365079365079367,
-          "death_execution": 0.4937747927614484
+          "death_orders": 0.0,
+          "death_execution": 0.24318181818181817
         }
       ],
       "by_timeframe": [
         {
-          "timeframe": "4h",
+          "timeframe": "15m",
           "rows": 98,
           "top_bottleneck_gate": "death_execution",
-          "top_bottleneck_death_rate": 0.9374149659863946,
-          "death_context": 0.673469387755102,
-          "death_confirm": 0.673469387755102,
-          "death_riskgate": 0.673469387755102,
-          "death_orders": 0.8275024295432459,
-          "death_execution": 0.9374149659863946
+          "top_bottleneck_death_rate": 0.7861116941302039,
+          "death_context": 0.4897959183673469,
+          "death_confirm": 0.4897959183673469,
+          "death_riskgate": 0.4897959183673469,
+          "death_orders": 0.6269889110082815,
+          "death_execution": 0.7861116941302039
         },
         {
           "timeframe": "1h",
           "rows": 98,
           "top_bottleneck_gate": "death_execution",
-          "top_bottleneck_death_rate": 0.8483587034196753,
-          "death_context": 0.673469387755102,
-          "death_confirm": 0.673469387755102,
-          "death_riskgate": 0.673469387755102,
-          "death_orders": 0.7178963893249607,
-          "death_execution": 0.8483587034196753
+          "top_bottleneck_death_rate": 0.7861116941302039,
+          "death_context": 0.4897959183673469,
+          "death_confirm": 0.4897959183673469,
+          "death_riskgate": 0.4897959183673469,
+          "death_orders": 0.6269889110082815,
+          "death_execution": 0.7861116941302039
         },
         {
           "timeframe": "2h",
           "rows": 98,
           "top_bottleneck_gate": "death_execution",
-          "top_bottleneck_death_rate": 0.8346673734428837,
-          "death_context": 0.673469387755102,
-          "death_confirm": 0.673469387755102,
-          "death_riskgate": 0.673469387755102,
-          "death_orders": 0.7142857142857143,
-          "death_execution": 0.8346673734428837
+          "top_bottleneck_death_rate": 0.7861116941302039,
+          "death_context": 0.4897959183673469,
+          "death_confirm": 0.4897959183673469,
+          "death_riskgate": 0.4897959183673469,
+          "death_orders": 0.6269889110082815,
+          "death_execution": 0.7861116941302039
         },
         {
           "timeframe": "30m",
           "rows": 98,
           "top_bottleneck_gate": "death_execution",
-          "top_bottleneck_death_rate": 0.8256639618884517,
-          "death_context": 0.673469387755102,
-          "death_confirm": 0.673469387755102,
-          "death_riskgate": 0.673469387755102,
-          "death_orders": 0.7244279529993815,
-          "death_execution": 0.8256639618884517
+          "top_bottleneck_death_rate": 0.7861116941302039,
+          "death_context": 0.4897959183673469,
+          "death_confirm": 0.4897959183673469,
+          "death_riskgate": 0.4897959183673469,
+          "death_orders": 0.6269889110082815,
+          "death_execution": 0.7861116941302039
         },
         {
-          "timeframe": "15m",
+          "timeframe": "4h",
           "rows": 98,
           "top_bottleneck_gate": "death_execution",
-          "top_bottleneck_death_rate": 0.8127861144472299,
-          "death_context": 0.5714285714285714,
-          "death_confirm": 0.5714285714285714,
-          "death_riskgate": 0.5714285714285714,
-          "death_orders": 0.6650163648832682,
-          "death_execution": 0.8127861144472299
+          "top_bottleneck_death_rate": 0.7861116941302039,
+          "death_context": 0.4897959183673469,
+          "death_confirm": 0.4897959183673469,
+          "death_riskgate": 0.4897959183673469,
+          "death_orders": 0.6269889110082815,
+          "death_execution": 0.7861116941302039
         }
       ],
       "by_family": [
@@ -734,52 +386,52 @@
           "death_context": 1.0,
           "death_confirm": 1.0,
           "death_riskgate": 1.0,
-          "death_orders": 0.9,
-          "death_execution": 0.9273209672382465
-        },
-        {
-          "family": "price",
-          "rows": 80,
-          "top_bottleneck_gate": "death_execution",
-          "top_bottleneck_death_rate": 0.9108485292064301,
-          "death_context": 0.9,
-          "death_confirm": 0.9,
-          "death_riskgate": 0.9,
-          "death_orders": 0.85,
-          "death_execution": 0.9108485292064301
+          "death_orders": 0.875,
+          "death_execution": 0.9516620599866326
         },
         {
           "family": "combined",
           "rows": 240,
           "top_bottleneck_gate": "death_execution",
-          "top_bottleneck_death_rate": 0.8559018585653381,
+          "top_bottleneck_death_rate": 0.8495292795768431,
           "death_context": 0.6666666666666666,
           "death_confirm": 0.6666666666666666,
           "death_riskgate": 0.6666666666666666,
-          "death_orders": 0.7366448828948828,
-          "death_execution": 0.8559018585653381
+          "death_orders": 0.7205743879472694,
+          "death_execution": 0.8495292795768431
         },
         {
-          "family": "classic_trend_pullback",
-          "rows": 10,
-          "top_bottleneck_gate": "death_context",
-          "top_bottleneck_death_rate": 0.8,
-          "death_context": 0.8,
-          "death_confirm": 0.8,
-          "death_riskgate": 0.8,
-          "death_orders": 0.8,
-          "death_execution": 0.8
+          "family": "price",
+          "rows": 80,
+          "top_bottleneck_gate": "death_execution",
+          "top_bottleneck_death_rate": 0.7081602205571971,
+          "death_context": 0.0,
+          "death_confirm": 0.0,
+          "death_riskgate": 0.0,
+          "death_orders": 0.375,
+          "death_execution": 0.7081602205571971
         },
         {
           "family": "flow",
           "rows": 80,
           "top_bottleneck_gate": "death_execution",
-          "top_bottleneck_death_rate": 0.7112665488604868,
+          "top_bottleneck_death_rate": 0.576126280000412,
           "death_context": 0.0,
           "death_confirm": 0.0,
           "death_riskgate": 0.0,
-          "death_orders": 0.4102481938351503,
-          "death_execution": 0.7112665488604868
+          "death_orders": 0.4285839160839161,
+          "death_execution": 0.576126280000412
+        },
+        {
+          "family": "classic_trend_pullback",
+          "rows": 10,
+          "top_bottleneck_gate": "death_execution",
+          "top_bottleneck_death_rate": 0.24318181818181817,
+          "death_context": 0.0,
+          "death_confirm": 0.0,
+          "death_riskgate": 0.0,
+          "death_orders": 0.0,
+          "death_execution": 0.24318181818181817
         }
       ],
       "by_mode": [
@@ -787,40 +439,40 @@
           "mode": "v2",
           "rows": 480,
           "top_bottleneck_gate": "death_execution",
-          "top_bottleneck_death_rate": 0.8528569368335297,
-          "death_context": 0.65,
-          "death_confirm": 0.65,
-          "death_riskgate": 0.65,
-          "death_orders": 0.7283638070866332,
-          "death_execution": 0.8528569368335297
+          "top_bottleneck_death_rate": 0.7974227332124619,
+          "death_context": 0.5,
+          "death_confirm": 0.5,
+          "death_riskgate": 0.5,
+          "death_orders": 0.6400511799876206,
+          "death_execution": 0.7974227332124619
         },
         {
           "mode": "classic",
           "rows": 10,
-          "top_bottleneck_gate": "death_context",
-          "top_bottleneck_death_rate": 0.8,
-          "death_context": 0.8,
-          "death_confirm": 0.8,
-          "death_riskgate": 0.8,
-          "death_orders": 0.8,
-          "death_execution": 0.8
+          "top_bottleneck_gate": "death_execution",
+          "top_bottleneck_death_rate": 0.24318181818181817,
+          "death_context": 0.0,
+          "death_confirm": 0.0,
+          "death_riskgate": 0.0,
+          "death_orders": 0.0,
+          "death_execution": 0.24318181818181817
         }
       ],
       "stage_pass_fail": {
         "15": {
           "rows": 60,
-          "failed_like_zero_trade_rows": 39,
-          "pass_like_rows": 21
+          "failed_like_zero_trade_rows": 30,
+          "pass_like_rows": 30
         },
         "16": {
           "rows": 60,
-          "failed_like_zero_trade_rows": 39,
-          "pass_like_rows": 21
+          "failed_like_zero_trade_rows": 30,
+          "pass_like_rows": 30
         },
         "17": {
           "rows": 60,
-          "failed_like_zero_trade_rows": 39,
-          "pass_like_rows": 21
+          "failed_like_zero_trade_rows": 30,
+          "pass_like_rows": 30
         },
         "18": {
           "rows": 60,
@@ -829,8 +481,8 @@
         },
         "19": {
           "rows": 60,
-          "failed_like_zero_trade_rows": 8,
-          "pass_like_rows": 52
+          "failed_like_zero_trade_rows": 0,
+          "pass_like_rows": 60
         },
         "20": {
           "rows": 60,
@@ -844,54 +496,384 @@
         },
         "22": {
           "rows": 60,
-          "failed_like_zero_trade_rows": 39,
-          "pass_like_rows": 21
+          "failed_like_zero_trade_rows": 30,
+          "pass_like_rows": 30
         },
         "classic": {
           "rows": 10,
-          "failed_like_zero_trade_rows": 8,
-          "pass_like_rows": 2
+          "failed_like_zero_trade_rows": 0,
+          "pass_like_rows": 10
         }
       },
       "reject_reason_counts": [
         {
-          "reason": "MISSING_FEATURES",
-          "count": 320
+          "reason": "VALID",
+          "count": 250
         },
         {
           "reason": "RAW_SIGNAL_ZERO",
-          "count": 64
-        },
-        {
-          "reason": "VALID",
-          "count": 60
-        },
-        {
-          "reason": "MC_NOT_TRIGGERED",
-          "count": 46
+          "count": 240
         }
       ],
-      "zero_trade_pct": 71.83673469387755,
-      "invalid_pct": 87.75510204081633,
+      "zero_trade_pct": 61.224489795918366,
+      "invalid_pct": 48.97959183673469,
       "walkforward_executed_true_pct": 0.0,
-      "mc_trigger_rate": 7.755102040816326,
-      "run_id": "20260302_020611_0322d25efdcf_stage15_9_trace",
+      "mc_trigger_rate": 38.775510204081634,
+      "run_id": "20260302_214403_ad295ccc2c90_stage15_9_trace",
       "seed": 42,
-      "config_hash": "13cd0454e095",
-      "data_hash": "b6b8ba3a212669a9",
-      "resolved_end_ts": "2025-01-05T03:45:00+00:00",
-      "head_commit": "e56510119200690aa03795bcf31f9bd7851411c0",
-      "runtime_seconds": 4.6885296999971615,
-      "feature_compute_total_seconds": 0.33960979999392293
+      "config_hash": "c1243016cf09",
+      "data_hash": "b6faf10f0f3a44a9",
+      "resolved_end_ts": "2025-04-10T23:00:00+00:00",
+      "head_commit": "f22c254e71190d369b5132e469080c9bdf4363f7",
+      "runtime_seconds": 21.946648700002697,
+      "feature_compute_total_seconds": 1.0617598000098951
+    },
+    "post": {
+      "rows_count": 490,
+      "top_bottlenecks": [
+        {
+          "gate": "death_execution",
+          "death_rate": 0.7861116941302039
+        },
+        {
+          "gate": "death_orders",
+          "death_rate": 0.6269889110082814
+        },
+        {
+          "gate": "death_context",
+          "death_rate": 0.4897959183673469
+        },
+        {
+          "gate": "death_confirm",
+          "death_rate": 0.4897959183673469
+        },
+        {
+          "gate": "death_riskgate",
+          "death_rate": 0.4897959183673469
+        }
+      ],
+      "overall_gate_means": {
+        "death_context": 0.4897959183673469,
+        "death_confirm": 0.4897959183673469,
+        "death_riskgate": 0.4897959183673469,
+        "death_orders": 0.6269889110082814,
+        "death_execution": 0.7861116941302039
+      },
+      "by_stage": [
+        {
+          "stage": "18",
+          "rows": 60,
+          "top_bottleneck_gate": "death_orders",
+          "top_bottleneck_death_rate": 1.0,
+          "death_context": 0.5,
+          "death_confirm": 0.5,
+          "death_riskgate": 0.5,
+          "death_orders": 1.0,
+          "death_execution": 1.0
+        },
+        {
+          "stage": "20",
+          "rows": 60,
+          "top_bottleneck_gate": "death_orders",
+          "top_bottleneck_death_rate": 1.0,
+          "death_context": 0.5,
+          "death_confirm": 0.5,
+          "death_riskgate": 0.5,
+          "death_orders": 1.0,
+          "death_execution": 1.0
+        },
+        {
+          "stage": "21",
+          "rows": 60,
+          "top_bottleneck_gate": "death_orders",
+          "top_bottleneck_death_rate": 1.0,
+          "death_context": 0.5,
+          "death_confirm": 0.5,
+          "death_riskgate": 0.5,
+          "death_orders": 1.0,
+          "death_execution": 1.0
+        },
+        {
+          "stage": "15",
+          "rows": 60,
+          "top_bottleneck_gate": "death_execution",
+          "top_bottleneck_death_rate": 0.7013835137269183,
+          "death_context": 0.5,
+          "death_confirm": 0.5,
+          "death_riskgate": 0.5,
+          "death_orders": 0.5,
+          "death_execution": 0.7013835137269183
+        },
+        {
+          "stage": "16",
+          "rows": 60,
+          "top_bottleneck_gate": "death_execution",
+          "top_bottleneck_death_rate": 0.7013835137269183,
+          "death_context": 0.5,
+          "death_confirm": 0.5,
+          "death_riskgate": 0.5,
+          "death_orders": 0.5,
+          "death_execution": 0.7013835137269183
+        },
+        {
+          "stage": "22",
+          "rows": 60,
+          "top_bottleneck_gate": "death_execution",
+          "top_bottleneck_death_rate": 0.7006662752539815,
+          "death_context": 0.5,
+          "death_confirm": 0.5,
+          "death_riskgate": 0.5,
+          "death_orders": 0.6204094399009654,
+          "death_execution": 0.7006662752539815
+        },
+        {
+          "stage": "17",
+          "rows": 60,
+          "top_bottleneck_gate": "death_execution",
+          "top_bottleneck_death_rate": 0.6473356803681048,
+          "death_context": 0.5,
+          "death_confirm": 0.5,
+          "death_riskgate": 0.5,
+          "death_orders": 0.5,
+          "death_execution": 0.6473356803681048
+        },
+        {
+          "stage": "19",
+          "rows": 60,
+          "top_bottleneck_gate": "death_execution",
+          "top_bottleneck_death_rate": 0.6286128826237716,
+          "death_context": 0.5,
+          "death_confirm": 0.5,
+          "death_riskgate": 0.5,
+          "death_orders": 0.0,
+          "death_execution": 0.6286128826237716
+        },
+        {
+          "stage": "classic",
+          "rows": 10,
+          "top_bottleneck_gate": "death_execution",
+          "top_bottleneck_death_rate": 0.24318181818181817,
+          "death_context": 0.0,
+          "death_confirm": 0.0,
+          "death_riskgate": 0.0,
+          "death_orders": 0.0,
+          "death_execution": 0.24318181818181817
+        }
+      ],
+      "by_timeframe": [
+        {
+          "timeframe": "15m",
+          "rows": 98,
+          "top_bottleneck_gate": "death_execution",
+          "top_bottleneck_death_rate": 0.7861116941302039,
+          "death_context": 0.4897959183673469,
+          "death_confirm": 0.4897959183673469,
+          "death_riskgate": 0.4897959183673469,
+          "death_orders": 0.6269889110082815,
+          "death_execution": 0.7861116941302039
+        },
+        {
+          "timeframe": "1h",
+          "rows": 98,
+          "top_bottleneck_gate": "death_execution",
+          "top_bottleneck_death_rate": 0.7861116941302039,
+          "death_context": 0.4897959183673469,
+          "death_confirm": 0.4897959183673469,
+          "death_riskgate": 0.4897959183673469,
+          "death_orders": 0.6269889110082815,
+          "death_execution": 0.7861116941302039
+        },
+        {
+          "timeframe": "2h",
+          "rows": 98,
+          "top_bottleneck_gate": "death_execution",
+          "top_bottleneck_death_rate": 0.7861116941302039,
+          "death_context": 0.4897959183673469,
+          "death_confirm": 0.4897959183673469,
+          "death_riskgate": 0.4897959183673469,
+          "death_orders": 0.6269889110082815,
+          "death_execution": 0.7861116941302039
+        },
+        {
+          "timeframe": "30m",
+          "rows": 98,
+          "top_bottleneck_gate": "death_execution",
+          "top_bottleneck_death_rate": 0.7861116941302039,
+          "death_context": 0.4897959183673469,
+          "death_confirm": 0.4897959183673469,
+          "death_riskgate": 0.4897959183673469,
+          "death_orders": 0.6269889110082815,
+          "death_execution": 0.7861116941302039
+        },
+        {
+          "timeframe": "4h",
+          "rows": 98,
+          "top_bottleneck_gate": "death_execution",
+          "top_bottleneck_death_rate": 0.7861116941302039,
+          "death_context": 0.4897959183673469,
+          "death_confirm": 0.4897959183673469,
+          "death_riskgate": 0.4897959183673469,
+          "death_orders": 0.6269889110082815,
+          "death_execution": 0.7861116941302039
+        }
+      ],
+      "by_family": [
+        {
+          "family": "volatility",
+          "rows": 80,
+          "top_bottleneck_gate": "death_context",
+          "top_bottleneck_death_rate": 1.0,
+          "death_context": 1.0,
+          "death_confirm": 1.0,
+          "death_riskgate": 1.0,
+          "death_orders": 0.875,
+          "death_execution": 0.9516620599866326
+        },
+        {
+          "family": "combined",
+          "rows": 240,
+          "top_bottleneck_gate": "death_execution",
+          "top_bottleneck_death_rate": 0.8495292795768431,
+          "death_context": 0.6666666666666666,
+          "death_confirm": 0.6666666666666666,
+          "death_riskgate": 0.6666666666666666,
+          "death_orders": 0.7205743879472694,
+          "death_execution": 0.8495292795768431
+        },
+        {
+          "family": "price",
+          "rows": 80,
+          "top_bottleneck_gate": "death_execution",
+          "top_bottleneck_death_rate": 0.7081602205571971,
+          "death_context": 0.0,
+          "death_confirm": 0.0,
+          "death_riskgate": 0.0,
+          "death_orders": 0.375,
+          "death_execution": 0.7081602205571971
+        },
+        {
+          "family": "flow",
+          "rows": 80,
+          "top_bottleneck_gate": "death_execution",
+          "top_bottleneck_death_rate": 0.576126280000412,
+          "death_context": 0.0,
+          "death_confirm": 0.0,
+          "death_riskgate": 0.0,
+          "death_orders": 0.4285839160839161,
+          "death_execution": 0.576126280000412
+        },
+        {
+          "family": "classic_trend_pullback",
+          "rows": 10,
+          "top_bottleneck_gate": "death_execution",
+          "top_bottleneck_death_rate": 0.24318181818181817,
+          "death_context": 0.0,
+          "death_confirm": 0.0,
+          "death_riskgate": 0.0,
+          "death_orders": 0.0,
+          "death_execution": 0.24318181818181817
+        }
+      ],
+      "by_mode": [
+        {
+          "mode": "v2",
+          "rows": 480,
+          "top_bottleneck_gate": "death_execution",
+          "top_bottleneck_death_rate": 0.7974227332124619,
+          "death_context": 0.5,
+          "death_confirm": 0.5,
+          "death_riskgate": 0.5,
+          "death_orders": 0.6400511799876206,
+          "death_execution": 0.7974227332124619
+        },
+        {
+          "mode": "classic",
+          "rows": 10,
+          "top_bottleneck_gate": "death_execution",
+          "top_bottleneck_death_rate": 0.24318181818181817,
+          "death_context": 0.0,
+          "death_confirm": 0.0,
+          "death_riskgate": 0.0,
+          "death_orders": 0.0,
+          "death_execution": 0.24318181818181817
+        }
+      ],
+      "stage_pass_fail": {
+        "15": {
+          "rows": 60,
+          "failed_like_zero_trade_rows": 30,
+          "pass_like_rows": 30
+        },
+        "16": {
+          "rows": 60,
+          "failed_like_zero_trade_rows": 30,
+          "pass_like_rows": 30
+        },
+        "17": {
+          "rows": 60,
+          "failed_like_zero_trade_rows": 30,
+          "pass_like_rows": 30
+        },
+        "18": {
+          "rows": 60,
+          "failed_like_zero_trade_rows": 60,
+          "pass_like_rows": 0
+        },
+        "19": {
+          "rows": 60,
+          "failed_like_zero_trade_rows": 0,
+          "pass_like_rows": 60
+        },
+        "20": {
+          "rows": 60,
+          "failed_like_zero_trade_rows": 60,
+          "pass_like_rows": 0
+        },
+        "21": {
+          "rows": 60,
+          "failed_like_zero_trade_rows": 60,
+          "pass_like_rows": 0
+        },
+        "22": {
+          "rows": 60,
+          "failed_like_zero_trade_rows": 30,
+          "pass_like_rows": 30
+        },
+        "classic": {
+          "rows": 10,
+          "failed_like_zero_trade_rows": 0,
+          "pass_like_rows": 10
+        }
+      },
+      "reject_reason_counts": [
+        {
+          "reason": "VALID",
+          "count": 250
+        },
+        {
+          "reason": "RAW_SIGNAL_ZERO",
+          "count": 240
+        }
+      ],
+      "zero_trade_pct": 61.224489795918366,
+      "invalid_pct": 48.97959183673469,
+      "walkforward_executed_true_pct": 0.0,
+      "mc_trigger_rate": 38.775510204081634,
+      "run_id": "20260302_214403_ad295ccc2c90_stage15_9_trace",
+      "seed": 42,
+      "config_hash": "c1243016cf09",
+      "data_hash": "b6faf10f0f3a44a9",
+      "resolved_end_ts": "2025-04-10T23:00:00+00:00",
+      "head_commit": "f22c254e71190d369b5132e469080c9bdf4363f7",
+      "runtime_seconds": 21.946648700002697,
+      "feature_compute_total_seconds": 1.0617598000098951
     },
     "delta": {
-      "zero_trade_pct": 22.244897959183668,
-      "invalid_pct": 3.265306122448976,
+      "zero_trade_pct": 0.0,
+      "invalid_pct": 0.0,
       "walkforward_executed_true_pct": 0.0,
-      "mc_trigger_rate": -14.897959183673471
+      "mc_trigger_rate": 0.0
     }
   },
-  "defects_fixed": [
-    "fixed_context_gate_counting_and_death_rate_clamp"
-  ]
+  "defects_fixed": []
 }

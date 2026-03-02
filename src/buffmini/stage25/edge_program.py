@@ -430,3 +430,373 @@ def _to_num(value: Any) -> float:
         return 0.0
     return num
 
+
+def run_stage25_master(
+    *,
+    config: dict[str, Any],
+    seed: int,
+    dry_run: bool,
+    symbols: list[str],
+    timeframes: list[str],
+    families: list[str],
+    composers: list[str],
+    cost_levels: list[str],
+    runs_root: Path,
+    data_dir: Path,
+    derived_dir: Path,
+    docs_dir: Path = Path("docs"),
+) -> dict[str, Any]:
+    """Run Stage-25 research/live program and emit unified master report."""
+
+    started = time.perf_counter()
+    research = run_stage25b_edge_program(
+        config=config,
+        seed=int(seed),
+        dry_run=bool(dry_run),
+        mode="research",
+        symbols=list(symbols),
+        timeframes=list(timeframes),
+        families=list(families),
+        composers=list(composers),
+        cost_levels=list(cost_levels),
+        runs_root=runs_root,
+        data_dir=data_dir,
+        derived_dir=derived_dir,
+        docs_dir=docs_dir,
+    )
+    live = run_stage25b_edge_program(
+        config=config,
+        seed=int(seed),
+        dry_run=bool(dry_run),
+        mode="live",
+        symbols=list(symbols),
+        timeframes=list(timeframes),
+        families=list(families),
+        composers=list(composers),
+        cost_levels=list(cost_levels),
+        runs_root=runs_root,
+        data_dir=data_dir,
+        derived_dir=derived_dir,
+        docs_dir=docs_dir,
+    )
+
+    research_df = _read_csv(Path(research["results_csv"]))
+    live_df = _read_csv(Path(live["results_csv"]))
+
+    promising = _promising_research_candidates(research_df)
+    replay = _live_replay(promising_df=promising, live_df=live_df)
+    exit_upgrade = _exit_upgrade_summary(live_df)
+
+    regime_live = _run_regime_conditional_live(
+        config=config,
+        seed=int(seed),
+        dry_run=bool(dry_run),
+        symbols=list(symbols),
+        timeframes=list(timeframes),
+        families=list(families),
+        composers=list(composers),
+        runs_root=runs_root,
+        data_dir=data_dir,
+        derived_dir=derived_dir,
+    )
+
+    research_summary = dict(research["summary"])
+    live_summary = dict(live["summary"])
+    regime_summary = dict(regime_live["summary"])
+    verdict = _master_verdict(live_summary=live_summary, replay=replay)
+    next_bottleneck = _master_bottleneck(live_summary)
+    master = {
+        "stage": "25",
+        "seed": int(seed),
+        "dry_run": bool(dry_run),
+        "runtime_seconds": float(time.perf_counter() - started),
+        "research_run_id": str(research_summary.get("run_id", "")),
+        "live_run_id": str(live_summary.get("run_id", "")),
+        "regime_run_id": str(regime_summary.get("run_id", "")),
+        "research": {
+            "status": str(research_summary.get("status", "")),
+            "metrics": dict(research_summary.get("metrics", {})),
+        },
+        "live": {
+            "status": str(live_summary.get("status", "")),
+            "metrics": dict(live_summary.get("metrics", {})),
+        },
+        "promising_research_candidates_count": int(len(promising)),
+        "live_replay": replay,
+        "exit_upgrade": exit_upgrade,
+        "regime_conditional": {
+            "metrics": dict(regime_summary.get("metrics", {})),
+            "deltas_vs_live": _metrics_delta(
+                base=dict(live_summary.get("metrics", {})),
+                other=dict(regime_summary.get("metrics", {})),
+                keys=("exp_lcb_best", "exp_lcb_median", "trade_count_total", "zero_trade_pct", "walkforward_executed_true_pct", "mc_trigger_rate"),
+            ),
+        },
+        "next_bottleneck": next_bottleneck,
+        "final_verdict": verdict,
+        "summary_hash": stable_hash(
+            {
+                "seed": int(seed),
+                "research_hash": str(research_summary.get("summary_hash", "")),
+                "live_hash": str(live_summary.get("summary_hash", "")),
+                "regime_hash": str(regime_summary.get("summary_hash", "")),
+                "replay": replay,
+                "exit_upgrade": exit_upgrade,
+                "verdict": verdict,
+            },
+            length=16,
+        ),
+    }
+
+    docs_dir.mkdir(parents=True, exist_ok=True)
+    report_json = docs_dir / "stage25_master_summary.json"
+    report_md = docs_dir / "stage25_master_report.md"
+    report_json.write_text(json.dumps(master, indent=2, allow_nan=False), encoding="utf-8")
+    report_md.write_text(_render_master_report(master), encoding="utf-8")
+    return {
+        "report_md": report_md,
+        "report_json": report_json,
+        "summary": master,
+        "research": research,
+        "live": live,
+        "regime": regime_live,
+    }
+
+
+def _run_regime_conditional_live(
+    *,
+    config: dict[str, Any],
+    seed: int,
+    dry_run: bool,
+    symbols: list[str],
+    timeframes: list[str],
+    families: list[str],
+    composers: list[str],
+    runs_root: Path,
+    data_dir: Path,
+    derived_dir: Path,
+) -> dict[str, Any]:
+    cfg = _prepare_cfg(config=config, mode="live", cost_level="realistic")
+    stage23 = cfg.setdefault("evaluation", {}).setdefault("stage23", {})
+    stage23["enabled"] = True
+    stage23.setdefault("eligibility", {})
+    stage23["eligibility"]["per_regime_thresholds"] = {
+        "TREND": 0.25,
+        "RANGE": 0.30,
+        "VOL_COMPRESSION": 0.30,
+        "VOL_EXPANSION": 0.45,
+        "CHOP": 0.65,
+    }
+    trace = run_signal_flow_trace(
+        config=cfg,
+        seed=int(seed),
+        symbols=list(symbols),
+        timeframes=list(timeframes),
+        mode="v2",
+        stages=["15", "17"],
+        families=list(families),
+        composers=list(composers),
+        max_combos=0,
+        dry_run=bool(dry_run),
+        runs_root=runs_root,
+        data_dir=data_dir,
+        derived_dir=derived_dir,
+    )
+    rows_df = pd.DataFrame(trace.get("rows", pd.DataFrame()))
+    summary = {
+        "run_id": str(trace.get("run_id", "")),
+        "trace_run_id": str(trace.get("run_id", "")),
+        "trace_dir": str(trace.get("trace_dir", "")),
+        "metrics": _aggregate_metrics(_rows_to_program_rows(rows_df, mode="live", cost_level="realistic")),
+    }
+    return {"summary": summary}
+
+
+def _rows_to_program_rows(rows_df: pd.DataFrame, *, mode: str, cost_level: str) -> pd.DataFrame:
+    if rows_df.empty:
+        return pd.DataFrame()
+    rows: list[dict[str, Any]] = []
+    for _, row in rows_df.iterrows():
+        exit_variant = "atr_trailing" if str(row.get("stage", "")) == "17" else "fixed_atr"
+        trade_count = float(_to_num(row.get("trades_executed_count", 0.0)))
+        expectancy = float(_to_num(row.get("expectancy", 0.0)))
+        exp_lcb = float(_to_num(row.get("exp_lcb", 0.0)))
+        rows.append(
+            {
+                "mode": str(mode),
+                "cost_level": str(cost_level),
+                "stage": str(row.get("stage", "")),
+                "symbol": str(row.get("symbol", "")),
+                "timeframe": str(row.get("timeframe", "")),
+                "family": str(row.get("family", "")),
+                "composer": str(row.get("composer", "")),
+                "exit_variant": exit_variant,
+                "trade_count": trade_count,
+                "tpm": float(_to_num(row.get("tpm", 0.0))),
+                "exposure_ratio": float(_to_num(row.get("exposure_ratio", 0.0))),
+                "PF_raw": float(_to_num(row.get("PF_raw", 0.0))),
+                "PF_clipped": float(_to_num(row.get("PF_clipped", 0.0))),
+                "expectancy": expectancy,
+                "exp_lcb": exp_lcb,
+                "maxDD": float(_to_num(row.get("maxDD", 0.0))),
+                "walkforward_executed_true": bool(row.get("walkforward_executed_true", False)),
+                "usable_windows": int(_to_num(row.get("usable_windows", 0))),
+                "MC_triggered": bool(row.get("MC_triggered", False)),
+                "top_reject_reason": str(row.get("top_reject_reason", "")),
+                "classification": _combo_classification(trade_count=trade_count, expectancy=expectancy, exp_lcb=exp_lcb),
+            }
+        )
+    return pd.DataFrame(rows)
+
+
+def _promising_research_candidates(research_df: pd.DataFrame) -> pd.DataFrame:
+    if research_df.empty:
+        return pd.DataFrame()
+    safe = research_df.copy()
+    safe["exp_lcb"] = pd.to_numeric(safe.get("exp_lcb", 0.0), errors="coerce").fillna(0.0)
+    safe["trade_count"] = pd.to_numeric(safe.get("trade_count", 0.0), errors="coerce").fillna(0.0)
+    filtered = safe.loc[(safe["exp_lcb"] > 0.0) & (safe["trade_count"] >= 10.0)].copy()
+    if filtered.empty:
+        filtered = safe.sort_values(["exp_lcb", "expectancy", "trade_count"], ascending=[False, False, False]).head(10)
+    keep_cols = ["family", "symbol", "timeframe", "composer", "exit_variant", "cost_level", "exp_lcb", "expectancy", "trade_count"]
+    return filtered.loc[:, [col for col in keep_cols if col in filtered.columns]].reset_index(drop=True)
+
+
+def _live_replay(*, promising_df: pd.DataFrame, live_df: pd.DataFrame) -> dict[str, Any]:
+    if promising_df.empty or live_df.empty:
+        return {"rows": 0, "survived_count": 0, "survived_pct": 0.0, "exp_lcb_median": 0.0}
+    keys = ["family", "symbol", "timeframe", "composer", "exit_variant", "cost_level"]
+    left = promising_df.copy()
+    right = live_df.copy()
+    merged = left.merge(right, on=keys, how="left", suffixes=("_research", "_live"))
+    live_trade = pd.to_numeric(merged.get("trade_count_live", 0.0), errors="coerce").fillna(0.0)
+    live_lcb = pd.to_numeric(merged.get("exp_lcb_live", 0.0), errors="coerce").fillna(0.0)
+    survived = live_trade > 0.0
+    return {
+        "rows": int(len(merged)),
+        "survived_count": int(survived.sum()),
+        "survived_pct": float(survived.mean() * 100.0) if len(merged) else 0.0,
+        "exp_lcb_median": float(live_lcb.median()) if len(merged) else 0.0,
+        "sample": merged.head(10).to_dict(orient="records"),
+    }
+
+
+def _exit_upgrade_summary(live_df: pd.DataFrame) -> dict[str, Any]:
+    if live_df.empty:
+        return {"rows": 0, "upgraded_count": 0, "fixed_selected": 0, "trailing_selected": 0}
+    grouped = live_df.groupby(["family", "symbol", "timeframe", "cost_level", "composer"], dropna=False)
+    rows = 0
+    upgraded = 0
+    fixed_selected = 0
+    trailing_selected = 0
+    for _, group in grouped:
+        rows += 1
+        ranked = group.sort_values(["exp_lcb", "expectancy", "trade_count"], ascending=[False, False, False])
+        chosen = str(ranked.iloc[0].get("exit_variant", "fixed_atr"))
+        if chosen == "atr_trailing":
+            trailing_selected += 1
+            upgraded += 1
+        else:
+            fixed_selected += 1
+    return {
+        "rows": int(rows),
+        "upgraded_count": int(upgraded),
+        "fixed_selected": int(fixed_selected),
+        "trailing_selected": int(trailing_selected),
+    }
+
+
+def _metrics_delta(*, base: dict[str, Any], other: dict[str, Any], keys: tuple[str, ...]) -> dict[str, float]:
+    out: dict[str, float] = {}
+    for key in keys:
+        out[key] = float(_to_num(other.get(key, 0.0)) - _to_num(base.get(key, 0.0)))
+    return out
+
+
+def _master_bottleneck(live_summary: dict[str, Any]) -> dict[str, Any]:
+    metrics = dict(live_summary.get("metrics", {}))
+    per_family = dict(metrics.get("per_family", {}))
+    if not per_family:
+        return {"type": "NO_DATA", "value": ""}
+    ranked = sorted(
+        per_family.items(),
+        key=lambda item: (
+            float(dict(item[1]).get("exp_lcb_best", 0.0)),
+            -float(dict(item[1]).get("zero_trade_pct", 0.0)),
+        ),
+    )
+    fam, data = ranked[0]
+    return {
+        "type": "WEAKEST_FAMILY",
+        "value": str(fam),
+        "exp_lcb_best": float(dict(data).get("exp_lcb_best", 0.0)),
+        "zero_trade_pct": float(dict(data).get("zero_trade_pct", 0.0)),
+    }
+
+
+def _master_verdict(*, live_summary: dict[str, Any], replay: dict[str, Any]) -> str:
+    metrics = dict(live_summary.get("metrics", {}))
+    best_lcb = float(_to_num(metrics.get("exp_lcb_best", 0.0)))
+    survived = int(replay.get("survived_count", 0))
+    if best_lcb > 0.0 and survived > 0:
+        return "WEAK_EDGE"
+    return "NO_EDGE"
+
+
+def _render_master_report(summary: dict[str, Any]) -> str:
+    research = dict(summary.get("research", {}))
+    live = dict(summary.get("live", {}))
+    replay = dict(summary.get("live_replay", {}))
+    exit_upgrade = dict(summary.get("exit_upgrade", {}))
+    regime = dict(summary.get("regime_conditional", {}))
+    lines = [
+        "# Stage-25 Master Report",
+        "",
+        "## Scope",
+        "- Stage-25A: margin/caps correctness and research/live constraint split.",
+        "- Stage-25B: family quality in research mode and live feasibility replay.",
+        "- Stage-25.5: minimal exit/regime conditional levers with strict validation preserved.",
+        "",
+        "## Run IDs",
+        f"- research_run_id: `{summary.get('research_run_id', '')}`",
+        f"- live_run_id: `{summary.get('live_run_id', '')}`",
+        f"- regime_run_id: `{summary.get('regime_run_id', '')}`",
+        "",
+        "## Research vs Live",
+        f"- research status: `{research.get('status', '')}`",
+        f"- live status: `{live.get('status', '')}`",
+        f"- research exp_lcb_best: `{float(dict(research.get('metrics', {})).get('exp_lcb_best', 0.0)):.6f}`",
+        f"- live exp_lcb_best: `{float(dict(live.get('metrics', {})).get('exp_lcb_best', 0.0)):.6f}`",
+        "",
+        "## Live Feasibility Replay",
+        f"- promising_research_candidates_count: `{int(summary.get('promising_research_candidates_count', 0))}`",
+        f"- survived_count: `{int(replay.get('survived_count', 0))}` / `{int(replay.get('rows', 0))}`",
+        f"- survived_pct: `{float(replay.get('survived_pct', 0.0)):.6f}`",
+        f"- live_replay_exp_lcb_median: `{float(replay.get('exp_lcb_median', 0.0)):.6f}`",
+        "",
+        "## Minimal Improvement Levers",
+        "- Exit upgrade selection:",
+        f"  - rows: `{int(exit_upgrade.get('rows', 0))}`",
+        f"  - trailing_selected: `{int(exit_upgrade.get('trailing_selected', 0))}`",
+        f"  - fixed_selected: `{int(exit_upgrade.get('fixed_selected', 0))}`",
+        f"  - upgraded_count: `{int(exit_upgrade.get('upgraded_count', 0))}`",
+        "- Regime-conditional activation deltas vs live baseline:",
+    ]
+    for key, value in dict(regime.get("deltas_vs_live", {})).items():
+        lines.append(f"  - {key}: `{float(value):.6f}`")
+    lines.extend(
+        [
+            "",
+            "## Bottleneck",
+            f"- next_bottleneck: `{summary.get('next_bottleneck', {})}`",
+            "",
+            f"## Final Verdict\n- `{summary.get('final_verdict', '')}`",
+        ]
+    )
+    return "\n".join(lines).strip() + "\n"
+
+
+def _read_csv(path: Path) -> pd.DataFrame:
+    if not path.exists():
+        return pd.DataFrame()
+    return pd.read_csv(path)

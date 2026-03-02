@@ -1,8 +1,8 @@
 {
   "stage": "25B",
-  "run_id": "20260302_213415_e829535e1dda_stage25B",
+  "run_id": "20260302_214623_a3027d37b4f7_stage25B",
   "seed": 42,
-  "mode": "research",
+  "mode": "live",
   "dry_run": true,
   "symbols": [
     "BTC/USDT",
@@ -27,21 +27,21 @@
     "realistic",
     "high"
   ],
-  "runtime_seconds": 24.39883859999827,
+  "runtime_seconds": 24.869261200001347,
   "trace_refs": [
     {
       "cost_level": "realistic",
-      "trace_run_id": "20260302_213415_ae1576783f2a_stage15_9_trace",
-      "trace_dir": "C:\\dev\\Buff-mini\\runs\\20260302_213415_ae1576783f2a_stage15_9_trace\\trace",
-      "config_hash": "57e88dee0f81",
+      "trace_run_id": "20260302_214623_9782e72828d4_stage15_9_trace",
+      "trace_dir": "C:\\dev\\Buff-mini\\runs\\20260302_214623_9782e72828d4_stage15_9_trace\\trace",
+      "config_hash": "ebe1a9bead91",
       "data_hash": "b6faf10f0f3a44a9",
       "resolved_end_ts": "2025-04-10T23:00:00+00:00"
     },
     {
       "cost_level": "high",
-      "trace_run_id": "20260302_213427_d9b18c6ac98e_stage15_9_trace",
-      "trace_dir": "C:\\dev\\Buff-mini\\runs\\20260302_213427_d9b18c6ac98e_stage15_9_trace\\trace",
-      "config_hash": "a67c8711873f",
+      "trace_run_id": "20260302_214635_1f2075719d18_stage15_9_trace",
+      "trace_dir": "C:\\dev\\Buff-mini\\runs\\20260302_214635_1f2075719d18_stage15_9_trace\\trace",
+      "config_hash": "19199299255e",
       "data_hash": "b6faf10f0f3a44a9",
       "resolved_end_ts": "2025-04-10T23:00:00+00:00"
     }
@@ -92,7 +92,7 @@
   "best_candidates": {
     "combined": [
       {
-        "mode": "research",
+        "mode": "live",
         "cost_level": "high",
         "symbol": "BTC/USDT",
         "timeframe": "15m",
@@ -104,7 +104,7 @@
         "maxDD": 0.0
       },
       {
-        "mode": "research",
+        "mode": "live",
         "cost_level": "high",
         "symbol": "BTC/USDT",
         "timeframe": "15m",
@@ -116,7 +116,7 @@
         "maxDD": 0.0
       },
       {
-        "mode": "research",
+        "mode": "live",
         "cost_level": "high",
         "symbol": "BTC/USDT",
         "timeframe": "1h",
@@ -130,7 +130,7 @@
     ],
     "flow": [
       {
-        "mode": "research",
+        "mode": "live",
         "cost_level": "realistic",
         "symbol": "ETH/USDT",
         "timeframe": "15m",
@@ -142,7 +142,7 @@
         "maxDD": 0.08948097570101664
       },
       {
-        "mode": "research",
+        "mode": "live",
         "cost_level": "realistic",
         "symbol": "ETH/USDT",
         "timeframe": "1h",
@@ -154,7 +154,7 @@
         "maxDD": 0.08948097570101664
       },
       {
-        "mode": "research",
+        "mode": "live",
         "cost_level": "realistic",
         "symbol": "ETH/USDT",
         "timeframe": "2h",
@@ -168,7 +168,7 @@
     ],
     "price": [
       {
-        "mode": "research",
+        "mode": "live",
         "cost_level": "high",
         "symbol": "BTC/USDT",
         "timeframe": "15m",
@@ -180,7 +180,7 @@
         "maxDD": 0.1175242121125025
       },
       {
-        "mode": "research",
+        "mode": "live",
         "cost_level": "high",
         "symbol": "BTC/USDT",
         "timeframe": "1h",
@@ -192,7 +192,7 @@
         "maxDD": 0.1175242121125025
       },
       {
-        "mode": "research",
+        "mode": "live",
         "cost_level": "high",
         "symbol": "BTC/USDT",
         "timeframe": "2h",
@@ -206,7 +206,7 @@
     ],
     "volatility": [
       {
-        "mode": "research",
+        "mode": "live",
         "cost_level": "high",
         "symbol": "BTC/USDT",
         "timeframe": "15m",
@@ -218,7 +218,7 @@
         "maxDD": 0.0
       },
       {
-        "mode": "research",
+        "mode": "live",
         "cost_level": "high",
         "symbol": "BTC/USDT",
         "timeframe": "15m",
@@ -230,7 +230,7 @@
         "maxDD": 0.0
       },
       {
-        "mode": "research",
+        "mode": "live",
         "cost_level": "high",
         "symbol": "BTC/USDT",
         "timeframe": "1h",
@@ -243,6 +243,6 @@
       }
     ]
   },
-  "status": "NO_EDGE_IN_RESEARCH",
-  "summary_hash": "f4548d2466b153bc"
+  "status": "NO_EDGE_IN_LIVE",
+  "summary_hash": "51d9f54a5c11efca"
 }

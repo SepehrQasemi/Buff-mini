@@ -5,9 +5,9 @@
 - Research mode isolates signal quality from exchange minima; live mode replays feasibility.
 
 ## Run Context
-- run_id: `20260302_213415_e829535e1dda_stage25B`
+- run_id: `20260302_214623_a3027d37b4f7_stage25B`
 - seed: `42`
-- mode: `research`
+- mode: `live`
 - dry_run: `True`
 - symbols: `['BTC/USDT', 'ETH/USDT']`
 - timeframes: `['15m', '30m', '1h', '2h', '4h']`
@@ -51,9 +51,9 @@
   - BTC/USDT 1h cost=high exit=fixed_atr exp_lcb=0.000000 expectancy=0.000000 trades=0
 
 ## Status
-- `NO_EDGE_IN_RESEARCH`
+- `NO_EDGE_IN_LIVE`
 
 ## Artifacts
-- runs/20260302_213415_e829535e1dda_stage25B/stage25B/family_results.csv
-- runs/20260302_213415_e829535e1dda_stage25B/stage25B/family_results.json
-- runs/20260302_213415_e829535e1dda_stage25B/stage25B/best_candidates.json
+- runs/20260302_214623_a3027d37b4f7_stage25B/stage25B/family_results.csv
+- runs/20260302_214623_a3027d37b4f7_stage25B/stage25B/family_results.json
+- runs/20260302_214623_a3027d37b4f7_stage25B/stage25B/best_candidates.json

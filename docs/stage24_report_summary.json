@@ -1,6 +1,6 @@
 {
   "stage": "24",
-  "generated_at": "20260302_205517",
+  "generated_at": "20260302_214325",
   "seed": 42,
   "base_timeframe": "1m",
   "operational_timeframe": "1h",
@@ -8,12 +8,12 @@
     "BTC/USDT",
     "ETH/USDT"
   ],
-  "runtime_seconds": 3.3045695000037085,
+  "runtime_seconds": 3.452758300001733,
   "baseline": {
-    "run_id": "20260302_205514_e71b8ad9a1ba_stage15_9_trace",
-    "trace_dir": "C:\\dev\\Buff-mini\\runs\\20260302_205514_e71b8ad9a1ba_stage15_9_trace\\trace",
+    "run_id": "20260302_214321_528760ef9a47_stage15_9_trace",
+    "trace_dir": "C:\\dev\\Buff-mini\\runs\\20260302_214321_528760ef9a47_stage15_9_trace\\trace",
     "seed": 42,
-    "config_hash": "dfa8c9e40149",
+    "config_hash": "c1243016cf09",
     "data_hash": "12067099e5688587",
     "resolved_end_ts": "2025-04-10T23:00:00+00:00",
     "trade_count": 32.0,
@@ -25,13 +25,22 @@
     "top_reject_reason": "VALID",
     "top_reject_reasons": [],
     "stage24_valid_count": 0,
-    "stage24_invalid_count": 0
+    "stage24_invalid_count": 0,
+    "shadow_live_summary": {
+      "enabled": false,
+      "rows": 0,
+      "research_accepted_count": 0,
+      "live_pass_count": 0,
+      "research_accepted_but_live_rejected_count": 0,
+      "live_reject_rate": 0.0,
+      "live_reject_reason_counts": {}
+    }
   },
   "risk_pct_mode": {
-    "run_id": "20260302_205514_978ae9234a27_stage15_9_trace",
-    "trace_dir": "C:\\dev\\Buff-mini\\runs\\20260302_205514_978ae9234a27_stage15_9_trace\\trace",
+    "run_id": "20260302_214322_fe59e729d99c_stage15_9_trace",
+    "trace_dir": "C:\\dev\\Buff-mini\\runs\\20260302_214322_fe59e729d99c_stage15_9_trace\\trace",
     "seed": 42,
-    "config_hash": "27d7ff1f8f84",
+    "config_hash": "e0503d1b7b73",
     "data_hash": "12067099e5688587",
     "resolved_end_ts": "2025-04-10T23:00:00+00:00",
     "trade_count": 32.0,
@@ -43,13 +52,22 @@
     "top_reject_reason": "VALID",
     "top_reject_reasons": [],
     "stage24_valid_count": 42,
-    "stage24_invalid_count": 0
+    "stage24_invalid_count": 0,
+    "shadow_live_summary": {
+      "enabled": false,
+      "rows": 2,
+      "research_accepted_count": 0,
+      "live_pass_count": 0,
+      "research_accepted_but_live_rejected_count": 0,
+      "live_reject_rate": 0.0,
+      "live_reject_reason_counts": {}
+    }
   },
   "alloc_pct_mode": {
-    "run_id": "20260302_205514_93b33b2e1d85_stage15_9_trace",
-    "trace_dir": "C:\\dev\\Buff-mini\\runs\\20260302_205514_93b33b2e1d85_stage15_9_trace\\trace",
+    "run_id": "20260302_214322_dce50bf54a8d_stage15_9_trace",
+    "trace_dir": "C:\\dev\\Buff-mini\\runs\\20260302_214322_dce50bf54a8d_stage15_9_trace\\trace",
     "seed": 42,
-    "config_hash": "a119e51a72ad",
+    "config_hash": "3b85c8d2061a",
     "data_hash": "12067099e5688587",
     "resolved_end_ts": "2025-04-10T23:00:00+00:00",
     "trade_count": 32.0,
@@ -61,11 +79,20 @@
     "top_reject_reason": "VALID",
     "top_reject_reasons": [],
     "stage24_valid_count": 42,
-    "stage24_invalid_count": 0
+    "stage24_invalid_count": 0,
+    "shadow_live_summary": {
+      "enabled": false,
+      "rows": 2,
+      "research_accepted_count": 0,
+      "live_pass_count": 0,
+      "research_accepted_but_live_rejected_count": 0,
+      "live_reject_rate": 0.0,
+      "live_reject_reason_counts": {}
+    }
   },
   "capital_sim": {
-    "run_id": "20260302_205515_a32df3c5e388_stage24_capital",
-    "results_hash": "c5aefe7616eeb7c9",
+    "run_id": "20260302_214323_a32df3c5e388_stage24_capital",
+    "results_hash": "e8818bcfe210ed7f",
     "scale_invariance_check": {
       "return_pct_std": 4.699798436761765e-15,
       "scale_invariance_ok": true,
@@ -87,11 +114,11 @@
         "p_ruin": 0.0,
         "walkforward_executed_true_pct": 0.0,
         "mc_trigger_rate": 100.0,
-        "config_hash": "ca12ca152418",
+        "config_hash": "284959e70ac6",
         "data_hash": "12067099e5688587",
         "resolved_end_ts": "2025-04-10T23:00:00+00:00",
-        "trace_run_id": "20260302_205515_cc00f72d1f83_stage15_9_trace",
-        "trace_dir": "C:\\dev\\Buff-mini\\runs\\20260302_205515_cc00f72d1f83_stage15_9_trace\\trace",
+        "trace_run_id": "20260302_214323_2a5af34b4ebb_stage15_9_trace",
+        "trace_dir": "C:\\dev\\Buff-mini\\runs\\20260302_214323_2a5af34b4ebb_stage15_9_trace\\trace",
         "stage24_valid_count": 42,
         "stage24_invalid_count": 0,
         "margin_required_min": 67.7906593364,
@@ -115,7 +142,9 @@
           "STOP_INVALID": 0,
           "STOP_TOO_CLOSE": 0,
           "UNKNOWN": 0
-        }
+        },
+        "research_accepted_but_live_rejected_count": 0,
+        "shadow_live_reject_rate": 0.0
       },
       {
         "initial_equity": 1000.0,
@@ -132,11 +161,11 @@
         "p_ruin": 0.0,
         "walkforward_executed_true_pct": 0.0,
         "mc_trigger_rate": 100.0,
-        "config_hash": "ee7e74c906e6",
+        "config_hash": "5a6048af6360",
         "data_hash": "12067099e5688587",
         "resolved_end_ts": "2025-04-10T23:00:00+00:00",
-        "trace_run_id": "20260302_205515_c69c27f45dd7_stage15_9_trace",
-        "trace_dir": "C:\\dev\\Buff-mini\\runs\\20260302_205515_c69c27f45dd7_stage15_9_trace\\trace",
+        "trace_run_id": "20260302_214323_17e4a48ab898_stage15_9_trace",
+        "trace_dir": "C:\\dev\\Buff-mini\\runs\\20260302_214323_17e4a48ab898_stage15_9_trace\\trace",
         "stage24_valid_count": 42,
         "stage24_invalid_count": 0,
         "margin_required_min": 677.8970119922001,
@@ -160,7 +189,9 @@
           "STOP_INVALID": 0,
           "STOP_TOO_CLOSE": 0,
           "UNKNOWN": 0
-        }
+        },
+        "research_accepted_but_live_rejected_count": 0,
+        "shadow_live_reject_rate": 0.0
       },
       {
         "initial_equity": 10000.0,
@@ -177,11 +208,11 @@
         "p_ruin": 0.0,
         "walkforward_executed_true_pct": 0.0,
         "mc_trigger_rate": 100.0,
-        "config_hash": "ce5dcb114686",
+        "config_hash": "ec768e379aad",
         "data_hash": "12067099e5688587",
         "resolved_end_ts": "2025-04-10T23:00:00+00:00",
-        "trace_run_id": "20260302_205516_633ecdf6195b_stage15_9_trace",
-        "trace_dir": "C:\\dev\\Buff-mini\\runs\\20260302_205516_633ecdf6195b_stage15_9_trace\\trace",
+        "trace_run_id": "20260302_214324_785c550e3b3c_stage15_9_trace",
+        "trace_dir": "C:\\dev\\Buff-mini\\runs\\20260302_214324_785c550e3b3c_stage15_9_trace\\trace",
         "stage24_valid_count": 42,
         "stage24_invalid_count": 0,
         "margin_required_min": 6778.947893717999,
@@ -205,7 +236,9 @@
           "STOP_INVALID": 0,
           "STOP_TOO_CLOSE": 0,
           "UNKNOWN": 0
-        }
+        },
+        "research_accepted_but_live_rejected_count": 0,
+        "shadow_live_reject_rate": 0.0
       },
       {
         "initial_equity": 100000.0,
@@ -222,11 +255,11 @@
         "p_ruin": 0.0,
         "walkforward_executed_true_pct": 0.0,
         "mc_trigger_rate": 100.0,
-        "config_hash": "ef8e574838ef",
+        "config_hash": "0b9dfb506c42",
         "data_hash": "12067099e5688587",
         "resolved_end_ts": "2025-04-10T23:00:00+00:00",
-        "trace_run_id": "20260302_205516_452e4c68b4ba_stage15_9_trace",
-        "trace_dir": "C:\\dev\\Buff-mini\\runs\\20260302_205516_452e4c68b4ba_stage15_9_trace\\trace",
+        "trace_run_id": "20260302_214324_a78a689a2491_stage15_9_trace",
+        "trace_dir": "C:\\dev\\Buff-mini\\runs\\20260302_214324_a78a689a2491_stage15_9_trace\\trace",
         "stage24_valid_count": 42,
         "stage24_invalid_count": 0,
         "margin_required_min": 67789.47100175249,
@@ -250,7 +283,9 @@
           "STOP_INVALID": 0,
           "STOP_TOO_CLOSE": 0,
           "UNKNOWN": 0
-        }
+        },
+        "research_accepted_but_live_rejected_count": 0,
+        "shadow_live_reject_rate": 0.0
       }
     ]
   },
@@ -266,5 +301,5 @@
     "gate": "death_execution",
     "death_rate": 0.24318181818181817
   },
-  "summary_hash": "3b5dced6a5ec4df2"
+  "summary_hash": "d50031ca0de0e672"
 }

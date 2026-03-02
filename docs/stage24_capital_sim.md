@@ -1,6 +1,6 @@
 # Stage-24 Capital Simulation
 
-- run_id: `20260302_205515_a32df3c5e388_stage24_capital`
+- run_id: `20260302_214323_a32df3c5e388_stage24_capital`
 - seed: `42`
 - mode: `risk_pct`
 - dry_run: `True`
@@ -22,5 +22,5 @@
 - note: `returns are broadly scale-consistent`
 
 ## Artifacts
-- results_csv: `runs/20260302_205515_a32df3c5e388_stage24_capital/stage24/capital_sim_results.csv`
-- results_json: `runs/20260302_205515_a32df3c5e388_stage24_capital/stage24/capital_sim_results.json`
+- results_csv: `runs/20260302_214323_a32df3c5e388_stage24_capital/stage24/capital_sim_results.csv`
+- results_json: `runs/20260302_214323_a32df3c5e388_stage24_capital/stage24/capital_sim_results.json`
