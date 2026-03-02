@@ -96,3 +96,28 @@ def suggest_context_policy(table: pd.DataFrame) -> dict[str, float]:
         out[str(row["context"])] = float(np.clip(1.0 + 0.2 * eff, 0.8, 1.2))
     return out
 
+
+def apply_falsification_rules(
+    *,
+    table: pd.DataFrame,
+    min_samples: int,
+) -> pd.DataFrame:
+    """Apply deterministic falsification constraints."""
+
+    if table.empty:
+        return table.copy()
+    out = table.copy()
+    out["accepted"] = out["accepted"].astype(bool)
+    out["falsified_reason"] = "OK"
+    small = (pd.to_numeric(out["sample_on"], errors="coerce").fillna(0.0) < float(min_samples)) | (
+        pd.to_numeric(out["sample_off"], errors="coerce").fillna(0.0) < float(min_samples)
+    )
+    out.loc[small, "accepted"] = False
+    out.loc[small, "falsified_reason"] = "SAMPLE_TOO_SMALL"
+    ci_includes_zero = (
+        pd.to_numeric(out["ci_low"], errors="coerce").fillna(0.0) <= 0.0
+    ) & (pd.to_numeric(out["ci_high"], errors="coerce").fillna(0.0) >= 0.0)
+    out.loc[ci_includes_zero, "accepted"] = False
+    out.loc[ci_includes_zero, "falsified_reason"] = "CI_INCLUDES_ZERO"
+    out["multiple_comparisons_warning"] = bool(len(out) > 1)
+    return out
