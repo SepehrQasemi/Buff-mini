@@ -21,6 +21,7 @@ from buffmini.config import compute_config_hash
 from buffmini.signals.composer import compose_signals, normalize_weights
 from buffmini.signals.family_base import FamilyContext
 from buffmini.signals.registry import build_families, family_names
+from buffmini.stage23.eligibility import evaluate_eligibility
 from buffmini.stage23.order_builder import build_adaptive_orders
 from buffmini.stage23.rejects import RejectBreakdown
 from buffmini.stage10.evaluate import _build_features
@@ -168,6 +169,7 @@ def run_signal_flow_trace(
     rows: list[dict[str, Any]] = []
     reject_reason_rows: list[dict[str, Any]] = []
     execution_reject_events: list[dict[str, Any]] = []
+    eligibility_trace_rows: list[dict[str, Any]] = []
     execution_breakdown = RejectBreakdown()
 
     for combo in combos:
@@ -234,6 +236,7 @@ def run_signal_flow_trace(
             stage_profile=profile,
             cfg=cfg,
             symbol=symbol,
+            family=family,
         )
         signal_for_backtest = counts["signal_series"]
         runtime_backtest = 0.0
@@ -311,6 +314,7 @@ def run_signal_flow_trace(
                     "details": str(event.get("details", "")),
                 }
             )
+        eligibility_trace_rows.extend(list(counts.get("eligibility_trace_rows", [])))
 
         row["top_reject_reason"] = _top_reject_reason(row)
         rows.append(_safe_json(row))
@@ -352,6 +356,7 @@ def run_signal_flow_trace(
         encoding="utf-8",
     )
     pd.DataFrame(reject_reason_rows).to_csv(trace_dir / "reject_reasons.csv", index=False)
+    pd.DataFrame(eligibility_trace_rows).to_csv(trace_dir / "eligibility_trace.csv", index=False)
     pd.DataFrame(execution_reject_events).to_csv(trace_dir / "execution_reject_events.csv", index=False)
     (trace_dir / "execution_reject_breakdown.json").write_text(
         json.dumps(execution_breakdown.to_payload(), indent=2, allow_nan=False),
@@ -642,6 +647,7 @@ def _count_flow(
     stage_profile: StageProfile,
     cfg: dict[str, Any],
     symbol: str,
+    family: str,
 ) -> dict[str, Any]:
     score = pd.to_numeric(output.get("score", 0.0), errors="coerce").fillna(0.0)
     direction = pd.to_numeric(output.get("direction", 0), errors="coerce").fillna(0).astype(int)
@@ -669,6 +675,7 @@ def _count_flow(
     cooldown_reject_count = 0
     conflict_reject_count = 0
     final_side = np.sign(after_context_direction).astype(int)
+    eligibility_trace_rows: list[dict[str, Any]] = []
 
     if stage_profile.transition_enabled:
         trans = combined_transition_score(frame)
@@ -701,9 +708,35 @@ def _count_flow(
     stage23_enabled = bool(stage23_cfg.get("enabled", False))
     execution_reject_events: list[dict[str, Any]] = []
     if stage_profile.trading and stage23_enabled:
+        eligibility = evaluate_eligibility(
+            frame=frame,
+            raw_side=pd.Series(final_side, index=frame.index, dtype=int),
+            family=str(family),
+            policy_snapshot=stage23_cfg,
+            symbol=str(symbol),
+        )
+        eligible_mask = pd.to_numeric(eligibility["eligible"], errors="coerce").fillna(False).astype(bool)
+        final_side = np.where(eligible_mask.to_numpy(dtype=bool), final_side, 0).astype(int)
+        after_context_count = int(np.count_nonzero(final_side))
+        after_confirm_count = after_context_count
+        after_riskgate_count = after_context_count
+        context_reject_count = max(0, raw_signal_count - after_context_count)
+        reason_vals = (
+            pd.to_numeric(eligibility["eligible"], errors="coerce").fillna(False).astype(bool)
+        )
+        rejected_reasons = pd.Series(eligibility["reasons"], index=frame.index).loc[~reason_vals].astype(str)
+        rejected_reasons = rejected_reasons[rejected_reasons != ""]
+        context_reasons = (
+            "|".join(sorted(rejected_reasons.value_counts().head(3).index.tolist()))
+            if not rejected_reasons.empty
+            else ""
+        )
+        eligibility_trace_rows = list(eligibility.get("trace_rows", []))
+
+    if stage_profile.trading and stage23_enabled:
         adaptive = build_adaptive_orders(
             frame=frame,
-            raw_side=signal_pre,
+            raw_side=pd.Series(final_side, index=frame.index, dtype=int),
             score=pd.Series(weighted_score, index=frame.index, dtype=float),
             cfg=cfg,
             symbol=str(symbol),
@@ -731,6 +764,7 @@ def _count_flow(
         "orders_attempted_count": orders_attempted_count,
         "orders_sent_count": orders_sent_count,
         "execution_reject_events": execution_reject_events,
+        "eligibility_trace_rows": eligibility_trace_rows,
         "signal_series": signal_series,
         "signal_pre": signal_pre,
     }
