@@ -87,3 +87,5 @@ def test_run_signal_flow_trace_contract(tmp_path: Path) -> None:
     assert (result["trace_dir"] / "reject_reasons.csv").exists()
     assert (result["trace_dir"] / "trace_summary.json").exists()
     assert (result["trace_dir"] / "execution_reject_breakdown.json").exists()
+    assert (result["trace_dir"] / "sizing_trace.csv").exists()
+    assert (result["trace_dir"] / "sizing_trace_summary.json").exists()

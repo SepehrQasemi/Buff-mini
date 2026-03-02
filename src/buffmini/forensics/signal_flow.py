@@ -171,6 +171,7 @@ def run_signal_flow_trace(
     execution_reject_events: list[dict[str, Any]] = []
     execution_adjustment_events: list[dict[str, Any]] = []
     eligibility_trace_rows: list[dict[str, Any]] = []
+    sizing_trace_rows: list[dict[str, Any]] = []
     execution_breakdown = RejectBreakdown()
 
     for combo in combos:
@@ -317,6 +318,18 @@ def run_signal_flow_trace(
             )
         execution_adjustment_events.extend(list(counts.get("execution_adjustment_events", [])))
         eligibility_trace_rows.extend(list(counts.get("eligibility_trace_rows", [])))
+        for item in counts.get("sizing_trace_rows", []):
+            sizing_trace_rows.append(
+                {
+                    "stage": stage,
+                    "mode": mode_name,
+                    "symbol": symbol,
+                    "timeframe": timeframe,
+                    "family": family,
+                    "composer": composer,
+                    **dict(item),
+                }
+            )
 
         row["top_reject_reason"] = _top_reject_reason(row)
         rows.append(_safe_json(row))
@@ -361,6 +374,12 @@ def run_signal_flow_trace(
     pd.DataFrame(eligibility_trace_rows).to_csv(trace_dir / "eligibility_trace.csv", index=False)
     pd.DataFrame(execution_reject_events).to_csv(trace_dir / "execution_reject_events.csv", index=False)
     pd.DataFrame(execution_adjustment_events).to_csv(trace_dir / "execution_adjustments.csv", index=False)
+    sizing_trace_df = pd.DataFrame(sizing_trace_rows)
+    sizing_trace_df.to_csv(trace_dir / "sizing_trace.csv", index=False)
+    (trace_dir / "sizing_trace_summary.json").write_text(
+        json.dumps(_aggregate_sizing_trace_summary(sizing_trace_df), indent=2, allow_nan=False),
+        encoding="utf-8",
+    )
     (trace_dir / "execution_reject_breakdown.json").write_text(
         json.dumps(execution_breakdown.to_payload(), indent=2, allow_nan=False),
         encoding="utf-8",
@@ -751,10 +770,12 @@ def _count_flow(
         orders_sent_count = int((signal_series != 0).sum())
         execution_reject_events = list(adaptive.get("reject_events", []))
         execution_adjustment_events = list(adaptive.get("adjustment_events", []))
+        sizing_trace_rows = list(adaptive.get("sizing_trace", pd.DataFrame()).to_dict(orient="records"))
     else:
         signal_series = signal_pre.shift(1).fillna(0).astype(int)
         orders_attempted_count = int((signal_pre != 0).sum()) if stage_profile.trading else 0
         orders_sent_count = int((signal_series != 0).sum()) if stage_profile.trading else 0
+        sizing_trace_rows = []
 
     return {
         "raw_signal_count": raw_signal_count,
@@ -771,8 +792,44 @@ def _count_flow(
         "execution_reject_events": execution_reject_events,
         "execution_adjustment_events": execution_adjustment_events,
         "eligibility_trace_rows": eligibility_trace_rows,
+        "sizing_trace_rows": sizing_trace_rows,
         "signal_series": signal_series,
         "signal_pre": signal_pre,
+    }
+
+
+def _aggregate_sizing_trace_summary(df: pd.DataFrame) -> dict[str, Any]:
+    if df.empty:
+        return {
+            "attempted": 0,
+            "accepted": 0,
+            "rejected": 0,
+            "zero_size_count": 0,
+            "raw_size_min": 0.0,
+            "raw_size_median": 0.0,
+            "raw_size_p95": 0.0,
+            "bumped_to_min_notional_count": 0,
+            "reject_reason_counts": {},
+        }
+    raw_size = pd.to_numeric(df.get("raw_size", 0.0), errors="coerce").fillna(0.0)
+    rounded = pd.to_numeric(df.get("rounded_size_after", 0.0), errors="coerce").fillna(0.0)
+    decision = df.get("decision", pd.Series(dtype=str)).astype(str)
+    reject_reason = df.get("reject_reason", pd.Series(dtype=str)).astype(str).replace("", "ACCEPTED")
+    attempted = int(len(df))
+    accepted = int((decision == "ACCEPTED").sum())
+    rejected = int(attempted - accepted)
+    return {
+        "attempted": attempted,
+        "accepted": accepted,
+        "rejected": rejected,
+        "zero_size_count": int(((raw_size > 0.0) & (rounded <= 0.0)).sum()),
+        "raw_size_min": float(raw_size.min()),
+        "raw_size_median": float(raw_size.median()),
+        "raw_size_p95": float(raw_size.quantile(0.95)),
+        "bumped_to_min_notional_count": int(pd.to_numeric(df.get("bumped_to_min_notional", False), errors="coerce").fillna(False).astype(bool).sum()),
+        "reject_reason_counts": {
+            str(k): int(v) for k, v in reject_reason.value_counts().sort_index().items()
+        },
     }
 
 
