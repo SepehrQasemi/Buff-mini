@@ -462,6 +462,25 @@ evaluation:
       tpm_max: 40.0
     cache:
       enabled: true
+  stage23:
+    enabled: false
+    order_builder:
+      min_stop_atr_mult: 0.8
+      min_stop_bps: 8.0
+      min_rr: 0.8
+      min_trade_notional: 10.0
+      allow_size_bump_to_min_notional: true
+      rr_fallback_exit_mode: fixed_atr
+    eligibility:
+      min_score_default: 0.35
+      per_regime_thresholds: {}
+    execution:
+      allow_partial_fill: true
+      partial_fill_min_ratio: 0.3
+      allow_size_reduction_on_margin_fail: true
+      max_size_reduction_steps: 5
+      slippage_soft_threshold_bps: 15.0
+      slippage_hard_threshold_bps: 40.0
   stage13:
     enabled: false
     seed: 42

@@ -421,6 +421,30 @@ STAGE12_4_DEFAULTS = {
     },
 }
 
+STAGE23_DEFAULTS = {
+    "enabled": False,
+    "order_builder": {
+        "min_stop_atr_mult": 0.8,
+        "min_stop_bps": 8.0,
+        "min_rr": 0.8,
+        "min_trade_notional": 10.0,
+        "allow_size_bump_to_min_notional": True,
+        "rr_fallback_exit_mode": "fixed_atr",
+    },
+    "eligibility": {
+        "min_score_default": 0.35,
+        "per_regime_thresholds": {},
+    },
+    "execution": {
+        "allow_partial_fill": True,
+        "partial_fill_min_ratio": 0.30,
+        "allow_size_reduction_on_margin_fail": True,
+        "max_size_reduction_steps": 5,
+        "slippage_soft_threshold_bps": 15.0,
+        "slippage_hard_threshold_bps": 40.0,
+    },
+}
+
 STAGE13_DEFAULTS = {
     "enabled": False,
     "seed": 42,
@@ -1401,6 +1425,55 @@ def validate_config(config: ConfigDict) -> None:
     if not isinstance(cache_cfg.get("enabled", True), bool):
         raise ValueError("evaluation.stage12_4.cache.enabled must be bool")
     evaluation["stage12_4"] = stage12_4
+
+    stage23 = _merge_defaults(STAGE23_DEFAULTS, evaluation.get("stage23", {}))
+    if not isinstance(stage23.get("enabled", False), bool):
+        raise ValueError("evaluation.stage23.enabled must be bool")
+    order_builder = stage23.get("order_builder", {})
+    if float(order_builder.get("min_stop_atr_mult", 0.8)) <= 0:
+        raise ValueError("evaluation.stage23.order_builder.min_stop_atr_mult must be > 0")
+    if float(order_builder.get("min_stop_bps", 8.0)) <= 0:
+        raise ValueError("evaluation.stage23.order_builder.min_stop_bps must be > 0")
+    if float(order_builder.get("min_rr", 0.8)) <= 0:
+        raise ValueError("evaluation.stage23.order_builder.min_rr must be > 0")
+    if float(order_builder.get("min_trade_notional", 10.0)) <= 0:
+        raise ValueError("evaluation.stage23.order_builder.min_trade_notional must be > 0")
+    if not isinstance(order_builder.get("allow_size_bump_to_min_notional", True), bool):
+        raise ValueError("evaluation.stage23.order_builder.allow_size_bump_to_min_notional must be bool")
+    if str(order_builder.get("rr_fallback_exit_mode", "fixed_atr")).strip() == "":
+        raise ValueError("evaluation.stage23.order_builder.rr_fallback_exit_mode must be non-empty")
+
+    eligibility = stage23.get("eligibility", {})
+    score_default = float(eligibility.get("min_score_default", 0.35))
+    if score_default < 0 or score_default > 1:
+        raise ValueError("evaluation.stage23.eligibility.min_score_default must be in [0,1]")
+    per_regime = eligibility.get("per_regime_thresholds", {})
+    if not isinstance(per_regime, dict):
+        raise ValueError("evaluation.stage23.eligibility.per_regime_thresholds must be mapping")
+    for regime, value in per_regime.items():
+        numeric = float(value)
+        if numeric < 0 or numeric > 1:
+            raise ValueError(f"evaluation.stage23.eligibility.per_regime_thresholds.{regime} must be in [0,1]")
+
+    execution23 = stage23.get("execution", {})
+    if not isinstance(execution23.get("allow_partial_fill", True), bool):
+        raise ValueError("evaluation.stage23.execution.allow_partial_fill must be bool")
+    partial_ratio = float(execution23.get("partial_fill_min_ratio", 0.30))
+    if partial_ratio <= 0 or partial_ratio > 1:
+        raise ValueError("evaluation.stage23.execution.partial_fill_min_ratio must be in (0,1]")
+    if not isinstance(execution23.get("allow_size_reduction_on_margin_fail", True), bool):
+        raise ValueError("evaluation.stage23.execution.allow_size_reduction_on_margin_fail must be bool")
+    if int(execution23.get("max_size_reduction_steps", 5)) < 0:
+        raise ValueError("evaluation.stage23.execution.max_size_reduction_steps must be >= 0")
+    soft_bps = float(execution23.get("slippage_soft_threshold_bps", 15.0))
+    hard_bps = float(execution23.get("slippage_hard_threshold_bps", 40.0))
+    if soft_bps <= 0:
+        raise ValueError("evaluation.stage23.execution.slippage_soft_threshold_bps must be > 0")
+    if hard_bps <= 0:
+        raise ValueError("evaluation.stage23.execution.slippage_hard_threshold_bps must be > 0")
+    if hard_bps < soft_bps:
+        raise ValueError("evaluation.stage23.execution.slippage_hard_threshold_bps must be >= soft threshold")
+    evaluation["stage23"] = stage23
 
     stage13 = _merge_defaults(STAGE13_DEFAULTS, evaluation.get("stage13", {}))
     if not isinstance(stage13.get("enabled", False), bool):

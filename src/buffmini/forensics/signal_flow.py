@@ -21,6 +21,7 @@ from buffmini.config import compute_config_hash
 from buffmini.signals.composer import compose_signals, normalize_weights
 from buffmini.signals.family_base import FamilyContext
 from buffmini.signals.registry import build_families, family_names
+from buffmini.stage23.order_builder import build_adaptive_orders
 from buffmini.stage23.rejects import RejectBreakdown
 from buffmini.stage10.evaluate import _build_features
 from buffmini.utils.hashing import stable_hash
@@ -232,6 +233,7 @@ def run_signal_flow_trace(
             context_weights=context_weights,
             stage_profile=profile,
             cfg=cfg,
+            symbol=symbol,
         )
         signal_for_backtest = counts["signal_series"]
         runtime_backtest = 0.0
@@ -288,13 +290,12 @@ def run_signal_flow_trace(
             "runtime_reporting_seconds": 0.0,
         }
         attempted = int(row.get("orders_attempted_count", row.get("orders_sent_count", 0)) or 0)
-        accepted = int(round(float(row.get("trades_executed_count", 0.0))))
+        accepted = int(row.get("orders_sent_count", 0) or 0)
         execution_breakdown.register_attempt(attempted)
         execution_breakdown.register_accept(accepted)
-        rejected = max(0, attempted - accepted)
-        if rejected > 0:
-            reason = "NO_FILL" if accepted <= 0 and attempted > 0 else "POSITION_CONFLICT"
-            execution_breakdown.register_reject(reason, rejected)
+        for event in counts.get("execution_reject_events", []):
+            reason = str(event.get("reason", "UNKNOWN"))
+            execution_breakdown.register_reject(reason, 1)
             execution_reject_events.append(
                 {
                     "stage": stage,
@@ -303,11 +304,11 @@ def run_signal_flow_trace(
                     "timeframe": timeframe,
                     "family": family,
                     "composer": composer,
-                    "timestamp": _resolved_end_ts({(symbol, timeframe): work}),
-                    "side": "MIXED",
+                    "timestamp": str(event.get("timestamp", "")),
+                    "side": str(event.get("side", "MIXED")),
                     "reason": reason,
-                    "count": int(rejected),
-                    "details": f"attempted={attempted};accepted={accepted}",
+                    "count": 1,
+                    "details": str(event.get("details", "")),
                 }
             )
 
@@ -640,6 +641,7 @@ def _count_flow(
     context_weights: pd.Series,
     stage_profile: StageProfile,
     cfg: dict[str, Any],
+    symbol: str,
 ) -> dict[str, Any]:
     score = pd.to_numeric(output.get("score", 0.0), errors="coerce").fillna(0.0)
     direction = pd.to_numeric(output.get("direction", 0), errors="coerce").fillna(0).astype(int)
@@ -695,8 +697,26 @@ def _count_flow(
         conflict_reject_count = int(round(float(stats.get("conflict_rate_pct", 0.0)) * len(frame) / 100.0))
 
     signal_pre = pd.Series(final_side, index=frame.index, dtype=int)
-    signal_series = signal_pre.shift(1).fillna(0).astype(int)
-    orders_sent_count = int((signal_series != 0).sum()) if stage_profile.trading else 0
+    stage23_cfg = dict((cfg.get("evaluation", {}) or {}).get("stage23", {}))
+    stage23_enabled = bool(stage23_cfg.get("enabled", False))
+    execution_reject_events: list[dict[str, Any]] = []
+    if stage_profile.trading and stage23_enabled:
+        adaptive = build_adaptive_orders(
+            frame=frame,
+            raw_side=signal_pre,
+            score=pd.Series(weighted_score, index=frame.index, dtype=float),
+            cfg=cfg,
+            symbol=str(symbol),
+        )
+        accepted_signal = pd.to_numeric(adaptive["accepted_signal"], errors="coerce").fillna(0).astype(int)
+        signal_series = accepted_signal.shift(1).fillna(0).astype(int)
+        orders_attempted_count = int(adaptive["breakdown"]["total_orders_attempted"])
+        orders_sent_count = int((signal_series != 0).sum())
+        execution_reject_events = list(adaptive.get("reject_events", []))
+    else:
+        signal_series = signal_pre.shift(1).fillna(0).astype(int)
+        orders_attempted_count = int((signal_pre != 0).sum()) if stage_profile.trading else 0
+        orders_sent_count = int((signal_series != 0).sum()) if stage_profile.trading else 0
 
     return {
         "raw_signal_count": raw_signal_count,
@@ -708,8 +728,9 @@ def _count_flow(
         "after_riskgate_count": after_riskgate_count,
         "cooldown_reject_count": cooldown_reject_count,
         "conflict_reject_count": conflict_reject_count,
-        "orders_attempted_count": orders_sent_count,
+        "orders_attempted_count": orders_attempted_count,
         "orders_sent_count": orders_sent_count,
+        "execution_reject_events": execution_reject_events,
         "signal_series": signal_series,
         "signal_pre": signal_pre,
     }
