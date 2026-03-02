@@ -454,6 +454,45 @@ STAGE23_DEFAULTS = {
     },
 }
 
+STAGE24_DEFAULTS = {
+    "enabled": False,
+    "base_timeframe": "1m",
+    "operational_timeframe": "1h",
+    "sizing": {
+        "mode": "risk_pct",
+        "alloc_pct": 0.25,
+        "risk_pct_user": None,
+        "risk_ladder": {
+            "enabled": True,
+            "r_min": 0.02,
+            "r_max": 0.20,
+            "e_ref": 1000.0,
+            "r_ref": 0.08,
+            "k": 0.5,
+        },
+        "clamps": {
+            "dd_soft": 0.10,
+            "dd_hard": 0.20,
+            "dd_soft_mult": 0.7,
+            "dd_hard_mult": 0.4,
+            "losing_streak_soft": 3,
+            "losing_streak_hard": 5,
+            "streak_soft_mult": 0.7,
+            "streak_hard_mult": 0.4,
+        },
+    },
+    "order_constraints": {
+        "min_trade_notional": 10.0,
+        "allow_size_bump_to_min_notional": True,
+        "max_notional_pct_of_equity": 1.0,
+    },
+    "simulation": {
+        "initial_equities": [100, 1000, 10000, 100000],
+        "seed": 42,
+        "use_stage3_selector_if_available": True,
+    },
+}
+
 STAGE13_DEFAULTS = {
     "enabled": False,
     "seed": 42,
@@ -1502,6 +1541,82 @@ def validate_config(config: ConfigDict) -> None:
     if hard_bps < soft_bps:
         raise ValueError("evaluation.stage23.execution.slippage_hard_threshold_bps must be >= soft threshold")
     evaluation["stage23"] = stage23
+
+    stage24 = _merge_defaults(STAGE24_DEFAULTS, evaluation.get("stage24", {}))
+    if not isinstance(stage24.get("enabled", False), bool):
+        raise ValueError("evaluation.stage24.enabled must be bool")
+    base_tf_24 = str(stage24.get("base_timeframe", "1m")).strip().lower()
+    op_tf_24 = str(stage24.get("operational_timeframe", "1h")).strip().lower()
+    if base_tf_24 not in SUPPORTED_TIMEFRAMES:
+        raise ValueError(f"evaluation.stage24.base_timeframe must be one of {SUPPORTED_TIMEFRAMES}")
+    if op_tf_24 not in SUPPORTED_TIMEFRAMES:
+        raise ValueError(f"evaluation.stage24.operational_timeframe must be one of {SUPPORTED_TIMEFRAMES}")
+    _validate_timeframe_multiple(base_tf_24, op_tf_24, "evaluation.stage24.operational_timeframe")
+
+    sizing24 = stage24.get("sizing", {})
+    sizing_mode = str(sizing24.get("mode", "risk_pct")).strip().lower()
+    if sizing_mode not in {"risk_pct", "alloc_pct"}:
+        raise ValueError("evaluation.stage24.sizing.mode must be risk_pct|alloc_pct")
+    alloc_pct = float(sizing24.get("alloc_pct", 0.25))
+    if alloc_pct <= 0 or alloc_pct > 1:
+        raise ValueError("evaluation.stage24.sizing.alloc_pct must be in (0,1]")
+    risk_pct_user = sizing24.get("risk_pct_user", None)
+    if risk_pct_user is not None:
+        risk_pct_user_val = float(risk_pct_user)
+        if risk_pct_user_val <= 0 or risk_pct_user_val > 1:
+            raise ValueError("evaluation.stage24.sizing.risk_pct_user must be in (0,1] when set")
+
+    ladder = sizing24.get("risk_ladder", {})
+    if not isinstance(ladder.get("enabled", True), bool):
+        raise ValueError("evaluation.stage24.sizing.risk_ladder.enabled must be bool")
+    r_min = float(ladder.get("r_min", 0.02))
+    r_max = float(ladder.get("r_max", 0.20))
+    if r_min <= 0 or r_max <= 0 or r_min > r_max or r_max > 1:
+        raise ValueError("evaluation.stage24.sizing.risk_ladder requires 0 < r_min <= r_max <= 1")
+    e_ref = float(ladder.get("e_ref", 1000.0))
+    if e_ref <= 0:
+        raise ValueError("evaluation.stage24.sizing.risk_ladder.e_ref must be > 0")
+    r_ref = float(ladder.get("r_ref", 0.08))
+    if r_ref <= 0 or r_ref > 1:
+        raise ValueError("evaluation.stage24.sizing.risk_ladder.r_ref must be in (0,1]")
+    if float(ladder.get("k", 0.5)) < 0:
+        raise ValueError("evaluation.stage24.sizing.risk_ladder.k must be >= 0")
+
+    clamps = sizing24.get("clamps", {})
+    dd_soft = float(clamps.get("dd_soft", 0.10))
+    dd_hard = float(clamps.get("dd_hard", 0.20))
+    if dd_soft < 0 or dd_hard < 0 or dd_hard < dd_soft or dd_hard > 1:
+        raise ValueError("evaluation.stage24.sizing.clamps requires 0 <= dd_soft <= dd_hard <= 1")
+    for key in ("dd_soft_mult", "dd_hard_mult", "streak_soft_mult", "streak_hard_mult"):
+        value = float(clamps.get(key, 1.0))
+        if value <= 0 or value > 1:
+            raise ValueError(f"evaluation.stage24.sizing.clamps.{key} must be in (0,1]")
+    ls_soft = int(clamps.get("losing_streak_soft", 3))
+    ls_hard = int(clamps.get("losing_streak_hard", 5))
+    if ls_soft < 0 or ls_hard < 0 or ls_hard < ls_soft:
+        raise ValueError("evaluation.stage24.sizing.clamps requires losing_streak_hard >= losing_streak_soft >= 0")
+
+    ocfg = stage24.get("order_constraints", {})
+    if float(ocfg.get("min_trade_notional", 10.0)) <= 0:
+        raise ValueError("evaluation.stage24.order_constraints.min_trade_notional must be > 0")
+    if not isinstance(ocfg.get("allow_size_bump_to_min_notional", True), bool):
+        raise ValueError("evaluation.stage24.order_constraints.allow_size_bump_to_min_notional must be bool")
+    max_notional_pct = float(ocfg.get("max_notional_pct_of_equity", 1.0))
+    if max_notional_pct <= 0:
+        raise ValueError("evaluation.stage24.order_constraints.max_notional_pct_of_equity must be > 0")
+
+    sim24 = stage24.get("simulation", {})
+    init_eq = list(sim24.get("initial_equities", []))
+    if not isinstance(init_eq, list) or not init_eq:
+        raise ValueError("evaluation.stage24.simulation.initial_equities must be a non-empty list")
+    for idx, value in enumerate(init_eq):
+        if float(value) <= 0:
+            raise ValueError(f"evaluation.stage24.simulation.initial_equities[{idx}] must be > 0")
+    if int(sim24.get("seed", 42)) < 0:
+        raise ValueError("evaluation.stage24.simulation.seed must be >= 0")
+    if not isinstance(sim24.get("use_stage3_selector_if_available", True), bool):
+        raise ValueError("evaluation.stage24.simulation.use_stage3_selector_if_available must be bool")
+    evaluation["stage24"] = stage24
 
     stage13 = _merge_defaults(STAGE13_DEFAULTS, evaluation.get("stage13", {}))
     if not isinstance(stage13.get("enabled", False), bool):

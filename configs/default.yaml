@@ -489,6 +489,38 @@ evaluation:
       max_size_reduction_steps: 5
       slippage_soft_threshold_bps: 15.0
       slippage_hard_threshold_bps: 40.0
+  stage24:
+    enabled: false
+    base_timeframe: "1m"
+    operational_timeframe: "1h"
+    sizing:
+      mode: "risk_pct"
+      alloc_pct: 0.25
+      risk_pct_user: null
+      risk_ladder:
+        enabled: true
+        r_min: 0.02
+        r_max: 0.20
+        e_ref: 1000.0
+        r_ref: 0.08
+        k: 0.5
+      clamps:
+        dd_soft: 0.10
+        dd_hard: 0.20
+        dd_soft_mult: 0.7
+        dd_hard_mult: 0.4
+        losing_streak_soft: 3
+        losing_streak_hard: 5
+        streak_soft_mult: 0.7
+        streak_hard_mult: 0.4
+    order_constraints:
+      min_trade_notional: 10.0
+      allow_size_bump_to_min_notional: true
+      max_notional_pct_of_equity: 1.0
+    simulation:
+      initial_equities: [100, 1000, 10000, 100000]
+      seed: 42
+      use_stage3_selector_if_available: true
   stage13:
     enabled: false
     seed: 42
