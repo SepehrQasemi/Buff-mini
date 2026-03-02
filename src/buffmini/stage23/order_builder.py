@@ -10,6 +10,13 @@ import pandas as pd
 
 from buffmini.backtest.costs import cost_breakdown_bps, normalized_cost_cfg, one_way_slippage_for_bar
 from buffmini.stage23.rejects import EXECUTION_REJECT_REASONS, RejectBreakdown, normalize_reject_reason
+from buffmini.stage24.sizing import (
+    compute_notional_alloc_pct,
+    compute_notional_risk_pct,
+    compute_risk_pct,
+    cost_rt_pct_from_config,
+    is_known_reject_reason,
+)
 
 
 @dataclass(frozen=True)
@@ -93,10 +100,14 @@ def build_adaptive_orders(
             "adjustment_events": [],
             "sizing_trace": pd.DataFrame(),
             "sizing_trace_summary": _summarize_sizing_trace([]),
+            "stage24_sizing_trace": pd.DataFrame(),
+            "stage24_sizing_summary": _summarize_stage24_sizing_trace([]),
             "breakdown": RejectBreakdown().to_payload(),
         }
 
     eval_cfg = dict((cfg.get("evaluation", {}) or {}).get("stage23", {}))
+    stage24_cfg = dict((cfg.get("evaluation", {}) or {}).get("stage24", {}))
+    stage24_enabled = bool(stage24_cfg.get("enabled", False))
     order_builder = OrderBuilderConfig(**_pick_order_builder_cfg(eval_cfg.get("order_builder", {})))
     relax = ExecutionRelaxConfig(**_pick_execution_cfg(eval_cfg.get("execution", {})))
     sizing_cfg = SizingRepairConfig(**_pick_sizing_cfg(eval_cfg.get("sizing", {})))
@@ -133,8 +144,14 @@ def build_adaptive_orders(
     reject_events: list[dict[str, Any]] = []
     adjustment_events: list[dict[str, Any]] = []
     sizing_trace_rows: list[dict[str, Any]] = []
+    stage24_trace_rows: list[dict[str, Any]] = []
 
     tp_atr = float(((cfg.get("evaluation", {}) or {}).get("stage10", {}) or {}).get("evaluation", {}).get("take_profit_atr_multiple", 3.0))
+    initial_equity = float(((stage24_cfg.get("simulation", {}) or {}).get("initial_equities", [10000.0])[0]) if stage24_enabled else 10000.0)
+    equity_state = max(1e-9, float(initial_equity))
+    peak_equity = float(equity_state)
+    losing_streak = 0
+    cost_rt_pct = float(cost_rt_pct_from_config(cfg))
 
     for idx in range(len(frame)):
         direction = int(np.sign(side[idx]))
@@ -237,13 +254,74 @@ def build_adaptive_orders(
                 reject("RR_INVALID", f"rr={rr:.6f}")
                 continue
 
-        if notional < float(order_builder.min_trade_notional):
-            if bool(order_builder.allow_size_bump_to_min_notional):
-                notional = float(order_builder.min_trade_notional)
-                bumped_to_min_notional = True
+        stop_distance_pct = float(min_stop_px / max(close_px, 1e-12))
+        if stage24_enabled:
+            stage24_sizing = dict(stage24_cfg.get("sizing", {}))
+            stage24_constraints = dict(stage24_cfg.get("order_constraints", {}))
+            dd_now = float(max(0.0, (peak_equity - equity_state) / max(peak_equity, 1e-12)))
+            mode = str(stage24_sizing.get("mode", "risk_pct")).strip().lower()
+            risk_used = 0.0
+            risk_parts = {"base": 0.0, "dd_mult": 1.0, "streak_mult": 1.0, "used": 0.0}
+            if mode == "risk_pct":
+                risk_used, risk_parts = compute_risk_pct(
+                    equity=float(equity_state),
+                    dd=float(dd_now),
+                    losing_streak=int(losing_streak),
+                    cfg=cfg,
+                )
+                notional_24, status_24, reason_24, details_24 = compute_notional_risk_pct(
+                    equity=float(equity_state),
+                    risk_pct_used=float(risk_used),
+                    stop_distance_pct=float(stop_distance_pct),
+                    cost_rt_pct=float(cost_rt_pct),
+                    constraints_cfg=stage24_constraints,
+                )
             else:
-                reject("SIZE_TOO_SMALL", f"notional={notional:.6f}<min={float(order_builder.min_trade_notional):.6f}")
+                alloc_pct = float(stage24_sizing.get("alloc_pct", 0.25))
+                notional_24, status_24, reason_24, details_24 = compute_notional_alloc_pct(
+                    equity=float(equity_state),
+                    alloc_pct=float(alloc_pct),
+                    constraints_cfg=stage24_constraints,
+                )
+                risk_parts["used"] = float(alloc_pct)
+                risk_used = float(alloc_pct)
+            stage24_reason = str(reason_24 or "")
+            if stage24_reason and not is_known_reject_reason(stage24_reason):
+                stage24_reason = "UNKNOWN"
+            stage24_trace_rows.append(
+                {
+                    "ts": timestamp,
+                    "symbol": symbol,
+                    "mode": mode,
+                    "equity": float(equity_state),
+                    "dd": float(dd_now),
+                    "losing_streak": int(losing_streak),
+                    "risk_base": float(risk_parts.get("base", 0.0)),
+                    "dd_mult": float(risk_parts.get("dd_mult", 1.0)),
+                    "streak_mult": float(risk_parts.get("streak_mult", 1.0)),
+                    "risk_used": float(risk_used),
+                    "stop_dist_pct": float(stop_distance_pct),
+                    "cost_rt_pct": float(cost_rt_pct),
+                    "notional": float(notional_24),
+                    "status": str(status_24),
+                    "reason": stage24_reason,
+                    "details": str(details_24),
+                }
+            )
+            if str(status_24) != "VALID":
+                reject(stage24_reason or "UNKNOWN", f"stage24_invalid:{details_24}")
                 continue
+            notional = float(notional_24)
+            if bool((details_24 or {}).get("bumped_to_min_notional", False)):
+                bumped_to_min_notional = True
+        else:
+            if notional < float(order_builder.min_trade_notional):
+                if bool(order_builder.allow_size_bump_to_min_notional):
+                    notional = float(order_builder.min_trade_notional)
+                    bumped_to_min_notional = True
+                else:
+                    reject("SIZE_TOO_SMALL", f"notional={notional:.6f}<min={float(order_builder.min_trade_notional):.6f}")
+                    continue
 
         max_notional = float(max(0.0, float(max_gross_exposure) * close_px * max(1.0, leverage)))
         if max_notional <= 0.0:
@@ -425,9 +503,21 @@ def build_adaptive_orders(
                 ),
             }
         )
+        if stage24_enabled:
+            next_idx = min(idx + 1, len(frame) - 1)
+            next_close = float(close[next_idx]) if np.isfinite(close[next_idx]) else close_px
+            trade_ret = (next_close - close_px) / max(close_px, 1e-12) * float(direction)
+            pnl_proxy = float(final_notional * trade_ret)
+            equity_state = float(max(1e-9, equity_state + pnl_proxy))
+            peak_equity = float(max(peak_equity, equity_state))
+            if pnl_proxy < 0:
+                losing_streak += 1
+            elif pnl_proxy > 0:
+                losing_streak = 0
 
     orders_df = pd.DataFrame(order_rows)
     sizing_trace_df = pd.DataFrame(sizing_trace_rows)
+    stage24_trace_df = pd.DataFrame(stage24_trace_rows)
     return {
         "accepted_signal": pd.Series(accepted, index=frame.index, dtype=int),
         "orders_df": orders_df,
@@ -435,6 +525,8 @@ def build_adaptive_orders(
         "adjustment_events": adjustment_events,
         "sizing_trace": sizing_trace_df,
         "sizing_trace_summary": _summarize_sizing_trace(sizing_trace_rows),
+        "stage24_sizing_trace": stage24_trace_df,
+        "stage24_sizing_summary": _summarize_stage24_sizing_trace(stage24_trace_rows),
         "breakdown": breakdown.to_payload(),
     }
 
@@ -558,3 +650,43 @@ def round_qty_to_step(qty: float, step: float, mode: str) -> float:
     if rounded_units < 0:
         rounded_units = 0
     return float(rounded_units * quantum)
+
+
+def _summarize_stage24_sizing_trace(rows: list[dict[str, Any]]) -> dict[str, Any]:
+    if not rows:
+        return {
+            "valid_count": 0,
+            "invalid_count": 0,
+            "top_invalid_reasons": {},
+            "notional_min": 0.0,
+            "notional_median": 0.0,
+            "notional_max": 0.0,
+            "risk_used_min": 0.0,
+            "risk_used_median": 0.0,
+            "risk_used_max": 0.0,
+        }
+    frame = pd.DataFrame(rows)
+    status = frame.get("status", pd.Series(dtype=str)).astype(str)
+    reason = frame.get("reason", pd.Series(dtype=str)).astype(str).replace("", "VALID")
+    notional = pd.to_numeric(frame.get("notional", 0.0), errors="coerce").fillna(0.0)
+    risk_used = pd.to_numeric(frame.get("risk_used", 0.0), errors="coerce").fillna(0.0)
+    invalid = frame.loc[status != "VALID"]
+    invalid_counts = (
+        invalid.get("reason", pd.Series(dtype=str))
+        .astype(str)
+        .replace("", "UNKNOWN")
+        .value_counts()
+        .head(5)
+        .to_dict()
+    )
+    return {
+        "valid_count": int((status == "VALID").sum()),
+        "invalid_count": int((status != "VALID").sum()),
+        "top_invalid_reasons": {str(k): int(v) for k, v in invalid_counts.items()},
+        "notional_min": float(notional.min()),
+        "notional_median": float(notional.median()),
+        "notional_max": float(notional.max()),
+        "risk_used_min": float(risk_used.min()),
+        "risk_used_median": float(risk_used.median()),
+        "risk_used_max": float(risk_used.max()),
+    }

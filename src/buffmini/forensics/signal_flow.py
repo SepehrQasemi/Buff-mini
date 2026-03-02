@@ -172,6 +172,7 @@ def run_signal_flow_trace(
     execution_adjustment_events: list[dict[str, Any]] = []
     eligibility_trace_rows: list[dict[str, Any]] = []
     sizing_trace_rows: list[dict[str, Any]] = []
+    stage24_sizing_trace_rows: list[dict[str, Any]] = []
     execution_breakdown = RejectBreakdown()
 
     for combo in combos:
@@ -330,6 +331,18 @@ def run_signal_flow_trace(
                     **dict(item),
                 }
             )
+        for item in counts.get("stage24_sizing_trace_rows", []):
+            stage24_sizing_trace_rows.append(
+                {
+                    "stage": stage,
+                    "mode": mode_name,
+                    "symbol": symbol,
+                    "timeframe": timeframe,
+                    "family": family,
+                    "composer": composer,
+                    **dict(item),
+                }
+            )
 
         row["top_reject_reason"] = _top_reject_reason(row)
         rows.append(_safe_json(row))
@@ -378,6 +391,12 @@ def run_signal_flow_trace(
     sizing_trace_df.to_csv(trace_dir / "sizing_trace.csv", index=False)
     (trace_dir / "sizing_trace_summary.json").write_text(
         json.dumps(_aggregate_sizing_trace_summary(sizing_trace_df), indent=2, allow_nan=False),
+        encoding="utf-8",
+    )
+    stage24_trace_df = pd.DataFrame(stage24_sizing_trace_rows)
+    stage24_trace_df.to_csv(trace_dir / "stage24_sizing_trace.csv", index=False)
+    (trace_dir / "stage24_sizing_summary.json").write_text(
+        json.dumps(_aggregate_stage24_trace_summary(stage24_trace_df), indent=2, allow_nan=False),
         encoding="utf-8",
     )
     (trace_dir / "execution_reject_breakdown.json").write_text(
@@ -728,6 +747,8 @@ def _count_flow(
     signal_pre = pd.Series(final_side, index=frame.index, dtype=int)
     stage23_cfg = dict((cfg.get("evaluation", {}) or {}).get("stage23", {}))
     stage23_enabled = bool(stage23_cfg.get("enabled", False))
+    stage24_cfg = dict((cfg.get("evaluation", {}) or {}).get("stage24", {}))
+    stage24_enabled = bool(stage24_cfg.get("enabled", False))
     execution_reject_events: list[dict[str, Any]] = []
     execution_adjustment_events: list[dict[str, Any]] = []
     if stage_profile.trading and stage23_enabled:
@@ -756,7 +777,7 @@ def _count_flow(
         )
         eligibility_trace_rows = list(eligibility.get("trace_rows", []))
 
-    if stage_profile.trading and stage23_enabled:
+    if stage_profile.trading and (stage23_enabled or stage24_enabled):
         adaptive = build_adaptive_orders(
             frame=frame,
             raw_side=pd.Series(final_side, index=frame.index, dtype=int),
@@ -771,11 +792,13 @@ def _count_flow(
         execution_reject_events = list(adaptive.get("reject_events", []))
         execution_adjustment_events = list(adaptive.get("adjustment_events", []))
         sizing_trace_rows = list(adaptive.get("sizing_trace", pd.DataFrame()).to_dict(orient="records"))
+        stage24_sizing_trace_rows = list(adaptive.get("stage24_sizing_trace", pd.DataFrame()).to_dict(orient="records"))
     else:
         signal_series = signal_pre.shift(1).fillna(0).astype(int)
         orders_attempted_count = int((signal_pre != 0).sum()) if stage_profile.trading else 0
         orders_sent_count = int((signal_series != 0).sum()) if stage_profile.trading else 0
         sizing_trace_rows = []
+        stage24_sizing_trace_rows = []
 
     return {
         "raw_signal_count": raw_signal_count,
@@ -793,6 +816,7 @@ def _count_flow(
         "execution_adjustment_events": execution_adjustment_events,
         "eligibility_trace_rows": eligibility_trace_rows,
         "sizing_trace_rows": sizing_trace_rows,
+        "stage24_sizing_trace_rows": stage24_sizing_trace_rows,
         "signal_series": signal_series,
         "signal_pre": signal_pre,
     }
@@ -834,6 +858,39 @@ def _aggregate_sizing_trace_summary(df: pd.DataFrame) -> dict[str, Any]:
         "reject_reason_counts": {
             str(k): int(v) for k, v in reject_reason.value_counts().sort_index().items()
         },
+    }
+
+
+def _aggregate_stage24_trace_summary(df: pd.DataFrame) -> dict[str, Any]:
+    if df.empty:
+        return {
+            "valid_count": 0,
+            "invalid_count": 0,
+            "top_invalid_reasons": {},
+            "notional_min": 0.0,
+            "notional_median": 0.0,
+            "notional_max": 0.0,
+            "risk_used_min": 0.0,
+            "risk_used_median": 0.0,
+            "risk_used_max": 0.0,
+        }
+    status = df.get("status", pd.Series(dtype=str)).astype(str)
+    reason = df.get("reason", pd.Series(dtype=str)).astype(str).replace("", "UNKNOWN")
+    notional = pd.to_numeric(df.get("notional", 0.0), errors="coerce").fillna(0.0)
+    risk_used = pd.to_numeric(df.get("risk_used", 0.0), errors="coerce").fillna(0.0)
+    invalid_counts = (
+        reason.loc[status != "VALID"].value_counts().head(5).to_dict()
+    )
+    return {
+        "valid_count": int((status == "VALID").sum()),
+        "invalid_count": int((status != "VALID").sum()),
+        "top_invalid_reasons": {str(k): int(v) for k, v in invalid_counts.items()},
+        "notional_min": float(notional.min()),
+        "notional_median": float(notional.median()),
+        "notional_max": float(notional.max()),
+        "risk_used_min": float(risk_used.min()),
+        "risk_used_median": float(risk_used.median()),
+        "risk_used_max": float(risk_used.max()),
     }
 
 
