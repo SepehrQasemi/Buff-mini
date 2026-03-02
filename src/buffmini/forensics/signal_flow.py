@@ -906,11 +906,21 @@ def _run_backtest_metrics(
     work = frame.copy()
     work["signal"] = pd.to_numeric(signal, errors="coerce").fillna(0).astype(int)
     eval_cfg = (((cfg.get("evaluation", {}) or {}).get("stage10", {})) or {}).get("evaluation", {})
+    stage24_cfg = dict((cfg.get("evaluation", {}) or {}).get("stage24", {}))
+    initial_capital = 10_000.0
+    if bool(stage24_cfg.get("enabled", False)):
+        initial_equities = stage24_cfg.get("simulation", {}).get("initial_equities", [initial_capital])
+        if isinstance(initial_equities, (list, tuple)) and initial_equities:
+            try:
+                initial_capital = float(initial_equities[0])
+            except Exception:
+                initial_capital = 10_000.0
     result = run_backtest(
         frame=work,
         strategy_name=strategy_name,
         symbol=symbol,
         signal_col="signal",
+        initial_capital=float(initial_capital),
         max_hold_bars=int(eval_cfg.get("max_hold_bars", 24)),
         stop_atr_multiple=float(eval_cfg.get("stop_atr_multiple", 1.5)),
         take_profit_atr_multiple=float(eval_cfg.get("take_profit_atr_multiple", 3.0)),
