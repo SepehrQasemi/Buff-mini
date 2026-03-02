@@ -837,6 +837,12 @@ def _aggregate_sizing_trace_summary(df: pd.DataFrame) -> dict[str, Any]:
             "raw_size_min": 0.0,
             "raw_size_median": 0.0,
             "raw_size_p95": 0.0,
+            "margin_required_min": 0.0,
+            "margin_required_median": 0.0,
+            "margin_required_max": 0.0,
+            "margin_limit_min": 0.0,
+            "margin_limit_median": 0.0,
+            "margin_limit_max": 0.0,
             "rescued_by_ceil_count": 0,
             "bumped_to_min_notional_count": 0,
             "cap_binding_reject_count": 0,
@@ -844,6 +850,8 @@ def _aggregate_sizing_trace_summary(df: pd.DataFrame) -> dict[str, Any]:
         }
     raw_size = pd.to_numeric(df.get("raw_size", 0.0), errors="coerce").fillna(0.0)
     rounded = pd.to_numeric(df.get("rounded_size_after", 0.0), errors="coerce").fillna(0.0)
+    margin_required = pd.to_numeric(df.get("margin_required", 0.0), errors="coerce").fillna(0.0)
+    margin_limit = pd.to_numeric(df.get("margin_limit", 0.0), errors="coerce").fillna(0.0)
     decision = df.get("decision", pd.Series(dtype=str)).astype(str)
     reject_reason = df.get("reject_reason", pd.Series(dtype=str)).astype(str).replace("", "ACCEPTED")
     attempted = int(len(df))
@@ -857,6 +865,12 @@ def _aggregate_sizing_trace_summary(df: pd.DataFrame) -> dict[str, Any]:
         "raw_size_min": float(raw_size.min()),
         "raw_size_median": float(raw_size.median()),
         "raw_size_p95": float(raw_size.quantile(0.95)),
+        "margin_required_min": float(margin_required.min()),
+        "margin_required_median": float(margin_required.median()),
+        "margin_required_max": float(margin_required.max()),
+        "margin_limit_min": float(margin_limit.min()),
+        "margin_limit_median": float(margin_limit.median()),
+        "margin_limit_max": float(margin_limit.max()),
         "rescued_by_ceil_count": int(pd.to_numeric(df.get("ceil_rescue_applied", False), errors="coerce").fillna(False).astype(bool).sum()),
         "bumped_to_min_notional_count": int(pd.to_numeric(df.get("bumped_to_min_notional", False), errors="coerce").fillna(False).astype(bool).sum()),
         "cap_binding_reject_count": int(((decision == "REJECTED") & (df.get("cap_binding", pd.Series(dtype=str)).astype(str) != "")).sum()),

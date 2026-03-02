@@ -9,6 +9,12 @@ import numpy as np
 import pandas as pd
 
 from buffmini.backtest.costs import cost_breakdown_bps, normalized_cost_cfg, one_way_slippage_for_bar
+from buffmini.execution.margin_model import (
+    PolicyCaps,
+    apply_exposure_caps,
+    compute_margin_required,
+    is_trade_feasible,
+)
 from buffmini.stage23.rejects import EXECUTION_REJECT_REASONS, RejectBreakdown, normalize_reject_reason
 from buffmini.stage24.sizing import (
     compute_notional_alloc_pct,
@@ -67,6 +73,9 @@ class SizingTraceRecord:
     rounded_size_after: float
     rounding_mode_used: str
     final_notional: float
+    max_allowed_notional: float
+    margin_required: float
+    margin_limit: float
     ceil_rescue_applied: bool
     cap_binding: str
     decision: str
@@ -175,6 +184,9 @@ def build_adaptive_orders(
         rounded_size_after = float(raw_size)
         rounding_mode_used = "none"
         final_notional = float(proposed_notional)
+        max_notional = 0.0
+        margin_required_now = 0.0
+        margin_limit_now = 0.0
         bumped_to_min_notional = False
         ceil_rescue_applied = False
         cap_binding = ""
@@ -198,6 +210,9 @@ def build_adaptive_orders(
                     rounded_size_after=rounded_size_after,
                     rounding_mode_used=rounding_mode_used,
                     final_notional=final_notional,
+                    max_allowed_notional=max_notional,
+                    margin_required=margin_required_now,
+                    margin_limit=margin_limit_now,
                     ceil_rescue_applied=ceil_rescue_applied,
                     cap_binding=cap_binding,
                     decision=decision,
@@ -323,38 +338,116 @@ def build_adaptive_orders(
                     reject("SIZE_TOO_SMALL", f"notional={notional:.6f}<min={float(order_builder.min_trade_notional):.6f}")
                     continue
 
-        max_notional = float(max(0.0, float(max_gross_exposure) * close_px * max(1.0, leverage)))
-        if max_notional <= 0.0:
-            cap_binding = "margin"
-            reject("MARGIN_FAIL", "non_positive_max_notional")
-            continue
-
-        if notional > max_notional:
-            if bool(relax.allow_size_reduction_on_margin_fail):
+        if not stage24_enabled:
+            # Keep legacy Stage-23 behavior for non-Stage24 paths.
+            max_notional = float(max(0.0, float(max_gross_exposure) * close_px * max(1.0, leverage)))
+            if max_notional <= 0.0:
                 cap_binding = "margin"
-                reduction_steps = 0
-                while notional > max_notional and reduction_steps < int(relax.max_size_reduction_steps):
-                    prev = float(notional)
-                    notional *= 0.7
-                    reduction_steps += 1
-                    adjustment_events.append(
-                        {
-                            "timestamp": timestamp,
-                            "symbol": symbol,
-                            "side": side_label,
-                            "event": "size_reduction_margin",
-                            "step": int(reduction_steps),
-                            "before_notional": prev,
-                            "after_notional": float(notional),
-                            "max_notional": float(max_notional),
-                        }
-                    )
-                if notional > max_notional:
-                    reject("MARGIN_FAIL", f"max_notional={max_notional:.6f}")
+                reject("MARGIN_FAIL", "non_positive_max_notional")
+                continue
+
+            if notional > max_notional:
+                if bool(relax.allow_size_reduction_on_margin_fail):
+                    cap_binding = "margin"
+                    reduction_steps = 0
+                    while notional > max_notional and reduction_steps < int(relax.max_size_reduction_steps):
+                        prev = float(notional)
+                        notional *= 0.7
+                        reduction_steps += 1
+                        adjustment_events.append(
+                            {
+                                "timestamp": timestamp,
+                                "symbol": symbol,
+                                "side": side_label,
+                                "event": "size_reduction_margin",
+                                "step": int(reduction_steps),
+                                "before_notional": prev,
+                                "after_notional": float(notional),
+                                "max_notional": float(max_notional),
+                            }
+                        )
+                    if notional > max_notional:
+                        reject("MARGIN_FAIL", f"max_notional={max_notional:.6f}")
+                        continue
+                else:
+                    cap_binding = "policy_cap"
+                    reject("POLICY_CAP_HIT", f"max_notional={max_notional:.6f}")
                     continue
-            else:
-                cap_binding = "policy_cap"
-                reject("POLICY_CAP_HIT", f"max_notional={max_notional:.6f}")
+        else:
+            equity_for_checks = float(equity_state)
+            policy_caps = PolicyCaps(
+                max_notional_pct_of_equity=float((stage24_cfg.get("order_constraints", {}) or {}).get("max_notional_pct_of_equity", 1.0)),
+                max_gross_exposure_mult=float(max(1e-9, float(max_gross_exposure))),
+                absolute_max_notional=0.0,
+                margin_alloc_limit=float(max(1e-9, float((cfg.get("risk", {}) or {}).get("margin_alloc_limit", 1.0)))),
+            )
+
+            cap_details: dict[str, Any] = {}
+            margin_details: dict[str, Any] = {}
+            reduction_steps = 0
+            while True:
+                capped_notional, cap_reason, cap_details = apply_exposure_caps(
+                    desired_notional=float(notional),
+                    policy_caps=policy_caps,
+                    current_exposure=0.0,
+                    equity=float(equity_for_checks),
+                )
+                max_notional = float(cap_details.get("max_allowed_notional", 0.0))
+                if cap_reason and capped_notional <= 0.0:
+                    cap_binding = "policy_cap"
+                    reject("POLICY_CAP_HIT", f"max_notional={max_notional:.6f}")
+                    break
+
+                margin_required_now = float(
+                    compute_margin_required(
+                        notional=float(capped_notional),
+                        leverage=float(max(leverage, 1e-12)),
+                        fees_estimate=float(cost_rt_pct),
+                        buffer=float((cfg.get("risk", {}) or {}).get("margin_buffer_pct", 0.0)),
+                    )
+                )
+                feasible, feasible_reason, margin_details = is_trade_feasible(
+                    equity=float(equity_for_checks),
+                    capped_notional=float(capped_notional),
+                    leverage=float(max(leverage, 1e-12)),
+                    margin_required=float(margin_required_now),
+                    policy_caps=policy_caps,
+                )
+                margin_limit_now = float(margin_details.get("margin_limit", 0.0))
+                if feasible:
+                    notional = float(capped_notional)
+                    break
+
+                if not bool(relax.allow_size_reduction_on_margin_fail) or reduction_steps >= int(relax.max_size_reduction_steps):
+                    cap_binding = "margin" if feasible_reason == "MARGIN_FAIL" else "policy_cap"
+                    reject(
+                        feasible_reason or "MARGIN_FAIL",
+                        f"margin_required={margin_required_now:.6f},margin_limit={margin_limit_now:.6f},max_notional={max_notional:.6f}",
+                    )
+                    break
+
+                prev = float(notional)
+                notional = float(notional * 0.7)
+                reduction_steps += 1
+                adjustment_events.append(
+                    {
+                        "timestamp": timestamp,
+                        "symbol": symbol,
+                        "side": side_label,
+                        "event": "size_reduction_margin",
+                        "step": int(reduction_steps),
+                        "before_notional": prev,
+                        "after_notional": float(notional),
+                        "max_notional": float(max_notional),
+                        "margin_required": float(margin_required_now),
+                        "margin_limit": float(margin_limit_now),
+                    }
+                )
+                if notional <= 0.0:
+                    cap_binding = "margin"
+                    reject("MARGIN_FAIL", "size_reduced_to_zero")
+                    break
+            if reject_events and str(reject_events[-1].get("timestamp", "")) == timestamp and str(reject_events[-1].get("symbol", "")) == symbol:
                 continue
 
         slippage_bps = float(one_way_slippage_for_bar(frame=frame, bar_index=idx, cost_cfg=cost_cfg, atr_col="atr_14", close_col="close") * 10_000.0)
@@ -598,6 +691,12 @@ def _summarize_sizing_trace(rows: list[dict[str, Any]]) -> dict[str, Any]:
             "raw_size_min": 0.0,
             "raw_size_median": 0.0,
             "raw_size_p95": 0.0,
+            "margin_required_min": 0.0,
+            "margin_required_median": 0.0,
+            "margin_required_max": 0.0,
+            "margin_limit_min": 0.0,
+            "margin_limit_median": 0.0,
+            "margin_limit_max": 0.0,
             "zero_size_count": 0,
             "rescued_by_ceil_count": 0,
             "bumped_to_min_notional_count": 0,
@@ -607,6 +706,8 @@ def _summarize_sizing_trace(rows: list[dict[str, Any]]) -> dict[str, Any]:
     frame = pd.DataFrame(rows)
     raw_size = pd.to_numeric(frame.get("raw_size", 0.0), errors="coerce").fillna(0.0)
     rounded_after = pd.to_numeric(frame.get("rounded_size_after", 0.0), errors="coerce").fillna(0.0)
+    margin_required = pd.to_numeric(frame.get("margin_required", 0.0), errors="coerce").fillna(0.0)
+    margin_limit = pd.to_numeric(frame.get("margin_limit", 0.0), errors="coerce").fillna(0.0)
     decision = frame.get("decision", pd.Series(dtype=str)).astype(str)
     reject_reason = frame.get("reject_reason", pd.Series(dtype=str)).astype(str).replace("", "ACCEPTED")
     cap_binding = frame.get("cap_binding", pd.Series(dtype=str)).astype(str)
@@ -620,6 +721,12 @@ def _summarize_sizing_trace(rows: list[dict[str, Any]]) -> dict[str, Any]:
         "raw_size_min": float(raw_size.min()),
         "raw_size_median": float(raw_size.median()),
         "raw_size_p95": float(raw_size.quantile(0.95)),
+        "margin_required_min": float(margin_required.min()),
+        "margin_required_median": float(margin_required.median()),
+        "margin_required_max": float(margin_required.max()),
+        "margin_limit_min": float(margin_limit.min()),
+        "margin_limit_median": float(margin_limit.median()),
+        "margin_limit_max": float(margin_limit.max()),
         "zero_size_count": int(((raw_size > 0.0) & (rounded_after <= 0.0)).sum()),
         "rescued_by_ceil_count": int(pd.to_numeric(frame.get("ceil_rescue_applied", False), errors="coerce").fillna(False).astype(bool).sum()),
         "bumped_to_min_notional_count": int(pd.to_numeric(frame.get("bumped_to_min_notional", False), errors="coerce").fillna(False).astype(bool).sum()),
