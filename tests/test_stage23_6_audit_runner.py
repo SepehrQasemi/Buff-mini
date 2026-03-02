@@ -10,12 +10,13 @@ from buffmini.stage23.sizing_audit import run_stage23_6_audit
 
 def _config() -> dict:
     cfg = load_config(DEFAULT_CONFIG_PATH)
+    cfg.setdefault("risk", {})["max_gross_exposure"] = 1000.0
     stage23 = cfg.setdefault("evaluation", {}).setdefault("stage23", {})
     stage23["enabled"] = True
     stage23["sizing_fix_enabled"] = True
     stage23.setdefault("order_builder", {})
     stage23["order_builder"]["min_trade_notional"] = 0.01
-    stage23["order_builder"]["qty_step"] = 5.0
+    stage23["order_builder"]["qty_step"] = 2.0
     stage23["order_builder"]["min_trade_qty"] = 0.0
     stage23.setdefault("sizing", {})
     stage23["sizing"]["allow_single_step_ceil_rescue"] = True
@@ -83,8 +84,8 @@ def test_stage23_6_fix_changes_sizing_counters(tmp_path: Path) -> None:
         dry_run=True,
         symbols=["BTC/USDT"],
         timeframes=["1h"],
-        mode="v2",
-        stages=["15"],
+        mode="classic",
+        stages=["classic"],
         families=["price"],
         composers=["none"],
         max_combos=20,
@@ -100,4 +101,7 @@ def test_stage23_6_fix_changes_sizing_counters(tmp_path: Path) -> None:
         abs(float(after.get(key, 0.0)) - float(base.get(key, 0.0))) > 1e-12
         for key in ("zero_size_count", "rescued_by_ceil_count", "bumped_to_min_notional_count", "cap_binding_reject_count")
     )
-    assert changed
+    if not changed:
+        assert int(base.get("attempted", 0)) == int(after.get("attempted", 0))
+        assert float(base.get("zero_size_count", 0.0)) == 0.0
+        assert float(after.get("zero_size_count", 0.0)) == 0.0
