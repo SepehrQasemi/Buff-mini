@@ -1,0 +1,17 @@
+{
+  "deltas": {
+    "zero_trade_pct": 0.0,
+    "invalid_pct": 0.0,
+    "walkforward_executed_true_pct": 0.0,
+    "mc_trigger_rate": 0.0,
+    "death_context": 0.0,
+    "death_orders": 0.0,
+    "death_execution": 0.0
+  },
+  "sizing_delta": {
+    "zero_size_count": 0.0,
+    "rescued_by_ceil_count": 0.0,
+    "bumped_to_min_notional_count": 0.0,
+    "cap_binding_reject_count": 0.0
+  }
+}
