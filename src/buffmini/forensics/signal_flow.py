@@ -21,6 +21,7 @@ from buffmini.config import compute_config_hash
 from buffmini.signals.composer import compose_signals, normalize_weights
 from buffmini.signals.family_base import FamilyContext
 from buffmini.signals.registry import build_families, family_names
+from buffmini.stage23.rejects import RejectBreakdown
 from buffmini.stage10.evaluate import _build_features
 from buffmini.utils.hashing import stable_hash
 from buffmini.utils.time import utc_now_compact
@@ -165,6 +166,8 @@ def run_signal_flow_trace(
     context_cache: dict[tuple[str, str], pd.Series] = {}
     rows: list[dict[str, Any]] = []
     reject_reason_rows: list[dict[str, Any]] = []
+    execution_reject_events: list[dict[str, Any]] = []
+    execution_breakdown = RejectBreakdown()
 
     for combo in combos:
         symbol = combo["symbol"]
@@ -284,6 +287,30 @@ def run_signal_flow_trace(
             "runtime_mc_seconds": runtime_mc,
             "runtime_reporting_seconds": 0.0,
         }
+        attempted = int(row.get("orders_attempted_count", row.get("orders_sent_count", 0)) or 0)
+        accepted = int(round(float(row.get("trades_executed_count", 0.0))))
+        execution_breakdown.register_attempt(attempted)
+        execution_breakdown.register_accept(accepted)
+        rejected = max(0, attempted - accepted)
+        if rejected > 0:
+            reason = "NO_FILL" if accepted <= 0 and attempted > 0 else "POSITION_CONFLICT"
+            execution_breakdown.register_reject(reason, rejected)
+            execution_reject_events.append(
+                {
+                    "stage": stage,
+                    "mode": mode_name,
+                    "symbol": symbol,
+                    "timeframe": timeframe,
+                    "family": family,
+                    "composer": composer,
+                    "timestamp": _resolved_end_ts({(symbol, timeframe): work}),
+                    "side": "MIXED",
+                    "reason": reason,
+                    "count": int(rejected),
+                    "details": f"attempted={attempted};accepted={accepted}",
+                }
+            )
+
         row["top_reject_reason"] = _top_reject_reason(row)
         rows.append(_safe_json(row))
         reject_reason_rows.append(
@@ -324,6 +351,11 @@ def run_signal_flow_trace(
         encoding="utf-8",
     )
     pd.DataFrame(reject_reason_rows).to_csv(trace_dir / "reject_reasons.csv", index=False)
+    pd.DataFrame(execution_reject_events).to_csv(trace_dir / "execution_reject_events.csv", index=False)
+    (trace_dir / "execution_reject_breakdown.json").write_text(
+        json.dumps(execution_breakdown.to_payload(), indent=2, allow_nan=False),
+        encoding="utf-8",
+    )
     (trace_dir / "trace_summary.json").write_text(json.dumps(summary, indent=2, allow_nan=False), encoding="utf-8")
 
     return {
@@ -676,6 +708,7 @@ def _count_flow(
         "after_riskgate_count": after_riskgate_count,
         "cooldown_reject_count": cooldown_reject_count,
         "conflict_reject_count": conflict_reject_count,
+        "orders_attempted_count": orders_sent_count,
         "orders_sent_count": orders_sent_count,
         "signal_series": signal_series,
         "signal_pre": signal_pre,
