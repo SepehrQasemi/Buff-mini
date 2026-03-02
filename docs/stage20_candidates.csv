@@ -1,0 +1,3 @@
+name,trade_count,tpm,exposure_ratio,PF_raw,PF,expectancy,exp_lcb,max_drawdown,drag_penalty,horizon_consistency,score,valid,reason
+baseline,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.6,0.35,-1000000.6,False,TPM_OUT_OF_BOUNDS|LOW_EXPOSURE
+transition,1488.5,38.75040676863,0.5975159995661135,0.7365188940394716,0.7365188940394716,-6.3811231589938,-7.960478362796625,0.9544856155893615,0.8,0.4,-1000009.4149639783,False,MAX_DD_BREACH
