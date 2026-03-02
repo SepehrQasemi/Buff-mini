@@ -185,6 +185,7 @@ def _collect_one_equity(
     breakdown = _read_json(trace_dir / "execution_reject_breakdown.json")
     s24_summary = _read_json(trace_dir / "stage24_sizing_summary.json")
     s24_trace = _read_csv(trace_dir / "stage24_sizing_trace.csv")
+    sizing_summary = _read_json(trace_dir / "sizing_trace_summary.json")
 
     trade_count = float(pd.to_numeric(rows.get("trades_executed_count", 0.0), errors="coerce").fillna(0.0).sum()) if not rows.empty else 0.0
     trade_pnls = _collect_trade_pnls(rows)
@@ -224,6 +225,14 @@ def _collect_one_equity(
         "trace_dir": str(trace_dir),
         "stage24_valid_count": int(s24_summary.get("valid_count", 0)),
         "stage24_invalid_count": int(s24_summary.get("invalid_count", 0)),
+        "margin_required_min": float(sizing_summary.get("margin_required_min", 0.0)),
+        "margin_required_median": float(sizing_summary.get("margin_required_median", 0.0)),
+        "margin_required_max": float(sizing_summary.get("margin_required_max", 0.0)),
+        "margin_limit_min": float(sizing_summary.get("margin_limit_min", 0.0)),
+        "margin_limit_median": float(sizing_summary.get("margin_limit_median", 0.0)),
+        "margin_limit_max": float(sizing_summary.get("margin_limit_max", 0.0)),
+        "cap_binding_reject_count": int(sizing_summary.get("cap_binding_reject_count", 0)),
+        "reject_reason_counts": dict(breakdown.get("reject_reason_counts", {})),
     }
     trace_ref = {
         "initial_equity": float(initial_equity),

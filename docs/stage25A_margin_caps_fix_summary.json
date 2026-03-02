@@ -2,7 +2,8 @@
   "stage": "25A",
   "status": "IN_PROGRESS",
   "sections_completed": [
-    "25.1"
+    "25.1",
+    "25.2"
   ],
   "canonical_margin_model": {
     "module": "src/buffmini/execution/margin_model.py",
@@ -14,9 +15,53 @@
     ]
   },
   "tests_added": [
-    "tests/test_margin_model_invariants.py"
+    "tests/test_margin_model_invariants.py",
+    "tests/test_stage24_equity_scaling_no_pathological_margin_fail.py"
   ],
+  "stage24_before_after": {
+    "snapshot_path": "docs/stage25A_stage24_prefx_snapshot.json",
+    "post_path": "docs/stage24_report_summary.json",
+    "anomaly_fixed": true,
+    "tiers": [
+      {
+        "initial_equity": 100,
+        "pre_trade_count": 32.0,
+        "pre_invalid_pct": 0.0,
+        "pre_top_reason": "VALID",
+        "post_trade_count": 32.0,
+        "post_invalid_pct": 0.0,
+        "post_top_reason": "VALID"
+      },
+      {
+        "initial_equity": 1000,
+        "pre_trade_count": 32.0,
+        "pre_invalid_pct": 0.0,
+        "pre_top_reason": "VALID",
+        "post_trade_count": 32.0,
+        "post_invalid_pct": 0.0,
+        "post_top_reason": "VALID"
+      },
+      {
+        "initial_equity": 10000,
+        "pre_trade_count": 0.0,
+        "pre_invalid_pct": 100.0,
+        "pre_top_reason": "MARGIN_FAIL",
+        "post_trade_count": 32.0,
+        "post_invalid_pct": 0.0,
+        "post_top_reason": "VALID"
+      },
+      {
+        "initial_equity": 100000,
+        "pre_trade_count": 0.0,
+        "pre_invalid_pct": 100.0,
+        "pre_top_reason": "MARGIN_FAIL",
+        "post_trade_count": 32.0,
+        "post_invalid_pct": 0.0,
+        "post_top_reason": "VALID"
+      }
+    ]
+  },
   "notes": [
-    "Stage-25A summary will be finalized after 25.2 and 25.3 reruns."
+    "Stage-25A summary will be finalized after 25.3 reruns."
   ]
 }
