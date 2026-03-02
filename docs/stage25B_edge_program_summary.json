@@ -1,0 +1,248 @@
+{
+  "stage": "25B",
+  "run_id": "20260302_213415_e829535e1dda_stage25B",
+  "seed": 42,
+  "mode": "research",
+  "dry_run": true,
+  "symbols": [
+    "BTC/USDT",
+    "ETH/USDT"
+  ],
+  "timeframes": [
+    "15m",
+    "30m",
+    "1h",
+    "2h",
+    "4h"
+  ],
+  "families": [
+    "price",
+    "volatility",
+    "flow"
+  ],
+  "composers": [
+    "weighted_sum"
+  ],
+  "cost_levels": [
+    "realistic",
+    "high"
+  ],
+  "runtime_seconds": 24.39883859999827,
+  "trace_refs": [
+    {
+      "cost_level": "realistic",
+      "trace_run_id": "20260302_213415_ae1576783f2a_stage15_9_trace",
+      "trace_dir": "C:\\dev\\Buff-mini\\runs\\20260302_213415_ae1576783f2a_stage15_9_trace\\trace",
+      "config_hash": "57e88dee0f81",
+      "data_hash": "b6faf10f0f3a44a9",
+      "resolved_end_ts": "2025-04-10T23:00:00+00:00"
+    },
+    {
+      "cost_level": "high",
+      "trace_run_id": "20260302_213427_d9b18c6ac98e_stage15_9_trace",
+      "trace_dir": "C:\\dev\\Buff-mini\\runs\\20260302_213427_d9b18c6ac98e_stage15_9_trace\\trace",
+      "config_hash": "a67c8711873f",
+      "data_hash": "b6faf10f0f3a44a9",
+      "resolved_end_ts": "2025-04-10T23:00:00+00:00"
+    }
+  ],
+  "metrics": {
+    "rows": 160,
+    "trade_count_total": 1835.0,
+    "tpm_median": 1.5006252605252188,
+    "exp_lcb_best": 0.0,
+    "exp_lcb_median": -20.081494116528425,
+    "expectancy_median": 0.0,
+    "maxdd_median": 0.019311187773234453,
+    "zero_trade_pct": 50.0,
+    "walkforward_executed_true_pct": 0.0,
+    "mc_trigger_rate": 50.0,
+    "invalid_pct": 50.0,
+    "per_family": {
+      "combined": {
+        "rows": 40,
+        "trade_count_total": 0.0,
+        "exp_lcb_best": 0.0,
+        "exp_lcb_median": 0.0,
+        "zero_trade_pct": 100.0
+      },
+      "flow": {
+        "rows": 40,
+        "trade_count_total": 1180.0,
+        "exp_lcb_best": -44.165807153388926,
+        "exp_lcb_median": -63.835897324250986,
+        "zero_trade_pct": 0.0
+      },
+      "price": {
+        "rows": 40,
+        "trade_count_total": 655.0,
+        "exp_lcb_best": -40.16298823305685,
+        "exp_lcb_median": -51.09511329518953,
+        "zero_trade_pct": 0.0
+      },
+      "volatility": {
+        "rows": 40,
+        "trade_count_total": 0.0,
+        "exp_lcb_best": 0.0,
+        "exp_lcb_median": 0.0,
+        "zero_trade_pct": 100.0
+      }
+    }
+  },
+  "best_candidates": {
+    "combined": [
+      {
+        "mode": "research",
+        "cost_level": "high",
+        "symbol": "BTC/USDT",
+        "timeframe": "15m",
+        "composer": "weighted_sum",
+        "exit_variant": "fixed_atr",
+        "trade_count": 0.0,
+        "expectancy": 0.0,
+        "exp_lcb": 0.0,
+        "maxDD": 0.0
+      },
+      {
+        "mode": "research",
+        "cost_level": "high",
+        "symbol": "BTC/USDT",
+        "timeframe": "15m",
+        "composer": "weighted_sum",
+        "exit_variant": "atr_trailing",
+        "trade_count": 0.0,
+        "expectancy": 0.0,
+        "exp_lcb": 0.0,
+        "maxDD": 0.0
+      },
+      {
+        "mode": "research",
+        "cost_level": "high",
+        "symbol": "BTC/USDT",
+        "timeframe": "1h",
+        "composer": "weighted_sum",
+        "exit_variant": "fixed_atr",
+        "trade_count": 0.0,
+        "expectancy": 0.0,
+        "exp_lcb": 0.0,
+        "maxDD": 0.0
+      }
+    ],
+    "flow": [
+      {
+        "mode": "research",
+        "cost_level": "realistic",
+        "symbol": "ETH/USDT",
+        "timeframe": "15m",
+        "composer": "none",
+        "exit_variant": "atr_trailing",
+        "trade_count": 30.0,
+        "expectancy": -22.67624046548409,
+        "exp_lcb": -44.165807153388926,
+        "maxDD": 0.08948097570101664
+      },
+      {
+        "mode": "research",
+        "cost_level": "realistic",
+        "symbol": "ETH/USDT",
+        "timeframe": "1h",
+        "composer": "none",
+        "exit_variant": "atr_trailing",
+        "trade_count": 30.0,
+        "expectancy": -22.67624046548409,
+        "exp_lcb": -44.165807153388926,
+        "maxDD": 0.08948097570101664
+      },
+      {
+        "mode": "research",
+        "cost_level": "realistic",
+        "symbol": "ETH/USDT",
+        "timeframe": "2h",
+        "composer": "none",
+        "exit_variant": "atr_trailing",
+        "trade_count": 30.0,
+        "expectancy": -22.67624046548409,
+        "exp_lcb": -44.165807153388926,
+        "maxDD": 0.08948097570101664
+      }
+    ],
+    "price": [
+      {
+        "mode": "research",
+        "cost_level": "high",
+        "symbol": "BTC/USDT",
+        "timeframe": "15m",
+        "composer": "none",
+        "exit_variant": "atr_trailing",
+        "trade_count": 24.0,
+        "expectancy": -9.52315809011462,
+        "exp_lcb": -40.16298823305685,
+        "maxDD": 0.1175242121125025
+      },
+      {
+        "mode": "research",
+        "cost_level": "high",
+        "symbol": "BTC/USDT",
+        "timeframe": "1h",
+        "composer": "none",
+        "exit_variant": "atr_trailing",
+        "trade_count": 24.0,
+        "expectancy": -9.52315809011462,
+        "exp_lcb": -40.16298823305685,
+        "maxDD": 0.1175242121125025
+      },
+      {
+        "mode": "research",
+        "cost_level": "high",
+        "symbol": "BTC/USDT",
+        "timeframe": "2h",
+        "composer": "none",
+        "exit_variant": "atr_trailing",
+        "trade_count": 24.0,
+        "expectancy": -9.52315809011462,
+        "exp_lcb": -40.16298823305685,
+        "maxDD": 0.1175242121125025
+      }
+    ],
+    "volatility": [
+      {
+        "mode": "research",
+        "cost_level": "high",
+        "symbol": "BTC/USDT",
+        "timeframe": "15m",
+        "composer": "none",
+        "exit_variant": "fixed_atr",
+        "trade_count": 0.0,
+        "expectancy": 0.0,
+        "exp_lcb": 0.0,
+        "maxDD": 0.0
+      },
+      {
+        "mode": "research",
+        "cost_level": "high",
+        "symbol": "BTC/USDT",
+        "timeframe": "15m",
+        "composer": "none",
+        "exit_variant": "atr_trailing",
+        "trade_count": 0.0,
+        "expectancy": 0.0,
+        "exp_lcb": 0.0,
+        "maxDD": 0.0
+      },
+      {
+        "mode": "research",
+        "cost_level": "high",
+        "symbol": "BTC/USDT",
+        "timeframe": "1h",
+        "composer": "none",
+        "exit_variant": "fixed_atr",
+        "trade_count": 0.0,
+        "expectancy": 0.0,
+        "exp_lcb": 0.0,
+        "maxDD": 0.0
+      }
+    ]
+  },
+  "status": "NO_EDGE_IN_RESEARCH",
+  "summary_hash": "f4548d2466b153bc"
+}
