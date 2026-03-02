@@ -100,6 +100,7 @@ def run_signal_flow_trace(
     cfg = json.loads(json.dumps(config))
     cfg.setdefault("universe", {})["base_timeframe"] = "1m"
     cfg.setdefault("data", {})["resample_source"] = "base"
+    cfg_hash = compute_config_hash(cfg)
     run_seed = int(seed)
     selected_mode = str(mode).strip().lower()
     if selected_mode not in {"classic", "v2", "both"}:
@@ -115,7 +116,11 @@ def run_signal_flow_trace(
     if not valid_composers:
         valid_composers = list(DEFAULT_COMPOSERS)
 
-    run_id = f"{utc_now_compact()}_{stable_hash({'seed': run_seed, 'stages': valid_stages, 'timeframes': timeframes, 'mode': selected_mode}, length=12)}_stage15_9_trace"
+    run_id = (
+        f"{utc_now_compact()}_"
+        f"{stable_hash({'seed': run_seed, 'stages': valid_stages, 'timeframes': timeframes, 'mode': selected_mode, 'symbols': symbols, 'families': valid_families, 'composers': valid_composers, 'config_hash': cfg_hash}, length=12)}"
+        "_stage15_9_trace"
+    )
     run_dir = runs_root / run_id
     trace_dir = run_dir / "trace"
     trace_dir.mkdir(parents=True, exist_ok=True)
@@ -371,7 +376,7 @@ def run_signal_flow_trace(
     summary = summarize_trace(rows_df=rows_df, reject_reasons=pd.DataFrame(reject_reason_rows))
     summary["run_id"] = run_id
     summary["seed"] = run_seed
-    summary["config_hash"] = compute_config_hash(cfg)
+    summary["config_hash"] = cfg_hash
     summary["data_hash"] = _trace_data_hash(features_cache)
     summary["resolved_end_ts"] = _resolved_end_ts(features_cache)
     summary["head_commit"] = _git_head()

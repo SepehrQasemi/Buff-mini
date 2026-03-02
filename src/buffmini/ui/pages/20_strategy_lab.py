@@ -4,6 +4,7 @@ from __future__ import annotations
 
 from pathlib import Path
 
+import pandas as pd
 import streamlit as st
 
 from buffmini.config import load_config
@@ -23,6 +24,22 @@ def _stage5_presets(config: dict) -> tuple[int, int, int]:
     full = int((presets.get("full") or {}).get("candidate_count", stage1_default))
     default_sim = int((presets.get("quick") or {}).get("run_stage4_simulate", 0))
     return quick, full, default_sim
+
+
+def _stage24_risk_ladder_preview(stage24_cfg: dict) -> pd.DataFrame:
+    sizing = dict((stage24_cfg.get("sizing", {}) or {}))
+    ladder = dict((sizing.get("risk_ladder", {}) or {}))
+    r_min = float(ladder.get("r_min", 0.02))
+    r_max = float(ladder.get("r_max", 0.20))
+    e_ref = float(ladder.get("e_ref", 1000.0))
+    r_ref = float(ladder.get("r_ref", 0.08))
+    k = float(ladder.get("k", 0.5))
+    rows: list[dict[str, float]] = []
+    for equity in (100.0, 1000.0, 10000.0, 100000.0):
+        raw = float(r_ref * ((max(e_ref, 1e-12) / max(equity, 1e-12)) ** max(k, 0.0)))
+        used = float(max(r_min, min(r_max, raw)))
+        rows.append({"equity": equity, "risk_pct_base": used, "risk_pct_base_percent": used * 100.0})
+    return pd.DataFrame(rows)
 
 
 config = load_config(CONFIG_PATH)
@@ -63,6 +80,23 @@ with st.form("strategy_lab_form"):
         default_candidate_count = quick_count if mode_preset == "Quick" else full_count
         candidate_count = st.number_input("Candidate count", min_value=1, value=int(default_candidate_count), step=100)
         run_stage4_simulate = st.selectbox("Run Stage-4 simulation", options=[0, 1], index=default_sim)
+
+    stage24_cfg = dict((config.get("evaluation", {}) or {}).get("stage24", {})
+    )
+    with st.expander("Stage-24 Sizing (UI Preview)"):
+        stage24_mode_default = str((stage24_cfg.get("sizing", {}) or {}).get("mode", "risk_pct")).strip().lower()
+        stage24_mode = st.selectbox(
+            "Sizing mode",
+            options=["risk_pct", "alloc_pct"],
+            index=0 if stage24_mode_default == "risk_pct" else 1,
+        )
+        if stage24_mode == "risk_pct":
+            st.caption("Base ladder values (before drawdown/losing-streak clamps).")
+            st.dataframe(_stage24_risk_ladder_preview(stage24_cfg), use_container_width=True)
+        else:
+            alloc_pct = float((stage24_cfg.get("sizing", {}) or {}).get("alloc_pct", 0.25))
+            st.caption(f"Allocation mode selected: alloc_pct = {alloc_pct:.4f} ({alloc_pct * 100.0:.2f}%).")
+        st.info("This selector previews Stage-24 sizing configuration for Stage-24 scripts. The Stage-5 pipeline flow remains unchanged.")
 
     if mode_preset == "Quick":
         st.caption(f"Estimated workload: light to medium (about {quick_count} candidates by default).")
