@@ -590,6 +590,41 @@ STAGE14_DEFAULTS = {
     "meta_family": {"enabled": False, "min_families_required": 2},
 }
 
+STAGE26_DEFAULTS = {
+    "enabled": False,
+    "seed": 42,
+    "base_timeframe": "1m",
+    "timeframes": ["15m", "30m", "1h", "2h", "4h"],
+    "symbols": ["BTC/USDT", "ETH/USDT"],
+    "required_years": 4,
+    "constraints_mode_discovery": "research",
+    "constraints_mode_live": "live",
+    "context": {
+        "rank_window": 252,
+        "vol_window": 24,
+        "bb_window": 20,
+        "volume_window": 120,
+        "chop_window": 48,
+        "trend_lookback": 24,
+    },
+    "conditional_eval": {
+        "bootstrap_samples": 500,
+        "min_occurrences": 30,
+        "min_trades": 30,
+        "rare_min_trades": 10,
+        "rolling_months": [3, 6, 12],
+    },
+    "policy": {
+        "top_k": 2,
+        "min_occurrences_per_context": 30,
+        "min_trades_in_context": 30,
+        "w_min": 0.05,
+        "w_max": 0.80,
+        "conflict_mode": "net",
+    },
+    "cost_levels": ["realistic", "high"],
+}
+
 UI_STAGE5_DEFAULTS = {
     "stage5": {
         "presets": {
@@ -1756,6 +1791,69 @@ def validate_config(config: ConfigDict) -> None:
     if int(meta_cfg.get("min_families_required", 2)) < 2:
         raise ValueError("evaluation.stage14.meta_family.min_families_required must be >= 2")
     evaluation["stage14"] = stage14
+
+    stage26 = _merge_defaults(STAGE26_DEFAULTS, evaluation.get("stage26", {}))
+    if not isinstance(stage26.get("enabled", False), bool):
+        raise ValueError("evaluation.stage26.enabled must be bool")
+    if int(stage26.get("seed", 42)) < 0:
+        raise ValueError("evaluation.stage26.seed must be >= 0")
+    base26 = str(stage26.get("base_timeframe", "1m")).strip().lower()
+    if base26 not in SUPPORTED_TIMEFRAMES:
+        raise ValueError(f"evaluation.stage26.base_timeframe must be one of {SUPPORTED_TIMEFRAMES}")
+    tfs26 = stage26.get("timeframes", [])
+    if not isinstance(tfs26, list) or not tfs26:
+        raise ValueError("evaluation.stage26.timeframes must be a non-empty list")
+    for idx, tf in enumerate(tfs26):
+        tfv = str(tf).strip().lower()
+        if tfv not in SUPPORTED_TIMEFRAMES:
+            raise ValueError(f"evaluation.stage26.timeframes[{idx}] must be one of {SUPPORTED_TIMEFRAMES}")
+        _validate_timeframe_multiple(base26, tfv, f"evaluation.stage26.timeframes[{idx}]")
+    syms26 = stage26.get("symbols", [])
+    if not isinstance(syms26, list) or not syms26:
+        raise ValueError("evaluation.stage26.symbols must be a non-empty list")
+    if int(stage26.get("required_years", 4)) < 1:
+        raise ValueError("evaluation.stage26.required_years must be >= 1")
+    if str(stage26.get("constraints_mode_discovery", "research")).strip().lower() not in {"research", "live"}:
+        raise ValueError("evaluation.stage26.constraints_mode_discovery must be research|live")
+    if str(stage26.get("constraints_mode_live", "live")).strip().lower() not in {"research", "live"}:
+        raise ValueError("evaluation.stage26.constraints_mode_live must be research|live")
+    ctx26 = stage26.get("context", {})
+    if int(ctx26.get("rank_window", 252)) < 10:
+        raise ValueError("evaluation.stage26.context.rank_window must be >= 10")
+    for key in ("vol_window", "bb_window", "volume_window", "chop_window", "trend_lookback"):
+        if int(ctx26.get(key, 1)) < 2:
+            raise ValueError(f"evaluation.stage26.context.{key} must be >= 2")
+    cond26 = stage26.get("conditional_eval", {})
+    if int(cond26.get("bootstrap_samples", 500)) < 10:
+        raise ValueError("evaluation.stage26.conditional_eval.bootstrap_samples must be >= 10")
+    if int(cond26.get("min_occurrences", 30)) < 1:
+        raise ValueError("evaluation.stage26.conditional_eval.min_occurrences must be >= 1")
+    if int(cond26.get("min_trades", 30)) < 1:
+        raise ValueError("evaluation.stage26.conditional_eval.min_trades must be >= 1")
+    if int(cond26.get("rare_min_trades", 10)) < 1:
+        raise ValueError("evaluation.stage26.conditional_eval.rare_min_trades must be >= 1")
+    rolling26 = cond26.get("rolling_months", [])
+    if not isinstance(rolling26, list) or not rolling26:
+        raise ValueError("evaluation.stage26.conditional_eval.rolling_months must be non-empty list")
+    if any(int(v) < 1 for v in rolling26):
+        raise ValueError("evaluation.stage26.conditional_eval.rolling_months values must be >= 1")
+    pol26 = stage26.get("policy", {})
+    if int(pol26.get("top_k", 2)) < 1:
+        raise ValueError("evaluation.stage26.policy.top_k must be >= 1")
+    if int(pol26.get("min_occurrences_per_context", 30)) < 1:
+        raise ValueError("evaluation.stage26.policy.min_occurrences_per_context must be >= 1")
+    if int(pol26.get("min_trades_in_context", 30)) < 1:
+        raise ValueError("evaluation.stage26.policy.min_trades_in_context must be >= 1")
+    w_min = float(pol26.get("w_min", 0.05))
+    w_max = float(pol26.get("w_max", 0.80))
+    if w_min < 0 or w_max <= 0 or w_max < w_min:
+        raise ValueError("evaluation.stage26.policy requires 0 <= w_min <= w_max and w_max > 0")
+    if str(pol26.get("conflict_mode", "net")).strip().lower() not in {"net", "hedge", "isolated"}:
+        raise ValueError("evaluation.stage26.policy.conflict_mode must be net|hedge|isolated")
+    cost_levels26 = stage26.get("cost_levels", [])
+    if not isinstance(cost_levels26, list) or not cost_levels26:
+        raise ValueError("evaluation.stage26.cost_levels must be non-empty list")
+    evaluation["stage26"] = stage26
 
     ui = _merge_defaults(UI_STAGE5_DEFAULTS, config.get("ui", {}))
     stage5_ui = ui.get("stage5", {})
