@@ -169,6 +169,7 @@ def run_signal_flow_trace(
     rows: list[dict[str, Any]] = []
     reject_reason_rows: list[dict[str, Any]] = []
     execution_reject_events: list[dict[str, Any]] = []
+    execution_adjustment_events: list[dict[str, Any]] = []
     eligibility_trace_rows: list[dict[str, Any]] = []
     execution_breakdown = RejectBreakdown()
 
@@ -314,6 +315,7 @@ def run_signal_flow_trace(
                     "details": str(event.get("details", "")),
                 }
             )
+        execution_adjustment_events.extend(list(counts.get("execution_adjustment_events", [])))
         eligibility_trace_rows.extend(list(counts.get("eligibility_trace_rows", [])))
 
         row["top_reject_reason"] = _top_reject_reason(row)
@@ -358,6 +360,7 @@ def run_signal_flow_trace(
     pd.DataFrame(reject_reason_rows).to_csv(trace_dir / "reject_reasons.csv", index=False)
     pd.DataFrame(eligibility_trace_rows).to_csv(trace_dir / "eligibility_trace.csv", index=False)
     pd.DataFrame(execution_reject_events).to_csv(trace_dir / "execution_reject_events.csv", index=False)
+    pd.DataFrame(execution_adjustment_events).to_csv(trace_dir / "execution_adjustments.csv", index=False)
     (trace_dir / "execution_reject_breakdown.json").write_text(
         json.dumps(execution_breakdown.to_payload(), indent=2, allow_nan=False),
         encoding="utf-8",
@@ -707,6 +710,7 @@ def _count_flow(
     stage23_cfg = dict((cfg.get("evaluation", {}) or {}).get("stage23", {}))
     stage23_enabled = bool(stage23_cfg.get("enabled", False))
     execution_reject_events: list[dict[str, Any]] = []
+    execution_adjustment_events: list[dict[str, Any]] = []
     if stage_profile.trading and stage23_enabled:
         eligibility = evaluate_eligibility(
             frame=frame,
@@ -746,6 +750,7 @@ def _count_flow(
         orders_attempted_count = int(adaptive["breakdown"]["total_orders_attempted"])
         orders_sent_count = int((signal_series != 0).sum())
         execution_reject_events = list(adaptive.get("reject_events", []))
+        execution_adjustment_events = list(adaptive.get("adjustment_events", []))
     else:
         signal_series = signal_pre.shift(1).fillna(0).astype(int)
         orders_attempted_count = int((signal_pre != 0).sum()) if stage_profile.trading else 0
@@ -764,6 +769,7 @@ def _count_flow(
         "orders_attempted_count": orders_attempted_count,
         "orders_sent_count": orders_sent_count,
         "execution_reject_events": execution_reject_events,
+        "execution_adjustment_events": execution_adjustment_events,
         "eligibility_trace_rows": eligibility_trace_rows,
         "signal_series": signal_series,
         "signal_pre": signal_pre,

@@ -84,6 +84,7 @@ def build_adaptive_orders(
     accepted = np.zeros(len(frame), dtype=int)
     order_rows: list[dict[str, Any]] = []
     reject_events: list[dict[str, Any]] = []
+    adjustment_events: list[dict[str, Any]] = []
 
     for idx in range(len(frame)):
         direction = int(np.sign(side[idx]))
@@ -206,8 +207,21 @@ def build_adaptive_orders(
             if bool(relax.allow_size_reduction_on_margin_fail):
                 reduction_steps = 0
                 while notional > max_notional and reduction_steps < int(relax.max_size_reduction_steps):
+                    prev = float(notional)
                     notional *= 0.7
                     reduction_steps += 1
+                    adjustment_events.append(
+                        {
+                            "timestamp": timestamp,
+                            "symbol": symbol,
+                            "side": side_label,
+                            "event": "size_reduction_margin",
+                            "step": int(reduction_steps),
+                            "before_notional": prev,
+                            "after_notional": float(notional),
+                            "max_notional": float(max_notional),
+                        }
+                    )
                 if notional > max_notional:
                     _reject(
                         breakdown=breakdown,
@@ -259,7 +273,21 @@ def build_adaptive_orders(
         if slippage_bps > float(relax.slippage_soft_threshold_bps):
             # Soft threshold: reduce size to keep exposure realistic.
             ratio = float(relax.slippage_soft_threshold_bps) / max(slippage_bps, 1e-12)
+            prev = float(notional)
             notional = max(float(order_builder.min_trade_notional), notional * max(0.25, min(1.0, ratio)))
+            if notional < prev:
+                adjustment_events.append(
+                    {
+                        "timestamp": timestamp,
+                        "symbol": symbol,
+                        "side": side_label,
+                        "event": "size_reduction_slippage",
+                        "step": 1,
+                        "before_notional": prev,
+                        "after_notional": float(notional),
+                        "slippage_bps": float(slippage_bps),
+                    }
+                )
 
         if bool(relax.allow_partial_fill):
             liq_ratio = float(volume[idx] / max(vol_ref[idx], 1e-12))
@@ -312,6 +340,9 @@ def build_adaptive_orders(
                 "fill_ratio": float(fill_ratio),
                 "slippage_bps": float(slippage_bps),
                 "spread_bps": float(spread_bps),
+                "adjustment_events_count": int(
+                    sum(1 for event in adjustment_events if event.get("timestamp", "") == timestamp and event.get("symbol") == symbol)
+                ),
             }
         )
 
@@ -320,6 +351,7 @@ def build_adaptive_orders(
         "accepted_signal": pd.Series(accepted, index=frame.index, dtype=int),
         "orders_df": orders_df,
         "reject_events": reject_events,
+        "adjustment_events": adjustment_events,
         "breakdown": breakdown.to_payload(),
     }
 
