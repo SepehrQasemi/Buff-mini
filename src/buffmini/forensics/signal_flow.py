@@ -808,7 +808,9 @@ def _aggregate_sizing_trace_summary(df: pd.DataFrame) -> dict[str, Any]:
             "raw_size_min": 0.0,
             "raw_size_median": 0.0,
             "raw_size_p95": 0.0,
+            "rescued_by_ceil_count": 0,
             "bumped_to_min_notional_count": 0,
+            "cap_binding_reject_count": 0,
             "reject_reason_counts": {},
         }
     raw_size = pd.to_numeric(df.get("raw_size", 0.0), errors="coerce").fillna(0.0)
@@ -826,7 +828,9 @@ def _aggregate_sizing_trace_summary(df: pd.DataFrame) -> dict[str, Any]:
         "raw_size_min": float(raw_size.min()),
         "raw_size_median": float(raw_size.median()),
         "raw_size_p95": float(raw_size.quantile(0.95)),
+        "rescued_by_ceil_count": int(pd.to_numeric(df.get("ceil_rescue_applied", False), errors="coerce").fillna(False).astype(bool).sum()),
         "bumped_to_min_notional_count": int(pd.to_numeric(df.get("bumped_to_min_notional", False), errors="coerce").fillna(False).astype(bool).sum()),
+        "cap_binding_reject_count": int(((decision == "REJECTED") & (df.get("cap_binding", pd.Series(dtype=str)).astype(str) != "")).sum()),
         "reject_reason_counts": {
             str(k): int(v) for k, v in reject_reason.value_counts().sort_index().items()
         },

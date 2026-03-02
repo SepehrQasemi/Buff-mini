@@ -464,13 +464,21 @@ evaluation:
       enabled: true
   stage23:
     enabled: false
+    sizing_fix_enabled: true
     order_builder:
       min_stop_atr_mult: 0.8
       min_stop_bps: 8.0
       min_rr: 0.8
       min_trade_notional: 10.0
+      min_trade_qty: 0.0
+      qty_step: 0.001
       allow_size_bump_to_min_notional: true
       rr_fallback_exit_mode: fixed_atr
+    sizing:
+      qty_rounding_default: floor
+      qty_rounding_on_min_notional_bump: ceil
+      allow_single_step_ceil_rescue: true
+      ceil_rescue_max_overage_steps: 1
     eligibility:
       min_score_default: 0.35
       per_regime_thresholds: {}

@@ -423,13 +423,22 @@ STAGE12_4_DEFAULTS = {
 
 STAGE23_DEFAULTS = {
     "enabled": False,
+    "sizing_fix_enabled": True,
     "order_builder": {
         "min_stop_atr_mult": 0.8,
         "min_stop_bps": 8.0,
         "min_rr": 0.8,
         "min_trade_notional": 10.0,
+        "min_trade_qty": 0.0,
+        "qty_step": 0.001,
         "allow_size_bump_to_min_notional": True,
         "rr_fallback_exit_mode": "fixed_atr",
+    },
+    "sizing": {
+        "qty_rounding_default": "floor",
+        "qty_rounding_on_min_notional_bump": "ceil",
+        "allow_single_step_ceil_rescue": True,
+        "ceil_rescue_max_overage_steps": 1,
     },
     "eligibility": {
         "min_score_default": 0.35,
@@ -1429,6 +1438,8 @@ def validate_config(config: ConfigDict) -> None:
     stage23 = _merge_defaults(STAGE23_DEFAULTS, evaluation.get("stage23", {}))
     if not isinstance(stage23.get("enabled", False), bool):
         raise ValueError("evaluation.stage23.enabled must be bool")
+    if not isinstance(stage23.get("sizing_fix_enabled", True), bool):
+        raise ValueError("evaluation.stage23.sizing_fix_enabled must be bool")
     order_builder = stage23.get("order_builder", {})
     if float(order_builder.get("min_stop_atr_mult", 0.8)) <= 0:
         raise ValueError("evaluation.stage23.order_builder.min_stop_atr_mult must be > 0")
@@ -1438,10 +1449,27 @@ def validate_config(config: ConfigDict) -> None:
         raise ValueError("evaluation.stage23.order_builder.min_rr must be > 0")
     if float(order_builder.get("min_trade_notional", 10.0)) <= 0:
         raise ValueError("evaluation.stage23.order_builder.min_trade_notional must be > 0")
+    if float(order_builder.get("min_trade_qty", 0.0)) < 0:
+        raise ValueError("evaluation.stage23.order_builder.min_trade_qty must be >= 0")
+    if float(order_builder.get("qty_step", 0.001)) < 0:
+        raise ValueError("evaluation.stage23.order_builder.qty_step must be >= 0")
     if not isinstance(order_builder.get("allow_size_bump_to_min_notional", True), bool):
         raise ValueError("evaluation.stage23.order_builder.allow_size_bump_to_min_notional must be bool")
     if str(order_builder.get("rr_fallback_exit_mode", "fixed_atr")).strip() == "":
         raise ValueError("evaluation.stage23.order_builder.rr_fallback_exit_mode must be non-empty")
+
+    sizing23 = stage23.get("sizing", {})
+    mode_default = str(sizing23.get("qty_rounding_default", "floor")).strip().lower()
+    mode_bump = str(sizing23.get("qty_rounding_on_min_notional_bump", "ceil")).strip().lower()
+    valid_round_modes = {"floor", "ceil", "nearest"}
+    if mode_default not in valid_round_modes:
+        raise ValueError("evaluation.stage23.sizing.qty_rounding_default must be floor|ceil|nearest")
+    if mode_bump not in valid_round_modes:
+        raise ValueError("evaluation.stage23.sizing.qty_rounding_on_min_notional_bump must be floor|ceil|nearest")
+    if not isinstance(sizing23.get("allow_single_step_ceil_rescue", True), bool):
+        raise ValueError("evaluation.stage23.sizing.allow_single_step_ceil_rescue must be bool")
+    if int(sizing23.get("ceil_rescue_max_overage_steps", 1)) < 0:
+        raise ValueError("evaluation.stage23.sizing.ceil_rescue_max_overage_steps must be >= 0")
 
     eligibility = stage23.get("eligibility", {})
     score_default = float(eligibility.get("min_score_default", 0.35))

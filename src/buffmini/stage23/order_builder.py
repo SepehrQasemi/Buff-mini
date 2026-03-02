@@ -20,6 +20,8 @@ class OrderBuilderConfig:
     min_trade_notional: float = 10.0
     allow_size_bump_to_min_notional: bool = True
     rr_fallback_exit_mode: str = "fixed_atr"
+    min_trade_qty: float = 0.0
+    qty_step: float = 0.0
 
 
 @dataclass(frozen=True)
@@ -33,9 +35,15 @@ class ExecutionRelaxConfig:
 
 
 @dataclass(frozen=True)
-class SizingTraceRecord:
-    """Deterministic per-attempt sizing trace row."""
+class SizingRepairConfig:
+    qty_rounding_default: str = "floor"
+    qty_rounding_on_min_notional_bump: str = "ceil"
+    allow_single_step_ceil_rescue: bool = True
+    ceil_rescue_max_overage_steps: int = 1
 
+
+@dataclass(frozen=True)
+class SizingTraceRecord:
     ts: str
     symbol: str
     side: str
@@ -52,6 +60,8 @@ class SizingTraceRecord:
     rounded_size_after: float
     rounding_mode_used: str
     final_notional: float
+    ceil_rescue_applied: bool
+    cap_binding: str
     decision: str
     reject_reason: str
     reject_details: str
@@ -80,6 +90,7 @@ def build_adaptive_orders(
             "accepted_signal": empty,
             "orders_df": pd.DataFrame(),
             "reject_events": [],
+            "adjustment_events": [],
             "sizing_trace": pd.DataFrame(),
             "sizing_trace_summary": _summarize_sizing_trace([]),
             "breakdown": RejectBreakdown().to_payload(),
@@ -88,6 +99,8 @@ def build_adaptive_orders(
     eval_cfg = dict((cfg.get("evaluation", {}) or {}).get("stage23", {}))
     order_builder = OrderBuilderConfig(**_pick_order_builder_cfg(eval_cfg.get("order_builder", {})))
     relax = ExecutionRelaxConfig(**_pick_execution_cfg(eval_cfg.get("execution", {})))
+    sizing_cfg = SizingRepairConfig(**_pick_sizing_cfg(eval_cfg.get("sizing", {})))
+    sizing_fix_enabled = bool(eval_cfg.get("sizing_fix_enabled", True))
 
     risk_cfg = dict(cfg.get("risk", {}) or {})
     max_gross_exposure = float(risk_cfg.get("max_gross_exposure", 5.0))
@@ -121,6 +134,8 @@ def build_adaptive_orders(
     adjustment_events: list[dict[str, Any]] = []
     sizing_trace_rows: list[dict[str, Any]] = []
 
+    tp_atr = float(((cfg.get("evaluation", {}) or {}).get("stage10", {}) or {}).get("evaluation", {}).get("take_profit_atr_multiple", 3.0))
+
     for idx in range(len(frame)):
         direction = int(np.sign(side[idx]))
         if direction == 0:
@@ -131,31 +146,23 @@ def build_adaptive_orders(
         side_label = "LONG" if direction > 0 else "SHORT"
         close_px = float(close[idx]) if np.isfinite(close[idx]) else 0.0
         atr_px = float(atr[idx]) if np.isfinite(atr[idx]) else float("nan")
-        tp_atr = float(((cfg.get("evaluation", {}) or {}).get("stage10", {}) or {}).get("evaluation", {}).get("take_profit_atr_multiple", 3.0))
-        min_trade_qty = 0.0
-        qty_step = 0.0
 
-        # Proposed notional from score magnitude; deterministic and bounded.
         proposed_notional = float(abs(strength[idx]) * max(close_px, 1.0))
         raw_size = float(proposed_notional / max(close_px, 1e-12)) if close_px > 0 else 0.0
-        stop_price = float(close_px - direction * 0.0)
-        tp_price = float(close_px + direction * 0.0)
-        rounded_size_before = raw_size
-        rounded_size_after = raw_size
-        capped_size = raw_size
-        bumped_to_min_notional = False
+        capped_size = float(raw_size)
+        notional = float(proposed_notional)
+        filled_notional = float(proposed_notional)
+        stop_price = float(close_px)
+        tp_price = float(close_px)
+        rounded_size_before = float(raw_size)
+        rounded_size_after = float(raw_size)
         rounding_mode_used = "none"
         final_notional = float(proposed_notional)
-        if proposed_notional <= 0.0:
-            _reject(
-                breakdown=breakdown,
-                reject_events=reject_events,
-                timestamp=timestamp,
-                symbol=symbol,
-                side=side_label,
-                reason="SIZE_TOO_SMALL",
-                details="score_strength_non_positive",
-            )
+        bumped_to_min_notional = False
+        ceil_rescue_applied = False
+        cap_binding = ""
+
+        def emit_trace(decision: str, reject_reason: str = "", reject_details: str = "") -> None:
             sizing_trace_rows.append(
                 SizingTraceRecord(
                     ts=timestamp,
@@ -167,53 +174,39 @@ def build_adaptive_orders(
                     raw_size=raw_size,
                     capped_size=capped_size,
                     min_notional=float(order_builder.min_trade_notional),
-                    min_trade_qty=min_trade_qty,
-                    qty_step=qty_step,
-                    bumped_to_min_notional=bumped_to_min_notional,
+                    min_trade_qty=float(order_builder.min_trade_qty),
+                    qty_step=float(order_builder.qty_step),
+                    bumped_to_min_notional=bool(bumped_to_min_notional),
                     rounded_size_before=rounded_size_before,
                     rounded_size_after=rounded_size_after,
                     rounding_mode_used=rounding_mode_used,
                     final_notional=final_notional,
-                    decision="REJECTED",
-                    reject_reason="SIZE_TOO_SMALL",
-                    reject_details="score_strength_non_positive",
+                    ceil_rescue_applied=ceil_rescue_applied,
+                    cap_binding=cap_binding,
+                    decision=decision,
+                    reject_reason=reject_reason,
+                    reject_details=reject_details,
                 ).to_payload()
             )
+
+        def reject(reason: str, details: str) -> None:
+            _reject(
+                breakdown=breakdown,
+                reject_events=reject_events,
+                timestamp=timestamp,
+                symbol=symbol,
+                side=side_label,
+                reason=reason,
+                details=details,
+            )
+            emit_trace("REJECTED", normalize_reject_reason(reason), details)
+
+        if proposed_notional <= 0.0 or raw_size <= 0.0:
+            reject("SIZE_TOO_SMALL", "score_strength_non_positive")
             continue
 
         if close_px <= 0.0:
-            _reject(
-                breakdown=breakdown,
-                reject_events=reject_events,
-                timestamp=timestamp,
-                symbol=symbol,
-                side=side_label,
-                reason="STOP_INVALID",
-                details="close_non_positive",
-            )
-            sizing_trace_rows.append(
-                SizingTraceRecord(
-                    ts=timestamp,
-                    symbol=symbol,
-                    side=side_label,
-                    price=close_px,
-                    stop_price=stop_price,
-                    tp_price=tp_price,
-                    raw_size=raw_size,
-                    capped_size=capped_size,
-                    min_notional=float(order_builder.min_trade_notional),
-                    min_trade_qty=min_trade_qty,
-                    qty_step=qty_step,
-                    bumped_to_min_notional=bumped_to_min_notional,
-                    rounded_size_before=rounded_size_before,
-                    rounded_size_after=rounded_size_after,
-                    rounding_mode_used=rounding_mode_used,
-                    final_notional=final_notional,
-                    decision="REJECTED",
-                    reject_reason="STOP_INVALID",
-                    reject_details="close_non_positive",
-                ).to_payload()
-            )
+            reject("STOP_INVALID", "close_non_positive")
             continue
 
         min_stop_px = max(
@@ -221,38 +214,7 @@ def build_adaptive_orders(
             float(order_builder.min_stop_atr_mult) * (atr_px if np.isfinite(atr_px) and atr_px > 0 else 0.0),
         )
         if not np.isfinite(min_stop_px) or min_stop_px <= 0.0:
-            _reject(
-                breakdown=breakdown,
-                reject_events=reject_events,
-                timestamp=timestamp,
-                symbol=symbol,
-                side=side_label,
-                reason="STOP_INVALID",
-                details="min_stop_non_finite",
-            )
-            sizing_trace_rows.append(
-                SizingTraceRecord(
-                    ts=timestamp,
-                    symbol=symbol,
-                    side=side_label,
-                    price=close_px,
-                    stop_price=stop_price,
-                    tp_price=tp_price,
-                    raw_size=raw_size,
-                    capped_size=capped_size,
-                    min_notional=float(order_builder.min_trade_notional),
-                    min_trade_qty=min_trade_qty,
-                    qty_step=qty_step,
-                    bumped_to_min_notional=bumped_to_min_notional,
-                    rounded_size_before=rounded_size_before,
-                    rounded_size_after=rounded_size_after,
-                    rounding_mode_used=rounding_mode_used,
-                    final_notional=final_notional,
-                    decision="REJECTED",
-                    reject_reason="STOP_INVALID",
-                    reject_details="min_stop_non_finite",
-                ).to_payload()
-            )
+            reject("STOP_INVALID", "min_stop_non_finite")
             continue
 
         stop_bps = float(min_stop_px * 10_000.0 / max(close_px, 1e-12))
@@ -260,160 +222,38 @@ def build_adaptive_orders(
             stop_bps = float(order_builder.min_stop_bps)
             min_stop_px = stop_bps * close_px / 10_000.0
         if stop_bps <= 0.0:
-            _reject(
-                breakdown=breakdown,
-                reject_events=reject_events,
-                timestamp=timestamp,
-                symbol=symbol,
-                side=side_label,
-                reason="STOP_TOO_CLOSE",
-                details="stop_bps_non_positive_after_clamp",
-            )
-            sizing_trace_rows.append(
-                SizingTraceRecord(
-                    ts=timestamp,
-                    symbol=symbol,
-                    side=side_label,
-                    price=close_px,
-                    stop_price=stop_price,
-                    tp_price=tp_price,
-                    raw_size=raw_size,
-                    capped_size=capped_size,
-                    min_notional=float(order_builder.min_trade_notional),
-                    min_trade_qty=min_trade_qty,
-                    qty_step=qty_step,
-                    bumped_to_min_notional=bumped_to_min_notional,
-                    rounded_size_before=rounded_size_before,
-                    rounded_size_after=rounded_size_after,
-                    rounding_mode_used=rounding_mode_used,
-                    final_notional=final_notional,
-                    decision="REJECTED",
-                    reject_reason="STOP_TOO_CLOSE",
-                    reject_details="stop_bps_non_positive_after_clamp",
-                ).to_payload()
-            )
+            reject("STOP_TOO_CLOSE", "stop_bps_non_positive_after_clamp")
             continue
+
         stop_atr = float(max(order_builder.min_stop_atr_mult, 1e-9))
+        rr = float(tp_atr / stop_atr)
         stop_price = float(close_px - direction * min_stop_px)
         tp_price = float(close_px + direction * (min_stop_px * tp_atr / max(stop_atr, 1e-12)))
-        rr = float(tp_atr / stop_atr)
         fallback_used = False
         if rr < float(order_builder.min_rr):
             if str(order_builder.rr_fallback_exit_mode).strip():
                 fallback_used = True
             else:
-                _reject(
-                    breakdown=breakdown,
-                    reject_events=reject_events,
-                    timestamp=timestamp,
-                    symbol=symbol,
-                    side=side_label,
-                    reason="RR_INVALID",
-                    details=f"rr={rr:.6f}",
-                )
-                sizing_trace_rows.append(
-                    SizingTraceRecord(
-                        ts=timestamp,
-                        symbol=symbol,
-                        side=side_label,
-                        price=close_px,
-                        stop_price=stop_price,
-                        tp_price=tp_price,
-                        raw_size=raw_size,
-                        capped_size=capped_size,
-                        min_notional=float(order_builder.min_trade_notional),
-                        min_trade_qty=min_trade_qty,
-                        qty_step=qty_step,
-                        bumped_to_min_notional=bumped_to_min_notional,
-                        rounded_size_before=rounded_size_before,
-                        rounded_size_after=rounded_size_after,
-                        rounding_mode_used=rounding_mode_used,
-                        final_notional=final_notional,
-                        decision="REJECTED",
-                        reject_reason="RR_INVALID",
-                        reject_details=f"rr={rr:.6f}",
-                    ).to_payload()
-                )
+                reject("RR_INVALID", f"rr={rr:.6f}")
                 continue
 
-        notional = proposed_notional
         if notional < float(order_builder.min_trade_notional):
-            cap_for_min_check = float(max_gross_exposure) * close_px * max(1.0, leverage)
-            if bool(order_builder.allow_size_bump_to_min_notional) and float(order_builder.min_trade_notional) <= cap_for_min_check:
+            if bool(order_builder.allow_size_bump_to_min_notional):
                 notional = float(order_builder.min_trade_notional)
                 bumped_to_min_notional = True
             else:
-                _reject(
-                    breakdown=breakdown,
-                    reject_events=reject_events,
-                    timestamp=timestamp,
-                    symbol=symbol,
-                    side=side_label,
-                    reason="SIZE_TOO_SMALL",
-                    details=f"notional={notional:.6f}<min={float(order_builder.min_trade_notional):.6f}",
-                )
-                sizing_trace_rows.append(
-                    SizingTraceRecord(
-                        ts=timestamp,
-                        symbol=symbol,
-                        side=side_label,
-                        price=close_px,
-                        stop_price=stop_price,
-                        tp_price=tp_price,
-                        raw_size=raw_size,
-                        capped_size=capped_size,
-                        min_notional=float(order_builder.min_trade_notional),
-                        min_trade_qty=min_trade_qty,
-                        qty_step=qty_step,
-                        bumped_to_min_notional=bumped_to_min_notional,
-                        rounded_size_before=rounded_size_before,
-                        rounded_size_after=rounded_size_after,
-                        rounding_mode_used=rounding_mode_used,
-                        final_notional=final_notional,
-                        decision="REJECTED",
-                        reject_reason="SIZE_TOO_SMALL",
-                        reject_details=f"notional={notional:.6f}<min={float(order_builder.min_trade_notional):.6f}",
-                    ).to_payload()
-                )
+                reject("SIZE_TOO_SMALL", f"notional={notional:.6f}<min={float(order_builder.min_trade_notional):.6f}")
                 continue
 
         max_notional = float(max(0.0, float(max_gross_exposure) * close_px * max(1.0, leverage)))
         if max_notional <= 0.0:
-            _reject(
-                breakdown=breakdown,
-                reject_events=reject_events,
-                timestamp=timestamp,
-                symbol=symbol,
-                side=side_label,
-                reason="MARGIN_FAIL",
-                details="non_positive_max_notional",
-            )
-            sizing_trace_rows.append(
-                SizingTraceRecord(
-                    ts=timestamp,
-                    symbol=symbol,
-                    side=side_label,
-                    price=close_px,
-                    stop_price=stop_price,
-                    tp_price=tp_price,
-                    raw_size=raw_size,
-                    capped_size=0.0,
-                    min_notional=float(order_builder.min_trade_notional),
-                    min_trade_qty=min_trade_qty,
-                    qty_step=qty_step,
-                    bumped_to_min_notional=bumped_to_min_notional,
-                    rounded_size_before=rounded_size_before,
-                    rounded_size_after=0.0,
-                    rounding_mode_used=rounding_mode_used,
-                    final_notional=0.0,
-                    decision="REJECTED",
-                    reject_reason="MARGIN_FAIL",
-                    reject_details="non_positive_max_notional",
-                ).to_payload()
-            )
+            cap_binding = "margin"
+            reject("MARGIN_FAIL", "non_positive_max_notional")
             continue
+
         if notional > max_notional:
             if bool(relax.allow_size_reduction_on_margin_fail):
+                cap_binding = "margin"
                 reduction_steps = 0
                 while notional > max_notional and reduction_steps < int(relax.max_size_reduction_steps):
                     prev = float(notional)
@@ -432,151 +272,28 @@ def build_adaptive_orders(
                         }
                     )
                 if notional > max_notional:
-                    _reject(
-                        breakdown=breakdown,
-                        reject_events=reject_events,
-                        timestamp=timestamp,
-                        symbol=symbol,
-                        side=side_label,
-                        reason="MARGIN_FAIL",
-                        details=f"max_notional={max_notional:.6f}",
-                    )
-                    sizing_trace_rows.append(
-                        SizingTraceRecord(
-                            ts=timestamp,
-                            symbol=symbol,
-                            side=side_label,
-                            price=close_px,
-                            stop_price=stop_price,
-                            tp_price=tp_price,
-                            raw_size=raw_size,
-                            capped_size=float(notional / max(close_px, 1e-12)),
-                            min_notional=float(order_builder.min_trade_notional),
-                            min_trade_qty=min_trade_qty,
-                            qty_step=qty_step,
-                            bumped_to_min_notional=bumped_to_min_notional,
-                            rounded_size_before=float(notional / max(close_px, 1e-12)),
-                            rounded_size_after=0.0,
-                            rounding_mode_used=rounding_mode_used,
-                            final_notional=0.0,
-                            decision="REJECTED",
-                            reject_reason="MARGIN_FAIL",
-                            reject_details=f"max_notional={max_notional:.6f}",
-                        ).to_payload()
-                    )
+                    reject("MARGIN_FAIL", f"max_notional={max_notional:.6f}")
                     continue
             else:
-                _reject(
-                    breakdown=breakdown,
-                    reject_events=reject_events,
-                    timestamp=timestamp,
-                    symbol=symbol,
-                    side=side_label,
-                    reason="POLICY_CAP_HIT",
-                    details=f"max_notional={max_notional:.6f}",
-                )
-                sizing_trace_rows.append(
-                    SizingTraceRecord(
-                        ts=timestamp,
-                        symbol=symbol,
-                        side=side_label,
-                        price=close_px,
-                        stop_price=stop_price,
-                        tp_price=tp_price,
-                        raw_size=raw_size,
-                        capped_size=0.0,
-                        min_notional=float(order_builder.min_trade_notional),
-                        min_trade_qty=min_trade_qty,
-                        qty_step=qty_step,
-                        bumped_to_min_notional=bumped_to_min_notional,
-                        rounded_size_before=float(notional / max(close_px, 1e-12)),
-                        rounded_size_after=0.0,
-                        rounding_mode_used=rounding_mode_used,
-                        final_notional=0.0,
-                        decision="REJECTED",
-                        reject_reason="POLICY_CAP_HIT",
-                        reject_details=f"max_notional={max_notional:.6f}",
-                    ).to_payload()
-                )
+                cap_binding = "policy_cap"
+                reject("POLICY_CAP_HIT", f"max_notional={max_notional:.6f}")
                 continue
 
         slippage_bps = float(one_way_slippage_for_bar(frame=frame, bar_index=idx, cost_cfg=cost_cfg, atr_col="atr_14", close_col="close") * 10_000.0)
         breakdown_bps = cost_breakdown_bps(frame=frame, bar_index=idx, cost_cfg=cost_cfg, atr_col="atr_14", close_col="close")
         spread_bps = float(breakdown_bps.get("spread_bps", 0.0))
         if spread_bps > float(relax.slippage_hard_threshold_bps):
-            _reject(
-                breakdown=breakdown,
-                reject_events=reject_events,
-                timestamp=timestamp,
-                symbol=symbol,
-                side=side_label,
-                reason="SPREAD_TOO_HIGH",
-                details=f"spread_bps={spread_bps:.6f}",
-            )
-            sizing_trace_rows.append(
-                SizingTraceRecord(
-                    ts=timestamp,
-                    symbol=symbol,
-                    side=side_label,
-                    price=close_px,
-                    stop_price=stop_price,
-                    tp_price=tp_price,
-                    raw_size=raw_size,
-                    capped_size=float(notional / max(close_px, 1e-12)),
-                    min_notional=float(order_builder.min_trade_notional),
-                    min_trade_qty=min_trade_qty,
-                    qty_step=qty_step,
-                    bumped_to_min_notional=bumped_to_min_notional,
-                    rounded_size_before=float(notional / max(close_px, 1e-12)),
-                    rounded_size_after=0.0,
-                    rounding_mode_used=rounding_mode_used,
-                    final_notional=0.0,
-                    decision="REJECTED",
-                    reject_reason="SPREAD_TOO_HIGH",
-                    reject_details=f"spread_bps={spread_bps:.6f}",
-                ).to_payload()
-            )
+            reject("SPREAD_TOO_HIGH", f"spread_bps={spread_bps:.6f}")
             continue
         if slippage_bps > float(relax.slippage_hard_threshold_bps):
-            _reject(
-                breakdown=breakdown,
-                reject_events=reject_events,
-                timestamp=timestamp,
-                symbol=symbol,
-                side=side_label,
-                reason="SLIPPAGE_TOO_HIGH",
-                details=f"slippage_bps={slippage_bps:.6f}",
-            )
-            sizing_trace_rows.append(
-                SizingTraceRecord(
-                    ts=timestamp,
-                    symbol=symbol,
-                    side=side_label,
-                    price=close_px,
-                    stop_price=stop_price,
-                    tp_price=tp_price,
-                    raw_size=raw_size,
-                    capped_size=float(notional / max(close_px, 1e-12)),
-                    min_notional=float(order_builder.min_trade_notional),
-                    min_trade_qty=min_trade_qty,
-                    qty_step=qty_step,
-                    bumped_to_min_notional=bumped_to_min_notional,
-                    rounded_size_before=float(notional / max(close_px, 1e-12)),
-                    rounded_size_after=0.0,
-                    rounding_mode_used=rounding_mode_used,
-                    final_notional=0.0,
-                    decision="REJECTED",
-                    reject_reason="SLIPPAGE_TOO_HIGH",
-                    reject_details=f"slippage_bps={slippage_bps:.6f}",
-                ).to_payload()
-            )
+            reject("SLIPPAGE_TOO_HIGH", f"slippage_bps={slippage_bps:.6f}")
             continue
+
         if slippage_bps > float(relax.slippage_soft_threshold_bps):
-            # Soft threshold: reduce size to keep exposure realistic.
             ratio = float(relax.slippage_soft_threshold_bps) / max(slippage_bps, 1e-12)
-            prev = float(notional)
+            prev_notional = float(notional)
             notional = max(float(order_builder.min_trade_notional), notional * max(0.25, min(1.0, ratio)))
-            if notional < prev:
+            if notional < prev_notional:
                 adjustment_events.append(
                     {
                         "timestamp": timestamp,
@@ -584,7 +301,7 @@ def build_adaptive_orders(
                         "side": side_label,
                         "event": "size_reduction_slippage",
                         "step": 1,
-                        "before_notional": prev,
+                        "before_notional": prev_notional,
                         "after_notional": float(notional),
                         "slippage_bps": float(slippage_bps),
                     }
@@ -596,108 +313,88 @@ def build_adaptive_orders(
         else:
             fill_ratio = 1.0
             if volume[idx] <= 0.0:
-                _reject(
-                    breakdown=breakdown,
-                    reject_events=reject_events,
-                    timestamp=timestamp,
-                    symbol=symbol,
-                    side=side_label,
-                reason="NO_FILL",
-                details="volume_non_positive",
-            )
-                sizing_trace_rows.append(
-                    SizingTraceRecord(
-                        ts=timestamp,
-                        symbol=symbol,
-                        side=side_label,
-                        price=close_px,
-                        stop_price=stop_price,
-                        tp_price=tp_price,
-                        raw_size=raw_size,
-                        capped_size=float(notional / max(close_px, 1e-12)),
-                        min_notional=float(order_builder.min_trade_notional),
-                        min_trade_qty=min_trade_qty,
-                        qty_step=qty_step,
-                        bumped_to_min_notional=bumped_to_min_notional,
-                        rounded_size_before=float(notional / max(close_px, 1e-12)),
-                        rounded_size_after=0.0,
-                        rounding_mode_used=rounding_mode_used,
-                        final_notional=0.0,
-                        decision="REJECTED",
-                        reject_reason="NO_FILL",
-                        reject_details="volume_non_positive",
-                    ).to_payload()
-                )
+                reject("NO_FILL", "volume_non_positive")
                 continue
 
-        filled_notional = notional * fill_ratio
+        filled_notional = float(notional * fill_ratio)
         if filled_notional < float(order_builder.min_trade_notional):
-            if bool(order_builder.allow_size_bump_to_min_notional) and float(order_builder.min_trade_notional) <= max_notional:
+            if bool(order_builder.allow_size_bump_to_min_notional) and float(order_builder.min_trade_notional) <= max_notional + 1e-12:
                 filled_notional = float(order_builder.min_trade_notional)
+                bumped_to_min_notional = True
             else:
-                _reject(
-                    breakdown=breakdown,
-                    reject_events=reject_events,
-                    timestamp=timestamp,
-                    symbol=symbol,
-                    side=side_label,
-                    reason="SIZE_TOO_SMALL",
-                    details=f"filled_notional={filled_notional:.6f}",
-                )
-                sizing_trace_rows.append(
-                    SizingTraceRecord(
-                        ts=timestamp,
-                        symbol=symbol,
-                        side=side_label,
-                        price=close_px,
-                        stop_price=stop_price,
-                        tp_price=tp_price,
-                        raw_size=raw_size,
-                        capped_size=float(notional / max(close_px, 1e-12)),
-                        min_notional=float(order_builder.min_trade_notional),
-                        min_trade_qty=min_trade_qty,
-                        qty_step=qty_step,
-                        bumped_to_min_notional=bumped_to_min_notional,
-                        rounded_size_before=float(notional / max(close_px, 1e-12)),
-                        rounded_size_after=0.0,
-                        rounding_mode_used=rounding_mode_used,
-                        final_notional=0.0,
-                        decision="REJECTED",
-                        reject_reason="SIZE_TOO_SMALL",
-                        reject_details=f"filled_notional={filled_notional:.6f}",
-                    ).to_payload()
-                )
+                reject("SIZE_TOO_SMALL", f"filled_notional={filled_notional:.6f}")
                 continue
+
+        capped_size = float(min(filled_notional, max_notional) / max(close_px, 1e-12))
+        rounded_size_before = float(capped_size)
+        if float(order_builder.min_trade_qty) > 0.0 and rounded_size_before < float(order_builder.min_trade_qty):
+            rounded_size_before = float(order_builder.min_trade_qty)
+
+        rounding_mode_used = str(sizing_cfg.qty_rounding_default)
+        if bumped_to_min_notional:
+            rounding_mode_used = str(sizing_cfg.qty_rounding_on_min_notional_bump)
+
+        rounded_size_after = round_qty_to_step(rounded_size_before, float(order_builder.qty_step), rounding_mode_used)
+
+        if rounded_size_after <= 0.0 and rounded_size_before > 0.0:
+            if bool(sizing_fix_enabled) and bool(sizing_cfg.allow_single_step_ceil_rescue):
+                rescue_qty = round_qty_to_step(rounded_size_before, float(order_builder.qty_step), "ceil")
+                rescue_notional = float(rescue_qty * close_px)
+                if float(order_builder.qty_step) > 0.0:
+                    overage_steps = float(max(0.0, (rescue_qty - rounded_size_before) / float(order_builder.qty_step)))
+                else:
+                    overage_steps = 0.0
+                if (
+                    rescue_qty > 0.0
+                    and overage_steps <= float(max(0, int(sizing_cfg.ceil_rescue_max_overage_steps)))
+                    and rescue_notional <= max_notional + 1e-12
+                ):
+                    rounded_size_after = float(rescue_qty)
+                    rounding_mode_used = "ceil_rescue"
+                    ceil_rescue_applied = True
+                elif rescue_notional > max_notional + 1e-12:
+                    cap_binding = "policy_cap"
+                    reject("POLICY_CAP_HIT", "ceil_rescue_exceeds_cap")
+                    continue
+            if rounded_size_after <= 0.0:
+                reason = "SIZE_ZERO" if not bool(sizing_fix_enabled) else "SIZE_TOO_SMALL"
+                reject(reason, f"qty_before_round={rounded_size_before:.12f},step={float(order_builder.qty_step):.12f}")
+                continue
+
+        if float(order_builder.min_trade_qty) > 0.0 and rounded_size_after < float(order_builder.min_trade_qty) - 1e-12:
+            reject("SIZE_TOO_SMALL", f"rounded_qty={rounded_size_after:.12f}<min_qty={float(order_builder.min_trade_qty):.12f}")
+            continue
+
+        final_notional = float(rounded_size_after * close_px)
+        if final_notional < float(order_builder.min_trade_notional) - 1e-12:
+            if bool(order_builder.allow_size_bump_to_min_notional):
+                bump_qty = round_qty_to_step(
+                    float(order_builder.min_trade_notional) / max(close_px, 1e-12),
+                    float(order_builder.qty_step),
+                    str(sizing_cfg.qty_rounding_on_min_notional_bump),
+                )
+                bump_notional = float(bump_qty * close_px)
+                if bump_qty > 0.0 and bump_notional <= max_notional + 1e-12 and bump_notional >= float(order_builder.min_trade_notional) - 1e-12:
+                    rounded_size_before = rounded_size_after
+                    rounded_size_after = float(bump_qty)
+                    final_notional = float(bump_notional)
+                    rounding_mode_used = str(sizing_cfg.qty_rounding_on_min_notional_bump)
+                    bumped_to_min_notional = True
+                else:
+                    reject("SIZE_TOO_SMALL", "min_notional_bump_failed")
+                    continue
+            else:
+                reject("SIZE_TOO_SMALL", f"final_notional={final_notional:.6f}<min_notional={float(order_builder.min_trade_notional):.6f}")
+                continue
+
+        if final_notional > max_notional + 1e-12:
+            cap_binding = "policy_cap"
+            reject("POLICY_CAP_HIT", f"final_notional={final_notional:.6f}>max_notional={max_notional:.6f}")
+            continue
 
         accepted[idx] = direction
         breakdown.register_accept(1)
-        capped_size = float(notional / max(close_px, 1e-12))
-        rounded_size_before = capped_size
-        rounded_size_after = capped_size
-        final_notional = float(filled_notional)
-        sizing_trace_rows.append(
-            SizingTraceRecord(
-                ts=timestamp,
-                symbol=symbol,
-                side=side_label,
-                price=close_px,
-                stop_price=stop_price,
-                tp_price=tp_price,
-                raw_size=raw_size,
-                capped_size=capped_size,
-                min_notional=float(order_builder.min_trade_notional),
-                min_trade_qty=min_trade_qty,
-                qty_step=qty_step,
-                bumped_to_min_notional=bumped_to_min_notional,
-                rounded_size_before=rounded_size_before,
-                rounded_size_after=rounded_size_after,
-                rounding_mode_used=rounding_mode_used,
-                final_notional=final_notional,
-                decision="ACCEPTED",
-                reject_reason="",
-                reject_details="",
-            ).to_payload()
-        )
+        emit_trace("ACCEPTED")
         order_rows.append(
             {
                 "timestamp": timestamp,
@@ -711,6 +408,8 @@ def build_adaptive_orders(
                 "fallback_exit_used": bool(fallback_used),
                 "requested_notional": float(proposed_notional),
                 "filled_notional": float(filled_notional),
+                "rounded_qty": float(rounded_size_after),
+                "final_notional": float(final_notional),
                 "fill_ratio": float(fill_ratio),
                 "slippage_bps": float(slippage_bps),
                 "spread_bps": float(spread_bps),
@@ -741,6 +440,8 @@ def _pick_order_builder_cfg(values: dict[str, Any]) -> dict[str, Any]:
         "min_trade_notional": float(values.get("min_trade_notional", 10.0)),
         "allow_size_bump_to_min_notional": bool(values.get("allow_size_bump_to_min_notional", True)),
         "rr_fallback_exit_mode": str(values.get("rr_fallback_exit_mode", "fixed_atr")),
+        "min_trade_qty": float(values.get("min_trade_qty", 0.0)),
+        "qty_step": float(values.get("qty_step", 0.0)),
     }
 
 
@@ -752,6 +453,15 @@ def _pick_execution_cfg(values: dict[str, Any]) -> dict[str, Any]:
         "max_size_reduction_steps": int(values.get("max_size_reduction_steps", 5)),
         "slippage_soft_threshold_bps": float(values.get("slippage_soft_threshold_bps", 15.0)),
         "slippage_hard_threshold_bps": float(values.get("slippage_hard_threshold_bps", 40.0)),
+    }
+
+
+def _pick_sizing_cfg(values: dict[str, Any]) -> dict[str, Any]:
+    return {
+        "qty_rounding_default": str(values.get("qty_rounding_default", "floor")),
+        "qty_rounding_on_min_notional_bump": str(values.get("qty_rounding_on_min_notional_bump", "ceil")),
+        "allow_single_step_ceil_rescue": bool(values.get("allow_single_step_ceil_rescue", True)),
+        "ceil_rescue_max_overage_steps": int(values.get("ceil_rescue_max_overage_steps", 1)),
     }
 
 
@@ -790,7 +500,9 @@ def _summarize_sizing_trace(rows: list[dict[str, Any]]) -> dict[str, Any]:
             "raw_size_median": 0.0,
             "raw_size_p95": 0.0,
             "zero_size_count": 0,
+            "rescued_by_ceil_count": 0,
             "bumped_to_min_notional_count": 0,
+            "cap_binding_reject_count": 0,
             "reject_reason_counts": {},
         }
     frame = pd.DataFrame(rows)
@@ -798,6 +510,7 @@ def _summarize_sizing_trace(rows: list[dict[str, Any]]) -> dict[str, Any]:
     rounded_after = pd.to_numeric(frame.get("rounded_size_after", 0.0), errors="coerce").fillna(0.0)
     decision = frame.get("decision", pd.Series(dtype=str)).astype(str)
     reject_reason = frame.get("reject_reason", pd.Series(dtype=str)).astype(str).replace("", "ACCEPTED")
+    cap_binding = frame.get("cap_binding", pd.Series(dtype=str)).astype(str)
     attempted = int(len(frame))
     accepted = int((decision == "ACCEPTED").sum())
     rejected = int(attempted - accepted)
@@ -809,8 +522,28 @@ def _summarize_sizing_trace(rows: list[dict[str, Any]]) -> dict[str, Any]:
         "raw_size_median": float(raw_size.median()),
         "raw_size_p95": float(raw_size.quantile(0.95)),
         "zero_size_count": int(((raw_size > 0.0) & (rounded_after <= 0.0)).sum()),
+        "rescued_by_ceil_count": int(pd.to_numeric(frame.get("ceil_rescue_applied", False), errors="coerce").fillna(False).astype(bool).sum()),
         "bumped_to_min_notional_count": int(pd.to_numeric(frame.get("bumped_to_min_notional", False), errors="coerce").fillna(False).astype(bool).sum()),
+        "cap_binding_reject_count": int(((decision == "REJECTED") & (cap_binding != "")).sum()),
         "reject_reason_counts": {
             str(k): int(v) for k, v in reject_reason.value_counts().sort_index().items()
         },
     }
+
+
+def round_qty_to_step(qty: float, step: float, mode: str) -> float:
+    quantity = float(max(0.0, qty))
+    quantum = float(step)
+    rounding_mode = str(mode or "floor").strip().lower()
+    if quantum <= 0.0:
+        return quantity
+    units = quantity / quantum
+    if rounding_mode == "ceil":
+        rounded_units = int(np.ceil(units - 1e-12))
+    elif rounding_mode == "nearest":
+        rounded_units = int(np.floor(units + 0.5))
+    else:
+        rounded_units = int(np.floor(units + 1e-12))
+    if rounded_units < 0:
+        rounded_units = 0
+    return float(rounded_units * quantum)
