@@ -1,8 +1,8 @@
 # Stage-23.6 Sizing Integrity Repair Report
 
 - seed: `42`
-- baseline_run_id: `20260302_140759_d7bd3e6103dd_stage15_9_trace`
-- after_run_id: `20260302_140845_d7bd3e6103dd_stage15_9_trace`
+- baseline_run_id: `20260302_142515_d7bd3e6103dd_stage15_9_trace`
+- after_run_id: `20260302_142603_d7bd3e6103dd_stage15_9_trace`
 - same_seed: `True`
 - same_data_hash: `True`
 
@@ -55,7 +55,7 @@
 - If upstream scarcity dominates (RAW_SIGNAL_ZERO/CONTEXT_REJECT): tune signal density before execution changes.
 
 ## Evidence Paths
-- baseline trace: `C:\dev\Buff-mini\runs\20260302_140759_d7bd3e6103dd_stage15_9_trace\trace`
-- after trace: `C:\dev\Buff-mini\runs\20260302_140845_d7bd3e6103dd_stage15_9_trace\trace`
-- baseline sizing trace: `C:\dev\Buff-mini\runs\20260302_140759_d7bd3e6103dd_stage15_9_trace\trace\sizing_trace.csv`
-- after sizing trace: `C:\dev\Buff-mini\runs\20260302_140845_d7bd3e6103dd_stage15_9_trace\trace\sizing_trace.csv`
+- baseline trace: `C:\dev\Buff-mini\runs\20260302_142515_d7bd3e6103dd_stage15_9_trace\trace`
+- after trace: `C:\dev\Buff-mini\runs\20260302_142603_d7bd3e6103dd_stage15_9_trace\trace`
+- baseline sizing trace: `C:\dev\Buff-mini\runs\20260302_142515_d7bd3e6103dd_stage15_9_trace\trace\sizing_trace.csv`
+- after sizing trace: `C:\dev\Buff-mini\runs\20260302_142603_d7bd3e6103dd_stage15_9_trace\trace\sizing_trace.csv`
