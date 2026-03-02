@@ -289,6 +289,7 @@ def _mode_metrics(trace: dict[str, Any]) -> dict[str, Any]:
     trace_dir = Path(trace.get("trace_dir", ""))
     breakdown = _read_json(trace_dir / "execution_reject_breakdown.json")
     stage24_summary = _read_json(trace_dir / "stage24_sizing_summary.json")
+    shadow_live = _read_json(trace_dir / "shadow_live_summary.json")
     attempted = float(breakdown.get("total_orders_attempted", 0.0))
     rejected = float(breakdown.get("total_orders_rejected", 0.0))
     trade_count = float(pd.to_numeric(rows.get("trades_executed_count", 0.0), errors="coerce").fillna(0.0).sum()) if not rows.empty else 0.0
@@ -310,6 +311,7 @@ def _mode_metrics(trace: dict[str, Any]) -> dict[str, Any]:
         "top_reject_reasons": top_reasons,
         "stage24_valid_count": int(stage24_summary.get("valid_count", 0)),
         "stage24_invalid_count": int(stage24_summary.get("invalid_count", 0)),
+        "shadow_live_summary": shadow_live,
     }
 
 

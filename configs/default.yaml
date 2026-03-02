@@ -462,6 +462,16 @@ evaluation:
       tpm_max: 40.0
     cache:
       enabled: true
+  constraints:
+    mode: live
+    live:
+      min_trade_notional: 10.0
+      min_trade_qty: 0.0
+      qty_step: 0.001
+    research:
+      min_trade_notional: 0.0
+      min_trade_qty: 0.0
+      qty_step: 0.0
   stage23:
     enabled: false
     sizing_fix_enabled: true

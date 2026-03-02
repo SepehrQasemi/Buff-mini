@@ -90,6 +90,45 @@ class SizingTraceRecord:
         return payload
 
 
+def _empty_shadow_live_summary(enabled: bool) -> dict[str, Any]:
+    return {
+        "enabled": bool(enabled),
+        "research_accepted_count": 0,
+        "live_pass_count": 0,
+        "research_accepted_but_live_rejected_count": 0,
+        "live_reject_reason_counts": {},
+        "live_reject_rate": 0.0,
+    }
+
+
+def _shadow_live_reject_reason(
+    *,
+    final_notional: float,
+    final_qty: float,
+    live_min_notional: float,
+    live_min_trade_qty: float,
+    live_qty_step: float,
+) -> str:
+    if final_notional <= 0.0 or final_qty <= 0.0:
+        return "SIZE_ZERO"
+    if live_min_notional > 0.0 and final_notional < live_min_notional - 1e-12:
+        return "SIZE_TOO_SMALL"
+    if live_min_trade_qty > 0.0 and final_qty < live_min_trade_qty - 1e-12:
+        return "SIZE_TOO_SMALL"
+    if live_qty_step > 0.0:
+        units = final_qty / live_qty_step
+        if abs(units - round(units)) > 1e-9:
+            return "SIZE_TOO_SMALL"
+    return ""
+
+
+def _register_shadow_live_reject(summary: dict[str, Any], reason: str) -> None:
+    key = normalize_reject_reason(reason)
+    counts = dict(summary.get("live_reject_reason_counts", {}))
+    counts[key] = int(counts.get(key, 0)) + 1
+    summary["live_reject_reason_counts"] = counts
+
+
 def build_adaptive_orders(
     *,
     frame: pd.DataFrame,
@@ -111,16 +150,30 @@ def build_adaptive_orders(
             "sizing_trace_summary": _summarize_sizing_trace([]),
             "stage24_sizing_trace": pd.DataFrame(),
             "stage24_sizing_summary": _summarize_stage24_sizing_trace([]),
+            "shadow_live_summary": _empty_shadow_live_summary(False),
             "breakdown": RejectBreakdown().to_payload(),
         }
 
     eval_cfg = dict((cfg.get("evaluation", {}) or {}).get("stage23", {}))
     stage24_cfg = dict((cfg.get("evaluation", {}) or {}).get("stage24", {}))
+    constraints_cfg = dict((cfg.get("evaluation", {}) or {}).get("constraints", {}))
     stage24_enabled = bool(stage24_cfg.get("enabled", False))
     order_builder = OrderBuilderConfig(**_pick_order_builder_cfg(eval_cfg.get("order_builder", {})))
     relax = ExecutionRelaxConfig(**_pick_execution_cfg(eval_cfg.get("execution", {})))
     sizing_cfg = SizingRepairConfig(**_pick_sizing_cfg(eval_cfg.get("sizing", {})))
     sizing_fix_enabled = bool(eval_cfg.get("sizing_fix_enabled", True))
+    constraint_mode = str(constraints_cfg.get("mode", "live")).strip().lower()
+    is_research_mode = constraint_mode == "research"
+    live_constraint_cfg = dict(constraints_cfg.get("live", {}))
+    research_constraint_cfg = dict(constraints_cfg.get("research", {}))
+    active_constraint_cfg = research_constraint_cfg if is_research_mode else live_constraint_cfg
+    min_trade_notional = float(active_constraint_cfg.get("min_trade_notional", order_builder.min_trade_notional))
+    qty_step = float(active_constraint_cfg.get("qty_step", order_builder.qty_step))
+    min_trade_qty = float(active_constraint_cfg.get("min_trade_qty", order_builder.min_trade_qty))
+    live_min_notional = float(live_constraint_cfg.get("min_trade_notional", order_builder.min_trade_notional))
+    live_qty_step = float(live_constraint_cfg.get("qty_step", order_builder.qty_step))
+    live_min_trade_qty = float(live_constraint_cfg.get("min_trade_qty", order_builder.min_trade_qty))
+    allow_size_bump_to_min_notional = bool(order_builder.allow_size_bump_to_min_notional)
 
     risk_cfg = dict(cfg.get("risk", {}) or {})
     max_gross_exposure = float(risk_cfg.get("max_gross_exposure", 5.0))
@@ -154,6 +207,7 @@ def build_adaptive_orders(
     adjustment_events: list[dict[str, Any]] = []
     sizing_trace_rows: list[dict[str, Any]] = []
     stage24_trace_rows: list[dict[str, Any]] = []
+    shadow_live_summary = _empty_shadow_live_summary(is_research_mode)
 
     tp_atr = float(((cfg.get("evaluation", {}) or {}).get("stage10", {}) or {}).get("evaluation", {}).get("take_profit_atr_multiple", 3.0))
     initial_equity = float(((stage24_cfg.get("simulation", {}) or {}).get("initial_equities", [10000.0])[0]) if stage24_enabled else 10000.0)
@@ -202,9 +256,9 @@ def build_adaptive_orders(
                     tp_price=tp_price,
                     raw_size=raw_size,
                     capped_size=capped_size,
-                    min_notional=float(order_builder.min_trade_notional),
-                    min_trade_qty=float(order_builder.min_trade_qty),
-                    qty_step=float(order_builder.qty_step),
+                    min_notional=float(min_trade_notional),
+                    min_trade_qty=float(min_trade_qty),
+                    qty_step=float(qty_step),
                     bumped_to_min_notional=bool(bumped_to_min_notional),
                     rounded_size_before=rounded_size_before,
                     rounded_size_after=rounded_size_after,
@@ -273,6 +327,10 @@ def build_adaptive_orders(
         if stage24_enabled:
             stage24_sizing = dict(stage24_cfg.get("sizing", {}))
             stage24_constraints = dict(stage24_cfg.get("order_constraints", {}))
+            stage24_constraints["min_trade_notional"] = float(min_trade_notional)
+            stage24_constraints["allow_size_bump_to_min_notional"] = bool(
+                stage24_constraints.get("allow_size_bump_to_min_notional", allow_size_bump_to_min_notional)
+            )
             dd_now = float(max(0.0, (peak_equity - equity_state) / max(peak_equity, 1e-12)))
             mode = str(stage24_sizing.get("mode", "risk_pct")).strip().lower()
             risk_used = 0.0
@@ -330,12 +388,12 @@ def build_adaptive_orders(
             if bool((details_24 or {}).get("bumped_to_min_notional", False)):
                 bumped_to_min_notional = True
         else:
-            if notional < float(order_builder.min_trade_notional):
-                if bool(order_builder.allow_size_bump_to_min_notional):
-                    notional = float(order_builder.min_trade_notional)
+            if notional < float(min_trade_notional):
+                if bool(allow_size_bump_to_min_notional):
+                    notional = float(min_trade_notional)
                     bumped_to_min_notional = True
                 else:
-                    reject("SIZE_TOO_SMALL", f"notional={notional:.6f}<min={float(order_builder.min_trade_notional):.6f}")
+                    reject("SIZE_TOO_SMALL", f"notional={notional:.6f}<min={float(min_trade_notional):.6f}")
                     continue
 
         if not stage24_enabled:
@@ -463,7 +521,7 @@ def build_adaptive_orders(
         if slippage_bps > float(relax.slippage_soft_threshold_bps):
             ratio = float(relax.slippage_soft_threshold_bps) / max(slippage_bps, 1e-12)
             prev_notional = float(notional)
-            notional = max(float(order_builder.min_trade_notional), notional * max(0.25, min(1.0, ratio)))
+            notional = max(float(min_trade_notional), notional * max(0.25, min(1.0, ratio)))
             if notional < prev_notional:
                 adjustment_events.append(
                     {
@@ -488,9 +546,9 @@ def build_adaptive_orders(
                 continue
 
         filled_notional = float(notional * fill_ratio)
-        if filled_notional < float(order_builder.min_trade_notional):
-            if bool(order_builder.allow_size_bump_to_min_notional) and float(order_builder.min_trade_notional) <= max_notional + 1e-12:
-                filled_notional = float(order_builder.min_trade_notional)
+        if filled_notional < float(min_trade_notional):
+            if bool(allow_size_bump_to_min_notional) and float(min_trade_notional) <= max_notional + 1e-12:
+                filled_notional = float(min_trade_notional)
                 bumped_to_min_notional = True
             else:
                 reject("SIZE_TOO_SMALL", f"filled_notional={filled_notional:.6f}")
@@ -498,21 +556,21 @@ def build_adaptive_orders(
 
         capped_size = float(min(filled_notional, max_notional) / max(close_px, 1e-12))
         rounded_size_before = float(capped_size)
-        if float(order_builder.min_trade_qty) > 0.0 and rounded_size_before < float(order_builder.min_trade_qty):
-            rounded_size_before = float(order_builder.min_trade_qty)
+        if float(min_trade_qty) > 0.0 and rounded_size_before < float(min_trade_qty):
+            rounded_size_before = float(min_trade_qty)
 
         rounding_mode_used = str(sizing_cfg.qty_rounding_default)
         if bumped_to_min_notional:
             rounding_mode_used = str(sizing_cfg.qty_rounding_on_min_notional_bump)
 
-        rounded_size_after = round_qty_to_step(rounded_size_before, float(order_builder.qty_step), rounding_mode_used)
+        rounded_size_after = round_qty_to_step(rounded_size_before, float(qty_step), rounding_mode_used)
 
         if rounded_size_after <= 0.0 and rounded_size_before > 0.0:
             if bool(sizing_fix_enabled) and bool(sizing_cfg.allow_single_step_ceil_rescue):
-                rescue_qty = round_qty_to_step(rounded_size_before, float(order_builder.qty_step), "ceil")
+                rescue_qty = round_qty_to_step(rounded_size_before, float(qty_step), "ceil")
                 rescue_notional = float(rescue_qty * close_px)
-                if float(order_builder.qty_step) > 0.0:
-                    overage_steps = float(max(0.0, (rescue_qty - rounded_size_before) / float(order_builder.qty_step)))
+                if float(qty_step) > 0.0:
+                    overage_steps = float(max(0.0, (rescue_qty - rounded_size_before) / float(qty_step)))
                 else:
                     overage_steps = 0.0
                 if (
@@ -533,23 +591,23 @@ def build_adaptive_orders(
                     reason = _binding_reject_reason(cap_binding)
                 else:
                     reason = "SIZE_ZERO" if not bool(sizing_fix_enabled) else "SIZE_TOO_SMALL"
-                reject(reason, f"qty_before_round={rounded_size_before:.12f},step={float(order_builder.qty_step):.12f}")
+                reject(reason, f"qty_before_round={rounded_size_before:.12f},step={float(qty_step):.12f}")
                 continue
 
-        if float(order_builder.min_trade_qty) > 0.0 and rounded_size_after < float(order_builder.min_trade_qty) - 1e-12:
-            reject("SIZE_TOO_SMALL", f"rounded_qty={rounded_size_after:.12f}<min_qty={float(order_builder.min_trade_qty):.12f}")
+        if float(min_trade_qty) > 0.0 and rounded_size_after < float(min_trade_qty) - 1e-12:
+            reject("SIZE_TOO_SMALL", f"rounded_qty={rounded_size_after:.12f}<min_qty={float(min_trade_qty):.12f}")
             continue
 
         final_notional = float(rounded_size_after * close_px)
-        if final_notional < float(order_builder.min_trade_notional) - 1e-12:
-            if bool(order_builder.allow_size_bump_to_min_notional):
+        if final_notional < float(min_trade_notional) - 1e-12:
+            if bool(allow_size_bump_to_min_notional):
                 bump_qty = round_qty_to_step(
-                    float(order_builder.min_trade_notional) / max(close_px, 1e-12),
-                    float(order_builder.qty_step),
+                    float(min_trade_notional) / max(close_px, 1e-12),
+                    float(qty_step),
                     str(sizing_cfg.qty_rounding_on_min_notional_bump),
                 )
                 bump_notional = float(bump_qty * close_px)
-                if bump_qty > 0.0 and bump_notional <= max_notional + 1e-12 and bump_notional >= float(order_builder.min_trade_notional) - 1e-12:
+                if bump_qty > 0.0 and bump_notional <= max_notional + 1e-12 and bump_notional >= float(min_trade_notional) - 1e-12:
                     rounded_size_before = rounded_size_after
                     rounded_size_after = float(bump_qty)
                     final_notional = float(bump_notional)
@@ -562,13 +620,30 @@ def build_adaptive_orders(
                         reject("SIZE_TOO_SMALL", "min_notional_bump_failed")
                     continue
             else:
-                reject("SIZE_TOO_SMALL", f"final_notional={final_notional:.6f}<min_notional={float(order_builder.min_trade_notional):.6f}")
+                reject("SIZE_TOO_SMALL", f"final_notional={final_notional:.6f}<min_notional={float(min_trade_notional):.6f}")
                 continue
 
         if final_notional > max_notional + 1e-12:
             cap_binding = "policy_cap"
             reject("POLICY_CAP_HIT", f"final_notional={final_notional:.6f}>max_notional={max_notional:.6f}")
             continue
+
+        if is_research_mode:
+            shadow_live_summary["research_accepted_count"] = int(shadow_live_summary.get("research_accepted_count", 0)) + 1
+            shadow_reason = _shadow_live_reject_reason(
+                final_notional=float(final_notional),
+                final_qty=float(rounded_size_after),
+                live_min_notional=float(live_min_notional),
+                live_min_trade_qty=float(live_min_trade_qty),
+                live_qty_step=float(live_qty_step),
+            )
+            if shadow_reason:
+                shadow_live_summary["research_accepted_but_live_rejected_count"] = int(
+                    shadow_live_summary.get("research_accepted_but_live_rejected_count", 0)
+                ) + 1
+                _register_shadow_live_reject(shadow_live_summary, shadow_reason)
+            else:
+                shadow_live_summary["live_pass_count"] = int(shadow_live_summary.get("live_pass_count", 0)) + 1
 
         accepted[idx] = direction
         breakdown.register_accept(1)
@@ -608,6 +683,11 @@ def build_adaptive_orders(
             elif pnl_proxy > 0:
                 losing_streak = 0
 
+    research_accepted = int(shadow_live_summary.get("research_accepted_count", 0))
+    if research_accepted > 0:
+        live_rejected = int(shadow_live_summary.get("research_accepted_but_live_rejected_count", 0))
+        shadow_live_summary["live_reject_rate"] = float(live_rejected / max(research_accepted, 1))
+
     orders_df = pd.DataFrame(order_rows)
     sizing_trace_df = pd.DataFrame(sizing_trace_rows)
     stage24_trace_df = pd.DataFrame(stage24_trace_rows)
@@ -620,6 +700,7 @@ def build_adaptive_orders(
         "sizing_trace_summary": _summarize_sizing_trace(sizing_trace_rows),
         "stage24_sizing_trace": stage24_trace_df,
         "stage24_sizing_summary": _summarize_stage24_sizing_trace(stage24_trace_rows),
+        "shadow_live_summary": shadow_live_summary,
         "breakdown": breakdown.to_payload(),
     }
 

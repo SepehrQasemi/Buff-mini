@@ -186,6 +186,7 @@ def _collect_one_equity(
     s24_summary = _read_json(trace_dir / "stage24_sizing_summary.json")
     s24_trace = _read_csv(trace_dir / "stage24_sizing_trace.csv")
     sizing_summary = _read_json(trace_dir / "sizing_trace_summary.json")
+    shadow_live_summary = _read_json(trace_dir / "shadow_live_summary.json")
 
     trade_count = float(pd.to_numeric(rows.get("trades_executed_count", 0.0), errors="coerce").fillna(0.0).sum()) if not rows.empty else 0.0
     trade_pnls = _collect_trade_pnls(rows)
@@ -233,6 +234,8 @@ def _collect_one_equity(
         "margin_limit_max": float(sizing_summary.get("margin_limit_max", 0.0)),
         "cap_binding_reject_count": int(sizing_summary.get("cap_binding_reject_count", 0)),
         "reject_reason_counts": dict(breakdown.get("reject_reason_counts", {})),
+        "research_accepted_but_live_rejected_count": int(shadow_live_summary.get("research_accepted_but_live_rejected_count", 0)),
+        "shadow_live_reject_rate": float(shadow_live_summary.get("live_reject_rate", 0.0)),
     }
     trace_ref = {
         "initial_equity": float(initial_equity),

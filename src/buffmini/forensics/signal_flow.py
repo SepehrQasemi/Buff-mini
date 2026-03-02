@@ -178,6 +178,7 @@ def run_signal_flow_trace(
     eligibility_trace_rows: list[dict[str, Any]] = []
     sizing_trace_rows: list[dict[str, Any]] = []
     stage24_sizing_trace_rows: list[dict[str, Any]] = []
+    shadow_live_rows: list[dict[str, Any]] = []
     execution_breakdown = RejectBreakdown()
 
     for combo in combos:
@@ -348,6 +349,19 @@ def run_signal_flow_trace(
                     **dict(item),
                 }
             )
+        shadow_live_payload = dict(counts.get("shadow_live_summary", {}))
+        if shadow_live_payload:
+            shadow_live_rows.append(
+                {
+                    "stage": stage,
+                    "mode": mode_name,
+                    "symbol": symbol,
+                    "timeframe": timeframe,
+                    "family": family,
+                    "composer": composer,
+                    **shadow_live_payload,
+                }
+            )
 
         row["top_reject_reason"] = _top_reject_reason(row)
         rows.append(_safe_json(row))
@@ -402,6 +416,12 @@ def run_signal_flow_trace(
     stage24_trace_df.to_csv(trace_dir / "stage24_sizing_trace.csv", index=False)
     (trace_dir / "stage24_sizing_summary.json").write_text(
         json.dumps(_aggregate_stage24_trace_summary(stage24_trace_df), indent=2, allow_nan=False),
+        encoding="utf-8",
+    )
+    shadow_live_df = pd.DataFrame(shadow_live_rows)
+    shadow_live_df.to_csv(trace_dir / "shadow_live_feasibility.csv", index=False)
+    (trace_dir / "shadow_live_summary.json").write_text(
+        json.dumps(_aggregate_shadow_live_summary(shadow_live_df), indent=2, allow_nan=False),
         encoding="utf-8",
     )
     (trace_dir / "execution_reject_breakdown.json").write_text(
@@ -756,6 +776,7 @@ def _count_flow(
     stage24_enabled = bool(stage24_cfg.get("enabled", False))
     execution_reject_events: list[dict[str, Any]] = []
     execution_adjustment_events: list[dict[str, Any]] = []
+    shadow_live_summary: dict[str, Any] = {}
     if stage_profile.trading and stage23_enabled:
         eligibility = evaluate_eligibility(
             frame=frame,
@@ -798,12 +819,14 @@ def _count_flow(
         execution_adjustment_events = list(adaptive.get("adjustment_events", []))
         sizing_trace_rows = list(adaptive.get("sizing_trace", pd.DataFrame()).to_dict(orient="records"))
         stage24_sizing_trace_rows = list(adaptive.get("stage24_sizing_trace", pd.DataFrame()).to_dict(orient="records"))
+        shadow_live_summary = dict(adaptive.get("shadow_live_summary", {}))
     else:
         signal_series = signal_pre.shift(1).fillna(0).astype(int)
         orders_attempted_count = int((signal_pre != 0).sum()) if stage_profile.trading else 0
         orders_sent_count = int((signal_series != 0).sum()) if stage_profile.trading else 0
         sizing_trace_rows = []
         stage24_sizing_trace_rows = []
+        shadow_live_summary = {}
 
     return {
         "raw_signal_count": raw_signal_count,
@@ -822,6 +845,7 @@ def _count_flow(
         "eligibility_trace_rows": eligibility_trace_rows,
         "sizing_trace_rows": sizing_trace_rows,
         "stage24_sizing_trace_rows": stage24_sizing_trace_rows,
+        "shadow_live_summary": shadow_live_summary,
         "signal_series": signal_series,
         "signal_pre": signal_pre,
     }
@@ -910,6 +934,41 @@ def _aggregate_stage24_trace_summary(df: pd.DataFrame) -> dict[str, Any]:
         "risk_used_min": float(risk_used.min()),
         "risk_used_median": float(risk_used.median()),
         "risk_used_max": float(risk_used.max()),
+    }
+
+
+def _aggregate_shadow_live_summary(df: pd.DataFrame) -> dict[str, Any]:
+    if df.empty:
+        return {
+            "enabled": False,
+            "rows": 0,
+            "research_accepted_count": 0,
+            "live_pass_count": 0,
+            "research_accepted_but_live_rejected_count": 0,
+            "live_reject_rate": 0.0,
+            "live_reject_reason_counts": {},
+        }
+    enabled = pd.to_numeric(df.get("enabled", False), errors="coerce").fillna(False).astype(bool)
+    research_accepted = pd.to_numeric(df.get("research_accepted_count", 0), errors="coerce").fillna(0).astype(int)
+    live_pass = pd.to_numeric(df.get("live_pass_count", 0), errors="coerce").fillna(0).astype(int)
+    live_rejected = pd.to_numeric(df.get("research_accepted_but_live_rejected_count", 0), errors="coerce").fillna(0).astype(int)
+    reason_counts: dict[str, int] = {}
+    for item in df.get("live_reject_reason_counts", pd.Series(dtype=object)).tolist():
+        if not isinstance(item, dict):
+            continue
+        for reason, count in item.items():
+            key = str(reason)
+            reason_counts[key] = int(reason_counts.get(key, 0)) + int(count)
+    total_research = int(research_accepted.sum())
+    total_live_rejected = int(live_rejected.sum())
+    return {
+        "enabled": bool(enabled.any()),
+        "rows": int(len(df)),
+        "research_accepted_count": total_research,
+        "live_pass_count": int(live_pass.sum()),
+        "research_accepted_but_live_rejected_count": total_live_rejected,
+        "live_reject_rate": float(total_live_rejected / max(total_research, 1)),
+        "live_reject_reason_counts": {str(k): int(v) for k, v in sorted(reason_counts.items())},
     }
 
 

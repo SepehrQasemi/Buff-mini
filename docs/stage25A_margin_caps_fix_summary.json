@@ -3,7 +3,8 @@
   "status": "IN_PROGRESS",
   "sections_completed": [
     "25.1",
-    "25.2"
+    "25.2",
+    "25.3"
   ],
   "canonical_margin_model": {
     "module": "src/buffmini/execution/margin_model.py",
@@ -16,7 +17,8 @@
   },
   "tests_added": [
     "tests/test_margin_model_invariants.py",
-    "tests/test_stage24_equity_scaling_no_pathological_margin_fail.py"
+    "tests/test_stage24_equity_scaling_no_pathological_margin_fail.py",
+    "tests/test_constraints_mode_split.py"
   ],
   "stage24_before_after": {
     "snapshot_path": "docs/stage25A_stage24_prefx_snapshot.json",
@@ -61,7 +63,24 @@
       }
     ]
   },
+  "constraints_split": {
+    "config_path": "evaluation.constraints",
+    "mode_values": [
+      "live",
+      "research"
+    ],
+    "shadow_live_evidence": {
+      "run_id": "20260302_212014_26d21b14c3d4_stage15_9_trace",
+      "artifact": "runs/20260302_212014_26d21b14c3d4_stage15_9_trace/trace/shadow_live_summary.json",
+      "research_accepted_count": 8,
+      "live_pass_count": 5,
+      "research_accepted_but_live_rejected_count": 3,
+      "live_reject_reason_counts": {
+        "SIZE_TOO_SMALL": 3
+      }
+    }
+  },
   "notes": [
-    "Stage-25A summary will be finalized after 25.3 reruns."
+    "Stage-25A complete through 25.3; Stage-25B remains."
   ]
 }

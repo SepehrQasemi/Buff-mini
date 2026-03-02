@@ -50,3 +50,25 @@
 
 ## Notes
 - Stage-25.3 adds research/live constraints and shadow-live feasibility accounting.
+
+## Stage-25.3 Research vs Live Constraints Split
+- Added config namespace: `evaluation.constraints`:
+  - `mode`: `live|research`
+  - `live`: `min_trade_notional`, `min_trade_qty`, `qty_step`
+  - `research`: `min_trade_notional`, `min_trade_qty`, `qty_step`
+- Order builder now enforces active constraints by mode while preserving all existing risk controls.
+- In `research` mode, every accepted trade is shadow-checked against `live` constraints and counted.
+
+### Shadow-live evidence (dry-run trace)
+- run_id: `20260302_212014_26d21b14c3d4_stage15_9_trace`
+- artifact: `runs/20260302_212014_26d21b14c3d4_stage15_9_trace/trace/shadow_live_summary.json`
+- summary:
+  - `research_accepted_count = 8`
+  - `live_pass_count = 5`
+  - `research_accepted_but_live_rejected_count = 3`
+  - `live_reject_reason_counts.SIZE_TOO_SMALL = 3`
+
+### Tests added
+- `tests/test_constraints_mode_split.py`
+  - research mode accepts smaller notionals and reports shadow-live rejects.
+  - live mode rejects the same small notionals with `SIZE_TOO_SMALL`.

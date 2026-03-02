@@ -493,6 +493,20 @@ STAGE24_DEFAULTS = {
     },
 }
 
+CONSTRAINTS_DEFAULTS = {
+    "mode": "live",
+    "live": {
+        "min_trade_notional": 10.0,
+        "min_trade_qty": 0.0,
+        "qty_step": 0.001,
+    },
+    "research": {
+        "min_trade_notional": 0.0,
+        "min_trade_qty": 0.0,
+        "qty_step": 0.0,
+    },
+}
+
 STAGE13_DEFAULTS = {
     "enabled": False,
     "seed": 42,
@@ -1473,6 +1487,27 @@ def validate_config(config: ConfigDict) -> None:
     if not isinstance(cache_cfg.get("enabled", True), bool):
         raise ValueError("evaluation.stage12_4.cache.enabled must be bool")
     evaluation["stage12_4"] = stage12_4
+
+    constraints = _merge_defaults(CONSTRAINTS_DEFAULTS, evaluation.get("constraints", {}))
+    constraints_mode = str(constraints.get("mode", "live")).strip().lower()
+    if constraints_mode not in {"research", "live"}:
+        raise ValueError("evaluation.constraints.mode must be research|live")
+    for scope in ("live", "research"):
+        section = constraints.get(scope, {})
+        if not isinstance(section, dict):
+            raise ValueError(f"evaluation.constraints.{scope} must be mapping")
+        min_notional = float(section.get("min_trade_notional", 0.0))
+        min_qty = float(section.get("min_trade_qty", 0.0))
+        qty_step = float(section.get("qty_step", 0.0))
+        if scope == "live" and min_notional <= 0:
+            raise ValueError("evaluation.constraints.live.min_trade_notional must be > 0")
+        if scope == "research" and min_notional < 0:
+            raise ValueError("evaluation.constraints.research.min_trade_notional must be >= 0")
+        if min_qty < 0:
+            raise ValueError(f"evaluation.constraints.{scope}.min_trade_qty must be >= 0")
+        if qty_step < 0:
+            raise ValueError(f"evaluation.constraints.{scope}.qty_step must be >= 0")
+    evaluation["constraints"] = constraints
 
     stage23 = _merge_defaults(STAGE23_DEFAULTS, evaluation.get("stage23", {}))
     if not isinstance(stage23.get("enabled", False), bool):
