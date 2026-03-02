@@ -1,0 +1,427 @@
+{
+  "stage": "15_22",
+  "seed": 42,
+  "git_head": "8862e04f4e9e67fad8b10ff86052f885e718858f",
+  "commit_hashes": [
+    "8862e04",
+    "8dd524f",
+    "ad88c15",
+    "75550f3",
+    "eabd92a",
+    "7ff077a",
+    "8ed2895",
+    "aed4163"
+  ],
+  "run_ids": {
+    "15": "20260301_233059_d51095a879b1_stage15",
+    "16": "20260301_233850_fc5bd541a924_stage15",
+    "17": "20260301_235232_2c624bbf1ef5_stage17",
+    "18": "20260302_000508_f3399e6887fe_stage18",
+    "19": "20260302_001218_85284796a83b_stage19",
+    "20": "20260302_002500_8ca55e995e03_stage20",
+    "21": "20260302_003211_78e44129c6f9_stage21",
+    "22": "20260302_004522_9dafae0548fe_stage22"
+  },
+  "stages": {
+    "15": {
+      "run_id": "20260301_233059_d51095a879b1_stage15",
+      "seed": 42,
+      "config_hash": "46824450e5e7",
+      "data_hash": "a60fb78eeab75168",
+      "resolved_end_ts": "2025-04-10T23:00:00+00:00",
+      "classic_trade_count": 10.0,
+      "alpha_trade_count": 0.0,
+      "classic_exp_lcb": -106.14338942335678,
+      "alpha_exp_lcb": 0.0,
+      "delta_exp_lcb": 106.14338942335678,
+      "activation_pct_not_neutral": 100.0,
+      "summary_hash": "6568893741df80aa",
+      "status": "PASS",
+      "warnings": [],
+      "classification": "ARCHITECTURE_READY",
+      "risk_of_overfitting": "A/B runner compares Classic hash vs alpha-v2 and blocks silent no-op claims."
+    },
+    "16": {
+      "run_id": "20260301_233850_fc5bd541a924_stage15",
+      "seed": 42,
+      "config_hash": "46824450e5e7",
+      "data_hash": "9ee4982b93e3ac04",
+      "resolved_end_ts": "2026-02-26T09:00:00+00:00",
+      "classic_trade_count": 14.0,
+      "alpha_trade_count": 0.0,
+      "classic_exp_lcb": 30.099127775582197,
+      "alpha_exp_lcb": 0.0,
+      "max_state_share_pct": 70.60057128394259,
+      "summary_hash": "35795e411b0ccadb",
+      "status": "PASS",
+      "warnings": [],
+      "context_distribution": [
+        {
+          "symbol": "BTC/USDT",
+          "TREND": 63.89702426148895,
+          "RANGE": 19.5248942401562,
+          "VOL_EXPANSION": 4.375022598257222,
+          "VOL_COMPRESSION": 12.123513034674765,
+          "CHOP": 0.07954586542285859
+        },
+        {
+          "symbol": "ETH/USDT",
+          "TREND": 70.60057128394259,
+          "RANGE": 15.732002747948078,
+          "VOL_EXPANSION": 2.849188270600571,
+          "VOL_COMPRESSION": 10.695303178218897,
+          "CHOP": 0.12293451928987237
+        }
+      ],
+      "artifacts": {
+        "context_persistence": "C:/dev/Buff-mini/runs/20260301_233850_fc5bd541a924_stage15/context_persistence.csv",
+        "context_transition_matrix": "C:/dev/Buff-mini/runs/20260301_233850_fc5bd541a924_stage15/context_transition_matrix.csv"
+      }
+    },
+    "17": {
+      "run_id": "20260301_235232_2c624bbf1ef5_stage17",
+      "seed": 42,
+      "config_hash": "46824450e5e7e3ca",
+      "data_hash": "e83c3ff37f7d9bbf",
+      "resolved_end_ts": "2026-02-26T09:00:00+00:00",
+      "trade_count": 0.0,
+      "trades_per_month": 0.0,
+      "exposure_ratio": 0.0,
+      "PF": 0.0,
+      "PF_raw": 0.0,
+      "expectancy": 0.0,
+      "exp_lcb": 0.0,
+      "max_drawdown": 0.0,
+      "walkforward_executed_true_pct": 0.0,
+      "usable_windows_count": 0,
+      "mc_trigger_rate": 0.0,
+      "invalid_pct": 0.0,
+      "zero_trade_pct": 100.0,
+      "drag_sensitivity_delta_exp_lcb": 18.2152860584907,
+      "runtime_seconds": 0.0,
+      "cache_hit_rate": 0.0,
+      "summary_hash": "179e627d8129521a",
+      "status": "PASS",
+      "warnings": [],
+      "decomposition": {
+        "entry_only_delta_exp_lcb": 18.2152860584907,
+        "exit_only_delta_exp_lcb": 0.0,
+        "combined_delta_exp_lcb": 18.2152860584907
+      }
+    },
+    "18": {
+      "run_id": "20260302_000508_f3399e6887fe_stage18",
+      "seed": 42,
+      "config_hash": "46824450e5e7e3ca",
+      "data_hash": "c9a171ee50947a7c",
+      "resolved_end_ts": "2026-02-26T09:00:00+00:00",
+      "trade_count": 0.0,
+      "trades_per_month": 0.0,
+      "exposure_ratio": 0.0,
+      "PF": 0.0,
+      "PF_raw": 0.0,
+      "expectancy": 0.0,
+      "exp_lcb": -0.0003361223479059816,
+      "max_drawdown": 0.0,
+      "walkforward_executed_true_pct": 0.0,
+      "usable_windows_count": 0,
+      "mc_trigger_rate": 0.0,
+      "invalid_pct": 0.0,
+      "zero_trade_pct": 0.0,
+      "accepted_effects_count": 0,
+      "summary_hash": "d0e4cae2cbaf8eec",
+      "status": "PASS",
+      "warnings": [
+        "no_accepted_conditional_effects"
+      ],
+      "policy_suggestions": [
+        {
+          "symbol": "BTC/USDT",
+          "context": "CHOP",
+          "weight": 1.0
+        },
+        {
+          "symbol": "BTC/USDT",
+          "context": "RANGE",
+          "weight": 1.0
+        },
+        {
+          "symbol": "BTC/USDT",
+          "context": "TREND",
+          "weight": 1.0
+        },
+        {
+          "symbol": "BTC/USDT",
+          "context": "VOL_COMPRESSION",
+          "weight": 1.0
+        },
+        {
+          "symbol": "BTC/USDT",
+          "context": "VOL_EXPANSION",
+          "weight": 1.0
+        },
+        {
+          "symbol": "ETH/USDT",
+          "context": "CHOP",
+          "weight": 1.0
+        },
+        {
+          "symbol": "ETH/USDT",
+          "context": "RANGE",
+          "weight": 1.0
+        },
+        {
+          "symbol": "ETH/USDT",
+          "context": "TREND",
+          "weight": 1.0
+        },
+        {
+          "symbol": "ETH/USDT",
+          "context": "VOL_COMPRESSION",
+          "weight": 1.0
+        },
+        {
+          "symbol": "ETH/USDT",
+          "context": "VOL_EXPANSION",
+          "weight": 1.0
+        }
+      ],
+      "artifacts": {
+        "conditional_table": "C:/dev/Buff-mini/runs/20260302_000508_f3399e6887fe_stage18/stage18_conditional_table.csv",
+        "policy_table": "C:/dev/Buff-mini/runs/20260302_000508_f3399e6887fe_stage18/stage18_policy_suggestions.csv"
+      }
+    },
+    "19": {
+      "run_id": "20260302_001218_85284796a83b_stage19",
+      "seed": 42,
+      "config_hash": "46824450e5e7e3ca",
+      "data_hash": "2462c594898adbb7",
+      "resolved_end_ts": "2026-02-26T09:00:00+00:00",
+      "trade_count": 1488.5,
+      "trades_per_month": 38.75040676863,
+      "exposure_ratio": 0.5975159995661135,
+      "PF": 0.7365188940394716,
+      "PF_raw": 0.7365188940394716,
+      "expectancy": -6.3811231589938,
+      "exp_lcb": -7.960478362796625,
+      "max_drawdown": 0.9544856155893615,
+      "walkforward_executed_true_pct": 0.0,
+      "usable_windows_count": 0,
+      "mc_trigger_rate": 0.0,
+      "invalid_pct": 0.0,
+      "zero_trade_pct": 0.0,
+      "delta_exp_lcb_vs_baseline": -7.960478362796625,
+      "summary_hash": "3d7c9f2d9a4567ec",
+      "status": "PASS",
+      "warnings": [],
+      "baseline": {
+        "trade_count": 0.0,
+        "tpm": 0.0,
+        "exposure_ratio": 0.0,
+        "PF_raw": 0.0,
+        "PF": 0.0,
+        "expectancy": 0.0,
+        "exp_lcb": 0.0,
+        "max_drawdown": 0.0
+      },
+      "with_transition": {
+        "trade_count": 1488.5,
+        "tpm": 38.75040676863,
+        "exposure_ratio": 0.5975159995661135,
+        "PF_raw": 0.7365188940394716,
+        "PF": 0.7365188940394716,
+        "expectancy": -6.3811231589938,
+        "exp_lcb": -7.960478362796625,
+        "max_drawdown": 0.9544856155893615
+      },
+      "delta": {
+        "trade_count": 1488.5,
+        "exp_lcb": -7.960478362796625,
+        "max_drawdown": 0.9544856155893615
+      }
+    },
+    "20": {
+      "run_id": "20260302_002500_8ca55e995e03_stage20",
+      "seed": 42,
+      "config_hash": "46824450e5e7e3ca",
+      "data_hash": "a6129de40245d242",
+      "resolved_end_ts": "2026-02-26T09:00:00+00:00",
+      "trade_count": 0.0,
+      "trades_per_month": 0.0,
+      "exposure_ratio": 0.0,
+      "PF": 0.0,
+      "PF_raw": 0.0,
+      "expectancy": 0.0,
+      "exp_lcb": 0.0,
+      "max_drawdown": 0.0,
+      "walkforward_executed_true_pct": 0.0,
+      "usable_windows_count": 0,
+      "mc_trigger_rate": 0.0,
+      "invalid_pct": 0.0,
+      "zero_trade_pct": 100.0,
+      "valid_candidates": 0,
+      "summary_hash": "309939e4a6e86d90",
+      "status": "FAILED",
+      "warnings": [
+        "no_valid_candidate_after_constraints"
+      ],
+      "best_candidate": {},
+      "constraints": {
+        "min_tpm": 5.0,
+        "max_tpm": 80.0,
+        "exposure_min": 0.01,
+        "max_dd_p95": 0.3,
+        "max_drag_penalty": 5.0,
+        "min_horizon_consistency": 0.2
+      },
+      "candidate_table": "docs/stage20_candidates.csv"
+    },
+    "21": {
+      "run_id": "20260302_003211_78e44129c6f9_stage21",
+      "seed": 42,
+      "config_hash": "46824450e5e7e3ca",
+      "data_hash": "35bebbef4706684b",
+      "resolved_end_ts": "2026-02-26T09:00:00+00:00",
+      "trade_count": 0.0,
+      "trades_per_month": 0.0,
+      "exposure_ratio": 0.0,
+      "PF": 0.0,
+      "PF_raw": 0.0,
+      "expectancy": 0.0,
+      "exp_lcb": 0.0,
+      "max_drawdown": 0.0,
+      "walkforward_executed_true_pct": 0.0,
+      "usable_windows_count": 0,
+      "mc_trigger_rate": 0.0,
+      "invalid_pct": 100.0,
+      "zero_trade_pct": 0.0,
+      "evaluated_count": 90,
+      "pruned_count": 90,
+      "runtime_seconds": 0.0557838000022457,
+      "cache_hit_rate": 0.0,
+      "summary_hash": "c7ad8bf06d781785",
+      "status": "FAILED",
+      "warnings": [
+        "search_returned_empty_candidate_set"
+      ],
+      "best_candidate": {},
+      "prune_reasons": {
+        "MAX_DD_BREACH": 90
+      }
+    },
+    "22": {
+      "run_id": "20260302_004522_9dafae0548fe_stage22",
+      "seed": 42,
+      "config_hash": "46824450e5e7e3ca",
+      "data_hash": "e246dd1e80636881",
+      "resolved_end_ts": "2026-02-26T09:00:00+00:00",
+      "trade_count": 4.5,
+      "trades_per_month": 0.11714936544093718,
+      "exposure_ratio": 0.0018982536066818527,
+      "PF": 2.4443039541787797,
+      "PF_raw": 2.4443039541787797,
+      "expectancy": 89.43501287682408,
+      "exp_lcb": -12.57322044705004,
+      "max_drawdown": 0.029687818667060373,
+      "walkforward_executed_true_pct": 0.0,
+      "usable_windows_count": 0,
+      "mc_trigger_rate": 0.0,
+      "invalid_pct": 0.0,
+      "zero_trade_pct": 0.0,
+      "conflict_rate_pct": 0.04158079328922154,
+      "bias_alignment_rate_pct": 99.95841920671077,
+      "delta_exp_lcb_vs_baseline": -12.57322044705004,
+      "summary_hash": "d4e52f7753d9a9f3",
+      "status": "PASS",
+      "warnings": [],
+      "baseline": {
+        "trade_count": 0.0,
+        "tpm": 0.0,
+        "exposure_ratio": 0.0,
+        "PF_raw": 0.0,
+        "PF": 0.0,
+        "expectancy": 0.0,
+        "exp_lcb": 0.0,
+        "max_drawdown": 0.0
+      },
+      "mtf": {
+        "trade_count": 4.5,
+        "tpm": 0.11714936544093718,
+        "exposure_ratio": 0.0018982536066818527,
+        "PF_raw": 2.4443039541787797,
+        "PF": 2.4443039541787797,
+        "expectancy": 89.43501287682408,
+        "exp_lcb": -12.57322044705004,
+        "max_drawdown": 0.029687818667060373
+      },
+      "delta": {
+        "trade_count": 4.5,
+        "exp_lcb": -12.57322044705004,
+        "max_drawdown": 0.029687818667060373
+      },
+      "mtf_stats": [
+        {
+          "symbol": "BTC/USDT",
+          "conflict_rate_pct": 0.05062009617818274,
+          "bias_alignment_rate_pct": 99.94937990382182,
+          "nonzero_signal_pct": 0.02169432693350689
+        },
+        {
+          "symbol": "ETH/USDT",
+          "conflict_rate_pct": 0.03254149040026033,
+          "bias_alignment_rate_pct": 99.96745850959974,
+          "nonzero_signal_pct": 0.010847163466753445
+        }
+      ]
+    }
+  },
+  "ab_milestones": {
+    "15": {
+      "run_id": "20260301_233059_d51095a879b1_stage15",
+      "status": "PASS",
+      "trade_count": 0.0,
+      "exp_lcb": 0.0,
+      "max_drawdown": 0.0,
+      "zero_trade_pct": 0.0,
+      "invalid_pct": 0.0
+    },
+    "17": {
+      "run_id": "20260301_235232_2c624bbf1ef5_stage17",
+      "status": "PASS",
+      "trade_count": 0.0,
+      "exp_lcb": 0.0,
+      "max_drawdown": 0.0,
+      "zero_trade_pct": 100.0,
+      "invalid_pct": 0.0
+    },
+    "19": {
+      "run_id": "20260302_001218_85284796a83b_stage19",
+      "status": "PASS",
+      "trade_count": 1488.5,
+      "exp_lcb": -7.960478362796625,
+      "max_drawdown": 0.9544856155893615,
+      "zero_trade_pct": 0.0,
+      "invalid_pct": 0.0
+    },
+    "22": {
+      "run_id": "20260302_004522_9dafae0548fe_stage22",
+      "status": "PASS",
+      "trade_count": 4.5,
+      "exp_lcb": -12.57322044705004,
+      "max_drawdown": 0.029687818667060373,
+      "zero_trade_pct": 0.0,
+      "invalid_pct": 0.0
+    }
+  },
+  "best_stage": "15",
+  "multi_horizon_consistency": {
+    "available": false,
+    "score": null
+  },
+  "drag_cost_sensitivity": {
+    "stage17_delta_exp_lcb": 0.0,
+    "stage22_delta_exp_lcb": -12.57322044705004
+  },
+  "final_verdict": "NO_EDGE",
+  "runtime_hash": "8e2881685f2175d0"
+}
