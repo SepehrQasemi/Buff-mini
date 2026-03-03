@@ -30,6 +30,27 @@ def raw_meta_path(*, data_dir: Path = RAW_DATA_DIR, exchange: str, symbol: str, 
     return raw_path(data_dir=data_dir, exchange=exchange, symbol=symbol, timeframe=timeframe).with_suffix(".meta.json")
 
 
+def legacy_flat_raw_path(*, data_dir: Path = RAW_DATA_DIR, symbol: str, timeframe: str) -> Path:
+    safe_symbol = symbol_safe(symbol)
+    return Path(data_dir) / f"{safe_symbol}_{timeframe}.parquet"
+
+
+def resolve_raw_path(*, data_dir: Path = RAW_DATA_DIR, exchange: str, symbol: str, timeframe: str) -> Path:
+    nested = raw_path(data_dir=data_dir, exchange=exchange, symbol=symbol, timeframe=timeframe)
+    if nested.exists():
+        return nested
+    flat = legacy_flat_raw_path(data_dir=data_dir, symbol=symbol, timeframe=timeframe)
+    return flat
+
+
+def resolve_raw_meta_path(*, data_dir: Path = RAW_DATA_DIR, exchange: str, symbol: str, timeframe: str) -> Path:
+    nested = raw_meta_path(data_dir=data_dir, exchange=exchange, symbol=symbol, timeframe=timeframe)
+    if nested.exists():
+        return nested
+    flat = legacy_flat_raw_path(data_dir=data_dir, symbol=symbol, timeframe=timeframe).with_suffix(".meta.json")
+    return flat
+
+
 def file_sha256(path: Path) -> str:
     digest = hashlib.sha256()
     with path.open("rb") as handle:

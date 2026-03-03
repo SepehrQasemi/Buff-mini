@@ -10,7 +10,7 @@ from typing import Any
 import pandas as pd
 
 from buffmini.constants import CANONICAL_DATA_DIR, RAW_DATA_DIR
-from buffmini.data.canonical_raw import file_sha256, prepare_frame, raw_path, symbol_safe
+from buffmini.data.canonical_raw import file_sha256, prepare_frame, resolve_raw_path, symbol_safe
 from buffmini.data.loader import validate_ohlcv_frame
 from buffmini.data.resample import resample_monthly_ohlcv, resample_ohlcv
 
@@ -72,7 +72,7 @@ def build_for_symbol(
     compression: str,
     drop_incomplete_last: bool,
 ) -> dict[str, dict[str, Any]]:
-    raw_file = raw_path(data_dir=raw_dir, exchange=exchange, symbol=symbol, timeframe=base_tf)
+    raw_file = resolve_raw_path(data_dir=raw_dir, exchange=exchange, symbol=symbol, timeframe=base_tf)
     if not raw_file.exists():
         raise FileNotFoundError(f"Raw base file missing: {raw_file}")
     base_frame = prepare_frame(pd.read_parquet(raw_file))

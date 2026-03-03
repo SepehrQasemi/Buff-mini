@@ -10,7 +10,7 @@ from typing import Any
 import pandas as pd
 
 from buffmini.constants import RAW_DATA_DIR
-from buffmini.data.canonical_raw import detect_gaps_minutes, raw_meta_path, raw_path
+from buffmini.data.canonical_raw import detect_gaps_minutes, resolve_raw_meta_path, resolve_raw_path
 
 
 def parse_args() -> argparse.Namespace:
@@ -25,8 +25,8 @@ def parse_args() -> argparse.Namespace:
 
 
 def _audit_one(*, symbol: str, exchange: str, timeframe: str, data_dir: Path) -> dict[str, Any]:
-    path = raw_path(data_dir=data_dir, exchange=exchange, symbol=symbol, timeframe=timeframe)
-    meta_path = raw_meta_path(data_dir=data_dir, exchange=exchange, symbol=symbol, timeframe=timeframe)
+    path = resolve_raw_path(data_dir=data_dir, exchange=exchange, symbol=symbol, timeframe=timeframe)
+    meta_path = resolve_raw_meta_path(data_dir=data_dir, exchange=exchange, symbol=symbol, timeframe=timeframe)
     if not path.exists():
         return {
             "symbol": str(symbol),

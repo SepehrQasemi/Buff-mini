@@ -77,11 +77,18 @@ def canonical_parquet_path(
 def resolve_parquet_path(symbol: str, timeframe: str, data_dir: str | Path = RAW_DATA_DIR) -> Path | None:
     """Resolve best available path across canonical, nested raw, and legacy flat raw."""
 
-    candidates = [
-        canonical_parquet_path(symbol=symbol, timeframe=timeframe),
-        nested_parquet_path(symbol=symbol, timeframe=timeframe, data_dir=data_dir),
-        parquet_path(symbol=symbol, timeframe=timeframe, data_dir=data_dir),
-    ]
+    raw_dir = Path(data_dir).resolve()
+    default_raw_dir = Path(RAW_DATA_DIR).resolve()
+    candidates: list[Path] = []
+    # Only probe global canonical store when using the default raw location.
+    if raw_dir == default_raw_dir:
+        candidates.append(canonical_parquet_path(symbol=symbol, timeframe=timeframe))
+    candidates.extend(
+        [
+            nested_parquet_path(symbol=symbol, timeframe=timeframe, data_dir=data_dir),
+            parquet_path(symbol=symbol, timeframe=timeframe, data_dir=data_dir),
+        ]
+    )
     for candidate in candidates:
         if candidate.exists():
             return candidate
