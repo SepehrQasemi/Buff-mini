@@ -1,0 +1,28 @@
+﻿{
+  "stage": "27.1",
+  "coverage_years_by_symbol": {
+    "BTC/USDT": 4.0,
+    "ETH/USDT": 4.0
+  },
+  "required_years": 4.0,
+  "min_years_to_run": 1.0,
+  "used_symbols": ["BTC/USDT", "ETH/USDT"],
+  "disabled_symbols": [],
+  "integrity_pass": true,
+  "gaps": {
+    "BTC/USDT": {
+      "count": 1,
+      "max_gap_minutes": 81
+    },
+    "ETH/USDT": {
+      "count": 1,
+      "max_gap_minutes": 81
+    }
+  },
+  "raw_audit_exit_code": 0,
+  "canonical_audit_exit_code": 0,
+  "notes": [
+    "coverage_gate_enforced_in_stage24_25_26_runners",
+    "btc_only_fallback_available_but_not_used"
+  ]
+}

@@ -48,7 +48,8 @@ def _audit_one(*, symbol: str, exchange: str, timeframe: str, data_dir: Path) ->
     ts_sorted = ts.sort_values().reset_index(drop=True)
     coverage_days = 0.0
     if not ts_sorted.empty:
-        coverage_days = float((ts_sorted.iloc[-1] - ts_sorted.iloc[0]).total_seconds() / 86400.0)
+        step_minutes = 1 if str(timeframe).strip().lower().endswith("m") else 60
+        coverage_days = float(((ts_sorted.iloc[-1] - ts_sorted.iloc[0]).total_seconds() + (step_minutes * 60.0)) / 86400.0)
     gaps = detect_gaps_minutes(pd.Series(ts_sorted), expected_minutes=1)
     meta = {}
     if meta_path.exists():

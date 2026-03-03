@@ -19,10 +19,10 @@ from buffmini.constants import DEFAULT_CONFIG_PATH, DERIVED_DATA_DIR, RAW_DATA_D
 from buffmini.stage10.evaluate import _build_features
 from buffmini.stage26.conditional_eval import ConditionalEvalParams, bootstrap_lcb, evaluate_rulelets_conditionally
 from buffmini.stage26.context import ContextParams, classify_context
-from buffmini.stage26.coverage import audit_symbol_coverage
 from buffmini.stage26.policy import build_conditional_policy
 from buffmini.stage26.replay import replay_conditional_policy
 from buffmini.stage26.rulelets import build_rulelet_library
+from buffmini.stage27.coverage_gate import evaluate_coverage_gate
 from buffmini.utils.hashing import stable_hash
 from buffmini.utils.time import utc_now_compact
 from buffmini.validation.walkforward_v2 import build_windows
@@ -39,6 +39,7 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument("--data-dir", type=Path, default=RAW_DATA_DIR)
     parser.add_argument("--derived-dir", type=Path, default=DERIVED_DATA_DIR)
     parser.add_argument("--docs-dir", type=Path, default=Path("docs"))
+    parser.add_argument("--allow-insufficient-data", action="store_true")
     return parser.parse_args()
 
 
@@ -337,17 +338,31 @@ def main() -> None:
     dry_run = bool(args.dry_run)
     warnings: list[str] = []
 
-    coverage_rows = [
-        audit_symbol_coverage(
-            symbol=symbol,
-            timeframe=str(stage26.get("base_timeframe", "1m")),
-            data_dir=args.data_dir,
-            end_mode="latest",
-        ).to_dict()
-        for symbol in symbols
-    ]
+    coverage_gate = evaluate_coverage_gate(
+        config=cfg,
+        symbols=symbols,
+        timeframe=str(stage26.get("base_timeframe", "1m")),
+        data_dir=args.data_dir,
+        allow_insufficient_data=bool(args.allow_insufficient_data),
+        auto_btc_fallback=True,
+    )
+    if not coverage_gate.can_run:
+        print(f"coverage_gate_status: {coverage_gate.status}")
+        print(f"coverage_years_by_symbol: {coverage_gate.coverage_years_by_symbol}")
+        raise SystemExit(2)
+    symbols = list(coverage_gate.used_symbols)
+    coverage_rows = list(coverage_gate.rows)
+    if coverage_gate.disabled_symbols:
+        warnings.append(f"auto_disabled_symbols:{','.join(coverage_gate.disabled_symbols)}")
+    if coverage_gate.notes:
+        warnings.extend([str(note) for note in coverage_gate.notes])
+
     required_years = float(stage26.get("required_years", 4))
-    coverage_ok = all(bool(row.get("exists", False)) and float(row.get("coverage_years", 0.0)) >= required_years for row in coverage_rows)
+    coverage_ok = all(
+        bool(row.get("exists", False)) and float(row.get("coverage_years", 0.0)) >= required_years
+        for row in coverage_rows
+        if str(row.get("symbol", "")) in symbols
+    )
 
     ctx_cfg = dict(stage26.get("context", {}))
     ctx_params = ContextParams(
@@ -512,6 +527,9 @@ def main() -> None:
         "run_id": run_id,
         "seed": seed,
         "dry_run": dry_run,
+        "requested_symbols": list(coverage_gate.requested_symbols),
+        "used_symbols": list(symbols),
+        "disabled_symbols": list(coverage_gate.disabled_symbols),
         "head_commit": _git_head(),
         "config_hash": compute_config_hash(cfg),
         "data_hash": stable_hash(data_hashes, length=16),

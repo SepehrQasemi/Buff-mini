@@ -8,6 +8,7 @@ from pathlib import Path
 from buffmini.config import load_config
 from buffmini.constants import DEFAULT_CONFIG_PATH, DERIVED_DATA_DIR, RAW_DATA_DIR, RUNS_DIR
 from buffmini.stage25.edge_program import run_stage25b_edge_program
+from buffmini.stage27.coverage_gate import evaluate_coverage_gate
 
 
 def parse_args() -> argparse.Namespace:
@@ -26,6 +27,7 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument("--derived-dir", type=Path, default=DERIVED_DATA_DIR)
     parser.add_argument("--docs-dir", type=Path, default=Path("docs"))
     parser.add_argument("--out-run-id", type=str, default=None)
+    parser.add_argument("--allow-insufficient-data", action="store_true")
     return parser.parse_args()
 
 
@@ -36,12 +38,28 @@ def _csv(value: str) -> list[str]:
 def main() -> None:
     args = parse_args()
     cfg = load_config(args.config)
+    requested_symbols = _csv(args.symbols)
+    base_tf = str((cfg.get("evaluation", {}) or {}).get("stage26", {}).get("base_timeframe", "1m"))
+    gate = evaluate_coverage_gate(
+        config=cfg,
+        symbols=requested_symbols,
+        timeframe=base_tf,
+        data_dir=args.data_dir,
+        allow_insufficient_data=bool(args.allow_insufficient_data),
+        auto_btc_fallback=True,
+    )
+    if not gate.can_run:
+        print(f"coverage_gate_status: {gate.status}")
+        print(f"coverage_years_by_symbol: {gate.coverage_years_by_symbol}")
+        raise SystemExit(2)
+    if gate.disabled_symbols:
+        print(f"auto_disabled_symbols: {','.join(gate.disabled_symbols)}")
     result = run_stage25b_edge_program(
         config=cfg,
         seed=int(args.seed),
         dry_run=bool(args.dry_run),
         mode=str(args.mode),
-        symbols=_csv(args.symbols),
+        symbols=list(gate.used_symbols),
         timeframes=_csv(args.timeframes),
         families=_csv(args.families),
         composers=_csv(args.composers),
@@ -64,4 +82,3 @@ def main() -> None:
 
 if __name__ == "__main__":
     main()
-

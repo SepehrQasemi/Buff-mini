@@ -10,6 +10,7 @@ import numpy as np
 import pandas as pd
 
 from buffmini.constants import RAW_DATA_DIR
+from buffmini.data.canonical_raw import resolve_raw_path
 
 
 @dataclass(frozen=True)
@@ -76,11 +77,17 @@ def audit_symbol_coverage(
     timeframe: str = "1m",
     data_dir: Path = RAW_DATA_DIR,
     end_mode: str = "latest",
+    exchange: str = "binance",
 ) -> CoverageResult:
     """Audit deterministic coverage stats from cached parquet."""
 
     _ = str(end_mode).strip().lower()  # reserved for future explicit end anchoring.
-    path = symbol_timeframe_path(symbol, timeframe, data_dir=data_dir)
+    path = resolve_raw_path(
+        data_dir=Path(data_dir),
+        exchange=str(exchange),
+        symbol=str(symbol),
+        timeframe=str(timeframe),
+    )
     if not path.exists():
         return CoverageResult(
             symbol=str(symbol),
@@ -142,7 +149,8 @@ def audit_symbol_coverage(
     start = pd.Timestamp(ts_sorted.iloc[0])
     end = pd.Timestamp(ts_sorted.iloc[-1])
     span_seconds = max(0.0, float((end - start).total_seconds()))
-    coverage_days = float(span_seconds / 86400.0)
+    span_seconds_inclusive = span_seconds + float(step)
+    coverage_days = float(span_seconds_inclusive / 86400.0)
     coverage_years = float(coverage_days / 365.25)
     expected_bars = int(np.floor(span_seconds / max(1, step)) + 1)
     observed_bars = int(ts_sorted.shape[0])
@@ -167,4 +175,3 @@ def audit_symbol_coverage(
         missing_bars_estimate=int(missing_est),
         gap_days_estimate=float(gap_days_est),
     )
-

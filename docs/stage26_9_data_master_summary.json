@@ -1,37 +1,37 @@
 {
   "stage": "26.9.4",
   "coverage_years_per_symbol": {
-    "BTC/USDT": 3.997260247927599,
-    "ETH/USDT": 0.01140581032778158
+    "BTC/USDT": 4.0,
+    "ETH/USDT": 4.0
   },
   "canonical_candle_counts_per_tf": {
     "BTC/USDT": {
-      "1m": 2102320,
-      "5m": 420463,
-      "15m": 140153,
-      "30m": 70076,
-      "1h": 35037,
-      "2h": 17518,
-      "4h": 8758,
-      "6h": 5838,
-      "12h": 2918,
-      "1d": 1458,
+      "1m": 2103760,
+      "5m": 420751,
+      "15m": 140249,
+      "30m": 70124,
+      "1h": 35061,
+      "2h": 17530,
+      "4h": 8764,
+      "6h": 5842,
+      "12h": 2920,
+      "1d": 1459,
       "1w": 207,
       "1M": 48
     },
     "ETH/USDT": {
-      "1m": 0,
-      "5m": 0,
-      "15m": 0,
-      "30m": 0,
-      "1h": 0,
-      "2h": 0,
-      "4h": 0,
-      "6h": 0,
-      "12h": 0,
-      "1d": 0,
-      "1w": 0,
-      "1M": 0
+      "1m": 2103760,
+      "5m": 420751,
+      "15m": 140249,
+      "30m": 70124,
+      "1h": 35061,
+      "2h": 17530,
+      "4h": 8764,
+      "6h": 5842,
+      "12h": 2920,
+      "1d": 1459,
+      "1w": 207,
+      "1M": 48
     }
   },
   "derived_tf_supported": [
@@ -39,27 +39,27 @@
     "45m",
     "8h"
   ],
-  "integrity_pass": false,
+  "integrity_pass": true,
   "gaps_detected": {
     "BTC/USDT": 1,
-    "ETH/USDT": 0
+    "ETH/USDT": 1
   },
   "disk_usage_mb": {
-    "raw": 63.816083908081055,
-    "canonical": 87.30272674560547,
-    "derived": 3.7801218032836914,
-    "total": 154.89893245697021
+    "raw": 116.03461933135986,
+    "canonical": 160.36136054992676,
+    "derived": 18.21914577484131,
+    "total": 294.61512565612793
   },
-  "raw_audit_exit_code": 2,
-  "canonical_audit_exit_code": 2,
+  "raw_audit_exit_code": 0,
+  "canonical_audit_exit_code": 0,
   "derived_sanity": {
     "checks": [
       {
         "symbol": "BTC/USDT",
         "target_tf": "3h",
         "source_tf": "1h",
-        "rows": 11678,
-        "first_cache_hit": true,
+        "rows": 11686,
+        "first_cache_hit": false,
         "second_cache_hit": true,
         "hash_match": true,
         "cache_path": "C:\\dev\\Buff-mini\\data\\derived\\binance\\BTC-USDT\\3h.parquet"
@@ -68,8 +68,8 @@
         "symbol": "BTC/USDT",
         "target_tf": "45m",
         "source_tf": "15m",
-        "rows": 46716,
-        "first_cache_hit": true,
+        "rows": 46748,
+        "first_cache_hit": false,
         "second_cache_hit": true,
         "hash_match": true,
         "cache_path": "C:\\dev\\Buff-mini\\data\\derived\\binance\\BTC-USDT\\45m.parquet"
@@ -78,8 +78,8 @@
         "symbol": "BTC/USDT",
         "target_tf": "8h",
         "source_tf": "1h",
-        "rows": 4378,
-        "first_cache_hit": true,
+        "rows": 4381,
+        "first_cache_hit": false,
         "second_cache_hit": true,
         "hash_match": true,
         "cache_path": "C:\\dev\\Buff-mini\\data\\derived\\binance\\BTC-USDT\\8h.parquet"
@@ -88,8 +88,8 @@
         "symbol": "ETH/USDT",
         "target_tf": "3h",
         "source_tf": "1h",
-        "rows": 33,
-        "first_cache_hit": true,
+        "rows": 11686,
+        "first_cache_hit": false,
         "second_cache_hit": true,
         "hash_match": true,
         "cache_path": "C:\\dev\\Buff-mini\\data\\derived\\binance\\ETH-USDT\\3h.parquet"
@@ -98,8 +98,8 @@
         "symbol": "ETH/USDT",
         "target_tf": "45m",
         "source_tf": "15m",
-        "rows": 133,
-        "first_cache_hit": true,
+        "rows": 46748,
+        "first_cache_hit": false,
         "second_cache_hit": true,
         "hash_match": true,
         "cache_path": "C:\\dev\\Buff-mini\\data\\derived\\binance\\ETH-USDT\\45m.parquet"
@@ -108,8 +108,8 @@
         "symbol": "ETH/USDT",
         "target_tf": "8h",
         "source_tf": "1h",
-        "rows": 12,
-        "first_cache_hit": true,
+        "rows": 4381,
+        "first_cache_hit": false,
         "second_cache_hit": true,
         "hash_match": true,
         "cache_path": "C:\\dev\\Buff-mini\\data\\derived\\binance\\ETH-USDT\\8h.parquet"

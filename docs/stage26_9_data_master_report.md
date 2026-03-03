@@ -1,17 +1,17 @@
 # Stage-26.9 Data Master Report
 
-- integrity_pass: `False`
+- integrity_pass: `True`
 
 ## Coverage
 
 | symbol | coverage_years | gaps_detected |
 | --- | ---: | ---: |
-| BTC/USDT | 3.997260 | 1 |
-| ETH/USDT | 0.011406 | 0 |
+| BTC/USDT | 4.000000 | 1 |
+| ETH/USDT | 4.000000 | 1 |
 
 ## Disk Usage (MB)
 
-- raw: `63.816`
-- canonical: `87.303`
-- derived: `3.780`
-- total: `154.899`
+- raw: `116.035`
+- canonical: `160.361`
+- derived: `18.219`
+- total: `294.615`

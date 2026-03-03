@@ -48,6 +48,11 @@ DATA_DEFAULTS = {
     "backend": "parquet",
     "resample_source": "direct",
     "partial_last_bucket": False,
+    "coverage": {
+        "required_years": 4.0,
+        "min_years_to_run": 1.0,
+        "fail_if_below_min": True,
+    },
     "feature_cache": {
         "enabled": True,
     },
@@ -926,6 +931,18 @@ def validate_config(config: ConfigDict) -> None:
         raise ValueError("data.resample_source must be 'direct' or 'base'")
     if not isinstance(data["partial_last_bucket"], bool):
         raise ValueError("data.partial_last_bucket must be bool")
+    coverage_cfg = _merge_defaults(DATA_DEFAULTS["coverage"], data.get("coverage", {}))
+    required_years = float(coverage_cfg.get("required_years", 4.0))
+    min_years_to_run = float(coverage_cfg.get("min_years_to_run", 1.0))
+    if required_years <= 0:
+        raise ValueError("data.coverage.required_years must be > 0")
+    if min_years_to_run <= 0:
+        raise ValueError("data.coverage.min_years_to_run must be > 0")
+    if min_years_to_run > required_years:
+        raise ValueError("data.coverage.min_years_to_run must be <= data.coverage.required_years")
+    if not isinstance(coverage_cfg.get("fail_if_below_min", True), bool):
+        raise ValueError("data.coverage.fail_if_below_min must be bool")
+    data["coverage"] = coverage_cfg
     feature_cache_cfg = data.get("feature_cache", {})
     if not isinstance(feature_cache_cfg, dict):
         raise ValueError("data.feature_cache must be mapping")

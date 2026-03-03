@@ -8,6 +8,7 @@ from pathlib import Path
 from buffmini.config import load_config
 from buffmini.constants import DEFAULT_CONFIG_PATH, DERIVED_DATA_DIR, RAW_DATA_DIR, RUNS_DIR
 from buffmini.stage24.audit import run_stage24_audit
+from buffmini.stage27.coverage_gate import evaluate_coverage_gate
 
 
 def parse_args() -> argparse.Namespace:
@@ -23,6 +24,7 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument("--data-dir", type=Path, default=RAW_DATA_DIR)
     parser.add_argument("--derived-dir", type=Path, default=DERIVED_DATA_DIR)
     parser.add_argument("--docs-dir", type=Path, default=Path("docs"))
+    parser.add_argument("--allow-insufficient-data", action="store_true")
     return parser.parse_args()
 
 
@@ -36,6 +38,21 @@ def main() -> None:
     dry_run = bool(args.dry_run)
     if bool(args.use_real_data):
         dry_run = False
+    requested_symbols = _csv(args.symbols)
+    gate = evaluate_coverage_gate(
+        config=cfg,
+        symbols=requested_symbols,
+        timeframe=str(args.base_timeframe),
+        data_dir=args.data_dir,
+        allow_insufficient_data=bool(args.allow_insufficient_data),
+        auto_btc_fallback=True,
+    )
+    if not gate.can_run:
+        print(f"coverage_gate_status: {gate.status}")
+        print(f"coverage_years_by_symbol: {gate.coverage_years_by_symbol}")
+        raise SystemExit(2)
+    if gate.disabled_symbols:
+        print(f"auto_disabled_symbols: {','.join(gate.disabled_symbols)}")
 
     equities = list(
         (cfg.get("evaluation", {}) or {})
@@ -47,7 +64,7 @@ def main() -> None:
         config=cfg,
         seed=int(args.seed),
         dry_run=dry_run,
-        symbols=_csv(args.symbols),
+        symbols=list(gate.used_symbols),
         base_timeframe=str(args.base_timeframe),
         operational_timeframe=str(args.operational_timeframe),
         initial_equities=[float(x) for x in equities],

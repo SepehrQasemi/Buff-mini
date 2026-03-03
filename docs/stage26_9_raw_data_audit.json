@@ -9,37 +9,37 @@
       "exists": true,
       "path": "C:\\dev\\Buff-mini\\data\\raw\\binance\\BTC-USDT\\1m.parquet",
       "meta_path": "C:\\dev\\Buff-mini\\data\\raw\\binance\\BTC-USDT\\1m.meta.json",
-      "start_ts": "2022-03-04T02:46:00+00:00",
-      "end_ts": "2026-03-03T02:45:00+00:00",
-      "coverage_years": 3.997260247927599,
-      "rows": 2102320,
+      "start_ts": "2022-03-03T11:56:00+00:00",
+      "end_ts": "2026-03-03T11:55:00+00:00",
+      "coverage_years": 4.0,
+      "rows": 2103760,
       "duplicates": 0,
       "non_monotonic": false,
       "gaps_detected": {
         "count": 1,
         "max_gap_minutes": 81
       },
-      "meta_sha256": "943a32dff2baae680b224e87bfa842d89f1cd3e41ec0719557241e4ff51dbca3"
+      "meta_sha256": "42f690ad9f29192a710182f3c3d3063e577799c2ae8a50e3a856fc51158da13a"
     },
     {
       "symbol": "ETH/USDT",
       "exchange": "binance",
       "timeframe": "1m",
       "exists": true,
-      "path": "C:\\dev\\Buff-mini\\data\\raw\\ETH-USDT_1m.parquet",
-      "meta_path": "C:\\dev\\Buff-mini\\data\\raw\\ETH-USDT_1m.meta.json",
-      "start_ts": "2025-01-01T00:00:00+00:00",
-      "end_ts": "2025-01-05T03:59:00+00:00",
-      "coverage_years": 0.01140581032778158,
-      "rows": 6000,
+      "path": "C:\\dev\\Buff-mini\\data\\raw\\binance\\ETH-USDT\\1m.parquet",
+      "meta_path": "C:\\dev\\Buff-mini\\data\\raw\\binance\\ETH-USDT\\1m.meta.json",
+      "start_ts": "2022-03-03T11:56:00+00:00",
+      "end_ts": "2026-03-03T11:55:00+00:00",
+      "coverage_years": 4.0,
+      "rows": 2103760,
       "duplicates": 0,
       "non_monotonic": false,
       "gaps_detected": {
-        "count": 0,
-        "max_gap_minutes": 0
+        "count": 1,
+        "max_gap_minutes": 81
       },
-      "meta_sha256": ""
+      "meta_sha256": "a0e277d1e5f67c969f17e7d884a13ba1ed5e6114016bd7bf4fb25b46665c51e6"
     }
   ],
-  "coverage_ok_all_symbols": false
+  "coverage_ok_all_symbols": true
 }
