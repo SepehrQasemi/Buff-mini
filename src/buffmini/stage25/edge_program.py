@@ -11,6 +11,7 @@ from typing import Any
 import numpy as np
 import pandas as pd
 
+from buffmini.data.snapshot import snapshot_metadata_from_config
 from buffmini.forensics.signal_flow import run_signal_flow_trace
 from buffmini.utils.hashing import stable_hash
 from buffmini.utils.time import utc_now_compact
@@ -158,6 +159,7 @@ def run_stage25b_edge_program(
         rows_df=results_df,
         trace_refs=trace_refs,
         runtime_seconds=float(time.perf_counter() - started),
+        snapshot_meta=snapshot_metadata_from_config(config),
     )
     results_json.write_text(json.dumps(summary, indent=2, allow_nan=False), encoding="utf-8")
 
@@ -250,6 +252,7 @@ def _build_summary(
     rows_df: pd.DataFrame,
     trace_refs: list[dict[str, Any]],
     runtime_seconds: float,
+    snapshot_meta: dict[str, Any] | None = None,
 ) -> dict[str, Any]:
     metrics = _aggregate_metrics(rows_df)
     best_candidates = _best_candidates(rows_df)
@@ -288,6 +291,7 @@ def _build_summary(
         "best_candidates": best_candidates,
         "status": status,
         "summary_hash": summary_hash,
+        **dict(snapshot_meta or {}),
     }
 
 

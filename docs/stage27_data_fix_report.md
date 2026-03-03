@@ -28,6 +28,11 @@
 - `python scripts/build_canonical_timeframes.py --symbols BTC/USDT,ETH/USDT --base 1m --timeframes "5m,15m,30m,1h,2h,4h,6h,12h,1d,1w,1M"`
 - `python scripts/run_stage26_9_full_audit.py`
 
+## Frozen Snapshot
+- snapshot_id: `DATA_FROZEN_v1`
+- snapshot_file: `data/snapshots/DATA_FROZEN_v1.json`
+- snapshot_hash: `c734cebc1e80bf15`
+
 ## Notes
 - This stage enforces minimum-run coverage with explicit fail/allow behavior in Stage-24/25/26 runners.
 - If a future symbol drops below `min_years_to_run`, runs stop unless `--allow-insufficient-data` is set; BTC fallback is recorded when applied.

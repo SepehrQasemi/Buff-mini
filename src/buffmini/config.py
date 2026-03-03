@@ -53,6 +53,10 @@ DATA_DEFAULTS = {
         "min_years_to_run": 1.0,
         "fail_if_below_min": True,
     },
+    "snapshot": {
+        "id": "DATA_FROZEN_v1",
+        "path": "data/snapshots/DATA_FROZEN_v1.json",
+    },
     "feature_cache": {
         "enabled": True,
     },
@@ -943,6 +947,16 @@ def validate_config(config: ConfigDict) -> None:
     if not isinstance(coverage_cfg.get("fail_if_below_min", True), bool):
         raise ValueError("data.coverage.fail_if_below_min must be bool")
     data["coverage"] = coverage_cfg
+    snapshot_cfg = _merge_defaults(DATA_DEFAULTS["snapshot"], data.get("snapshot", {}))
+    snapshot_id = str(snapshot_cfg.get("id", "DATA_FROZEN_v1")).strip()
+    snapshot_path = str(snapshot_cfg.get("path", "")).strip()
+    if not snapshot_id:
+        raise ValueError("data.snapshot.id must be non-empty")
+    if not snapshot_path:
+        raise ValueError("data.snapshot.path must be non-empty")
+    snapshot_cfg["id"] = snapshot_id
+    snapshot_cfg["path"] = snapshot_path
+    data["snapshot"] = snapshot_cfg
     feature_cache_cfg = data.get("feature_cache", {})
     if not isinstance(feature_cache_cfg, dict):
         raise ValueError("data.feature_cache must be mapping")

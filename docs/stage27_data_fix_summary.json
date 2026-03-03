@@ -8,6 +8,8 @@
   "min_years_to_run": 1.0,
   "used_symbols": ["BTC/USDT", "ETH/USDT"],
   "disabled_symbols": [],
+  "data_snapshot_id": "DATA_FROZEN_v1",
+  "data_snapshot_hash": "c734cebc1e80bf15",
   "integrity_pass": true,
   "gaps": {
     "BTC/USDT": {

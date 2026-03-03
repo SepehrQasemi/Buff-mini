@@ -10,6 +10,7 @@ from typing import Any
 
 import pandas as pd
 
+from buffmini.data.snapshot import snapshot_metadata_from_config
 from buffmini.forensics.signal_flow import run_signal_flow_trace
 from buffmini.stage24.capital_sim import run_stage24_capital_sim
 from buffmini.utils.hashing import stable_hash
@@ -104,6 +105,7 @@ def run_stage24_audit(
         risk=risk_metrics,
         alloc=alloc_metrics,
     )
+    snapshot_meta = snapshot_metadata_from_config(config)
 
     payload = {
         "stage": "24",
@@ -141,9 +143,12 @@ def run_stage24_audit(
                 "alloc": alloc_metrics,
                 "capital_hash": capital_summary.get("results_hash", ""),
                 "next_bottleneck": next_bottleneck,
+                "data_snapshot_id": snapshot_meta.get("data_snapshot_id", ""),
+                "data_snapshot_hash": snapshot_meta.get("data_snapshot_hash", ""),
             },
             length=16,
         ),
+        **snapshot_meta,
     }
 
     docs_dir.mkdir(parents=True, exist_ok=True)

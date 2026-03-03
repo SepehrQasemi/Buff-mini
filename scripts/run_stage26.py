@@ -16,6 +16,7 @@ import pandas as pd
 from buffmini.backtest.engine import run_backtest
 from buffmini.config import compute_config_hash, load_config
 from buffmini.constants import DEFAULT_CONFIG_PATH, DERIVED_DATA_DIR, RAW_DATA_DIR, RUNS_DIR
+from buffmini.data.snapshot import snapshot_metadata_from_config
 from buffmini.stage10.evaluate import _build_features
 from buffmini.stage26.conditional_eval import ConditionalEvalParams, bootstrap_lcb, evaluate_rulelets_conditionally
 from buffmini.stage26.context import ContextParams, classify_context
@@ -337,6 +338,7 @@ def main() -> None:
     seed = int(args.seed)
     dry_run = bool(args.dry_run)
     warnings: list[str] = []
+    snapshot_meta = snapshot_metadata_from_config(cfg)
 
     coverage_gate = evaluate_coverage_gate(
         config=cfg,
@@ -495,7 +497,7 @@ def main() -> None:
 
     run_id = (
         f"{utc_now_compact()}_"
-        f"{stable_hash({'seed': seed, 'symbols': symbols, 'timeframes': timeframes, 'dry_run': dry_run, 'config_hash': compute_config_hash(cfg), 'data_hash': stable_hash(data_hashes, length=16)}, length=12)}"
+        f"{stable_hash({'seed': seed, 'symbols': symbols, 'timeframes': timeframes, 'dry_run': dry_run, 'config_hash': compute_config_hash(cfg), 'data_hash': stable_hash(data_hashes, length=16), 'data_snapshot_hash': snapshot_meta.get('data_snapshot_hash', '')}, length=12)}"
         "_stage26"
     )
     out_dir = args.runs_dir / run_id / "stage26"
@@ -552,6 +554,7 @@ def main() -> None:
         "next_bottleneck": next_bottleneck,
         "warnings": warnings,
         "runtime_seconds": float(time.perf_counter() - started),
+        **snapshot_meta,
     }
     (out_dir / "comparison_summary.json").write_text(
         json.dumps(_json_safe(payload), indent=2, allow_nan=False),
