@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import re
 from typing import Any
 
 import pandas as pd
@@ -9,21 +10,21 @@ import pandas as pd
 from buffmini.data.loader import standardize_ohlcv_frame, validate_ohlcv_frame
 
 
-SUPPORTED_TIMEFRAMES: tuple[str, ...] = ("1m", "5m", "15m", "30m", "1h", "2h", "4h", "6h", "12h", "1d", "1w")
-
-
 def timeframe_to_timedelta(timeframe: str) -> pd.Timedelta:
     text = str(timeframe).strip().lower()
-    if text not in SUPPORTED_TIMEFRAMES:
+    match = re.fullmatch(r"(\d+)([mhdw])", text)
+    if not match:
         raise ValueError(f"Unsupported timeframe: {timeframe}")
-    if text.endswith("m"):
-        return pd.Timedelta(minutes=int(text[:-1]))
-    if text.endswith("h"):
-        return pd.Timedelta(hours=int(text[:-1]))
-    if text.endswith("d"):
-        return pd.Timedelta(days=int(text[:-1]))
-    if text.endswith("w"):
-        return pd.Timedelta(weeks=int(text[:-1]))
+    value = int(match.group(1))
+    unit = match.group(2)
+    if unit == "m":
+        return pd.Timedelta(minutes=value)
+    if unit == "h":
+        return pd.Timedelta(hours=value)
+    if unit == "d":
+        return pd.Timedelta(days=value)
+    if unit == "w":
+        return pd.Timedelta(weeks=value)
     raise ValueError(f"Unsupported timeframe: {timeframe}")
 
 
