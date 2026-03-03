@@ -328,10 +328,14 @@ def main() -> None:
     started = time.perf_counter()
     cfg = load_config(args.config)
     stage26 = dict((cfg.get("evaluation", {}) or {}).get("stage26", {}))
+    # Stage-26 evaluates derived operational timeframes from base 1m cache.
+    cfg.setdefault("universe", {})["base_timeframe"] = str(stage26.get("base_timeframe", "1m"))
+    cfg.setdefault("data", {})["resample_source"] = "base"
     symbols = _csv(args.symbols, default=list(stage26.get("symbols", ["BTC/USDT", "ETH/USDT"])))
     timeframes = _csv(args.timeframes, default=list(stage26.get("timeframes", ["15m", "30m", "1h", "2h", "4h"])))
     seed = int(args.seed)
     dry_run = bool(args.dry_run)
+    warnings: list[str] = []
 
     coverage_rows = [
         audit_symbol_coverage(
@@ -373,15 +377,19 @@ def main() -> None:
     resolved_ends: list[pd.Timestamp] = []
     context_distribution_rows: list[dict[str, Any]] = []
     for tf in timeframes:
-        features_by_symbol = _build_features(
-            config=cfg,
-            symbols=symbols,
-            timeframe=str(tf),
-            dry_run=dry_run,
-            seed=seed,
-            data_dir=args.data_dir,
-            derived_dir=args.derived_dir,
-        )
+        try:
+            features_by_symbol = _build_features(
+                config=cfg,
+                symbols=symbols,
+                timeframe=str(tf),
+                dry_run=dry_run,
+                seed=seed,
+                data_dir=args.data_dir,
+                derived_dir=args.derived_dir,
+            )
+        except FileNotFoundError as exc:
+            warnings.append(f"missing_data:{tf}:{exc}")
+            features_by_symbol = {}
         for symbol, frame in features_by_symbol.items():
             with_ctx = classify_context(frame, params=ctx_params)
             frames_by_symbol_tf[(str(symbol), str(tf))] = with_ctx
@@ -515,6 +523,7 @@ def main() -> None:
         "comparison_delta": comparison_delta,
         "verdict": verdict,
         "next_bottleneck": next_bottleneck,
+        "warnings": warnings,
         "runtime_seconds": float(time.perf_counter() - started),
     }
     (out_dir / "comparison_summary.json").write_text(json.dumps(payload, indent=2, allow_nan=False), encoding="utf-8")

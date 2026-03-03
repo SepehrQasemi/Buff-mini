@@ -1,26 +1,191 @@
 # Stage-26 Rulelet Library
 
-## Scope
-- Data source: OHLCV-only.
-- No OI/funding dependencies.
-- Scores are bounded to `[-1, 1]`.
-
 ## Catalog
-| Rulelet | Family | Contexts Allowed | Default Exit |
-| --- | --- | --- | --- |
-| TrendPullback | price | TREND | fixed_atr |
-| BreakoutRetest | price | TREND, VOL_EXPANSION | atr_trailing |
-| RangeFade | price | RANGE | fixed_atr |
-| BollingerSnapBack | price | RANGE | fixed_atr |
-| VolCompressionBreakout | volatility | VOL_COMPRESSION | atr_trailing |
-| VolExpansionContinuation | volatility | VOL_EXPANSION | atr_trailing |
-| MomentumBurst | flow | VOLUME_SHOCK, TREND | fixed_atr |
-| MeanRevertAfterSpike | flow | VOLUME_SHOCK, RANGE | fixed_atr |
-| StructureBreak | price | TREND | atr_trailing |
-| FailedBreakReversal | price | RANGE, VOL_EXPANSION | fixed_atr |
-| ChopFilterGate | risk | CHOP | fixed_atr |
-| TrendFlip | price | CHOP, TREND | fixed_atr |
+| rulelet | family | contexts_allowed | default_exit | threshold |
+| --- | --- | --- | --- | ---: |
+| TrendPullback | price | TREND | fixed_atr | 0.250 |
+| BreakoutRetest | price | TREND,VOL_EXPANSION | atr_trailing | 0.300 |
+| RangeFade | price | RANGE | fixed_atr | 0.250 |
+| BollingerSnapBack | price | RANGE | fixed_atr | 0.300 |
+| VolCompressionBreakout | volatility | VOL_COMPRESSION | atr_trailing | 0.300 |
+| VolExpansionContinuation | volatility | VOL_EXPANSION | atr_trailing | 0.300 |
+| MomentumBurst | flow | VOLUME_SHOCK,TREND | fixed_atr | 0.250 |
+| MeanRevertAfterSpike | flow | VOLUME_SHOCK,RANGE | fixed_atr | 0.250 |
+| StructureBreak | price | TREND | atr_trailing | 0.300 |
+| FailedBreakReversal | price | RANGE,VOL_EXPANSION | fixed_atr | 0.250 |
+| ChopFilterGate | risk | CHOP | fixed_atr | 0.100 |
+| TrendFlip | price | CHOP,TREND | fixed_atr | 0.200 |
 
-## Notes
-- `RARE` configurations are allowed in later evaluation but always flagged.
-- This catalog is consumed by Stage-26 discovery/replay scripts.
+## Conditional Summary
+| rulelet | context | trades_in_context | exp_lcb | classification |
+| --- | --- | ---: | ---: | --- |
+| BollingerSnapBack | RANGE | 67 | -72.631064 | FAIL |
+| BollingerSnapBack | RANGE | 66 | -60.314204 | FAIL |
+| BollingerSnapBack | RANGE | 67 | -71.120183 | FAIL |
+| BollingerSnapBack | RANGE | 66 | -61.668168 | FAIL |
+| BollingerSnapBack | RANGE | 67 | -71.957044 | FAIL |
+| BollingerSnapBack | RANGE | 66 | -59.760294 | FAIL |
+| BollingerSnapBack | RANGE | 67 | -72.183514 | FAIL |
+| BollingerSnapBack | RANGE | 66 | -60.566046 | FAIL |
+| BollingerSnapBack | RANGE | 67 | -70.426452 | FAIL |
+| BollingerSnapBack | RANGE | 66 | -59.582655 | FAIL |
+| BreakoutRetest | TREND | 0 | 0.000000 | FAIL |
+| BreakoutRetest | TREND | 0 | 0.000000 | FAIL |
+| BreakoutRetest | TREND | 0 | 0.000000 | FAIL |
+| BreakoutRetest | TREND | 0 | 0.000000 | FAIL |
+| BreakoutRetest | TREND | 0 | 0.000000 | FAIL |
+| BreakoutRetest | TREND | 0 | 0.000000 | FAIL |
+| BreakoutRetest | TREND | 0 | 0.000000 | FAIL |
+| BreakoutRetest | TREND | 0 | 0.000000 | FAIL |
+| BreakoutRetest | TREND | 0 | 0.000000 | FAIL |
+| BreakoutRetest | TREND | 0 | 0.000000 | FAIL |
+| BreakoutRetest | VOL_EXPANSION | 0 | 0.000000 | FAIL |
+| BreakoutRetest | VOL_EXPANSION | 0 | 0.000000 | FAIL |
+| BreakoutRetest | VOL_EXPANSION | 0 | 0.000000 | FAIL |
+| BreakoutRetest | VOL_EXPANSION | 0 | 0.000000 | FAIL |
+| BreakoutRetest | VOL_EXPANSION | 0 | 0.000000 | FAIL |
+| BreakoutRetest | VOL_EXPANSION | 0 | 0.000000 | FAIL |
+| BreakoutRetest | VOL_EXPANSION | 0 | 0.000000 | FAIL |
+| BreakoutRetest | VOL_EXPANSION | 0 | 0.000000 | FAIL |
+| BreakoutRetest | VOL_EXPANSION | 0 | 0.000000 | FAIL |
+| BreakoutRetest | VOL_EXPANSION | 0 | 0.000000 | FAIL |
+| ChopFilterGate | CHOP | 0 | 0.000000 | FAIL |
+| ChopFilterGate | CHOP | 0 | 0.000000 | FAIL |
+| ChopFilterGate | CHOP | 0 | 0.000000 | FAIL |
+| ChopFilterGate | CHOP | 0 | 0.000000 | FAIL |
+| ChopFilterGate | CHOP | 0 | 0.000000 | FAIL |
+| ChopFilterGate | CHOP | 0 | 0.000000 | FAIL |
+| ChopFilterGate | CHOP | 0 | 0.000000 | FAIL |
+| ChopFilterGate | CHOP | 0 | 0.000000 | FAIL |
+| ChopFilterGate | CHOP | 0 | 0.000000 | FAIL |
+| ChopFilterGate | CHOP | 0 | 0.000000 | FAIL |
+| FailedBreakReversal | RANGE | 33 | -123.108191 | FAIL |
+| FailedBreakReversal | RANGE | 32 | -88.667534 | FAIL |
+| FailedBreakReversal | RANGE | 33 | -123.945152 | FAIL |
+| FailedBreakReversal | RANGE | 32 | -90.839565 | FAIL |
+| FailedBreakReversal | RANGE | 33 | -124.297061 | FAIL |
+| FailedBreakReversal | RANGE | 32 | -86.993609 | FAIL |
+| FailedBreakReversal | RANGE | 33 | -122.888276 | FAIL |
+| FailedBreakReversal | RANGE | 32 | -90.909025 | FAIL |
+| FailedBreakReversal | RANGE | 33 | -123.089264 | FAIL |
+| FailedBreakReversal | RANGE | 32 | -90.568260 | FAIL |
+| FailedBreakReversal | VOL_EXPANSION | 44 | -87.281695 | FAIL |
+| FailedBreakReversal | VOL_EXPANSION | 33 | -71.533395 | FAIL |
+| FailedBreakReversal | VOL_EXPANSION | 44 | -89.054202 | FAIL |
+| FailedBreakReversal | VOL_EXPANSION | 33 | -66.823655 | FAIL |
+| FailedBreakReversal | VOL_EXPANSION | 44 | -90.697039 | FAIL |
+| FailedBreakReversal | VOL_EXPANSION | 33 | -69.728689 | FAIL |
+| FailedBreakReversal | VOL_EXPANSION | 44 | -87.587784 | FAIL |
+| FailedBreakReversal | VOL_EXPANSION | 33 | -72.596008 | FAIL |
+| FailedBreakReversal | VOL_EXPANSION | 44 | -90.502172 | FAIL |
+| FailedBreakReversal | VOL_EXPANSION | 33 | -73.329178 | FAIL |
+| MeanRevertAfterSpike | RANGE | 67 | -84.377234 | FAIL |
+| MeanRevertAfterSpike | RANGE | 58 | -52.296589 | FAIL |
+| MeanRevertAfterSpike | RANGE | 67 | -87.045117 | FAIL |
+| MeanRevertAfterSpike | RANGE | 58 | -56.523083 | FAIL |
+| MeanRevertAfterSpike | RANGE | 67 | -85.989125 | FAIL |
+| MeanRevertAfterSpike | RANGE | 58 | -51.511465 | FAIL |
+| MeanRevertAfterSpike | RANGE | 67 | -85.218397 | FAIL |
+| MeanRevertAfterSpike | RANGE | 58 | -50.788193 | FAIL |
+| MeanRevertAfterSpike | RANGE | 67 | -83.571335 | FAIL |
+| MeanRevertAfterSpike | RANGE | 58 | -53.222526 | FAIL |
+| MeanRevertAfterSpike | VOLUME_SHOCK | 2 | -195.165195 | FAIL |
+| MeanRevertAfterSpike | VOLUME_SHOCK | 2 | -159.749482 | FAIL |
+| MeanRevertAfterSpike | VOLUME_SHOCK | 2 | -195.165195 | FAIL |
+| MeanRevertAfterSpike | VOLUME_SHOCK | 2 | -159.749482 | FAIL |
+| MeanRevertAfterSpike | VOLUME_SHOCK | 2 | -195.165195 | FAIL |
+| MeanRevertAfterSpike | VOLUME_SHOCK | 2 | -159.749482 | FAIL |
+| MeanRevertAfterSpike | VOLUME_SHOCK | 2 | -195.165195 | FAIL |
+| MeanRevertAfterSpike | VOLUME_SHOCK | 2 | -159.749482 | FAIL |
+| MeanRevertAfterSpike | VOLUME_SHOCK | 2 | -195.165195 | FAIL |
+| MeanRevertAfterSpike | VOLUME_SHOCK | 2 | -159.749482 | FAIL |
+| MomentumBurst | TREND | 74 | -52.440478 | FAIL |
+| MomentumBurst | TREND | 90 | -37.421265 | FAIL |
+| MomentumBurst | TREND | 74 | -56.198343 | FAIL |
+| MomentumBurst | TREND | 90 | -35.663732 | FAIL |
+| MomentumBurst | TREND | 74 | -50.567250 | FAIL |
+| MomentumBurst | TREND | 90 | -36.092736 | FAIL |
+| MomentumBurst | TREND | 74 | -53.943382 | FAIL |
+| MomentumBurst | TREND | 90 | -38.258699 | FAIL |
+| MomentumBurst | TREND | 74 | -53.641987 | FAIL |
+| MomentumBurst | TREND | 90 | -39.102218 | FAIL |
+| MomentumBurst | VOLUME_SHOCK | 2 | -190.183999 | FAIL |
+| MomentumBurst | VOLUME_SHOCK | 3 | 166.959677 | WEAK |
+| MomentumBurst | VOLUME_SHOCK | 2 | -190.183999 | FAIL |
+| MomentumBurst | VOLUME_SHOCK | 3 | 166.959677 | WEAK |
+| MomentumBurst | VOLUME_SHOCK | 2 | -190.183999 | FAIL |
+| MomentumBurst | VOLUME_SHOCK | 3 | 166.959677 | WEAK |
+| MomentumBurst | VOLUME_SHOCK | 2 | -190.183999 | FAIL |
+| MomentumBurst | VOLUME_SHOCK | 3 | 157.694443 | WEAK |
+| MomentumBurst | VOLUME_SHOCK | 2 | -190.183999 | FAIL |
+| MomentumBurst | VOLUME_SHOCK | 3 | 166.959677 | WEAK |
+| RangeFade | RANGE | 71 | -65.632236 | FAIL |
+| RangeFade | RANGE | 69 | -70.039858 | FAIL |
+| RangeFade | RANGE | 71 | -65.634818 | FAIL |
+| RangeFade | RANGE | 69 | -71.253842 | FAIL |
+| RangeFade | RANGE | 71 | -65.401648 | FAIL |
+| RangeFade | RANGE | 69 | -70.202983 | FAIL |
+| RangeFade | RANGE | 71 | -66.288454 | FAIL |
+| RangeFade | RANGE | 69 | -69.927942 | FAIL |
+| RangeFade | RANGE | 71 | -66.476819 | FAIL |
+| RangeFade | RANGE | 69 | -68.672508 | FAIL |
+| StructureBreak | TREND | 43 | -51.438250 | FAIL |
+| StructureBreak | TREND | 57 | -65.798771 | FAIL |
+| StructureBreak | TREND | 43 | -51.429224 | FAIL |
+| StructureBreak | TREND | 57 | -66.579088 | FAIL |
+| StructureBreak | TREND | 43 | -47.849459 | FAIL |
+| StructureBreak | TREND | 57 | -66.436969 | FAIL |
+| StructureBreak | TREND | 43 | -51.989117 | FAIL |
+| StructureBreak | TREND | 57 | -67.165223 | FAIL |
+| StructureBreak | TREND | 43 | -50.855984 | FAIL |
+| StructureBreak | TREND | 57 | -66.515625 | FAIL |
+| TrendFlip | CHOP | 0 | 0.000000 | FAIL |
+| TrendFlip | CHOP | 0 | 0.000000 | FAIL |
+| TrendFlip | CHOP | 0 | 0.000000 | FAIL |
+| TrendFlip | CHOP | 0 | 0.000000 | FAIL |
+| TrendFlip | CHOP | 0 | 0.000000 | FAIL |
+| TrendFlip | CHOP | 0 | 0.000000 | FAIL |
+| TrendFlip | CHOP | 0 | 0.000000 | FAIL |
+| TrendFlip | CHOP | 0 | 0.000000 | FAIL |
+| TrendFlip | CHOP | 0 | 0.000000 | FAIL |
+| TrendFlip | CHOP | 0 | 0.000000 | FAIL |
+| TrendFlip | TREND | 0 | 0.000000 | FAIL |
+| TrendFlip | TREND | 0 | 0.000000 | FAIL |
+| TrendFlip | TREND | 0 | 0.000000 | FAIL |
+| TrendFlip | TREND | 0 | 0.000000 | FAIL |
+| TrendFlip | TREND | 0 | 0.000000 | FAIL |
+| TrendFlip | TREND | 0 | 0.000000 | FAIL |
+| TrendFlip | TREND | 0 | 0.000000 | FAIL |
+| TrendFlip | TREND | 0 | 0.000000 | FAIL |
+| TrendFlip | TREND | 0 | 0.000000 | FAIL |
+| TrendFlip | TREND | 0 | 0.000000 | FAIL |
+| TrendPullback | TREND | 80 | -43.166175 | FAIL |
+| TrendPullback | TREND | 93 | -52.399597 | FAIL |
+| TrendPullback | TREND | 80 | -42.556977 | FAIL |
+| TrendPullback | TREND | 93 | -50.946589 | FAIL |
+| TrendPullback | TREND | 80 | -42.885718 | FAIL |
+| TrendPullback | TREND | 93 | -52.365366 | FAIL |
+| TrendPullback | TREND | 80 | -42.671856 | FAIL |
+| TrendPullback | TREND | 93 | -50.312171 | FAIL |
+| TrendPullback | TREND | 80 | -41.365756 | FAIL |
+| TrendPullback | TREND | 93 | -49.696428 | FAIL |
+| VolCompressionBreakout | VOL_COMPRESSION | 22 | -76.717798 | FAIL |
+| VolCompressionBreakout | VOL_COMPRESSION | 23 | -65.978938 | FAIL |
+| VolCompressionBreakout | VOL_COMPRESSION | 22 | -74.739637 | FAIL |
+| VolCompressionBreakout | VOL_COMPRESSION | 23 | -64.804049 | FAIL |
+| VolCompressionBreakout | VOL_COMPRESSION | 22 | -75.480009 | FAIL |
+| VolCompressionBreakout | VOL_COMPRESSION | 23 | -65.128995 | FAIL |
+| VolCompressionBreakout | VOL_COMPRESSION | 22 | -75.826993 | FAIL |
+| VolCompressionBreakout | VOL_COMPRESSION | 23 | -65.543533 | FAIL |
+| VolCompressionBreakout | VOL_COMPRESSION | 22 | -76.715941 | FAIL |
+| VolCompressionBreakout | VOL_COMPRESSION | 23 | -64.163776 | FAIL |
+| VolExpansionContinuation | VOL_EXPANSION | 91 | -52.017329 | FAIL |
+| VolExpansionContinuation | VOL_EXPANSION | 100 | -44.534378 | FAIL |
+| VolExpansionContinuation | VOL_EXPANSION | 91 | -52.983595 | FAIL |
+| VolExpansionContinuation | VOL_EXPANSION | 100 | -43.757182 | FAIL |
+| VolExpansionContinuation | VOL_EXPANSION | 91 | -50.993279 | FAIL |
+| VolExpansionContinuation | VOL_EXPANSION | 100 | -45.016492 | FAIL |
+| VolExpansionContinuation | VOL_EXPANSION | 91 | -51.693612 | FAIL |
+| VolExpansionContinuation | VOL_EXPANSION | 100 | -44.366422 | FAIL |
+| VolExpansionContinuation | VOL_EXPANSION | 91 | -51.934371 | FAIL |
+| VolExpansionContinuation | VOL_EXPANSION | 100 | -45.023006 | FAIL |

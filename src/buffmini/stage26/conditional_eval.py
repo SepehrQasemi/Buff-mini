@@ -9,6 +9,7 @@ import numpy as np
 import pandas as pd
 
 from buffmini.backtest.engine import run_backtest
+from buffmini.stage10.exits import normalize_exit_mode
 from buffmini.utils.hashing import stable_hash
 
 
@@ -66,7 +67,7 @@ def evaluate_rulelets_conditionally(
                     max_hold_bars=int(cfg.get("max_hold_bars", 24)),
                     round_trip_cost_pct=float(cfg.get("round_trip_cost_pct", 0.1)),
                     slippage_pct=float(cfg.get("slippage_pct", 0.0005)),
-                    exit_mode=str(getattr(rulelet, "default_exit", "fixed_atr")),
+                    exit_mode=normalize_exit_mode(str(getattr(rulelet, "default_exit", "fixed_atr"))),
                     cost_model_cfg=cfg.get("cost_model_cfg", {}),
                 )
                 trades = result.trades.copy()
