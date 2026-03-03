@@ -385,6 +385,10 @@ def main() -> None:
         rolling_months=tuple(int(v) for v in cond_cfg.get("rolling_months", [3, 6, 12])),
     )
     policy_cfg = dict(stage26.get("policy", {}))
+    window_mode = str(stage26.get("window_mode", "full")).strip().lower()
+    rolling_cfg = dict(stage26.get("rolling", {}))
+    rolling_window_months = [int(v) for v in rolling_cfg.get("window_months", [3, 6])]
+    rolling_step_months = int(rolling_cfg.get("step_months", 1))
     cost_rows = _cost_rows(cfg, list(stage26.get("cost_levels", ["realistic", "high"])))
     rulelets = build_rulelet_library()
 
@@ -432,9 +436,41 @@ def main() -> None:
                 seed=seed,
                 cost_levels=cost_rows,
                 params=cond_params,
-            )
-            if not effects_df.empty:
-                effects_rows.extend(effects_df.to_dict(orient="records"))
+                batch_mode=True,
+            ) if window_mode != "rolling" else (pd.DataFrame(), {})
+            if window_mode != "rolling":
+                if not effects_df.empty:
+                    effects_rows.extend(effects_df.to_dict(orient="records"))
+            else:
+                ts_all = pd.to_datetime(with_ctx.get("timestamp"), utc=True, errors="coerce").dropna()
+                for months in rolling_window_months:
+                    windows = _rolling_windows(ts_all, window_months=int(months), step_months=int(rolling_step_months))
+                    for w_idx, (w_start, w_end) in enumerate(windows):
+                        w_mask = (pd.to_datetime(with_ctx["timestamp"], utc=True, errors="coerce") >= w_start) & (
+                            pd.to_datetime(with_ctx["timestamp"], utc=True, errors="coerce") < w_end
+                        )
+                        sliced = with_ctx.loc[w_mask].reset_index(drop=True)
+                        if sliced.shape[0] < 300:
+                            continue
+                        w_effects, _ = evaluate_rulelets_conditionally(
+                            frame=sliced,
+                            rulelets=rulelets,
+                            symbol=str(symbol),
+                            timeframe=str(tf),
+                            seed=seed,
+                            cost_levels=cost_rows,
+                            params=cond_params,
+                            batch_mode=True,
+                        )
+                        if w_effects.empty:
+                            continue
+                        w_effects = w_effects.copy()
+                        w_effects["window_mode"] = "rolling"
+                        w_effects["window_months"] = int(months)
+                        w_effects["window_index"] = int(w_idx)
+                        w_effects["window_start"] = w_start.isoformat()
+                        w_effects["window_end"] = w_end.isoformat()
+                        effects_rows.extend(w_effects.to_dict(orient="records"))
 
     effects = pd.DataFrame(effects_rows)
     policy = build_conditional_policy(
@@ -543,6 +579,9 @@ def main() -> None:
         "required_years": float(required_years),
         "timeframes_tested": list(timeframes),
         "contexts": sorted({str(item["context"]) for item in context_distribution_rows}),
+        "window_mode": str(window_mode),
+        "rolling_window_months": list(rolling_window_months),
+        "rolling_step_months": int(rolling_step_months),
         "top_rulelets_per_context": _top_rulelets_per_context(effects),
         "conditional_policy_metrics_research": agg_research,
         "conditional_policy_metrics_live": agg_live,
@@ -620,6 +659,22 @@ def _render_comparison_md(global_metrics: dict[str, Any], conditional_live: dict
         f"- delta_trade_count: `{float(delta.get('delta_trade_count',0.0)):.6f}`",
     ]
     return "\n".join(lines).strip() + "\n"
+
+
+def _rolling_windows(ts: pd.Series, *, window_months: int, step_months: int) -> list[tuple[pd.Timestamp, pd.Timestamp]]:
+    if ts.empty:
+        return []
+    start = pd.Timestamp(ts.iloc[0]).tz_convert("UTC")
+    end = pd.Timestamp(ts.iloc[-1]).tz_convert("UTC")
+    out: list[tuple[pd.Timestamp, pd.Timestamp]] = []
+    cursor = start
+    while cursor < end:
+        right = cursor + pd.DateOffset(months=int(window_months))
+        if right > end:
+            break
+        out.append((cursor, right))
+        cursor = cursor + pd.DateOffset(months=int(step_months))
+    return out
 
 
 def _top_rulelets_per_context(effects: pd.DataFrame) -> list[dict[str, Any]]:

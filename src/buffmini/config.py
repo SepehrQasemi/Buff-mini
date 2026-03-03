@@ -608,6 +608,11 @@ STAGE26_DEFAULTS = {
     "required_years": 4,
     "constraints_mode_discovery": "research",
     "constraints_mode_live": "live",
+    "window_mode": "full",
+    "rolling": {
+        "window_months": [3, 6],
+        "step_months": 1,
+    },
     "context": {
         "rank_window": 252,
         "vol_window": 24,
@@ -1848,6 +1853,16 @@ def validate_config(config: ConfigDict) -> None:
         raise ValueError("evaluation.stage26.constraints_mode_discovery must be research|live")
     if str(stage26.get("constraints_mode_live", "live")).strip().lower() not in {"research", "live"}:
         raise ValueError("evaluation.stage26.constraints_mode_live must be research|live")
+    if str(stage26.get("window_mode", "full")).strip().lower() not in {"full", "rolling"}:
+        raise ValueError("evaluation.stage26.window_mode must be full|rolling")
+    rolling_cfg26 = stage26.get("rolling", {})
+    window_months26 = rolling_cfg26.get("window_months", [])
+    if not isinstance(window_months26, list) or not window_months26:
+        raise ValueError("evaluation.stage26.rolling.window_months must be non-empty list")
+    if any(int(v) < 1 for v in window_months26):
+        raise ValueError("evaluation.stage26.rolling.window_months values must be >= 1")
+    if int(rolling_cfg26.get("step_months", 1)) < 1:
+        raise ValueError("evaluation.stage26.rolling.step_months must be >= 1")
     ctx26 = stage26.get("context", {})
     if int(ctx26.get("rank_window", 252)) < 10:
         raise ValueError("evaluation.stage26.context.rank_window must be >= 10")

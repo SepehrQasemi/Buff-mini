@@ -32,6 +32,7 @@ def evaluate_rulelets_conditionally(
     seed: int,
     cost_levels: list[dict[str, Any]],
     params: ConditionalEvalParams | None = None,
+    batch_mode: bool = True,
 ) -> tuple[pd.DataFrame, dict[str, Any]]:
     """Evaluate each rulelet inside allowed contexts."""
 
@@ -41,12 +42,27 @@ def evaluate_rulelets_conditionally(
     ts = pd.to_datetime(frame.get("timestamp"), utc=True, errors="coerce")
     ctx = frame.get("ctx_state", pd.Series("RANGE", index=frame.index)).astype(str)
 
+    context_masks: dict[str, pd.Series] = {}
+    if bool(batch_mode):
+        for value in sorted(set(ctx.astype(str).tolist())):
+            context_masks[str(value)] = (ctx == str(value))
+    score_cache: dict[str, pd.Series] = {}
+    if bool(batch_mode):
+        for rulelet_name, rulelet in rulelets.items():
+            score_cache[str(rulelet_name)] = pd.to_numeric(rulelet.compute_score(frame), errors="coerce").fillna(0.0).clip(-1.0, 1.0)
+
     for rulelet_name, rulelet in rulelets.items():
-        score = pd.to_numeric(rulelet.compute_score(frame), errors="coerce").fillna(0.0).clip(-1.0, 1.0)
+        if bool(batch_mode):
+            score = score_cache[str(rulelet_name)]
+        else:
+            score = pd.to_numeric(rulelet.compute_score(frame), errors="coerce").fillna(0.0).clip(-1.0, 1.0)
         threshold = float(getattr(rulelet, "threshold", 0.30))
         allowed = set(getattr(rulelet, "contexts_allowed", tuple()))
         for context in sorted(allowed):
-            mask = ctx == str(context)
+            if bool(batch_mode):
+                mask = context_masks.get(str(context), pd.Series(False, index=frame.index))
+            else:
+                mask = ctx == str(context)
             occurrences = int(mask.sum())
             signal = pd.Series(0, index=frame.index, dtype=int)
             active_score = score.where(mask, 0.0)

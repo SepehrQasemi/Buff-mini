@@ -624,6 +624,10 @@ evaluation:
     required_years: 4
     constraints_mode_discovery: "research"
     constraints_mode_live: "live"
+    window_mode: "full"
+    rolling:
+      window_months: [3, 6]
+      step_months: 1
     context:
       rank_window: 252
       vol_window: 24
