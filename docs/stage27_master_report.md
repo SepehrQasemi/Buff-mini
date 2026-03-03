@@ -1,7 +1,7 @@
 # Stage-27 Master Report
 
-- generated_at: `20260303_131807`
-- head_commit: `0ebcb9f6fa5cc27a7fd8ca7d01bfd8ff16ab6fa0`
+- generated_at: `20260303_144119`
+- head_commit: `ad8b0cd861b709fe49c18ea9bc74cadd82a7aa76`
 
 ## Data Status
 - coverage_years_per_symbol: `{'BTC/USDT': 4.0, 'ETH/USDT': 4.0}`
