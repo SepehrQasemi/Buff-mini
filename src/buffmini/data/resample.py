@@ -9,7 +9,7 @@ import pandas as pd
 from buffmini.data.loader import standardize_ohlcv_frame, validate_ohlcv_frame
 
 
-SUPPORTED_TIMEFRAMES: tuple[str, ...] = ("1m", "5m", "15m", "30m", "1h", "2h", "4h", "1d")
+SUPPORTED_TIMEFRAMES: tuple[str, ...] = ("1m", "5m", "15m", "30m", "1h", "2h", "4h", "6h", "12h", "1d", "1w")
 
 
 def timeframe_to_timedelta(timeframe: str) -> pd.Timedelta:
@@ -22,6 +22,8 @@ def timeframe_to_timedelta(timeframe: str) -> pd.Timedelta:
         return pd.Timedelta(hours=int(text[:-1]))
     if text.endswith("d"):
         return pd.Timedelta(days=int(text[:-1]))
+    if text.endswith("w"):
+        return pd.Timedelta(weeks=int(text[:-1]))
     raise ValueError(f"Unsupported timeframe: {timeframe}")
 
 
@@ -77,6 +79,45 @@ def resample_ohlcv(
     return out
 
 
+def resample_monthly_ohlcv(
+    frame: pd.DataFrame,
+    *,
+    partial_last_bucket: bool = False,
+    timestamp_col: str = "timestamp",
+) -> pd.DataFrame:
+    """Resample OHLCV into calendar months using UTC month-start boundaries."""
+
+    data = standardize_ohlcv_frame(frame)
+    validate_ohlcv_frame(data)
+    if data.empty:
+        return pd.DataFrame(columns=["timestamp", "open", "high", "low", "close", "volume"])
+
+    work = data.rename(columns={timestamp_col: "timestamp"}).set_index("timestamp")
+    grouped = work.resample("MS", label="left", closed="left").agg(
+        {
+            "open": "first",
+            "high": "max",
+            "low": "min",
+            "close": "last",
+            "volume": "sum",
+        }
+    )
+    grouped = grouped.dropna(subset=["open", "high", "low", "close"])
+    if not bool(partial_last_bucket) and not grouped.empty:
+        last_source_ts = pd.to_datetime(data["timestamp"], utc=True, errors="coerce").dropna().iloc[-1]
+        keep_mask = []
+        for bucket_start in pd.to_datetime(grouped.index, utc=True, errors="coerce"):
+            bucket_end = bucket_start + pd.offsets.MonthBegin(1)
+            keep_mask.append(bool(last_source_ts >= (bucket_end - pd.Timedelta(minutes=1))))
+        grouped = grouped.loc[pd.Series(keep_mask, index=grouped.index)]
+    out = grouped.reset_index().rename(columns={"index": "timestamp"})
+    out = out.loc[:, ["timestamp", "open", "high", "low", "close", "volume"]].copy()
+    out["timestamp"] = pd.to_datetime(out["timestamp"], utc=True, errors="coerce")
+    out = out.dropna(subset=["timestamp"]).sort_values("timestamp").reset_index(drop=True)
+    validate_ohlcv_frame(out)
+    return out
+
+
 def assert_resample_is_causal(
     base_frame: pd.DataFrame,
     resampled_frame: pd.DataFrame,
@@ -120,6 +161,8 @@ def _to_pandas_freq(timeframe: str) -> str:
         return f"{int(text[:-1])}h"
     if text.endswith("d"):
         return f"{int(text[:-1])}d"
+    if text.endswith("w"):
+        return f"{int(text[:-1])}W-MON"
     raise ValueError(f"Unsupported timeframe: {timeframe}")
 
 
@@ -129,4 +172,3 @@ def resample_settings_hash(base_timeframe: str, target_timeframe: str, partial_l
         "target_timeframe": str(target_timeframe),
         "partial_last_bucket": bool(partial_last_bucket),
     }
-
