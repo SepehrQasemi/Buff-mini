@@ -9,6 +9,7 @@ import numpy as np
 import pandas as pd
 
 from buffmini.backtest.costs import cost_breakdown_bps, normalized_cost_cfg, one_way_slippage_for_bar
+from buffmini.execution.feasibility import explain_reject
 from buffmini.execution.margin_model import (
     PolicyCaps,
     apply_exposure_caps,
@@ -174,6 +175,7 @@ def build_adaptive_orders(
     live_qty_step = float(live_constraint_cfg.get("qty_step", order_builder.qty_step))
     live_min_trade_qty = float(live_constraint_cfg.get("min_trade_qty", order_builder.min_trade_qty))
     allow_size_bump_to_min_notional = bool(order_builder.allow_size_bump_to_min_notional)
+    max_notional_pct_cfg = float(((stage24_cfg.get("order_constraints", {}) or {}).get("max_notional_pct_of_equity", 1.0)))
 
     risk_cfg = dict(cfg.get("risk", {}) or {})
     max_gross_exposure = float(risk_cfg.get("max_gross_exposure", 5.0))
@@ -241,6 +243,7 @@ def build_adaptive_orders(
         max_notional = 0.0
         margin_required_now = 0.0
         margin_limit_now = 0.0
+        risk_used_for_reject = 0.0
         bumped_to_min_notional = False
         ceil_rescue_applied = False
         cap_binding = ""
@@ -276,6 +279,20 @@ def build_adaptive_orders(
             )
 
         def reject(reason: str, details: str) -> None:
+            feasibility_payload: dict[str, Any] | None = None
+            normalized_reason = normalize_reject_reason(reason)
+            if normalized_reason in {"SIZE_TOO_SMALL", "POLICY_CAP_HIT", "MARGIN_FAIL"}:
+                stop_dist_for_reject = abs(float(close_px - stop_price) / max(close_px, 1e-12)) if close_px > 0 else 0.0
+                feasibility_payload = explain_reject(
+                    {
+                        "equity": float(equity_state if stage24_enabled else initial_equity),
+                        "risk_pct_used": float(risk_used_for_reject),
+                        "min_notional": float(min_trade_notional),
+                        "stop_dist_pct": float(stop_dist_for_reject),
+                        "cost_rt_pct": float(cost_rt_pct),
+                        "max_notional_pct": float(max_notional_pct_cfg),
+                    }
+                )
             _reject(
                 breakdown=breakdown,
                 reject_events=reject_events,
@@ -284,6 +301,7 @@ def build_adaptive_orders(
                 side=side_label,
                 reason=reason,
                 details=details,
+                feasibility=feasibility_payload,
             )
             emit_trace("REJECTED", normalize_reject_reason(reason), details)
 
@@ -358,6 +376,7 @@ def build_adaptive_orders(
                 )
                 risk_parts["used"] = float(alloc_pct)
                 risk_used = float(alloc_pct)
+            risk_used_for_reject = float(risk_used)
             stage24_reason = str(reason_24 or "")
             if stage24_reason and not is_known_reject_reason(stage24_reason):
                 stage24_reason = "UNKNOWN"
@@ -747,6 +766,7 @@ def _reject(
     side: str,
     reason: str,
     details: str,
+    feasibility: dict[str, Any] | None = None,
 ) -> None:
     normalized = normalize_reject_reason(reason)
     if normalized not in EXECUTION_REJECT_REASONS:
@@ -759,6 +779,11 @@ def _reject(
             "side": side,
             "reason": normalized,
             "details": details,
+            "minimum_required_risk_pct": float(feasibility.get("minimum_required_risk_pct", 0.0)) if isinstance(feasibility, dict) else 0.0,
+            "minimum_required_equity": float(feasibility.get("minimum_required_equity", 0.0)) if isinstance(feasibility, dict) else 0.0,
+            "feasibility_risk_pct_used": float(feasibility.get("risk_pct_used", 0.0)) if isinstance(feasibility, dict) else 0.0,
+            "feasibility_stop_dist_pct": float(feasibility.get("stop_dist_pct", 0.0)) if isinstance(feasibility, dict) else 0.0,
+            "feasibility_cost_rt_pct": float(feasibility.get("cost_rt_pct", 0.0)) if isinstance(feasibility, dict) else 0.0,
         }
     )
 
