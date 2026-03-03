@@ -1,6 +1,6 @@
 {
   "stage": "27.3",
-  "run_id": "20260303_122330_641b29275325_stage27_roll",
+  "run_id": "20260303_124628_641b29275325_stage27_roll",
   "seed": 42,
   "dry_run": true,
   "requested_symbols": [
@@ -35,9 +35,9 @@
   "semantic_hash_equal": true,
   "semantic_sample_naive_hash": "6f75d10c058c8a1a",
   "semantic_sample_batch_hash": "6f75d10c058c8a1a",
-  "semantic_sample_naive_seconds": 1.821500299993204,
-  "semantic_sample_batch_seconds": 1.8428037000121549,
-  "runtime_seconds": 25.12409870000556,
+  "semantic_sample_naive_seconds": 1.7436015999992378,
+  "semantic_sample_batch_seconds": 1.8760262000141665,
+  "runtime_seconds": 25.124464699998498,
   "config_hash": "79cc22d918bb",
   "data_snapshot_id": "DATA_FROZEN_v1",
   "data_snapshot_hash": "c734cebc1e80bf15",

@@ -1,0 +1,68 @@
+{
+  "stage": "27.5",
+  "generated_at": "20260303_124244",
+  "seed": 42,
+  "dry_run": true,
+  "coverage_gate_status": "OK",
+  "requested_symbols": [
+    "BTC/USDT",
+    "ETH/USDT"
+  ],
+  "used_symbols": [
+    "BTC/USDT",
+    "ETH/USDT"
+  ],
+  "disabled_symbols": [],
+  "coverage_years_by_symbol": {
+    "BTC/USDT": 4.0,
+    "ETH/USDT": 4.0
+  },
+  "warnings": [],
+  "data_snapshot_id": "DATA_FROZEN_v1",
+  "data_snapshot_hash": "c734cebc1e80bf15",
+  "data_snapshot_path": "data/snapshots/DATA_FROZEN_v1.json",
+  "data_snapshot_exists": true,
+  "stages": [
+    {
+      "stage": "24",
+      "run_id": "20260303_124246_d1620e436d9a_stage15_9_trace",
+      "verdict": "SIZING_ACTIVE_NO_EDGE_CHANGE",
+      "exp_lcb": 0.0,
+      "trade_count": 32.0,
+      "zero_trade_pct": 0.0
+    },
+    {
+      "stage": "25_research",
+      "run_id": "20260303_124252_e829535e1dda_stage25B",
+      "verdict": "NO_EDGE_IN_RESEARCH",
+      "exp_lcb": 0.0,
+      "trade_count": 1835.0,
+      "zero_trade_pct": 50.0
+    },
+    {
+      "stage": "25_live",
+      "run_id": "20260303_124318_a3027d37b4f7_stage25B",
+      "verdict": "NO_EDGE_IN_LIVE",
+      "exp_lcb": 0.0,
+      "trade_count": 1835.0,
+      "zero_trade_pct": 50.0
+    },
+    {
+      "stage": "26",
+      "run_id": "20260303_124601_46a699696062_stage26",
+      "verdict": "NO_EDGE",
+      "exp_lcb": -37.81852522197674,
+      "trade_count": 2020.0,
+      "zero_trade_pct": 0.0
+    },
+    {
+      "stage": "27_rolling",
+      "run_id": "20260303_124628_641b29275325_stage27_roll",
+      "verdict": "ROLLING_DISCOVERY",
+      "exp_lcb": 0.0,
+      "trade_count": 10.0,
+      "zero_trade_pct": 0.0
+    }
+  ],
+  "runtime_seconds": 224.8263689999876
+}
