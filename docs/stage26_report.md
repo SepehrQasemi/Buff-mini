@@ -1,7 +1,7 @@
 # Stage-26 Report
 
-- head_commit: `d639937d3ce4f8e6e2b5ae75712d8471b6ad1b9c`
-- run_id: `20260303_023207_d87597c6f689_stage26`
+- head_commit: `9d9c935d6636876366a3cbe68ff43e08e2c15a0e`
+- run_id: `20260303_050348_e15ab06fe59c_stage26`
 - seed: `42`
 - dry_run: `False`
 
@@ -12,19 +12,19 @@
 ## Metrics
 | mode | trade_count | tpm | exp_lcb | maxDD | wf_executed_pct | mc_trigger_rate |
 | --- | ---: | ---: | ---: | ---: | ---: | ---: |
-| conditional_research | 0.00 | 0.0000 | 0.000000 | 0.000000 | 0.00 | 0.00 |
-| conditional_live | 0.00 | 0.0000 | 0.000000 | 0.000000 | 0.00 | 0.00 |
-| global_baseline | 2.00 | 2.9694 | 274.647802 | 0.000200 | 0.00 | 0.00 |
+| conditional_research | 783.00 | 11.7861 | 1.647819 | 0.477785 | 0.00 | 0.00 |
+| conditional_live | 783.00 | 11.7861 | 2.573864 | 0.477785 | 0.00 | 0.00 |
+| global_baseline | 1.00 | 3.7500 | 124.808451 | 0.000250 | 50.00 | 0.00 |
 
 ## Conditional vs Global Delta
-- delta_exp_lcb: `-274.647802`
-- delta_maxDD: `-0.000200`
-- delta_trade_count: `-2.000000`
+- delta_exp_lcb: `-122.234588`
+- delta_maxDD: `0.477535`
+- delta_trade_count: `782.000000`
 
 ## Shadow Live
-- shadow_live_reject_rate: `0.000000`
-- shadow_live_top_reasons: `{}`
+- shadow_live_reject_rate: `0.977959`
+- shadow_live_top_reasons: `{'SIZE_TOO_SMALL': 8297, 'VALID': 187}`
 
 ## Verdict
 - `INSUFFICIENT_DATA`
-- next_bottleneck: `signal_quality`
+- next_bottleneck: `live_feasibility_constraints`

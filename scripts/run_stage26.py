@@ -487,11 +487,20 @@ def main() -> None:
     out_dir.mkdir(parents=True, exist_ok=True)
 
     effects.to_csv(out_dir / "conditional_effects.csv", index=False)
-    (out_dir / "conditional_effects.json").write_text(json.dumps({"rows": effects.to_dict(orient="records")}, indent=2, allow_nan=False), encoding="utf-8")
+    (out_dir / "conditional_effects.json").write_text(
+        json.dumps(_json_safe({"rows": effects.to_dict(orient="records")}), indent=2, allow_nan=False),
+        encoding="utf-8",
+    )
     research_df.to_csv(out_dir / "replay_research.csv", index=False)
-    (out_dir / "replay_research.json").write_text(json.dumps({"rows": research.metrics_rows, "policy": policy}, indent=2, allow_nan=False), encoding="utf-8")
+    (out_dir / "replay_research.json").write_text(
+        json.dumps(_json_safe({"rows": research.metrics_rows, "policy": policy}), indent=2, allow_nan=False),
+        encoding="utf-8",
+    )
     live_df.to_csv(out_dir / "replay_live.csv", index=False)
-    (out_dir / "replay_live.json").write_text(json.dumps({"rows": live.metrics_rows, "policy": policy}, indent=2, allow_nan=False), encoding="utf-8")
+    (out_dir / "replay_live.json").write_text(
+        json.dumps(_json_safe({"rows": live.metrics_rows, "policy": policy}), indent=2, allow_nan=False),
+        encoding="utf-8",
+    )
     shadow_df.to_csv(out_dir / "shadow_live_rejects.csv", index=False)
     global_df.to_csv(out_dir / "global_baseline_results.csv", index=False)
     policy_trace_df.to_csv(out_dir / "policy_trace.csv", index=False)
@@ -526,7 +535,10 @@ def main() -> None:
         "warnings": warnings,
         "runtime_seconds": float(time.perf_counter() - started),
     }
-    (out_dir / "comparison_summary.json").write_text(json.dumps(payload, indent=2, allow_nan=False), encoding="utf-8")
+    (out_dir / "comparison_summary.json").write_text(
+        json.dumps(_json_safe(payload), indent=2, allow_nan=False),
+        encoding="utf-8",
+    )
 
     docs_dir = Path(args.docs_dir)
     docs_dir.mkdir(parents=True, exist_ok=True)
@@ -541,9 +553,9 @@ def main() -> None:
         "coverage_ok_all_symbols": bool(coverage_ok),
         "rows": coverage_rows,
     }
-    coverage_json.write_text(json.dumps(coverage_payload, indent=2, allow_nan=False), encoding="utf-8")
+    coverage_json.write_text(json.dumps(_json_safe(coverage_payload), indent=2, allow_nan=False), encoding="utf-8")
     coverage_md.write_text(_render_coverage_md(coverage_payload), encoding="utf-8")
-    report_json.write_text(json.dumps(payload, indent=2, allow_nan=False), encoding="utf-8")
+    report_json.write_text(json.dumps(_json_safe(payload), indent=2, allow_nan=False), encoding="utf-8")
     _write_report_md(report_md, payload)
     comparison_md.write_text(_render_comparison_md(agg_global, agg_live, comparison_delta, run_id), encoding="utf-8")
 
@@ -622,6 +634,32 @@ def _git_head() -> str:
         if ref_path.exists():
             return ref_path.read_text(encoding="utf-8").strip()
     return text
+
+
+def _json_safe(value: Any) -> Any:
+    if isinstance(value, dict):
+        return {str(k): _json_safe(v) for k, v in value.items()}
+    if isinstance(value, list):
+        return [_json_safe(v) for v in value]
+    if isinstance(value, tuple):
+        return [_json_safe(v) for v in value]
+    if isinstance(value, pd.DataFrame):
+        return _json_safe(value.to_dict(orient="records"))
+    if isinstance(value, pd.Series):
+        return _json_safe(value.tolist())
+    if isinstance(value, pd.Timestamp):
+        ts = value.tz_localize("UTC") if value.tzinfo is None else value.tz_convert("UTC")
+        return ts.isoformat()
+    if isinstance(value, np.ndarray):
+        return _json_safe(value.tolist())
+    if isinstance(value, (np.floating, float)):
+        out = float(value)
+        return out if np.isfinite(out) else 0.0
+    if isinstance(value, (np.integer, int)):
+        return int(value)
+    if isinstance(value, (np.bool_, bool)):
+        return bool(value)
+    return value
 
 
 if __name__ == "__main__":

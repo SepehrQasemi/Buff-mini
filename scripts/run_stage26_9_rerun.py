@@ -25,6 +25,8 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument("--data-dir", type=Path, default=RAW_DATA_DIR)
     parser.add_argument("--derived-dir", type=Path, default=DERIVED_DATA_DIR)
     parser.add_argument("--docs-dir", type=Path, default=Path("docs"))
+    parser.add_argument("--trace-timeframes", type=str, default="15m,30m,1h")
+    parser.add_argument("--trace-max-combos", type=int, default=120)
     return parser.parse_args()
 
 
@@ -170,8 +172,12 @@ def _render_md(payload: dict[str, Any]) -> str:
             f"- stage24_verdict_changed: `{payload.get('changed_vs_previous', {}).get('stage24_verdict_changed', False)}`",
             f"- stage25_verdict_changed: `{payload.get('changed_vs_previous', {}).get('stage25_verdict_changed', False)}`",
             f"- stage26_verdict_changed: `{payload.get('changed_vs_previous', {}).get('stage26_verdict_changed', False)}`",
+            "",
+            "## Warnings",
         ]
     )
+    for item in list(payload.get("warnings", [])):
+        lines.append(f"- {item}")
     return "\n".join(lines).strip() + "\n"
 
 
@@ -190,45 +196,69 @@ def main() -> None:
 
     seed = int(args.seed)
     py = sys.executable
+    warnings: list[str] = []
 
     code24 = _run_subprocess([py, "scripts/run_stage24_audit.py", "--seed", str(seed), "--use-real-data"])
+    if code24 != 0:
+        warnings.append(f"stage24_exit_code:{code24}")
 
     cfg = load_config(args.config)
-    stage25_research = run_stage25b_edge_program(
-        config=cfg,
-        seed=seed,
-        dry_run=False,
-        mode="research",
-        symbols=_csv(args.symbols),
-        timeframes=_csv(args.timeframes),
-        families=["price", "volatility", "flow"],
-        composers=["weighted_sum"],
-        cost_levels=["realistic", "high"],
-        runs_root=args.runs_dir,
-        data_dir=args.data_dir,
-        derived_dir=args.derived_dir,
-        docs_dir=docs_dir,
-        out_run_id=None,
-    )
-    stage25_live = run_stage25b_edge_program(
-        config=cfg,
-        seed=seed,
-        dry_run=False,
-        mode="live",
-        symbols=_csv(args.symbols),
-        timeframes=_csv(args.timeframes),
-        families=["price", "volatility", "flow"],
-        composers=["weighted_sum"],
-        cost_levels=["realistic", "high"],
-        runs_root=args.runs_dir,
-        data_dir=args.data_dir,
-        derived_dir=args.derived_dir,
-        docs_dir=docs_dir,
-        out_run_id=None,
-    )
+    stage25_research: dict[str, Any] = {"summary": previous.get("stage25", {})}
+    stage25_live: dict[str, Any] = {"summary": previous.get("stage25", {})}
+    try:
+        stage25_research = run_stage25b_edge_program(
+            config=cfg,
+            seed=seed,
+            dry_run=False,
+            mode="research",
+            symbols=_csv(args.symbols),
+            timeframes=_csv(args.timeframes),
+            families=["price", "volatility", "flow"],
+            composers=["weighted_sum"],
+            cost_levels=["realistic", "high"],
+            runs_root=args.runs_dir,
+            data_dir=args.data_dir,
+            derived_dir=args.derived_dir,
+            docs_dir=docs_dir,
+            out_run_id=None,
+        )
+        stage25_live = run_stage25b_edge_program(
+            config=cfg,
+            seed=seed,
+            dry_run=False,
+            mode="live",
+            symbols=_csv(args.symbols),
+            timeframes=_csv(args.timeframes),
+            families=["price", "volatility", "flow"],
+            composers=["weighted_sum"],
+            cost_levels=["realistic", "high"],
+            runs_root=args.runs_dir,
+            data_dir=args.data_dir,
+            derived_dir=args.derived_dir,
+            docs_dir=docs_dir,
+            out_run_id=None,
+        )
+    except Exception as exc:  # pragma: no cover
+        warnings.append(f"stage25_exception:{type(exc).__name__}:{exc}")
 
-    code26 = _run_subprocess([py, "scripts/run_stage26.py", "--seed", str(seed)])
-    code159 = _run_subprocess([py, "scripts/trace_signal_flow.py", "--seed", str(seed)])
+    code26 = _run_subprocess([py, "scripts/run_stage26.py", "--seed", str(seed), "--timeframes", str(args.timeframes)])
+    if code26 != 0:
+        warnings.append(f"stage26_exit_code:{code26}")
+
+    code159 = _run_subprocess(
+        [
+            py,
+            "scripts/trace_signal_flow.py",
+            "--seed",
+            str(seed),
+            "--timeframes",
+            str(args.trace_timeframes),
+            "--max-combos",
+            str(max(0, int(args.trace_max_combos))),
+        ]
+    )
+    if code159 != 0:
+        warnings.append(f"stage15_9_exit_code:{code159}")
 
     stage24_summary = _read_json(docs_dir / "stage24_report_summary.json")
     stage26_summary = _read_json(docs_dir / "stage26_report_summary.json")
@@ -245,6 +275,7 @@ def main() -> None:
         previous=previous,
     )
     payload["runtime_seconds"] = float(time.perf_counter() - started)
+    payload["warnings"] = warnings
     payload["exit_codes"] = {
         "stage24_cmd": int(code24),
         "stage26_cmd": int(code26),

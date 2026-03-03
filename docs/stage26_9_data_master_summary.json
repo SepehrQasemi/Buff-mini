@@ -1,23 +1,23 @@
 {
   "stage": "26.9.4",
   "coverage_years_per_symbol": {
-    "BTC/USDT": 0.01140581032778158,
+    "BTC/USDT": 3.997260247927599,
     "ETH/USDT": 0.01140581032778158
   },
   "canonical_candle_counts_per_tf": {
     "BTC/USDT": {
-      "1m": 0,
-      "5m": 0,
-      "15m": 0,
-      "30m": 0,
-      "1h": 0,
-      "2h": 0,
-      "4h": 0,
-      "6h": 0,
-      "12h": 0,
-      "1d": 0,
-      "1w": 0,
-      "1M": 0
+      "1m": 2102320,
+      "5m": 420463,
+      "15m": 140153,
+      "30m": 70076,
+      "1h": 35037,
+      "2h": 17518,
+      "4h": 8758,
+      "6h": 5838,
+      "12h": 2918,
+      "1d": 1458,
+      "1w": 207,
+      "1M": 48
     },
     "ETH/USDT": {
       "1m": 0,
@@ -41,14 +41,14 @@
   ],
   "integrity_pass": false,
   "gaps_detected": {
-    "BTC/USDT": 0,
+    "BTC/USDT": 1,
     "ETH/USDT": 0
   },
   "disk_usage_mb": {
-    "raw": 3.0049352645874023,
-    "canonical": 0.2978849411010742,
-    "derived": 1.1619987487792969,
-    "total": 4.464818954467773
+    "raw": 63.816083908081055,
+    "canonical": 87.30272674560547,
+    "derived": 3.7801218032836914,
+    "total": 154.89893245697021
   },
   "raw_audit_exit_code": 2,
   "canonical_audit_exit_code": 2,
@@ -58,7 +58,7 @@
         "symbol": "BTC/USDT",
         "target_tf": "3h",
         "source_tf": "1h",
-        "rows": 33,
+        "rows": 11678,
         "first_cache_hit": true,
         "second_cache_hit": true,
         "hash_match": true,
@@ -68,7 +68,7 @@
         "symbol": "BTC/USDT",
         "target_tf": "45m",
         "source_tf": "15m",
-        "rows": 133,
+        "rows": 46716,
         "first_cache_hit": true,
         "second_cache_hit": true,
         "hash_match": true,
@@ -78,7 +78,7 @@
         "symbol": "BTC/USDT",
         "target_tf": "8h",
         "source_tf": "1h",
-        "rows": 12,
+        "rows": 4378,
         "first_cache_hit": true,
         "second_cache_hit": true,
         "hash_match": true,

@@ -1,89 +1,87 @@
 {
   "stage": "26.9.5",
   "data_coverage_years_used": {
-    "BTC/USDT": 0.01140581032778158,
+    "BTC/USDT": 3.997260247927599,
     "ETH/USDT": 0.01140581032778158
   },
   "coverage_meets_4y": false,
   "stages": {
     "stage24": {
-      "run_id": "20260303_023151_f2771dabad0e_stage15_9_trace",
+      "run_id": "20260303_045657_f2771dabad0e_stage15_9_trace",
       "timeframes_used": [
         "1h"
       ],
-      "verdict": "NO_OP_BUG",
+      "verdict": "SIZING_ACTIVE_NO_EDGE_CHANGE",
       "metrics": {
         "exp_lcb": 0.0,
         "PF": 0.0,
         "maxDD": 0.0,
-        "trade_count": 0.0,
-        "zero_trade_pct": 100.0
+        "trade_count": 239.0,
+        "zero_trade_pct": 50.0
       },
-      "reject_breakdown_top3": []
+      "reject_breakdown_top3": [
+        {
+          "reason": "POLICY_CAP_HIT",
+          "count": 107
+        }
+      ]
     },
     "stage25_research": {
-      "run_id": "20260303_023152_e829535e1dda_stage25B",
+      "run_id": "20260303_045750_c13421acda7b_stage25B",
       "timeframes_used": [
-        "15m",
-        "30m",
-        "1h",
-        "2h",
         "4h"
       ],
       "verdict": "NO_EDGE_IN_RESEARCH",
       "metrics": {
-        "exp_lcb_best": 0.0,
+        "exp_lcb_best": 320.05437090088,
         "exp_lcb_median": 0.0,
-        "trade_count_total": 130.0,
-        "zero_trade_pct": 75.0
+        "trade_count_total": 1036.0,
+        "zero_trade_pct": 62.5
       },
       "reject_breakdown_top3": []
     },
     "stage25_live": {
-      "run_id": "20260303_023156_a3027d37b4f7_stage25B",
+      "run_id": "20260303_045817_127db8e77b93_stage25B",
       "timeframes_used": [
-        "15m",
-        "30m",
-        "1h",
-        "2h",
         "4h"
       ],
       "verdict": "NO_EDGE_IN_LIVE",
       "metrics": {
-        "exp_lcb_best": 0.0,
+        "exp_lcb_best": 320.05437090088,
         "exp_lcb_median": 0.0,
-        "trade_count_total": 130.0,
-        "zero_trade_pct": 75.0
+        "trade_count_total": 1036.0,
+        "zero_trade_pct": 62.5
       },
       "reject_breakdown_top3": []
     },
     "stage26": {
-      "run_id": "20260303_023207_d87597c6f689_stage26",
+      "run_id": "20260303_050348_e15ab06fe59c_stage26",
       "timeframes_used": [
-        "15m",
-        "30m",
-        "1h",
-        "2h",
         "4h"
       ],
       "verdict": "INSUFFICIENT_DATA",
       "metrics": {
-        "exp_lcb": 0.0,
-        "PF": 0.0,
-        "maxDD": 0.0,
-        "trade_count": 0.0,
-        "zero_trade_pct": 100.0
+        "exp_lcb": 2.5738639247497073,
+        "PF": 5.425861221994609,
+        "maxDD": 0.4777849093565092,
+        "trade_count": 783.0,
+        "zero_trade_pct": 0.0
       },
-      "reject_breakdown_top3": []
+      "reject_breakdown_top3": [
+        {
+          "reason": "SIZE_TOO_SMALL",
+          "count": 8297
+        },
+        {
+          "reason": "VALID",
+          "count": 187
+        }
+      ]
     },
     "stage15_9": {
-      "run_id": "20260303_023209_818b74392bb2_stage15_9_trace",
+      "run_id": "20260303_050350_3504ef8051d5_stage15_9_trace",
       "timeframes_used": [
-        "4h",
-        "1h",
-        "2h",
-        "15m",
-        "30m"
+        "4h"
       ],
       "verdict": "TRACE_RECORDED",
       "metrics": {
@@ -91,20 +89,20 @@
         "PF": 0.0,
         "maxDD": 0.0,
         "trade_count": 0.0,
-        "zero_trade_pct": 72.6530612244898
+        "zero_trade_pct": 55.00000000000001
       },
       "reject_breakdown_top3": [
         {
           "gate": "death_execution",
-          "death_rate": 0.8457127291950804
+          "death_rate": 0.78726460152795
         },
         {
           "gate": "death_orders",
-          "death_rate": 0.7390677349861023
+          "death_rate": 0.5666666666666667
         },
         {
           "gate": "death_context",
-          "death_rate": 0.6693877551020408
+          "death_rate": 0.55
         }
       ]
     }
@@ -114,7 +112,8 @@
     "stage25_verdict_changed": false,
     "stage26_verdict_changed": false
   },
-  "runtime_seconds": 22.14311559998896,
+  "runtime_seconds": 426.3831322999904,
+  "warnings": [],
   "exit_codes": {
     "stage24_cmd": 0,
     "stage26_cmd": 0,

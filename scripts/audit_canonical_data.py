@@ -13,6 +13,7 @@ from buffmini.constants import CANONICAL_DATA_DIR, RAW_DATA_DIR
 from buffmini.data.canonical_raw import file_sha256, prepare_frame, raw_path, symbol_safe
 from buffmini.data.loader import standardize_ohlcv_frame, validate_ohlcv_frame
 from buffmini.data.resample import resample_monthly_ohlcv, resample_ohlcv
+from buffmini.data.timeframe_files import timeframe_to_file_token
 from buffmini.utils.hashing import stable_hash
 
 DEFAULT_CANONICAL_TFS = "1m,5m,15m,30m,1h,2h,4h,6h,12h,1d,1w,1M"
@@ -36,7 +37,8 @@ def _parse_list(raw: str) -> list[str]:
 
 
 def canonical_path(*, canonical_dir: Path, exchange: str, symbol: str, timeframe: str) -> Path:
-    return Path(canonical_dir) / str(exchange).strip().lower() / symbol_safe(symbol) / f"{timeframe}.parquet"
+    token = timeframe_to_file_token(str(timeframe))
+    return Path(canonical_dir) / str(exchange).strip().lower() / symbol_safe(symbol) / f"{token}.parquet"
 
 
 def canonical_meta_path(*, canonical_dir: Path, exchange: str, symbol: str, timeframe: str) -> Path:

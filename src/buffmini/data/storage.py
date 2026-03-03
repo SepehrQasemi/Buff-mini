@@ -7,6 +7,7 @@ from pathlib import Path
 import pandas as pd
 
 from buffmini.constants import CANONICAL_DATA_DIR, RAW_DATA_DIR
+from buffmini.data.timeframe_files import timeframe_to_file_token
 
 
 def save_parquet(
@@ -71,7 +72,8 @@ def canonical_parquet_path(
     """Return canonical parquet path under data/canonical/<exchange>/<symbol>/<tf>.parquet."""
 
     safe_symbol = symbol.replace("/", "-").replace(":", "-")
-    return Path(canonical_dir) / str(exchange).strip().lower() / safe_symbol / f"{timeframe}.parquet"
+    token = timeframe_to_file_token(str(timeframe))
+    return Path(canonical_dir) / str(exchange).strip().lower() / safe_symbol / f"{token}.parquet"
 
 
 def resolve_parquet_path(symbol: str, timeframe: str, data_dir: str | Path = RAW_DATA_DIR) -> Path | None:
@@ -83,6 +85,9 @@ def resolve_parquet_path(symbol: str, timeframe: str, data_dir: str | Path = RAW
     # Only probe global canonical store when using the default raw location.
     if raw_dir == default_raw_dir:
         candidates.append(canonical_parquet_path(symbol=symbol, timeframe=timeframe))
+        # Backward compatibility for pre-tokenized canonical files.
+        safe_symbol = symbol.replace("/", "-").replace(":", "-")
+        candidates.append(Path(CANONICAL_DATA_DIR) / "binance" / safe_symbol / f"{timeframe}.parquet")
     candidates.extend(
         [
             nested_parquet_path(symbol=symbol, timeframe=timeframe, data_dir=data_dir),

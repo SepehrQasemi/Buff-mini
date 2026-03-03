@@ -12,6 +12,7 @@ import pandas as pd
 from buffmini.constants import CANONICAL_DATA_DIR, DERIVED_DATA_DIR
 from buffmini.data.loader import standardize_ohlcv_frame, validate_ohlcv_frame
 from buffmini.data.resample import resample_monthly_ohlcv, resample_ohlcv
+from buffmini.data.timeframe_files import file_token_to_timeframe, timeframe_to_file_token
 from buffmini.utils.hashing import stable_hash
 
 
@@ -50,7 +51,8 @@ def canonical_tf_path(
     canonical_dir: Path = CANONICAL_DATA_DIR,
 ) -> Path:
     safe_symbol = str(symbol).replace("/", "-").replace(":", "-")
-    return Path(canonical_dir) / str(exchange).strip().lower() / safe_symbol / f"{timeframe}.parquet"
+    token = timeframe_to_file_token(str(timeframe))
+    return Path(canonical_dir) / str(exchange).strip().lower() / safe_symbol / f"{token}.parquet"
 
 
 def canonical_meta_path(
@@ -71,7 +73,8 @@ def derived_tf_path(
     derived_dir: Path = DERIVED_DATA_DIR,
 ) -> Path:
     safe_symbol = str(symbol).replace("/", "-").replace(":", "-")
-    return Path(derived_dir) / str(exchange).strip().lower() / safe_symbol / f"{timeframe}.parquet"
+    token = timeframe_to_file_token(str(timeframe))
+    return Path(derived_dir) / str(exchange).strip().lower() / safe_symbol / f"{token}.parquet"
 
 
 def derived_meta_path(
@@ -94,7 +97,7 @@ def canonical_timeframes_available(
     values: list[str] = []
     if symbol_dir.exists():
         for file in sorted(symbol_dir.glob("*.parquet")):
-            values.append(file.stem)
+            values.append(file_token_to_timeframe(file.stem))
     for tf in CANONICAL_TIMEFRAMES:
         if tf not in values:
             path = canonical_tf_path(symbol=symbol, timeframe=tf, exchange=exchange, canonical_dir=canonical_dir)

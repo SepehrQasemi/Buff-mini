@@ -6,12 +6,12 @@
 
 | symbol | coverage_years | gaps_detected |
 | --- | ---: | ---: |
-| BTC/USDT | 0.011406 | 0 |
+| BTC/USDT | 3.997260 | 1 |
 | ETH/USDT | 0.011406 | 0 |
 
 ## Disk Usage (MB)
 
-- raw: `3.005`
-- canonical: `0.298`
-- derived: `1.162`
-- total: `4.465`
+- raw: `63.816`
+- canonical: `87.303`
+- derived: `3.780`
+- total: `154.899`
