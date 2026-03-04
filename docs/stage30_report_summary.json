@@ -1,0 +1,19 @@
+{
+  "stage": "30",
+  "substage": "30.1",
+  "status": "IN_PROGRESS",
+  "dataset_builder": {
+    "script": "scripts/build_ml_dataset.py",
+    "outputs": [
+      "runs/<run_id>/stage30/dataset_index.parquet",
+      "runs/<run_id>/stage30/dataset_meta.json"
+    ]
+  },
+  "training": {
+    "status": "PENDING"
+  },
+  "contexts": {
+    "status": "PENDING"
+  }
+}
+
