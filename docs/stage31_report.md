@@ -16,7 +16,11 @@
   - novelty constraint via signal similarity with max similarity threshold in elite selection
 
 ## Scheduling
-- Pending Stage-31.3.
+- Stage-31.3 added deterministic Hyperband/Successive Halving scheduling in `src/buffmini/stage31/hyperband.py`.
+- Properties:
+  - budgeted rungs with shrinking candidate pools
+  - enforced exploration quota at each rung (`>=15%`)
+  - reproducible candidate selection from fixed seeds
 
 ## Runner
 - Pending Stage-31.4.

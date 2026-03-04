@@ -1,6 +1,6 @@
 {
   "stage": "31",
-  "substage": "31.2",
+  "substage": "31.3",
   "status": "IN_PROGRESS",
   "dsl": {
     "status": "IMPLEMENTED",
@@ -11,7 +11,8 @@
     "module": "src/buffmini/stage31/evolve.py"
   },
   "scheduler": {
-    "status": "PENDING"
+    "status": "IMPLEMENTED",
+    "module": "src/buffmini/stage31/hyperband.py"
   },
   "runner": {
     "status": "PENDING"
