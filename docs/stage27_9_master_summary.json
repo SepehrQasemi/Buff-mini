@@ -1,0 +1,150 @@
+{
+  "stage": "27.9.7",
+  "head_commit": "6b8433a07e8829759a38aea069ca2877da4c979f",
+  "data_status": {
+    "coverage_gate_status": "OK",
+    "coverage_years_by_symbol": {
+      "BTC/USDT": 4.0,
+      "ETH/USDT": 4.0
+    },
+    "used_symbols": [
+      "BTC/USDT",
+      "ETH/USDT"
+    ],
+    "data_snapshot_id": "DATA_FROZEN_v1",
+    "data_snapshot_hash": "c734cebc1e80bf15"
+  },
+  "execution_health": {
+    "death_execution_rate": 0.24318181818181817,
+    "zero_trade_pct": 0.0,
+    "invalid_pct": 0.0,
+    "walkforward_executed_true_pct": 0.0,
+    "mc_trigger_rate": 0.0,
+    "top_reject_reasons": []
+  },
+  "rolling_context_discovery": {
+    "window_counts": {
+      "3": {
+        "generated": 10,
+        "evaluated": 10
+      },
+      "6": {
+        "generated": 0,
+        "evaluated": 0
+      }
+    },
+    "counts": {
+      "ROBUST_CONTEXT_EDGE": 0,
+      "WEAK_CONTEXT_EDGE": 5,
+      "NOISE": 165
+    },
+    "top_contextual_edges": [
+      {
+        "symbol": "ETH/USDT",
+        "timeframe": "15m",
+        "context": "VOLUME_SHOCK",
+        "rulelet": "MomentumBurst",
+        "windows_total": 1,
+        "windows_positive": 1,
+        "positive_windows_ratio": 1.0,
+        "occurrences_median": 52,
+        "trades_median": 2,
+        "exp_lcb_median": 148.4292084447282,
+        "classification": "WEAK_CONTEXT_EDGE"
+      },
+      {
+        "symbol": "ETH/USDT",
+        "timeframe": "1h",
+        "context": "VOLUME_SHOCK",
+        "rulelet": "MomentumBurst",
+        "windows_total": 1,
+        "windows_positive": 1,
+        "positive_windows_ratio": 1.0,
+        "occurrences_median": 52,
+        "trades_median": 2,
+        "exp_lcb_median": 148.4292084447282,
+        "classification": "WEAK_CONTEXT_EDGE"
+      },
+      {
+        "symbol": "ETH/USDT",
+        "timeframe": "2h",
+        "context": "VOLUME_SHOCK",
+        "rulelet": "MomentumBurst",
+        "windows_total": 1,
+        "windows_positive": 1,
+        "positive_windows_ratio": 1.0,
+        "occurrences_median": 52,
+        "trades_median": 2,
+        "exp_lcb_median": 148.4292084447282,
+        "classification": "WEAK_CONTEXT_EDGE"
+      },
+      {
+        "symbol": "ETH/USDT",
+        "timeframe": "30m",
+        "context": "VOLUME_SHOCK",
+        "rulelet": "MomentumBurst",
+        "windows_total": 1,
+        "windows_positive": 1,
+        "positive_windows_ratio": 1.0,
+        "occurrences_median": 52,
+        "trades_median": 2,
+        "exp_lcb_median": 148.4292084447282,
+        "classification": "WEAK_CONTEXT_EDGE"
+      },
+      {
+        "symbol": "ETH/USDT",
+        "timeframe": "4h",
+        "context": "VOLUME_SHOCK",
+        "rulelet": "MomentumBurst",
+        "windows_total": 1,
+        "windows_positive": 1,
+        "positive_windows_ratio": 1.0,
+        "occurrences_median": 52,
+        "trades_median": 2,
+        "exp_lcb_median": 148.4292084447282,
+        "classification": "WEAK_CONTEXT_EDGE"
+      }
+    ]
+  },
+  "feasibility_analysis": {
+    "top_reject_reasons": [],
+    "boundaries_by_timeframe": [
+      {
+        "timeframe": "15m",
+        "feasible_pct_median": 100.0,
+        "recommended_risk_floor_median": 9.48998922244559e-05
+      },
+      {
+        "timeframe": "1h",
+        "feasible_pct_median": 100.0,
+        "recommended_risk_floor_median": 9.48998922244559e-05
+      },
+      {
+        "timeframe": "2h",
+        "feasible_pct_median": 100.0,
+        "recommended_risk_floor_median": 9.48998922244559e-05
+      },
+      {
+        "timeframe": "30m",
+        "feasible_pct_median": 100.0,
+        "recommended_risk_floor_median": 9.48998922244559e-05
+      },
+      {
+        "timeframe": "4h",
+        "feasible_pct_median": 100.0,
+        "recommended_risk_floor_median": 9.48998922244559e-05
+      }
+    ]
+  },
+  "edge_verdict": "WEAK_EDGE",
+  "next_bottleneck": "walkforward_and_mc_not_executing",
+  "run_ids": {
+    "24": "20260304_115809_5968d15c9201_stage15_9_trace",
+    "25_research": "20260304_115815_e829535e1dda_stage25B",
+    "25_live": "20260304_115845_a3027d37b4f7_stage25B",
+    "26": "20260304_120151_f7d8fa27e646_stage26",
+    "27_9_rolling": "20260304_120218_732731ed0966_stage27_9_roll",
+    "27_feasibility": "20260304_120221_290f384a0124_stage15_9_trace"
+  },
+  "summary_hash": "5391ceb64443528a"
+}
