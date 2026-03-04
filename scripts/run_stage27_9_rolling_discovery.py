@@ -276,6 +276,7 @@ def main() -> None:
                             "window_end": end_ts.isoformat(),
                             "context": str(effect.get("context", "")),
                             "rulelet": str(effect.get("rulelet", "")),
+                            "context_occurrences": int(effect.get("context_occurrences", 0)),
                             "trade_count": int(effect.get("trades_in_context", 0)),
                             "exp": float(effect.get("expectancy", 0.0)),
                             "exp_lcb": float(effect.get("exp_lcb", 0.0)),
