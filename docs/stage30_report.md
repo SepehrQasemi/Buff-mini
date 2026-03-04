@@ -20,4 +20,14 @@
   - pure NumPy fallback path available (`backend=numpy`) for offline reproducible tests
 
 ## Contexts
-- Pending Stage-30.3.
+- Stage-30.3 implemented deterministic embedding cache extraction and unsupervised context discovery.
+- Scripts:
+  - `scripts/extract_embeddings.py`
+  - `scripts/build_contexts_unsupervised.py`
+- Core module:
+  - `src/buffmini/ml/context_cluster.py`
+- Outputs:
+  - cache: `data/features_ml/<symbol>/embeddings_15m.parquet` (+ `.meta.json`)
+  - run-scoped:
+    - `runs/<run_id>/stage30/context_labels.parquet`
+    - `runs/<run_id>/stage30/context_summary.json`
