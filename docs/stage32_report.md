@@ -10,8 +10,12 @@
   - maximize `feasibility_score`
 
 ## Nested WF/MC
-- Pending Stage-32.2.
+- Stage-32.2 added nested WF + MC-lite validation runner:
+  - script: `scripts/run_stage32_validate.py`
+  - module: `src/buffmini/stage32/validate.py`
+- Run artifacts:
+  - `runs/<run_id>/stage32/validated.csv`
+  - `runs/<run_id>/stage32/validated.json`
 
 ## Feasibility
 - Pending Stage-32.3.
-
