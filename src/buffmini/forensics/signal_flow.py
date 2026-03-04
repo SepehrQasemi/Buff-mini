@@ -322,6 +322,12 @@ def run_signal_flow_trace(
                     "reason": reason,
                     "count": 1,
                     "details": str(event.get("details", "")),
+                    "minimum_required_risk_pct": float(event.get("minimum_required_risk_pct", 0.0)),
+                    "minimum_required_equity": float(event.get("minimum_required_equity", 0.0)),
+                    "min_risk_required": float(event.get("min_risk_required", 0.0)),
+                    "min_equity_required": float(event.get("min_equity_required", 0.0)),
+                    "stop_distance": float(event.get("stop_distance", 0.0)),
+                    "fee_rt_pct": float(event.get("fee_rt_pct", 0.0)),
                 }
             )
         execution_adjustment_events.extend(list(counts.get("execution_adjustment_events", [])))
@@ -418,6 +424,12 @@ def run_signal_flow_trace(
     pd.DataFrame(reject_reason_rows).to_csv(trace_dir / "reject_reasons.csv", index=False)
     pd.DataFrame(eligibility_trace_rows).to_csv(trace_dir / "eligibility_trace.csv", index=False)
     pd.DataFrame(execution_reject_events).to_csv(trace_dir / "execution_reject_events.csv", index=False)
+    feasibility_df = pd.DataFrame(execution_reject_events)
+    if not feasibility_df.empty:
+        feasibility_df = feasibility_df.loc[
+            feasibility_df.get("reason", pd.Series(dtype=str)).astype(str).isin({"SIZE_TOO_SMALL", "POLICY_CAP_HIT", "MARGIN_FAIL"})
+        ].reset_index(drop=True)
+    feasibility_df.to_csv(trace_dir / "feasibility_analysis.csv", index=False)
     pd.DataFrame(execution_adjustment_events).to_csv(trace_dir / "execution_adjustments.csv", index=False)
     sizing_trace_df = pd.DataFrame(sizing_trace_rows)
     sizing_trace_df.to_csv(trace_dir / "sizing_trace.csv", index=False)
