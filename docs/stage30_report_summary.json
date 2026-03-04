@@ -1,6 +1,6 @@
 {
   "stage": "30",
-  "substage": "30.1",
+  "substage": "30.2",
   "status": "IN_PROGRESS",
   "dataset_builder": {
     "script": "scripts/build_ml_dataset.py",
@@ -10,10 +10,14 @@
     ]
   },
   "training": {
-    "status": "PENDING"
+    "status": "IMPLEMENTED",
+    "script": "scripts/train_autoencoder.py",
+    "outputs": [
+      "runs/<run_id>/stage30/model.pt",
+      "runs/<run_id>/stage30/train_metrics.json"
+    ]
   },
   "contexts": {
     "status": "PENDING"
   }
 }
-
