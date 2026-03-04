@@ -10,6 +10,7 @@ import pandas as pd
 
 from buffmini.backtest.costs import cost_breakdown_bps, normalized_cost_cfg, one_way_slippage_for_bar
 from buffmini.execution.feasibility import explain_reject
+from buffmini.execution.feasibility_floor import calculate_min_risk_pct
 from buffmini.execution.margin_model import (
     PolicyCaps,
     apply_exposure_caps,
@@ -147,6 +148,7 @@ def build_adaptive_orders(
             "orders_df": pd.DataFrame(),
             "reject_events": [],
             "adjustment_events": [],
+            "risk_bump_events": [],
             "sizing_trace": pd.DataFrame(),
             "sizing_trace_summary": _summarize_sizing_trace([]),
             "stage24_sizing_trace": pd.DataFrame(),
@@ -189,6 +191,9 @@ def build_adaptive_orders(
     live_min_trade_qty = float(live_constraint_cfg.get("min_trade_qty", order_builder.min_trade_qty))
     allow_size_bump_to_min_notional = bool(order_builder.allow_size_bump_to_min_notional)
     max_notional_pct_cfg = float(((stage24_cfg.get("order_constraints", {}) or {}).get("max_notional_pct_of_equity", 1.0)))
+    risk_auto_bump_cfg = dict((cfg.get("execution", {}) or {}).get("risk_auto_bump", {}))
+    risk_auto_bump_enabled = bool(risk_auto_bump_cfg.get("enabled", True))
+    risk_auto_bump_cap = float(risk_auto_bump_cfg.get("max_risk_cap", 0.20))
 
     risk_cfg = dict(cfg.get("risk", {}) or {})
     max_gross_exposure = float(risk_cfg.get("max_gross_exposure", 5.0))
@@ -220,6 +225,7 @@ def build_adaptive_orders(
     order_rows: list[dict[str, Any]] = []
     reject_events: list[dict[str, Any]] = []
     adjustment_events: list[dict[str, Any]] = []
+    risk_bump_events: list[dict[str, Any]] = []
     sizing_trace_rows: list[dict[str, Any]] = []
     stage24_trace_rows: list[dict[str, Any]] = []
     shadow_live_summary = _empty_shadow_live_summary(is_research_mode)
@@ -394,6 +400,58 @@ def build_adaptive_orders(
             stage24_reason = str(reason_24 or "")
             if stage24_reason and not is_known_reject_reason(stage24_reason):
                 stage24_reason = "UNKNOWN"
+            risk_bump_applied = False
+            if (
+                str(status_24) != "VALID"
+                and not is_research_mode
+                and mode == "risk_pct"
+                and bool(risk_auto_bump_enabled)
+                and stage24_reason == "SIZE_TOO_SMALL"
+            ):
+                min_risk_required = float(
+                    calculate_min_risk_pct(
+                        equity=float(equity_state),
+                        stop_distance_pct=float(stop_distance_pct),
+                        min_notional=float(min_trade_notional),
+                        fee_roundtrip_pct=float(cost_rt_pct),
+                        size_step=float(qty_step),
+                    )
+                )
+                if np.isfinite(min_risk_required) and min_risk_required <= float(risk_auto_bump_cap):
+                    prev_risk = float(risk_used)
+                    risk_used = float(min_risk_required)
+                    risk_parts["used"] = float(risk_used)
+                    notional_24, status_24, reason_24, details_24 = compute_notional_risk_pct(
+                        equity=float(equity_state),
+                        risk_pct_used=float(risk_used),
+                        stop_distance_pct=float(stop_distance_pct),
+                        cost_rt_pct=float(cost_rt_pct),
+                        constraints_cfg=stage24_constraints,
+                    )
+                    stage24_reason = str(reason_24 or "")
+                    if stage24_reason and not is_known_reject_reason(stage24_reason):
+                        stage24_reason = "UNKNOWN"
+                    risk_bump_applied = str(status_24) == "VALID"
+                    risk_bump_events.append(
+                        {
+                            "timestamp": timestamp,
+                            "symbol": symbol,
+                            "side": side_label,
+                            "risk_before": float(prev_risk),
+                            "risk_after": float(risk_used),
+                            "min_risk_required": float(min_risk_required),
+                            "max_risk_cap": float(risk_auto_bump_cap),
+                            "status_after_bump": str(status_24),
+                            "reason_after_bump": str(stage24_reason),
+                        }
+                    )
+                else:
+                    stage24_reason = "EXECUTION_INFEASIBLE_CAP"
+                    status_24 = "INVALID"
+                    details_24 = {
+                        "min_risk_required": float(min_risk_required),
+                        "max_risk_cap": float(risk_auto_bump_cap),
+                    }
             stage24_trace_rows.append(
                 {
                     "ts": timestamp,
@@ -406,6 +464,7 @@ def build_adaptive_orders(
                     "dd_mult": float(risk_parts.get("dd_mult", 1.0)),
                     "streak_mult": float(risk_parts.get("streak_mult", 1.0)),
                     "risk_used": float(risk_used),
+                    "risk_bump_applied": bool(risk_bump_applied),
                     "stop_dist_pct": float(stop_distance_pct),
                     "cost_rt_pct": float(cost_rt_pct),
                     "notional": float(notional_24),
@@ -756,6 +815,7 @@ def build_adaptive_orders(
         "orders_df": orders_df,
         "reject_events": reject_events,
         "adjustment_events": adjustment_events,
+        "risk_bump_events": risk_bump_events,
         "sizing_trace": sizing_trace_df,
         "sizing_trace_summary": _summarize_sizing_trace(sizing_trace_rows),
         "stage24_sizing_trace": stage24_trace_df,

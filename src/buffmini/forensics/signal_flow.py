@@ -175,6 +175,7 @@ def run_signal_flow_trace(
     reject_reason_rows: list[dict[str, Any]] = []
     execution_reject_events: list[dict[str, Any]] = []
     execution_adjustment_events: list[dict[str, Any]] = []
+    risk_bump_rows: list[dict[str, Any]] = []
     eligibility_trace_rows: list[dict[str, Any]] = []
     sizing_trace_rows: list[dict[str, Any]] = []
     stage24_sizing_trace_rows: list[dict[str, Any]] = []
@@ -381,6 +382,18 @@ def run_signal_flow_trace(
                     **dict(item),
                 }
             )
+        for item in counts.get("risk_bump_events", []):
+            risk_bump_rows.append(
+                {
+                    "stage": stage,
+                    "mode": mode_name,
+                    "symbol": symbol,
+                    "timeframe": timeframe,
+                    "family": family,
+                    "composer": composer,
+                    **dict(item),
+                }
+            )
 
         row["top_reject_reason"] = _top_reject_reason(row)
         rows.append(_safe_json(row))
@@ -431,6 +444,7 @@ def run_signal_flow_trace(
         ].reset_index(drop=True)
     feasibility_df.to_csv(trace_dir / "feasibility_analysis.csv", index=False)
     pd.DataFrame(execution_adjustment_events).to_csv(trace_dir / "execution_adjustments.csv", index=False)
+    pd.DataFrame(risk_bump_rows).to_csv(trace_dir / "risk_bump_events.csv", index=False)
     sizing_trace_df = pd.DataFrame(sizing_trace_rows)
     sizing_trace_df.to_csv(trace_dir / "sizing_trace.csv", index=False)
     (trace_dir / "sizing_trace_summary.json").write_text(
@@ -802,6 +816,7 @@ def _count_flow(
     stage24_enabled = bool(stage24_cfg.get("enabled", False))
     execution_reject_events: list[dict[str, Any]] = []
     execution_adjustment_events: list[dict[str, Any]] = []
+    risk_bump_events: list[dict[str, Any]] = []
     shadow_live_summary: dict[str, Any] = {}
     research_infeasible_flags: list[dict[str, Any]] = []
     if stage_profile.trading and stage23_enabled:
@@ -844,6 +859,7 @@ def _count_flow(
         orders_sent_count = int((signal_series != 0).sum())
         execution_reject_events = list(adaptive.get("reject_events", []))
         execution_adjustment_events = list(adaptive.get("adjustment_events", []))
+        risk_bump_events = list(adaptive.get("risk_bump_events", []))
         sizing_trace_rows = list(adaptive.get("sizing_trace", pd.DataFrame()).to_dict(orient="records"))
         stage24_sizing_trace_rows = list(adaptive.get("stage24_sizing_trace", pd.DataFrame()).to_dict(orient="records"))
         shadow_live_summary = dict(adaptive.get("shadow_live_summary", {}))
@@ -856,6 +872,7 @@ def _count_flow(
         stage24_sizing_trace_rows = []
         shadow_live_summary = {}
         research_infeasible_flags = []
+        risk_bump_events = []
 
     return {
         "raw_signal_count": raw_signal_count,
@@ -871,6 +888,7 @@ def _count_flow(
         "orders_sent_count": orders_sent_count,
         "execution_reject_events": execution_reject_events,
         "execution_adjustment_events": execution_adjustment_events,
+        "risk_bump_events": risk_bump_events,
         "eligibility_trace_rows": eligibility_trace_rows,
         "sizing_trace_rows": sizing_trace_rows,
         "stage24_sizing_trace_rows": stage24_sizing_trace_rows,

@@ -19,6 +19,7 @@ EXECUTION_REJECT_REASONS: tuple[str, ...] = (
     "DELAY_FAIL",
     "NO_FILL",
     "POLICY_CAP_HIT",
+    "EXECUTION_INFEASIBLE_CAP",
     "UNKNOWN",
 )
 
@@ -78,4 +79,3 @@ class RejectBreakdown:
             "reject_reason_counts": {reason: int(count) for reason, count in sorted(reason_counts.items())},
             "reject_reason_rate": rates,
         }
-
