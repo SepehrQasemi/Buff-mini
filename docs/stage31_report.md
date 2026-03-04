@@ -9,11 +9,14 @@
 - Deterministic and leakage-safe behavior is enforced by tests.
 
 ## Evolution
-- Pending Stage-31.2.
+- Stage-31.2 implemented genetic strategy synthesis in `src/buffmini/stage31/evolve.py`.
+- Includes:
+  - reproducible random population initialization
+  - mutation and crossover operators over DSL trees
+  - novelty constraint via signal similarity with max similarity threshold in elite selection
 
 ## Scheduling
 - Pending Stage-31.3.
 
 ## Runner
 - Pending Stage-31.4.
-

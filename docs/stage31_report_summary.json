@@ -1,13 +1,14 @@
 {
   "stage": "31",
-  "substage": "31.1",
+  "substage": "31.2",
   "status": "IN_PROGRESS",
   "dsl": {
     "status": "IMPLEMENTED",
     "module": "src/buffmini/stage31/dsl.py"
   },
   "evolution": {
-    "status": "PENDING"
+    "status": "IMPLEMENTED",
+    "module": "src/buffmini/stage31/evolve.py"
   },
   "scheduler": {
     "status": "PENDING"
@@ -16,4 +17,3 @@
     "status": "PENDING"
   }
 }
-
