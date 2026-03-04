@@ -179,6 +179,7 @@ def run_signal_flow_trace(
     sizing_trace_rows: list[dict[str, Any]] = []
     stage24_sizing_trace_rows: list[dict[str, Any]] = []
     shadow_live_rows: list[dict[str, Any]] = []
+    research_infeasible_rows: list[dict[str, Any]] = []
     execution_breakdown = RejectBreakdown()
 
     for combo in combos:
@@ -362,6 +363,18 @@ def run_signal_flow_trace(
                     **shadow_live_payload,
                 }
             )
+        for item in counts.get("research_infeasible_flags", []):
+            research_infeasible_rows.append(
+                {
+                    "stage": stage,
+                    "mode": mode_name,
+                    "symbol": symbol,
+                    "timeframe": timeframe,
+                    "family": family,
+                    "composer": composer,
+                    **dict(item),
+                }
+            )
 
         row["top_reject_reason"] = _top_reject_reason(row)
         rows.append(_safe_json(row))
@@ -424,6 +437,7 @@ def run_signal_flow_trace(
         json.dumps(_aggregate_shadow_live_summary(shadow_live_df), indent=2, allow_nan=False),
         encoding="utf-8",
     )
+    pd.DataFrame(research_infeasible_rows).to_csv(trace_dir / "research_infeasible_flags.csv", index=False)
     (trace_dir / "execution_reject_breakdown.json").write_text(
         json.dumps(execution_breakdown.to_payload(), indent=2, allow_nan=False),
         encoding="utf-8",
@@ -777,6 +791,7 @@ def _count_flow(
     execution_reject_events: list[dict[str, Any]] = []
     execution_adjustment_events: list[dict[str, Any]] = []
     shadow_live_summary: dict[str, Any] = {}
+    research_infeasible_flags: list[dict[str, Any]] = []
     if stage_profile.trading and stage23_enabled:
         eligibility = evaluate_eligibility(
             frame=frame,
@@ -820,6 +835,7 @@ def _count_flow(
         sizing_trace_rows = list(adaptive.get("sizing_trace", pd.DataFrame()).to_dict(orient="records"))
         stage24_sizing_trace_rows = list(adaptive.get("stage24_sizing_trace", pd.DataFrame()).to_dict(orient="records"))
         shadow_live_summary = dict(adaptive.get("shadow_live_summary", {}))
+        research_infeasible_flags = list(adaptive.get("research_infeasible_flags", []))
     else:
         signal_series = signal_pre.shift(1).fillna(0).astype(int)
         orders_attempted_count = int((signal_pre != 0).sum()) if stage_profile.trading else 0
@@ -827,6 +843,7 @@ def _count_flow(
         sizing_trace_rows = []
         stage24_sizing_trace_rows = []
         shadow_live_summary = {}
+        research_infeasible_flags = []
 
     return {
         "raw_signal_count": raw_signal_count,
@@ -846,6 +863,7 @@ def _count_flow(
         "sizing_trace_rows": sizing_trace_rows,
         "stage24_sizing_trace_rows": stage24_sizing_trace_rows,
         "shadow_live_summary": shadow_live_summary,
+        "research_infeasible_flags": research_infeasible_flags,
         "signal_series": signal_series,
         "signal_pre": signal_pre,
     }

@@ -105,6 +105,10 @@ EXECUTION_DEFAULTS = {
     "per_symbol_netting": True,
     "allow_opposite_signals": False,
     "symbol_scope": "per_symbol",
+    "risk_auto_bump": {
+        "enabled": True,
+        "max_risk_cap": 0.20,
+    },
 }
 
 RISK_STAGE4_DEFAULTS = {
@@ -513,6 +517,19 @@ CONSTRAINTS_DEFAULTS = {
         "min_trade_notional": 0.0,
         "min_trade_qty": 0.0,
         "qty_step": 0.0,
+    },
+}
+
+MODES_DEFAULTS = {
+    "research": {
+        "min_notional_override": 1.0,
+        "ignore_exchange_precision": True,
+        "enforce_margin_caps": False,
+        "enforce_min_notional": False,
+        "enforce_size_step": False,
+    },
+    "live": {
+        "use_exchange_rules": True,
     },
 }
 
@@ -926,6 +943,13 @@ def validate_config(config: ConfigDict) -> None:
         raise ValueError("execution.allow_opposite_signals must be bool")
     if str(execution["symbol_scope"]) != "per_symbol":
         raise ValueError("execution.symbol_scope must be 'per_symbol'")
+    risk_auto_bump = _merge_defaults(EXECUTION_DEFAULTS["risk_auto_bump"], execution.get("risk_auto_bump", {}))
+    if not isinstance(risk_auto_bump.get("enabled", True), bool):
+        raise ValueError("execution.risk_auto_bump.enabled must be bool")
+    max_risk_cap = float(risk_auto_bump.get("max_risk_cap", 0.20))
+    if max_risk_cap <= 0 or max_risk_cap > 1:
+        raise ValueError("execution.risk_auto_bump.max_risk_cap must be in (0,1]")
+    execution["risk_auto_bump"] = risk_auto_bump
     config["execution"] = execution
 
     search = config["search"]
@@ -1579,6 +1603,18 @@ def validate_config(config: ConfigDict) -> None:
         if qty_step < 0:
             raise ValueError(f"evaluation.constraints.{scope}.qty_step must be >= 0")
     evaluation["constraints"] = constraints
+
+    modes_cfg = _merge_defaults(MODES_DEFAULTS, evaluation.get("modes", {}))
+    research_mode_cfg = dict(modes_cfg.get("research", {}))
+    live_mode_cfg = dict(modes_cfg.get("live", {}))
+    if float(research_mode_cfg.get("min_notional_override", 1.0)) <= 0:
+        raise ValueError("evaluation.modes.research.min_notional_override must be > 0")
+    for key in ("ignore_exchange_precision", "enforce_margin_caps", "enforce_min_notional", "enforce_size_step"):
+        if not isinstance(research_mode_cfg.get(key, False), bool):
+            raise ValueError(f"evaluation.modes.research.{key} must be bool")
+    if not isinstance(live_mode_cfg.get("use_exchange_rules", True), bool):
+        raise ValueError("evaluation.modes.live.use_exchange_rules must be bool")
+    evaluation["modes"] = modes_cfg
 
     stage23 = _merge_defaults(STAGE23_DEFAULTS, evaluation.get("stage23", {}))
     if not isinstance(stage23.get("enabled", False), bool):

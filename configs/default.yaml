@@ -55,6 +55,9 @@ execution:
   per_symbol_netting: true
   allow_opposite_signals: false
   symbol_scope: per_symbol
+  risk_auto_bump:
+    enabled: true
+    max_risk_cap: 0.20
 
 search:
   candidates: 100
@@ -469,6 +472,15 @@ evaluation:
       tpm_max: 40.0
     cache:
       enabled: true
+  modes:
+    research:
+      min_notional_override: 1.0
+      ignore_exchange_precision: true
+      enforce_margin_caps: false
+      enforce_min_notional: false
+      enforce_size_step: false
+    live:
+      use_exchange_rules: true
   constraints:
     mode: live
     live:
