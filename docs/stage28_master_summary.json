@@ -1,10 +1,10 @@
 {
   "stage": "28",
-  "run_id": "20260304_182230_086d75bce31c_stage28",
+  "run_id": "20260304_190410_215b4ee71cfc_stage28",
   "seed": 42,
-  "mode": "research",
+  "mode": "live",
   "dry_run": true,
-  "head_commit": "883dd4c1e59f1b3c9f92af3aa6b9dc6e31b3ccd4",
+  "head_commit": "1f2545069f06c734691a4888b3916eba24d1ec9a",
   "config_hash": "df8daba019fa",
   "data_hash": "b6faf10f0f3a44a9",
   "resolved_end_ts": "2025-04-10T23:00:00+00:00",
@@ -182,10 +182,10 @@
   "verdict": "NO_EDGE",
   "next_bottleneck": "wf_usability",
   "warnings": [],
-  "runtime_seconds": 32.81089150000116,
+  "runtime_seconds": 35.086276,
   "data_snapshot_id": "DATA_FROZEN_v1",
   "data_snapshot_hash": "c734cebc1e80bf15",
   "data_snapshot_path": "data/snapshots/DATA_FROZEN_v1.json",
   "data_snapshot_exists": true,
-  "summary_hash": "a5ddc50d66fd60b2"
+  "summary_hash": "38134a56aea7a33c"
 }

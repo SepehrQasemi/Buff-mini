@@ -1,7 +1,7 @@
 # Stage-28 Master Report
 
-- run_id: `20260304_182230_086d75bce31c_stage28`
-- mode: `research`
+- run_id: `20260304_190410_215b4ee71cfc_stage28`
+- mode: `live`
 - dry_run: `True`
 - data_snapshot_id: `DATA_FROZEN_v1`
 - data_snapshot_hash: `c734cebc1e80bf15`
