@@ -632,7 +632,20 @@ def main() -> None:
         "runtime_seconds": float(time.perf_counter() - started),
         **snapshot_meta,
     }
-    payload["summary_hash"] = stable_hash({"run_id": run_id, "wf": payload["wf_executed_pct"], "mc": payload["mc_trigger_pct"], "verdict": verdict, "data_hash": payload["data_hash"], "config_hash": config_hash, "snapshot": payload.get("data_snapshot_hash", "")}, length=16)
+    payload["summary_hash"] = stable_hash(
+        {
+            "wf": payload["wf_executed_pct"],
+            "mc": payload["mc_trigger_pct"],
+            "verdict": verdict,
+            "data_hash": payload["data_hash"],
+            "config_hash": config_hash,
+            "snapshot": payload.get("data_snapshot_hash", ""),
+            "window_counts": payload["window_counts"],
+            "policy_metrics": payload["policy_metrics"],
+            "top_contextual_edges": payload["top_contextual_edges"],
+        },
+        length=16,
+    )
 
     (run_dir / "summary.json").write_text(json.dumps(payload, indent=2, allow_nan=False), encoding="utf-8")
     (docs / "stage28_master_summary.json").write_text(json.dumps(payload, indent=2, allow_nan=False), encoding="utf-8")

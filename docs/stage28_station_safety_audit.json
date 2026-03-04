@@ -1,0 +1,61 @@
+{
+  "stage": "28.9",
+  "generated_at": "20260304_183138",
+  "seed": 42,
+  "checks": [
+    {
+      "check": "stage28_research_smoke",
+      "passed": true,
+      "details": "code=0"
+    },
+    {
+      "check": "stage28_research_repeat",
+      "passed": true,
+      "details": "code=0"
+    },
+    {
+      "check": "stage28_live_smoke",
+      "passed": true,
+      "details": "code=0"
+    },
+    {
+      "check": "determinism_summary_hash",
+      "passed": true,
+      "details": "hash_a=96a8aecc37aeea64 hash_b=96a8aecc37aeea64"
+    },
+    {
+      "check": "coverage_gate_present",
+      "passed": true,
+      "details": "status=SKIPPED_DRY_RUN"
+    },
+    {
+      "check": "research_live_split_mode",
+      "passed": true,
+      "details": "research=research live=live"
+    },
+    {
+      "check": "shadow_live_reject_rate_present",
+      "passed": true,
+      "details": "research=0.0 live=0.0"
+    },
+    {
+      "check": "window_counts_consistency",
+      "passed": true,
+      "details": "3:g=1,e=1,x=1; 6:g=0,e=0,x=0"
+    },
+    {
+      "check": "leakage_guards",
+      "passed": true,
+      "details": "code=0"
+    },
+    {
+      "check": "required_docs_exist",
+      "passed": true,
+      "details": "ok"
+    }
+  ],
+  "pass_count": 10,
+  "total_checks": 10,
+  "status": "PASS",
+  "runtime_seconds": 24.237011900000653
+}

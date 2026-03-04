@@ -23,5 +23,9 @@ jobs:
 
       - name: Run tests
         run: |
-          python -m compileall src scripts tests
+          python -m compileall src scripts tests launch_app.py
           pytest -q
+
+      - name: Stage28 dry-run smoke
+        run: |
+          python scripts/run_stage28.py --seed 42 --mode research --dry-run --budget-small --symbols BTC/USDT --timeframes 1h --windows 3m --step-months 3
