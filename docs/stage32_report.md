@@ -18,4 +18,9 @@
   - `runs/<run_id>/stage32/validated.json`
 
 ## Feasibility
-- Pending Stage-32.3.
+- Stage-32.3 integrated feasibility envelope at candidate/policy level.
+- Module: `src/buffmini/stage32/feasibility.py`
+- Script: `scripts/run_stage32_feasibility.py`
+- Run artifacts:
+  - `runs/<run_id>/stage32/feasibility_envelope.csv`
+  - `runs/<run_id>/stage32/feasibility_summary.json`

@@ -1,7 +1,7 @@
 {
   "stage": "32",
-  "substage": "32.2",
-  "status": "IN_PROGRESS",
+  "substage": "32.3",
+  "status": "COMPLETE",
   "pareto": {
     "status": "IMPLEMENTED",
     "module": "src/buffmini/stage32/pareto.py"
@@ -12,6 +12,8 @@
     "module": "src/buffmini/stage32/validate.py"
   },
   "feasibility": {
-    "status": "PENDING"
+    "status": "IMPLEMENTED",
+    "module": "src/buffmini/stage32/feasibility.py",
+    "script": "scripts/run_stage32_feasibility.py"
   }
 }
