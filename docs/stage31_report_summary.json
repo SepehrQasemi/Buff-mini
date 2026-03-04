@@ -1,7 +1,7 @@
 {
   "stage": "31",
-  "substage": "31.3",
-  "status": "IN_PROGRESS",
+  "substage": "31.4",
+  "status": "COMPLETE",
   "dsl": {
     "status": "IMPLEMENTED",
     "module": "src/buffmini/stage31/dsl.py"
@@ -15,6 +15,12 @@
     "module": "src/buffmini/stage31/hyperband.py"
   },
   "runner": {
-    "status": "PENDING"
+    "status": "IMPLEMENTED",
+    "script": "scripts/run_stage31_synthesis.py",
+    "outputs": [
+      "runs/<run_id>/stage31/candidates_top.csv",
+      "runs/<run_id>/stage31/candidates_top.json",
+      "runs/<run_id>/stage31/novelty_stats.json"
+    ]
   }
 }

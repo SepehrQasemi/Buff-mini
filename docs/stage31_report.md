@@ -23,4 +23,8 @@
   - reproducible candidate selection from fixed seeds
 
 ## Runner
-- Pending Stage-31.4.
+- Stage-31.4 added orchestrator: `scripts/run_stage31_synthesis.py`.
+- Run artifacts:
+  - `runs/<run_id>/stage31/candidates_top.csv`
+  - `runs/<run_id>/stage31/candidates_top.json`
+  - `runs/<run_id>/stage31/novelty_stats.json`
