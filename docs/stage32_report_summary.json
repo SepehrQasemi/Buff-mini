@@ -1,0 +1,16 @@
+{
+  "stage": "32",
+  "substage": "32.1",
+  "status": "IN_PROGRESS",
+  "pareto": {
+    "status": "IMPLEMENTED",
+    "module": "src/buffmini/stage32/pareto.py"
+  },
+  "nested_wf_mc": {
+    "status": "PENDING"
+  },
+  "feasibility": {
+    "status": "PENDING"
+  }
+}
+
