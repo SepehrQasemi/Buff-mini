@@ -1,0 +1,126 @@
+{
+  "stage": "28.5",
+  "run_id": "20260304_173436_31b29742a793_stage15_9_trace",
+  "seed": 42,
+  "dry_run": true,
+  "symbols": [
+    "BTC/USDT"
+  ],
+  "timeframes": [
+    "1h"
+  ],
+  "equity_tiers": [
+    100.0,
+    1000.0,
+    10000.0,
+    100000.0
+  ],
+  "min_notional_live": 10.0,
+  "risk_cap": 0.2,
+  "cost_rt_pct": 0.001,
+  "shadow_live_rejected_count": 8,
+  "shadow_live_reject_rate": 1.0,
+  "shadow_live_top_reasons": [
+    {
+      "reason": "SIZE_TOO_SMALL",
+      "count": 8
+    }
+  ],
+  "envelope_rows": [
+    {
+      "symbol": "BTC/USDT",
+      "timeframe": "1h",
+      "context": "RANGE",
+      "equity": 100.0,
+      "signals": 4,
+      "feasible_pct": 100.0,
+      "min_required_risk_p50": 0.0009506950710808401,
+      "min_required_risk_p90": 0.0010347147596022391,
+      "recommended_risk_floor": 0.0010123951192010326
+    },
+    {
+      "symbol": "BTC/USDT",
+      "timeframe": "1h",
+      "context": "RANGE",
+      "equity": 1000.0,
+      "signals": 4,
+      "feasible_pct": 100.0,
+      "min_required_risk_p50": 9.5069507108084e-05,
+      "min_required_risk_p90": 0.00010347147596022391,
+      "recommended_risk_floor": 0.00010123951192010327
+    },
+    {
+      "symbol": "BTC/USDT",
+      "timeframe": "1h",
+      "context": "RANGE",
+      "equity": 10000.0,
+      "signals": 4,
+      "feasible_pct": 100.0,
+      "min_required_risk_p50": 9.506950710808401e-06,
+      "min_required_risk_p90": 1.034714759602239e-05,
+      "recommended_risk_floor": 1.0123951192010327e-05
+    },
+    {
+      "symbol": "BTC/USDT",
+      "timeframe": "1h",
+      "context": "RANGE",
+      "equity": 100000.0,
+      "signals": 4,
+      "feasible_pct": 100.0,
+      "min_required_risk_p50": 9.506950710808401e-07,
+      "min_required_risk_p90": 1.034714759602239e-06,
+      "recommended_risk_floor": 1.0123951192010327e-06
+    },
+    {
+      "symbol": "BTC/USDT",
+      "timeframe": "1h",
+      "context": "TREND",
+      "equity": 100.0,
+      "signals": 4,
+      "feasible_pct": 100.0,
+      "min_required_risk_p50": 0.0009323253325627499,
+      "min_required_risk_p90": 0.0009584814359933522,
+      "recommended_risk_floor": 0.0009471086694227851
+    },
+    {
+      "symbol": "BTC/USDT",
+      "timeframe": "1h",
+      "context": "TREND",
+      "equity": 1000.0,
+      "signals": 4,
+      "feasible_pct": 100.0,
+      "min_required_risk_p50": 9.3232533256275e-05,
+      "min_required_risk_p90": 9.58481435993352e-05,
+      "recommended_risk_floor": 9.471086694227851e-05
+    },
+    {
+      "symbol": "BTC/USDT",
+      "timeframe": "1h",
+      "context": "TREND",
+      "equity": 10000.0,
+      "signals": 4,
+      "feasible_pct": 100.0,
+      "min_required_risk_p50": 9.323253325627499e-06,
+      "min_required_risk_p90": 9.58481435993352e-06,
+      "recommended_risk_floor": 9.471086694227851e-06
+    },
+    {
+      "symbol": "BTC/USDT",
+      "timeframe": "1h",
+      "context": "TREND",
+      "equity": 100000.0,
+      "signals": 4,
+      "feasible_pct": 100.0,
+      "min_required_risk_p50": 9.3232533256275e-07,
+      "min_required_risk_p90": 9.58481435993352e-07,
+      "recommended_risk_floor": 9.471086694227851e-07
+    }
+  ],
+  "runtime_seconds": 0.5119081000002552,
+  "config_hash": "e3dfb2fd1619",
+  "summary_hash": "68507ea892618903",
+  "data_snapshot_id": "DATA_FROZEN_v1",
+  "data_snapshot_hash": "c734cebc1e80bf15",
+  "data_snapshot_path": "data/snapshots/DATA_FROZEN_v1.json",
+  "data_snapshot_exists": true
+}
