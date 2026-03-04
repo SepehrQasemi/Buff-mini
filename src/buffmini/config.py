@@ -656,6 +656,29 @@ STAGE26_DEFAULTS = {
     "cost_levels": ["realistic", "high"],
 }
 
+STAGE28_DEFAULTS = {
+    "enabled": False,
+    "seed": 42,
+    "symbols": ["BTC/USDT", "ETH/USDT"],
+    "timeframes": ["15m", "30m", "1h", "2h", "4h"],
+    "windows": [3, 6],
+    "step_months": 1,
+    "funnel": {
+        "stage_b_top_pct": 0.35,
+        "stage_b_budget": 60,
+        "stage_c_budget": 25,
+        "exploration_pct": 0.15,
+        "min_exploration_pct": 0.10,
+        "sim_threshold": 0.90,
+    },
+    "ml_ranker": {
+        "enabled": False,
+        "exploration_pct": 0.15,
+        "alpha": 1.0,
+        "max_features": 20,
+    },
+}
+
 UI_STAGE5_DEFAULTS = {
     "stage5": {
         "presets": {
@@ -1936,6 +1959,57 @@ def validate_config(config: ConfigDict) -> None:
     if not isinstance(cost_levels26, list) or not cost_levels26:
         raise ValueError("evaluation.stage26.cost_levels must be non-empty list")
     evaluation["stage26"] = stage26
+
+    stage28 = _merge_defaults(STAGE28_DEFAULTS, evaluation.get("stage28", {}))
+    if not isinstance(stage28.get("enabled", False), bool):
+        raise ValueError("evaluation.stage28.enabled must be bool")
+    if int(stage28.get("seed", 42)) < 0:
+        raise ValueError("evaluation.stage28.seed must be >= 0")
+    symbols28 = stage28.get("symbols", [])
+    if not isinstance(symbols28, list) or not symbols28:
+        raise ValueError("evaluation.stage28.symbols must be a non-empty list")
+    tfs28 = stage28.get("timeframes", [])
+    if not isinstance(tfs28, list) or not tfs28:
+        raise ValueError("evaluation.stage28.timeframes must be a non-empty list")
+    for idx, tf in enumerate(tfs28):
+        tfv = str(tf).strip().lower()
+        if tfv not in SUPPORTED_TIMEFRAMES:
+            raise ValueError(f"evaluation.stage28.timeframes[{idx}] must be one of {SUPPORTED_TIMEFRAMES}")
+    windows28 = stage28.get("windows", [])
+    if not isinstance(windows28, list) or not windows28:
+        raise ValueError("evaluation.stage28.windows must be a non-empty list")
+    if any(int(value) < 1 for value in windows28):
+        raise ValueError("evaluation.stage28.windows values must be >= 1")
+    if int(stage28.get("step_months", 1)) < 1:
+        raise ValueError("evaluation.stage28.step_months must be >= 1")
+    funnel28 = dict(stage28.get("funnel", {}))
+    if int(funnel28.get("stage_b_budget", 60)) < 1:
+        raise ValueError("evaluation.stage28.funnel.stage_b_budget must be >= 1")
+    if int(funnel28.get("stage_c_budget", 25)) < 1:
+        raise ValueError("evaluation.stage28.funnel.stage_c_budget must be >= 1")
+    top_pct28 = float(funnel28.get("stage_b_top_pct", 0.35))
+    if not 0.0 < top_pct28 <= 1.0:
+        raise ValueError("evaluation.stage28.funnel.stage_b_top_pct must be in (0,1]")
+    explore28 = float(funnel28.get("exploration_pct", 0.15))
+    min_explore28 = float(funnel28.get("min_exploration_pct", 0.10))
+    if not 0.0 <= explore28 <= 1.0:
+        raise ValueError("evaluation.stage28.funnel.exploration_pct must be in [0,1]")
+    if not 0.0 <= min_explore28 <= 1.0:
+        raise ValueError("evaluation.stage28.funnel.min_exploration_pct must be in [0,1]")
+    if float(funnel28.get("sim_threshold", 0.90)) < 0.0 or float(funnel28.get("sim_threshold", 0.90)) > 1.0:
+        raise ValueError("evaluation.stage28.funnel.sim_threshold must be in [0,1]")
+    ml28 = dict(stage28.get("ml_ranker", {}))
+    if not isinstance(ml28.get("enabled", False), bool):
+        raise ValueError("evaluation.stage28.ml_ranker.enabled must be bool")
+    ml_explore = float(ml28.get("exploration_pct", 0.15))
+    if not 0.0 <= ml_explore <= 1.0:
+        raise ValueError("evaluation.stage28.ml_ranker.exploration_pct must be in [0,1]")
+    if float(ml28.get("alpha", 1.0)) <= 0.0:
+        raise ValueError("evaluation.stage28.ml_ranker.alpha must be > 0")
+    max_features28 = int(ml28.get("max_features", 20))
+    if max_features28 < 1 or max_features28 > 20:
+        raise ValueError("evaluation.stage28.ml_ranker.max_features must be in [1,20]")
+    evaluation["stage28"] = stage28
 
     ui = _merge_defaults(UI_STAGE5_DEFAULTS, config.get("ui", {}))
     stage5_ui = ui.get("stage5", {})
