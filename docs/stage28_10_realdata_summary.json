@@ -1,0 +1,155 @@
+{
+  "stage": "28.10",
+  "head_commit": "6ec42d2f5b909e708d4f77f02e5fa261aba8d9fd",
+  "run_ids": {
+    "research": "20260304_204309_3c3acf70f8a3_stage28",
+    "live": "20260304_205310_31b5c28752ff_stage28"
+  },
+  "symbols": [
+    "BTC/USDT"
+  ],
+  "coverage_years_by_symbol": {
+    "BTC/USDT": 4.0
+  },
+  "timeframes": [
+    "1h",
+    "4h"
+  ],
+  "window_counts": {
+    "per_timeframe": {
+      "1h": {
+        "3m": 45,
+        "6m": 42
+      },
+      "4h": {
+        "3m": 45,
+        "6m": 42
+      }
+    },
+    "aggregate": {
+      "3m": 90,
+      "6m": 84
+    },
+    "step_months": 1
+  },
+  "wf_executed_pct": 100.0,
+  "mc_trigger_pct": 100.0,
+  "finalists_count": 12,
+  "wf_validated_candidates": 12,
+  "mc_validated_candidates": 12,
+  "top_candidates": [
+    {
+      "candidate_id": "2210ff9bfcf2",
+      "candidate": "MomentumBurst",
+      "context": "VOLUME_SHOCK",
+      "symbol": "BTC/USDT",
+      "timeframe": "4h",
+      "exp_lcb": 786.1314348059955,
+      "trades_in_context": 1,
+      "context_occurrences": 8,
+      "windows_total": 87,
+      "windows_positive": 10,
+      "positive_windows_ratio": 0.11494252873563218
+    },
+    {
+      "candidate_id": "99f846eada2e",
+      "candidate": "MeanRevertAfterSpike",
+      "context": "VOLUME_SHOCK",
+      "symbol": "BTC/USDT",
+      "timeframe": "4h",
+      "exp_lcb": 656.7962159072638,
+      "trades_in_context": 1,
+      "context_occurrences": 8,
+      "windows_total": 87,
+      "windows_positive": 20,
+      "positive_windows_ratio": 0.22988505747126436
+    },
+    {
+      "candidate_id": "cad8cb799e32",
+      "candidate": "MeanRevertAfterSpike",
+      "context": "RANGE",
+      "symbol": "BTC/USDT",
+      "timeframe": "4h",
+      "exp_lcb": 341.8863276177362,
+      "trades_in_context": 6,
+      "context_occurrences": 211,
+      "windows_total": 87,
+      "windows_positive": 10,
+      "positive_windows_ratio": 0.11494252873563218
+    },
+    {
+      "candidate_id": "00dade34e2fb",
+      "candidate": "FailedBreakReversal",
+      "context": "VOL_EXPANSION",
+      "symbol": "BTC/USDT",
+      "timeframe": "4h",
+      "exp_lcb": 252.87987869509487,
+      "trades_in_context": 1,
+      "context_occurrences": 68,
+      "windows_total": 87,
+      "windows_positive": 1,
+      "positive_windows_ratio": 0.011494252873563218
+    },
+    {
+      "candidate_id": "e1629e9b3f6b",
+      "candidate": "MomentumBurst",
+      "context": "VOLUME_SHOCK",
+      "symbol": "BTC/USDT",
+      "timeframe": "1h",
+      "exp_lcb": 67.77749207016711,
+      "trades_in_context": 9,
+      "context_occurrences": 53,
+      "windows_total": 87,
+      "windows_positive": 5,
+      "positive_windows_ratio": 0.05747126436781609
+    }
+  ],
+  "policy_metrics_research": {
+    "trade_count": 0.0,
+    "tpm": 0.0,
+    "PF_raw": 0.0,
+    "PF_clipped": 0.0,
+    "expectancy": 0.0,
+    "exp_lcb": 0.0,
+    "maxDD": 0.0,
+    "zero_trade_pct": 100.0,
+    "invalid_pct": 0.0
+  },
+  "policy_metrics_live": {
+    "trade_count": 0.0,
+    "tpm": 0.0,
+    "PF_raw": 0.0,
+    "PF_clipped": 0.0,
+    "expectancy": 0.0,
+    "exp_lcb": 0.0,
+    "maxDD": 0.0,
+    "zero_trade_pct": 100.0,
+    "invalid_pct": 0.0
+  },
+  "funnel_summary": {
+    "stage_a_count": 2628,
+    "stage_b_count": 12,
+    "stage_c_count": 12,
+    "stage_b_exploration_count": 4,
+    "stage_b_exploration_pct": 0.3333333333333333,
+    "sim_threshold": 0.9,
+    "exploration_pct_configured": 0.15
+  },
+  "exploration_quota_used_pct": 33.33333333333333,
+  "costs": {
+    "round_trip_cost_pct": 0.1,
+    "slippage_pct": 0.0005,
+    "cost_model_mode": "simple"
+  },
+  "feasibility": {
+    "shadow_live_reject_rate": 0.0,
+    "shadow_live_top_reasons": {},
+    "avg_feasible_pct_by_equity": {}
+  },
+  "policy_contexts_selected": 0,
+  "policy_warnings": [
+    "no_rows_passed_policy_thresholds"
+  ],
+  "verdict": "NO_EDGE",
+  "biggest_bottleneck": "policy_activation_thresholds"
+}

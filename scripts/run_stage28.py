@@ -122,6 +122,32 @@ def _policy_metrics(rows: list[dict[str, Any]]) -> dict[str, float]:
     }
 
 
+def _json_safe(value: Any) -> Any:
+    if isinstance(value, dict):
+        return {str(k): _json_safe(v) for k, v in value.items()}
+    if isinstance(value, list):
+        return [_json_safe(v) for v in value]
+    if isinstance(value, tuple):
+        return [_json_safe(v) for v in value]
+    if isinstance(value, pd.DataFrame):
+        return _json_safe(value.to_dict(orient="records"))
+    if isinstance(value, pd.Series):
+        return _json_safe(value.tolist())
+    if isinstance(value, pd.Timestamp):
+        ts = value.tz_localize("UTC") if value.tzinfo is None else value.tz_convert("UTC")
+        return ts.isoformat()
+    if isinstance(value, np.ndarray):
+        return _json_safe(value.tolist())
+    if isinstance(value, (np.floating, float)):
+        out = float(value)
+        return out if np.isfinite(out) else 0.0
+    if isinstance(value, (np.integer, int)):
+        return int(value)
+    if isinstance(value, (np.bool_, bool)):
+        return bool(value)
+    return value
+
+
 def _strategy_metrics(*, frame: pd.DataFrame, signal: pd.Series, symbol: str, timeframe: str, mode: str, cost_cfg: dict[str, Any], seed: int) -> dict[str, Any]:
     result = run_backtest(
         frame=frame.assign(signal=signal),
@@ -340,7 +366,10 @@ def main() -> None:
             }
             docs = Path(args.docs_dir)
             docs.mkdir(parents=True, exist_ok=True)
-            (docs / "stage28_master_summary.json").write_text(json.dumps(payload, indent=2, allow_nan=False), encoding="utf-8")
+            (docs / "stage28_master_summary.json").write_text(
+                json.dumps(_json_safe(payload), indent=2, allow_nan=False),
+                encoding="utf-8",
+            )
             (docs / "stage28_master_report.md").write_text(_render_master(payload), encoding="utf-8")
             (docs / "stage28_product_spec.md").write_text(_render_product_spec(payload), encoding="utf-8")
             raise SystemExit(2)
@@ -426,7 +455,10 @@ def main() -> None:
     matrix_df = pd.DataFrame(matrix_rows)
     calendar_df.to_csv(run_dir / "window_calendar.csv", index=False)
     matrix_df.to_csv(run_dir / "context_candidate_matrix.csv", index=False)
-    (run_dir / "context_candidate_matrix.json").write_text(json.dumps({"rows": matrix_df.to_dict(orient="records")}, indent=2, allow_nan=False), encoding="utf-8")
+    (run_dir / "context_candidate_matrix.json").write_text(
+        json.dumps(_json_safe({"rows": matrix_df.to_dict(orient="records")}), indent=2, allow_nan=False),
+        encoding="utf-8",
+    )
 
     funnel = run_budget_funnel(
         candidates=matrix_df,
@@ -469,7 +501,10 @@ def main() -> None:
     stage_a.to_csv(run_dir / "selected_candidates_stageA.csv", index=False)
     stage_b.to_csv(run_dir / "selected_candidates_stageB.csv", index=False)
     stage_c.to_csv(run_dir / "finalists_stageC.csv", index=False)
-    (run_dir / "funnel_summary.json").write_text(json.dumps({"summary": funnel.get("summary", {}), "ml": ml_info}, indent=2, allow_nan=False), encoding="utf-8")
+    (run_dir / "funnel_summary.json").write_text(
+        json.dumps(_json_safe({"summary": funnel.get("summary", {}), "ml": ml_info}), indent=2, allow_nan=False),
+        encoding="utf-8",
+    )
 
     usability_rows: list[dict[str, Any]] = []
     for row in stage_c.to_dict(orient="records"):
@@ -502,7 +537,7 @@ def main() -> None:
         config_hash=str(config_hash),
         cfg=PolicyV2Config(top_k_per_context=3 if not args.budget_small else 2, min_occurrences_context=50, min_trades_context=30, min_exp_lcb=0.0, w_min=0.05, w_max=0.80, conflict_mode="net"),
     )
-    (run_dir / "policy.json").write_text(json.dumps(policy, indent=2, allow_nan=False), encoding="utf-8")
+    (run_dir / "policy.json").write_text(json.dumps(_json_safe(policy), indent=2, allow_nan=False), encoding="utf-8")
     (run_dir / "policy_spec.md").write_text(render_policy_spec_md(policy), encoding="utf-8")
 
     live_cfg = dict(((cfg.get("evaluation", {}) or {}).get("constraints", {}) or {}).get("live", {}))
@@ -647,8 +682,11 @@ def main() -> None:
         length=16,
     )
 
-    (run_dir / "summary.json").write_text(json.dumps(payload, indent=2, allow_nan=False), encoding="utf-8")
-    (docs / "stage28_master_summary.json").write_text(json.dumps(payload, indent=2, allow_nan=False), encoding="utf-8")
+    (run_dir / "summary.json").write_text(json.dumps(_json_safe(payload), indent=2, allow_nan=False), encoding="utf-8")
+    (docs / "stage28_master_summary.json").write_text(
+        json.dumps(_json_safe(payload), indent=2, allow_nan=False),
+        encoding="utf-8",
+    )
     (docs / "stage28_master_report.md").write_text(_render_master(payload), encoding="utf-8")
     (docs / "stage28_product_spec.md").write_text(_render_product_spec(payload), encoding="utf-8")
 
