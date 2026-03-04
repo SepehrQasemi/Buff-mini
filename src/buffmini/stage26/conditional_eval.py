@@ -105,6 +105,7 @@ def evaluate_rulelets_conditionally(
                         "cost_level": str(cfg.get("name", "cost")),
                         "trade_count": int(trades_context.shape[0]),
                         "expectancy": float(np.mean(pnl)) if pnl.size else 0.0,
+                        "profit_factor": float(result.metrics.get("profit_factor", 0.0)),
                         "exp_lcb": float(exp_lcb),
                         "max_drawdown": float(result.metrics.get("max_drawdown", 0.0)),
                         "rolling": rolling,
@@ -114,10 +115,12 @@ def evaluate_rulelets_conditionally(
             # Aggregate by median across cost levels.
             trade_counts = np.asarray([float(item["trade_count"]) for item in all_cost_rows], dtype=float)
             expectancies = np.asarray([float(item["expectancy"]) for item in all_cost_rows], dtype=float)
+            pfs = np.asarray([float(item.get("profit_factor", 0.0)) for item in all_cost_rows], dtype=float)
             lcbs = np.asarray([float(item["exp_lcb"]) for item in all_cost_rows], dtype=float)
             maxdds = np.asarray([float(item["max_drawdown"]) for item in all_cost_rows], dtype=float)
             trades_in_context = int(np.median(trade_counts)) if trade_counts.size else 0
             expectancy = float(np.median(expectancies)) if expectancies.size else 0.0
+            profit_factor = float(np.median(pfs)) if pfs.size else 0.0
             exp_lcb = float(np.median(lcbs)) if lcbs.size else 0.0
             maxdd = float(np.median(maxdds)) if maxdds.size else 0.0
             classification = _classify_result(
@@ -137,6 +140,7 @@ def evaluate_rulelets_conditionally(
                 "context_occurrences": int(occurrences),
                 "trades_in_context": int(trades_in_context),
                 "expectancy": float(expectancy),
+                "profit_factor": float(profit_factor),
                 "exp_lcb": float(exp_lcb),
                 "max_drawdown": float(maxdd),
                 "classification": str(classification),
