@@ -86,6 +86,18 @@ DATA_DEFAULTS = {
     },
 }
 
+FEATURES_DEFAULTS = {
+    "extras": {
+        "enabled": False,
+        "sources": ["coinapi"],
+        "max_staleness": {
+            "funding_rates": "12h",
+            "open_interest": "2d",
+            "liquidations": "6h",
+        },
+    }
+}
+
 COST_MODEL_DEFAULTS = {
     "mode": "simple",
     "round_trip_cost_pct": 0.1,
@@ -1102,6 +1114,25 @@ def validate_config(config: ConfigDict) -> None:
     oi_cfg["overlay"] = overlay_cfg
     futures_extras["open_interest"] = oi_cfg
     config["data"] = data
+
+    features_cfg = _merge_defaults(FEATURES_DEFAULTS, config.get("features", {}))
+    extras_cfg = _merge_defaults(FEATURES_DEFAULTS["extras"], features_cfg.get("extras", {}))
+    if not isinstance(extras_cfg.get("enabled", False), bool):
+        raise ValueError("features.extras.enabled must be bool")
+    sources = extras_cfg.get("sources", [])
+    if not isinstance(sources, list):
+        raise ValueError("features.extras.sources must be a list")
+    source_values = [str(v).strip().lower() for v in sources if str(v).strip()]
+    if bool(extras_cfg.get("enabled", False)) and "coinapi" not in set(source_values):
+        raise ValueError("features.extras.sources must include 'coinapi' when features.extras.enabled=true")
+    staleness = extras_cfg.get("max_staleness", {})
+    if not isinstance(staleness, dict):
+        raise ValueError("features.extras.max_staleness must be mapping")
+    for key in ("funding_rates", "open_interest", "liquidations"):
+        if not str(staleness.get(key, "")).strip():
+            raise ValueError(f"features.extras.max_staleness.{key} must be non-empty")
+    features_cfg["extras"] = extras_cfg
+    config["features"] = features_cfg
 
     portfolio = _merge_defaults(PORTFOLIO_DEFAULTS, config.get("portfolio", {}))
     if int(portfolio["walkforward"]["min_usable_windows"]) < 1:

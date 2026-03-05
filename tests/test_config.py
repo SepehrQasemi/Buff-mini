@@ -66,6 +66,11 @@ def test_load_config_success() -> None:
     assert config["data"]["futures_extras"]["open_interest"]["overlay"]["max_recent_window_days"] == 90
     assert config["data"]["futures_extras"]["open_interest"]["overlay"]["clamp_to_available"] is True
     assert config["data"]["futures_extras"]["open_interest"]["overlay"]["inactive_value"] == "nan"
+    assert config["features"]["extras"]["enabled"] is False
+    assert config["features"]["extras"]["sources"] == ["coinapi"]
+    assert config["features"]["extras"]["max_staleness"]["funding_rates"] == "12h"
+    assert config["features"]["extras"]["max_staleness"]["open_interest"] == "2d"
+    assert config["features"]["extras"]["max_staleness"]["liquidations"] == "6h"
     assert config["cost_model"]["mode"] == "simple"
     assert config["cost_model"]["round_trip_cost_pct"] == 0.1
     assert config["cost_model"]["v2"]["slippage_bps_base"] == 0.5
@@ -224,3 +229,12 @@ def test_validate_config_rejects_non_multiple_operational_timeframe() -> None:
     bad["universe"]["timeframe"] = "15m"
     with pytest.raises(ValueError, match="must be >= universe.base_timeframe"):
         validate_config(bad)
+
+
+def test_validate_config_rejects_enabled_extras_without_coinapi_source() -> None:
+    root = Path(__file__).resolve().parents[1]
+    config = load_config(root / "configs" / "default.yaml")
+    config["features"]["extras"]["enabled"] = True
+    config["features"]["extras"]["sources"] = ["other"]
+    with pytest.raises(ValueError, match="must include 'coinapi'"):
+        validate_config(config)

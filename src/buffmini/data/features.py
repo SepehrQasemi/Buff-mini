@@ -15,6 +15,7 @@ from buffmini.data.features_futures import (
     registered_futures_feature_columns,
     synthetic_futures_extras,
 )
+from buffmini.features.extras_align import align_coinapi_extras_to_bars, config_extras_enabled, load_coinapi_endpoint_frame
 from buffmini.regime.classifier import attach_regime_columns
 from buffmini.stage9.oi_overlay import (
     OI_DEPENDENT_COLUMNS,
@@ -63,14 +64,23 @@ CORE_FEATURE_COLUMNS: tuple[str, ...] = (
     "regime_label_stage10",
     "regime_confidence_stage10",
 )
+COINAPI_EXTRAS_COLUMNS: tuple[str, ...] = (
+    "funding_rate",
+    "oi",
+    "liq_buy",
+    "liq_sell",
+    "liq_notional",
+)
 
 
-def registered_feature_columns(include_futures_extras: bool = False) -> list[str]:
+def registered_feature_columns(include_futures_extras: bool = False, include_coinapi_extras: bool = False) -> list[str]:
     """Return canonical computed feature column names."""
 
     cols = list(CORE_FEATURE_COLUMNS)
     if bool(include_futures_extras):
         cols.extend(registered_futures_feature_columns())
+    if bool(include_coinapi_extras):
+        cols.extend(list(COINAPI_EXTRAS_COLUMNS))
     return cols
 
 
@@ -80,6 +90,7 @@ def calculate_features(
     symbol: str | None = None,
     timeframe: str = "1h",
     derived_data_dir: str | Path = DERIVED_DATA_DIR,
+    coinapi_canonical_dir: str | Path = Path("data") / "coinapi" / "canonical",
     _synthetic_extras_for_tests: bool = False,
 ) -> pd.DataFrame:
     """Calculate feature set without future leakage.
@@ -205,6 +216,39 @@ def calculate_features(
             )
             data["oi_active"] = oi_active
             data.attrs["oi_overlay"] = overlay_metadata_dict(window=window, oi_active=oi_active, total_rows=len(data))
+
+    if config_extras_enabled(config):
+        resolved_symbol = symbol or str(data.attrs.get("symbol") or "")
+        if not resolved_symbol:
+            raise ValueError("symbol is required when features.extras.enabled=true")
+        extras_cfg = ((config or {}).get("features", {}) or {}).get("extras", {}) if isinstance(config, dict) else {}
+        staleness = dict((extras_cfg or {}).get("max_staleness", {})) if isinstance(extras_cfg, dict) else {}
+        aligned = align_coinapi_extras_to_bars(
+            data[["timestamp"]],
+            funding=load_coinapi_endpoint_frame(
+                symbol=resolved_symbol,
+                endpoint="funding_rates",
+                canonical_root=coinapi_canonical_dir,
+            ),
+            open_interest=load_coinapi_endpoint_frame(
+                symbol=resolved_symbol,
+                endpoint="open_interest",
+                canonical_root=coinapi_canonical_dir,
+            ),
+            liquidations=load_coinapi_endpoint_frame(
+                symbol=resolved_symbol,
+                endpoint="liquidations",
+                canonical_root=coinapi_canonical_dir,
+            ),
+            max_staleness={
+                "funding_rates": str(staleness.get("funding_rates", "12h")),
+                "open_interest": str(staleness.get("open_interest", "2d")),
+                "liquidations": str(staleness.get("liquidations", "6h")),
+            },
+        )
+        for col in [c for c in aligned.columns if c != "timestamp" and c in data.columns]:
+            data = data.drop(columns=[col])
+        data = data.merge(aligned, on="timestamp", how="left")
 
     return data
 

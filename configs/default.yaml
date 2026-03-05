@@ -97,6 +97,15 @@ data:
         clamp_to_available: true
         inactive_value: "nan"
 
+features:
+  extras:
+    enabled: false
+    sources: ["coinapi"]
+    max_staleness:
+      funding_rates: "12h"
+      open_interest: "2d"
+      liquidations: "6h"
+
 portfolio:
   walkforward:
     min_usable_windows: 3
