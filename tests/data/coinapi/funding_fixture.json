@@ -1,0 +1,15 @@
+[
+  {
+    "time_exchange": "2026-01-01T16:00:00Z",
+    "funding_rate": 0.0002
+  },
+  {
+    "time_exchange": "2026-01-01T00:00:00Z",
+    "funding_rate": 0.0001
+  },
+  {
+    "time_exchange": "2026-01-01T00:00:00Z",
+    "funding_rate": 0.00015
+  }
+]
+

@@ -1,0 +1,15 @@
+[
+  {
+    "time_exchange": "2026-01-01T00:00:00Z",
+    "side": "BUY",
+    "quantity": 2.5,
+    "notional": 100000
+  },
+  {
+    "time_exchange": "2026-01-01T01:00:00Z",
+    "side": "SELL",
+    "quantity": 3.0,
+    "notional": 120000
+  }
+]
+
