@@ -1,7 +1,7 @@
 {
   "stage": "33",
-  "substage": "33.2",
-  "status": "IN_PROGRESS",
+  "substage": "33.3",
+  "status": "COMPLETE",
   "policy_v3": {
     "status": "IMPLEMENTED",
     "module": "src/buffmini/stage33/policy_v3.py"
@@ -12,6 +12,14 @@
     "module": "src/buffmini/stage33/emitter.py"
   },
   "drift_master": {
-    "status": "PENDING"
+    "status": "IMPLEMENTED",
+    "scripts": [
+      "scripts/monitor_drift.py",
+      "scripts/run_stage30_33_master.py"
+    ],
+    "master_docs": [
+      "docs/stage30_33_master_report.md",
+      "docs/stage30_33_master_summary.json"
+    ]
   }
 }

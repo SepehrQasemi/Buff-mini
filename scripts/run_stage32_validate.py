@@ -32,6 +32,9 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument("--symbols", type=str, default="BTC/USDT,ETH/USDT")
     parser.add_argument("--timeframes", type=str, default="15m,30m,1h,2h,4h")
     parser.add_argument("--finalists", type=int, default=30)
+    parser.add_argument("--population", type=int, default=40)
+    parser.add_argument("--generations", type=int, default=6)
+    parser.add_argument("--elites", type=int, default=20)
     parser.add_argument("--dry-run", action="store_true")
     parser.add_argument("--runs-dir", type=Path, default=RUNS_DIR)
     parser.add_argument("--data-dir", type=Path, default=RAW_DATA_DIR)
@@ -146,7 +149,12 @@ def main() -> None:
             evolved = evolve_strategies(
                 frame=frame,
                 features=features,
-                cfg=EvolverConfig(population_size=80, generations=10, elite_count=30, seed=seed),
+                cfg=EvolverConfig(
+                    population_size=int(max(10, args.population)),
+                    generations=int(max(1, args.generations)),
+                    elite_count=int(max(5, args.elites)),
+                    seed=seed,
+                ),
             )
             cand_metrics = _candidate_metrics(frame, evolved, str(symbol), str(timeframe), seed)
             if not cand_metrics.empty:
@@ -211,4 +219,3 @@ def main() -> None:
 
 if __name__ == "__main__":
     main()
-

@@ -1,24 +1,14 @@
 # Stage-33 Report
 
 ## Policy Builder v3
-- Stage-33.1 implemented contextual+MTF policy composition:
-  - `src/buffmini/stage33/policy_v3.py`
-- Outputs:
-  - run-scoped `policy.json`
-  - run-scoped `policy_spec.md`
+- Implemented in `src/buffmini/stage33/policy_v3.py`.
 
 ## Signal Emitter
-- Stage-33.2 added local signal emitter:
-  - script: `scripts/emit_signals.py`
-  - module: `src/buffmini/stage33/emitter.py`
-- How to use:
-  - `python scripts/emit_signals.py --policy-path runs/<run_id>/stage33/policy.json --symbol BTC/USDT --timeframe 1h`
-- Output payload contains:
-  - context probabilities
-  - action (`LONG`/`SHORT`/`FLAT`)
-  - confidence + sizing%
-  - stop/exit summary
-  - feasibility notes + explanation
+- Implemented in `scripts/emit_signals.py` and `src/buffmini/stage33/emitter.py`.
 
 ## Drift + Master
-- Pending Stage-33.3.
+- Drift monitor: `scripts/monitor_drift.py`
+- Master runner: `scripts/run_stage30_33_master.py`
+- Master outputs:
+  - `docs/stage30_33_master_report.md`
+  - `docs/stage30_33_master_summary.json`

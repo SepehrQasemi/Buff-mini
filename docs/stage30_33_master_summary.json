@@ -1,0 +1,286 @@
+{
+  "stage": "30_33_master",
+  "head_commit": "fc2614c51bfd172e73336278ddfc6cbc7b711455",
+  "run_ids": {
+    "stage30_dataset": "20260305_005618_26eee27165c5_stage30_ds",
+    "stage30_train": "20260305_005628_506574802492_stage30_ae",
+    "stage30_context": "20260305_005634_6d6b21043701_stage30_ctx",
+    "stage31": "20260305_005635_97f8a8ca880c_stage31",
+    "stage32": "20260305_010523_6053d27ddf60_stage32",
+    "stage32_feasibility": "20260305_011854_8fd61420f472_stage32_feas",
+    "stage33": "20260305_011856_09eb9ae4c69d_stage33"
+  },
+  "config_hash": "df8daba019fa",
+  "data_hash": "ed5bd751dd0a0bac",
+  "resolved_end_ts": "2026-03-03T10:00:00+00:00",
+  "stage30": {
+    "dataset": {
+      "stage": "30.1",
+      "run_id": "20260305_005618_26eee27165c5_stage30_ds",
+      "seed": 42,
+      "symbols": [
+        "BTC/USDT",
+        "ETH/USDT"
+      ],
+      "base_timeframe": "1m",
+      "train_timeframe": "15m",
+      "window": 256,
+      "stride": 32,
+      "dry_run": false,
+      "rows_total": 8750,
+      "rows_by_symbol": {
+        "BTC/USDT": 4375,
+        "ETH/USDT": 4375
+      },
+      "dataset_hash": "ef844435ce34233a",
+      "config_hash": "df8daba019fa",
+      "data_hash": "df4af0d1794d927d",
+      "resolved_end_ts": "2026-03-03T11:30:00+00:00",
+      "data_snapshot_id": "DATA_FROZEN_v1",
+      "data_snapshot_hash": "c734cebc1e80bf15",
+      "data_snapshot_path": "data/snapshots/DATA_FROZEN_v1.json",
+      "data_snapshot_exists": true
+    },
+    "training": {
+      "stage": "30.2",
+      "run_id": "20260305_005628_506574802492_stage30_ae",
+      "seed": 42,
+      "symbols": [
+        "BTC/USDT",
+        "ETH/USDT"
+      ],
+      "train_timeframe": "15m",
+      "window": 256,
+      "stride": 32,
+      "rows_total": 8750,
+      "rows_by_symbol": {
+        "BTC/USDT": 4375,
+        "ETH/USDT": 4375
+      },
+      "input_dim": 1280,
+      "embedding_dim": 32,
+      "backend": "numpy",
+      "device": "cpu",
+      "train_loss_first": 0.06297757476568222,
+      "train_loss_last": 0.062347799018025396,
+      "embedding_mean_abs": 1.7773855924606323,
+      "embedding_std": 6.122165203094482,
+      "model_hash": "2220cd5d10243d85",
+      "config_hash": "df8daba019fa",
+      "data_hash": "df4af0d1794d927d",
+      "resolved_end_ts": "2026-03-03T11:30:00+00:00",
+      "runtime_seconds": 8.489276899999822,
+      "data_snapshot_id": "DATA_FROZEN_v1",
+      "data_snapshot_hash": "c734cebc1e80bf15",
+      "data_snapshot_path": "data/snapshots/DATA_FROZEN_v1.json",
+      "data_snapshot_exists": true
+    },
+    "contexts": {
+      "stage": "30.3",
+      "run_id": "20260305_005634_6d6b21043701_stage30_ctx",
+      "seed": 42,
+      "symbols": [
+        "BTC/USDT",
+        "ETH/USDT"
+      ],
+      "timeframe": "15m",
+      "k": 8,
+      "rows_total": 8750,
+      "summary_by_symbol": [
+        {
+          "symbol": "BTC/USDT",
+          "timeframe": "15m",
+          "rows": 4375,
+          "k": 8,
+          "inertia": 86204.68189562747,
+          "context_distribution": {
+            "CTX_0": 0.36525714285714284,
+            "CTX_1": 0.08754285714285714,
+            "CTX_2": 0.05942857142857143,
+            "CTX_3": 0.08274285714285715,
+            "CTX_4": 0.12228571428571429,
+            "CTX_5": 0.12,
+            "CTX_6": 0.07748571428571428,
+            "CTX_7": 0.08525714285714285
+          }
+        },
+        {
+          "symbol": "ETH/USDT",
+          "timeframe": "15m",
+          "rows": 4375,
+          "k": 8,
+          "inertia": 725552.7997051335,
+          "context_distribution": {
+            "CTX_0": 0.013485714285714285,
+            "CTX_1": 0.4482285714285714,
+            "CTX_2": 0.15291428571428572,
+            "CTX_3": 0.0009142857142857143,
+            "CTX_4": 0.00045714285714285713,
+            "CTX_5": 0.01805714285714286,
+            "CTX_6": 0.006628571428571429,
+            "CTX_7": 0.3593142857142857
+          }
+        }
+      ],
+      "config_hash": "df8daba019fa",
+      "data_hash": "a302bac66a9ac884",
+      "resolved_end_ts": "2026-03-03T05:15:00+00:00",
+      "data_snapshot_id": "DATA_FROZEN_v1",
+      "data_snapshot_hash": "c734cebc1e80bf15",
+      "data_snapshot_path": "data/snapshots/DATA_FROZEN_v1.json",
+      "data_snapshot_exists": true
+    }
+  },
+  "stage31": {
+    "stage": "31.4",
+    "run_id": "20260305_005635_97f8a8ca880c_stage31",
+    "seed": 42,
+    "symbols": [
+      "BTC/USDT",
+      "ETH/USDT"
+    ],
+    "timeframes": [
+      "1h",
+      "4h"
+    ],
+    "candidates_total": 80,
+    "candidates_top_count": 80,
+    "novelty_stats": {
+      "pair_count": 1225,
+      "mean_similarity": 0.16603466806843384,
+      "max_similarity": 1.0
+    },
+    "config_hash": "df8daba019fa",
+    "data_hash": "ed5bd751dd0a0bac",
+    "resolved_end_ts": "2026-03-03T10:00:00+00:00",
+    "runtime_seconds": 525.9927471999981,
+    "data_snapshot_id": "DATA_FROZEN_v1",
+    "data_snapshot_hash": "c734cebc1e80bf15",
+    "data_snapshot_path": "data/snapshots/DATA_FROZEN_v1.json",
+    "data_snapshot_exists": true
+  },
+  "stage32": {
+    "stage": "32.2",
+    "run_id": "20260305_010523_6053d27ddf60_stage32",
+    "seed": 42,
+    "symbols": [
+      "BTC/USDT",
+      "ETH/USDT"
+    ],
+    "timeframes": [
+      "1h",
+      "4h"
+    ],
+    "finalists_requested": 20,
+    "finalists_count": 20,
+    "wf_executed_pct": 100.0,
+    "mc_trigger_pct": 100.0,
+    "validation_summaries": [
+      {
+        "symbol": "BTC/USDT",
+        "timeframe": "1h",
+        "wf_executed_pct": 100.0,
+        "mc_trigger_pct": 100.0,
+        "validated_count": 10
+      },
+      {
+        "symbol": "BTC/USDT",
+        "timeframe": "4h",
+        "wf_executed_pct": 100.0,
+        "mc_trigger_pct": 100.0,
+        "validated_count": 3
+      },
+      {
+        "symbol": "ETH/USDT",
+        "timeframe": "1h",
+        "wf_executed_pct": 100.0,
+        "mc_trigger_pct": 100.0,
+        "validated_count": 5
+      },
+      {
+        "symbol": "ETH/USDT",
+        "timeframe": "4h",
+        "wf_executed_pct": 100.0,
+        "mc_trigger_pct": 100.0,
+        "validated_count": 2
+      }
+    ],
+    "config_hash": "df8daba019fa",
+    "data_hash": "ed5bd751dd0a0bac",
+    "resolved_end_ts": "2026-03-03T10:00:00+00:00",
+    "runtime_seconds": 802.777062000001,
+    "data_snapshot_id": "DATA_FROZEN_v1",
+    "data_snapshot_hash": "c734cebc1e80bf15",
+    "data_snapshot_path": "data/snapshots/DATA_FROZEN_v1.json",
+    "data_snapshot_exists": true,
+    "feasibility": {
+      "stage": "32.3",
+      "run_id": "20260305_011854_8fd61420f472_stage32_feas",
+      "seed": 42,
+      "symbols": [
+        "BTC/USDT",
+        "ETH/USDT"
+      ],
+      "timeframes": [
+        "1h",
+        "4h"
+      ],
+      "candidate_count": 20,
+      "rows": 1600,
+      "equity_tiers": [
+        100,
+        1000,
+        10000,
+        100000
+      ],
+      "avg_feasible_pct_by_equity": {
+        "100": 100.0,
+        "1000": 100.0,
+        "10000": 100.0,
+        "100000": 100.0
+      },
+      "config_hash": "df8daba019fa",
+      "data_hash": "ed5bd751dd0a0bac",
+      "data_snapshot_id": "DATA_FROZEN_v1",
+      "data_snapshot_hash": "c734cebc1e80bf15",
+      "data_snapshot_path": "data/snapshots/DATA_FROZEN_v1.json",
+      "data_snapshot_exists": true
+    }
+  },
+  "stage33": {
+    "policy_id": "stage33_7cf3c1b95d851a3d",
+    "policy_metrics": {
+      "research": {
+        "exp_lcb": -27.08717007811355,
+        "trade_count": 20930
+      },
+      "live": {
+        "exp_lcb": -27.08917007811355,
+        "trade_count": 20930
+      }
+    },
+    "policy_json": "C:/dev/Buff-mini/runs/20260305_011856_09eb9ae4c69d_stage33/stage33/policy.json",
+    "policy_spec": "C:/dev/Buff-mini/runs/20260305_011856_09eb9ae4c69d_stage33/stage33/policy_spec.md",
+    "aiql_policy_path": "C:/dev/Buff-mini/runs/20260305_011856_09eb9ae4c69d_stage33/aiql_v1/policy.json",
+    "library_strategy_id": "aiql_v1_a4da8752f6",
+    "library_policy_path": "library/strategies/aiql_v1_a4da8752f6/policy.json"
+  },
+  "drift": {
+    "representation_drift": 0.0259762155153693,
+    "performance_drift": {
+      "exp_lcb_delta": -10.745202248006152,
+      "pf_delta": -10.745202248006152,
+      "maxdd_delta": 0.0
+    },
+    "warnings": [
+      "performance_drift_negative_exp_lcb"
+    ],
+    "symbol": "BTC/USDT",
+    "timeframe": "15m",
+    "hash": "e2085aed0ffde0cf"
+  },
+  "verdict": "NO_EDGE",
+  "next_bottleneck": "cost_drag_vs_signal",
+  "runtime_seconds": 1362.4591142999998,
+  "summary_hash": "0d80ef532f650fae"
+}
