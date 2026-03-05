@@ -679,6 +679,38 @@ STAGE28_DEFAULTS = {
     },
 }
 
+STAGE34_DEFAULTS = {
+    "enabled": False,
+    "offline_only": True,
+    "seed": 42,
+    "symbols": ["BTC/USDT", "ETH/USDT"],
+    "timeframes": ["15m", "30m", "1h", "4h"],
+    "required_timeframes": ["1m", "5m", "15m", "30m", "1h", "4h", "1d"],
+    "fixed_snapshot_id": "DATA_FROZEN_v1",
+    "dataset": {
+        "max_features": 120,
+        "max_rows_per_symbol": 300000,
+        "window_horizons_hours": [24, 72],
+    },
+    "training": {
+        "models": ["logreg", "hgbt", "rf"],
+        "calibration": "platt",
+    },
+    "evaluation": {
+        "threshold": 0.55,
+        "window_months": [3, 6],
+        "step_months": 1,
+        "min_usable_windows": 3,
+        "mc_min_trades": 30,
+    },
+    "evolution": {
+        "generations": 10,
+        "max_models_per_generation": 12,
+        "exploration_pct": 0.20,
+        "budget": "small",
+    },
+}
+
 UI_STAGE5_DEFAULTS = {
     "stage5": {
         "presets": {
@@ -2010,6 +2042,71 @@ def validate_config(config: ConfigDict) -> None:
     if max_features28 < 1 or max_features28 > 20:
         raise ValueError("evaluation.stage28.ml_ranker.max_features must be in [1,20]")
     evaluation["stage28"] = stage28
+
+    stage34 = _merge_defaults(STAGE34_DEFAULTS, evaluation.get("stage34", {}))
+    if not isinstance(stage34.get("enabled", False), bool):
+        raise ValueError("evaluation.stage34.enabled must be bool")
+    if not isinstance(stage34.get("offline_only", True), bool):
+        raise ValueError("evaluation.stage34.offline_only must be bool")
+    if int(stage34.get("seed", 42)) < 0:
+        raise ValueError("evaluation.stage34.seed must be >= 0")
+    symbols34 = stage34.get("symbols", [])
+    if not isinstance(symbols34, list) or not symbols34:
+        raise ValueError("evaluation.stage34.symbols must be a non-empty list")
+    tfs34 = stage34.get("timeframes", [])
+    if not isinstance(tfs34, list) or not tfs34:
+        raise ValueError("evaluation.stage34.timeframes must be a non-empty list")
+    for idx, tf in enumerate(tfs34):
+        tfv = str(tf).strip().lower()
+        if tfv not in SUPPORTED_TIMEFRAMES:
+            raise ValueError(f"evaluation.stage34.timeframes[{idx}] must be one of {SUPPORTED_TIMEFRAMES}")
+    req_tfs34 = stage34.get("required_timeframes", [])
+    if not isinstance(req_tfs34, list) or not req_tfs34:
+        raise ValueError("evaluation.stage34.required_timeframes must be a non-empty list")
+    for idx, tf in enumerate(req_tfs34):
+        tfv = str(tf).strip().lower()
+        if tfv not in SUPPORTED_TIMEFRAMES:
+            raise ValueError(f"evaluation.stage34.required_timeframes[{idx}] must be one of {SUPPORTED_TIMEFRAMES}")
+    if not str(stage34.get("fixed_snapshot_id", "")).strip():
+        raise ValueError("evaluation.stage34.fixed_snapshot_id must be non-empty")
+    ds34 = dict(stage34.get("dataset", {}))
+    if int(ds34.get("max_features", 120)) < 1:
+        raise ValueError("evaluation.stage34.dataset.max_features must be >= 1")
+    if int(ds34.get("max_rows_per_symbol", 300000)) < 1000:
+        raise ValueError("evaluation.stage34.dataset.max_rows_per_symbol must be >= 1000")
+    horizons34 = ds34.get("window_horizons_hours", [])
+    if not isinstance(horizons34, list) or not horizons34 or any(int(v) < 1 for v in horizons34):
+        raise ValueError("evaluation.stage34.dataset.window_horizons_hours must be non-empty list of ints >= 1")
+    train34 = dict(stage34.get("training", {}))
+    models34 = train34.get("models", [])
+    if not isinstance(models34, list) or not models34:
+        raise ValueError("evaluation.stage34.training.models must be a non-empty list")
+    if str(train34.get("calibration", "platt")).strip().lower() not in {"platt", "isotonic", "none"}:
+        raise ValueError("evaluation.stage34.training.calibration must be platt|isotonic|none")
+    eval34 = dict(stage34.get("evaluation", {}))
+    threshold34 = float(eval34.get("threshold", 0.55))
+    if not 0.0 < threshold34 < 1.0:
+        raise ValueError("evaluation.stage34.evaluation.threshold must be in (0,1)")
+    windows34 = eval34.get("window_months", [])
+    if not isinstance(windows34, list) or not windows34 or any(int(v) < 1 for v in windows34):
+        raise ValueError("evaluation.stage34.evaluation.window_months must be non-empty list of ints >= 1")
+    if int(eval34.get("step_months", 1)) < 1:
+        raise ValueError("evaluation.stage34.evaluation.step_months must be >= 1")
+    if int(eval34.get("min_usable_windows", 3)) < 1:
+        raise ValueError("evaluation.stage34.evaluation.min_usable_windows must be >= 1")
+    if int(eval34.get("mc_min_trades", 30)) < 1:
+        raise ValueError("evaluation.stage34.evaluation.mc_min_trades must be >= 1")
+    evo34 = dict(stage34.get("evolution", {}))
+    if int(evo34.get("generations", 10)) < 1:
+        raise ValueError("evaluation.stage34.evolution.generations must be >= 1")
+    if int(evo34.get("max_models_per_generation", 12)) < 1:
+        raise ValueError("evaluation.stage34.evolution.max_models_per_generation must be >= 1")
+    exp34 = float(evo34.get("exploration_pct", 0.20))
+    if not 0.0 <= exp34 <= 1.0:
+        raise ValueError("evaluation.stage34.evolution.exploration_pct must be in [0,1]")
+    if str(evo34.get("budget", "small")).strip().lower() not in {"small", "medium"}:
+        raise ValueError("evaluation.stage34.evolution.budget must be small|medium")
+    evaluation["stage34"] = stage34
 
     ui = _merge_defaults(UI_STAGE5_DEFAULTS, config.get("ui", {}))
     stage5_ui = ui.get("stage5", {})
