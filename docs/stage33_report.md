@@ -8,8 +8,17 @@
   - run-scoped `policy_spec.md`
 
 ## Signal Emitter
-- Pending Stage-33.2.
+- Stage-33.2 added local signal emitter:
+  - script: `scripts/emit_signals.py`
+  - module: `src/buffmini/stage33/emitter.py`
+- How to use:
+  - `python scripts/emit_signals.py --policy-path runs/<run_id>/stage33/policy.json --symbol BTC/USDT --timeframe 1h`
+- Output payload contains:
+  - context probabilities
+  - action (`LONG`/`SHORT`/`FLAT`)
+  - confidence + sizing%
+  - stop/exit summary
+  - feasibility notes + explanation
 
 ## Drift + Master
 - Pending Stage-33.3.
-

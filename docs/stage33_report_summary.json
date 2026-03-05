@@ -1,16 +1,17 @@
 {
   "stage": "33",
-  "substage": "33.1",
+  "substage": "33.2",
   "status": "IN_PROGRESS",
   "policy_v3": {
     "status": "IMPLEMENTED",
     "module": "src/buffmini/stage33/policy_v3.py"
   },
   "emit_signals": {
-    "status": "PENDING"
+    "status": "IMPLEMENTED",
+    "script": "scripts/emit_signals.py",
+    "module": "src/buffmini/stage33/emitter.py"
   },
   "drift_master": {
     "status": "PENDING"
   }
 }
-
