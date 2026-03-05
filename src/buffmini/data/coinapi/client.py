@@ -126,6 +126,7 @@ class CoinAPIClient:
                 header_signals={},
                 retry_count=0,
                 elapsed_ms=0,
+                backoff_sleep_ms=0,
                 error_message=message,
                 plan_id=plan_id,
             )
@@ -143,6 +144,7 @@ class CoinAPIClient:
         response_bytes = 0
         response_headers: dict[str, Any] = {}
         parsed_payload: Any = None
+        backoff_sleep_ms = 0
 
         while attempt <= self.max_retries:
             self._request_count += 1
@@ -170,7 +172,9 @@ class CoinAPIClient:
                     break
             attempt += 1
             if self.sleep_ms > 0:
-                time.sleep((self.sleep_ms / 1000.0) * float(2**attempt))
+                sleep_ms = int(round(float(self.sleep_ms) * float(2**attempt)))
+                backoff_sleep_ms += max(0, sleep_ms)
+                time.sleep(max(0.0, float(sleep_ms) / 1000.0))
 
         elapsed_ms = int(round((time.perf_counter() - start) * 1000.0))
         header_signals = parse_coinapi_header_signals(response_headers)
@@ -190,6 +194,7 @@ class CoinAPIClient:
                 header_signals=header_signals,
                 retry_count=retry_count,
                 elapsed_ms=elapsed_ms,
+                backoff_sleep_ms=backoff_sleep_ms,
                 error_message=message,
                 plan_id=plan_id,
             )
@@ -207,6 +212,7 @@ class CoinAPIClient:
             header_signals=header_signals,
             retry_count=retry_count,
             elapsed_ms=elapsed_ms,
+            backoff_sleep_ms=backoff_sleep_ms,
             error_message="",
             plan_id=plan_id,
         )
@@ -236,6 +242,7 @@ class CoinAPIClient:
         header_signals: dict[str, Any],
         retry_count: int,
         elapsed_ms: int,
+        backoff_sleep_ms: int,
         error_message: str,
         plan_id: str | None,
     ) -> None:
@@ -256,6 +263,7 @@ class CoinAPIClient:
                 "header_signals": dict(header_signals),
                 "retry_count": int(retry_count),
                 "elapsed_ms": int(elapsed_ms),
+                "backoff_sleep_ms": int(backoff_sleep_ms),
                 "error_message": str(error_message),
                 "plan_id": str(plan_id or ""),
                 "masked_api_key": self.masked_key,

@@ -98,3 +98,37 @@ def test_missing_key_raises_clean_error_without_trace(tmp_path: Path, monkeypatc
     with pytest.raises(SystemExit, match="COINAPI_KEY missing; use secrets/coinapi_key.txt"):
         update_coinapi_extras.main()
 
+
+def test_download_refuses_when_plan_exceeds_budget_and_writes_usage_schema(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
+    cfg = _write_cfg(tmp_path, enabled=True)
+    monkeypatch.chdir(tmp_path)
+    argv = [
+        "update_coinapi_extras.py",
+        "--config",
+        str(cfg),
+        "--download",
+        "--seed",
+        "42",
+        "--symbols",
+        "BTC/USDT,ETH/USDT",
+        "--endpoints",
+        "funding,oi",
+        "--last-days",
+        "365",
+        "--increment-days",
+        "1",
+        "--max-requests",
+        "2",
+    ]
+    monkeypatch.setattr(sys, "argv", argv)
+    with pytest.raises(SystemExit, match="Planned request count exceeds --max-requests"):
+        update_coinapi_extras.main()
+
+    usage_doc = tmp_path / "docs" / "stage35_7_coinapi_usage.json"
+    assert usage_doc.exists()
+    payload = yaml.safe_load(usage_doc.read_text(encoding="utf-8"))
+    assert isinstance(payload, dict)
+    latest = payload.get("latest", {})
+    assert int(latest.get("total_requests_planned", 0)) > int(latest.get("total_requests_selected", 0))
+    assert "status_code_counts" in latest
+    assert "retry_counts" in latest

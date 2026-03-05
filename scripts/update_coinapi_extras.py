@@ -160,6 +160,88 @@ def _missing_key_error() -> str:
     return "COINAPI_KEY missing; use secrets/coinapi_key.txt (gitignored) or environment variable."
 
 
+def _write_stage35_7_usage_doc(
+    *,
+    run_id: str,
+    action: str,
+    plan: dict[str, Any],
+    usage_summary: dict[str, Any],
+    run_usage_path: Path,
+) -> Path:
+    docs_path = Path("docs") / "stage35_7_coinapi_usage.json"
+    docs_path.parent.mkdir(parents=True, exist_ok=True)
+    payload: dict[str, Any]
+    if docs_path.exists():
+        try:
+            existing = json.loads(docs_path.read_text(encoding="utf-8"))
+            payload = existing if isinstance(existing, dict) else {}
+        except json.JSONDecodeError:
+            payload = {}
+    else:
+        payload = {}
+    runs = payload.get("runs", [])
+    if not isinstance(runs, list):
+        runs = []
+    run_row = {
+        "run_id": str(run_id),
+        "action": str(action),
+        "plan_id": str(plan.get("plan_id", "")),
+        "total_requests_planned": int(plan.get("planned_count", 0)),
+        "total_requests_selected": int(plan.get("selected_count", 0)),
+        "total_requests_made": int(usage_summary.get("total_requests", 0)),
+        "status_code_counts": dict(usage_summary.get("status_code_counts", {})),
+        "endpoints_hit": list(usage_summary.get("endpoints_hit", [])),
+        "retry_counts": {
+            "total": int(usage_summary.get("total_retries", 0)),
+            "by_endpoint": dict(usage_summary.get("retry_count_by_endpoint", {})),
+        },
+        "time_range": {
+            "start": usage_summary.get("time_start_min"),
+            "end": usage_summary.get("time_end_max"),
+        },
+        "rate_limit_sleep_ms_total": int(usage_summary.get("rate_limit_sleep_ms_total", 0)),
+        "estimated_credits_used": usage_summary.get("credits_used"),
+        "credits_estimation_mode": str(usage_summary.get("credits_estimation_mode", "UNKNOWN")),
+        "run_usage_path": run_usage_path.as_posix(),
+    }
+    runs.append(run_row)
+    total_planned = int(sum(int(row.get("total_requests_planned", 0)) for row in runs if isinstance(row, dict)))
+    total_made = int(sum(int(row.get("total_requests_made", 0)) for row in runs if isinstance(row, dict)))
+    payload["runs"] = runs
+    payload["latest"] = run_row
+    payload["totals"] = {
+        "total_requests_planned": total_planned,
+        "total_requests_made": total_made,
+        "run_count": int(len(runs)),
+    }
+    docs_path.write_text(json.dumps(payload, indent=2, allow_nan=False), encoding="utf-8")
+    return docs_path
+
+
+def _empty_usage_summary(*, start_ts: pd.Timestamp, end_ts: pd.Timestamp, endpoints: list[str]) -> dict[str, Any]:
+    return {
+        "total_requests": 0,
+        "total_success": 0,
+        "total_fail": 0,
+        "total_bytes": 0,
+        "total_retries": 0,
+        "status_code_counts": {},
+        "per_endpoint": {name: {"requests": 0, "success": 0, "fail": 0, "bytes": 0} for name in endpoints},
+        "per_symbol": {},
+        "endpoints_hit": [],
+        "retry_count_by_endpoint": {name: 0 for name in endpoints},
+        "time_start_min": start_ts.isoformat(),
+        "time_end_max": end_ts.isoformat(),
+        "rate_limit_sleep_ms_total": 0,
+        "quota_signals": {},
+        "credits_used": None,
+        "credits_remaining": None,
+        "quota_used": None,
+        "quota_remaining": None,
+        "credits_estimation_mode": "UNKNOWN",
+    }
+
+
 def _extract_payload_rows(payload: Any) -> list[dict[str, Any]]:
     if isinstance(payload, list):
         return [row for row in payload if isinstance(row, dict)]
@@ -210,6 +292,7 @@ def execute_plan_items(
     raw_disabled_due_to_size = False
     failures: list[dict[str, Any]] = []
     successes = 0
+    budget_exhausted = False
 
     for item in plan.get("items", []):
         endpoint = str(item.get("endpoint", ""))
@@ -254,6 +337,9 @@ def execute_plan_items(
                     "error": str(exc),
                 }
             )
+            if "max_total_requests_exceeded" in str(exc):
+                budget_exhausted = True
+                break
 
     coverage_rows: list[dict[str, Any]] = []
     for (endpoint, symbol), rows in aggregated.items():
@@ -275,6 +361,7 @@ def execute_plan_items(
         "success_count": int(successes),
         "failure_count": int(len(failures)),
         "failures": failures,
+        "budget_exhausted": bool(budget_exhausted),
         "raw_written_bytes": int(raw_bytes),
         "raw_disabled_due_to_size": bool(raw_disabled_due_to_size),
         "coverage_rows": coverage_rows,
@@ -307,8 +394,11 @@ def main() -> None:
         start_ts=start_ts,
         end_ts=end_ts,
     )
-    run_dir = Path(args.runs_dir) / run_id / "stage35"
-    run_dir.mkdir(parents=True, exist_ok=True)
+    run_root = Path(args.runs_dir) / run_id
+    run_stage35_dir = run_root / "stage35"
+    run_coinapi_dir = run_root / "coinapi"
+    run_stage35_dir.mkdir(parents=True, exist_ok=True)
+    run_coinapi_dir.mkdir(parents=True, exist_ok=True)
 
     max_requests = resolve_max_requests(args=args, cfg_max_requests=int(coinapi_cfg.get("max_total_requests", 2000)))
 
@@ -320,15 +410,42 @@ def main() -> None:
         increment_days=max(1, int(args.increment_days)),
         max_requests=max_requests,
     )
-    plan_path = run_dir / "coinapi_plan.json"
+    plan_path = run_coinapi_dir / "plan.json"
     plan_path.write_text(json.dumps(plan, indent=2, allow_nan=False), encoding="utf-8")
+    (run_stage35_dir / "coinapi_plan.json").write_text(json.dumps(plan, indent=2, allow_nan=False), encoding="utf-8")
 
     if action == "plan":
+        usage_summary = _empty_usage_summary(start_ts=start_ts, end_ts=end_ts, endpoints=endpoints)
+        run_usage_path = run_root / "coinapi_usage.json"
+        run_usage_path.write_text(json.dumps(usage_summary, indent=2, allow_nan=False), encoding="utf-8")
+        _write_stage35_7_usage_doc(
+            run_id=run_id,
+            action=action,
+            plan=plan,
+            usage_summary=usage_summary,
+            run_usage_path=run_usage_path,
+        )
         _print_plan_stdout(run_id=run_id, plan=plan, plan_path=plan_path)
         return
 
     if not enabled:
         raise SystemExit("coinapi.enabled=false in config. Enable it for network execution.")
+
+    if bool(plan.get("truncated", False)):
+        usage_summary = _empty_usage_summary(start_ts=start_ts, end_ts=end_ts, endpoints=endpoints)
+        usage_summary["download_refused"] = "planned_requests_exceed_max_requests"
+        run_usage_path = run_root / "coinapi_usage.json"
+        run_usage_path.write_text(json.dumps(usage_summary, indent=2, allow_nan=False), encoding="utf-8")
+        _write_stage35_7_usage_doc(
+            run_id=run_id,
+            action=action,
+            plan=plan,
+            usage_summary=usage_summary,
+            run_usage_path=run_usage_path,
+        )
+        raise SystemExit(
+            "Planned request count exceeds --max-requests. Increase --increment-days or reduce range before downloading."
+        )
 
     key = str(resolve_coinapi_key(repo_root=Path.cwd()) or "").strip()
     if not key:
@@ -356,15 +473,33 @@ def main() -> None:
         except CoinAPIRequestError as exc:
             usage_summary = build_usage_summary(ledger.load_records())
             usage_summary["verify_error"] = str(exc)
-            usage_summary_path = run_dir / "coinapi_usage_summary.json"
+            usage_summary_path = run_coinapi_dir / "usage_summary.json"
             usage_summary_path.write_text(json.dumps(usage_summary, indent=2, allow_nan=False), encoding="utf-8")
+            run_usage_path = run_root / "coinapi_usage.json"
+            run_usage_path.write_text(json.dumps(usage_summary, indent=2, allow_nan=False), encoding="utf-8")
+            _write_stage35_7_usage_doc(
+                run_id=run_id,
+                action=action,
+                plan=plan,
+                usage_summary=usage_summary,
+                run_usage_path=run_usage_path,
+            )
             message = str(exc)
             if "401" in message or "403" in message:
                 raise SystemExit(f"Auth failed during verify endpoint=verify_auth error={message}")
             raise SystemExit(f"Verify failed endpoint=verify_auth error={message}")
         usage_summary = build_usage_summary(ledger.load_records())
-        usage_summary_path = run_dir / "coinapi_usage_summary.json"
+        usage_summary_path = run_coinapi_dir / "usage_summary.json"
         usage_summary_path.write_text(json.dumps(usage_summary, indent=2, allow_nan=False), encoding="utf-8")
+        run_usage_path = run_root / "coinapi_usage.json"
+        run_usage_path.write_text(json.dumps(usage_summary, indent=2, allow_nan=False), encoding="utf-8")
+        _write_stage35_7_usage_doc(
+            run_id=run_id,
+            action=action,
+            plan=plan,
+            usage_summary=usage_summary,
+            run_usage_path=run_usage_path,
+        )
         print(f"run_id: {run_id}")
         print("verify_status: OK")
         print(f"usage_summary_path: {usage_summary_path.as_posix()}")
@@ -377,12 +512,23 @@ def main() -> None:
         raw_bytes_threshold=2 * 1024 * 1024 * 1024,
     )
     result["run_id"] = run_id
-    result_path = run_dir / "coinapi_result.json"
+    result_path = run_stage35_dir / "coinapi_result.json"
     result_path.write_text(json.dumps(result, indent=2, allow_nan=False), encoding="utf-8")
+    (run_coinapi_dir / "result.json").write_text(json.dumps(result, indent=2, allow_nan=False), encoding="utf-8")
 
     usage_summary = build_usage_summary(ledger.load_records())
-    usage_summary_path = run_dir / "coinapi_usage_summary.json"
+    usage_summary_path = run_coinapi_dir / "usage_summary.json"
     usage_summary_path.write_text(json.dumps(usage_summary, indent=2, allow_nan=False), encoding="utf-8")
+    (run_stage35_dir / "coinapi_usage_summary.json").write_text(json.dumps(usage_summary, indent=2, allow_nan=False), encoding="utf-8")
+    run_usage_path = run_root / "coinapi_usage.json"
+    run_usage_path.write_text(json.dumps(usage_summary, indent=2, allow_nan=False), encoding="utf-8")
+    _write_stage35_7_usage_doc(
+        run_id=run_id,
+        action=action,
+        plan=plan,
+        usage_summary=usage_summary,
+        run_usage_path=run_usage_path,
+    )
 
     print(f"run_id: {run_id}")
     print(f"plan_id: {plan.get('plan_id', '')}")

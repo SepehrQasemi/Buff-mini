@@ -36,6 +36,8 @@ def test_usage_ledger_summary_aggregates(tmp_path: Path) -> None:
     assert summary["total_requests"] == 2
     assert summary["total_success"] == 1
     assert summary["total_fail"] == 1
+    assert summary["status_code_counts"]["200"] == 1
+    assert summary["status_code_counts"]["500"] == 1
     assert summary["per_endpoint"]["funding_rates"]["requests"] == 2
     assert summary["per_symbol"]["BTC/USDT"]["bytes"] == 120
 
@@ -89,4 +91,3 @@ def test_coinapi_client_logs_success_and_failure(tmp_path: Path) -> None:
     assert len(rows2) == 2
     assert int(rows2[-1]["status_code"]) == 0
     assert "boom" in str(rows2[-1]["error_message"])
-

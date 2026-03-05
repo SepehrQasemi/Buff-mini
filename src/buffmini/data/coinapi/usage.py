@@ -89,6 +89,11 @@ def build_usage_summary(records: list[dict[str, Any]]) -> dict[str, Any]:
     quota_signals: dict[str, Any] = {}
     total_bytes = 0
     total_retries = 0
+    status_code_counts: dict[str, int] = {}
+    retry_count_by_endpoint: dict[str, int] = {}
+    rate_limit_sleep_ms_total = 0
+    time_start_min: str | None = None
+    time_end_max: str | None = None
 
     for row in records:
         endpoint = str(row.get("endpoint_name", "") or "unknown")
@@ -96,8 +101,12 @@ def build_usage_summary(records: list[dict[str, Any]]) -> dict[str, Any]:
         status = int(row.get("status_code", 0) or 0)
         bytes_count = int(row.get("response_bytes", 0) or 0)
         retries = int(row.get("retry_count", 0) or 0)
+        backoff_sleep_ms = int(row.get("backoff_sleep_ms", 0) or 0)
+        status_key = str(status)
+        status_code_counts[status_key] = int(status_code_counts.get(status_key, 0) + 1)
         total_bytes += bytes_count
         total_retries += retries
+        rate_limit_sleep_ms_total += backoff_sleep_ms
 
         ep = endpoint_stats.setdefault(endpoint, {"requests": 0, "success": 0, "fail": 0, "bytes": 0})
         ep["requests"] = int(ep["requests"] + 1)
@@ -114,6 +123,16 @@ def build_usage_summary(records: list[dict[str, Any]]) -> dict[str, Any]:
             sym["success"] = int(sym["success"] + 1)
         else:
             sym["fail"] = int(sym["fail"] + 1)
+        retry_count_by_endpoint[endpoint] = int(retry_count_by_endpoint.get(endpoint, 0) + retries)
+
+        row_start = str(row.get("time_start", "") or "")
+        row_end = str(row.get("time_end", "") or "")
+        if row_start:
+            if time_start_min is None or row_start < time_start_min:
+                time_start_min = row_start
+        if row_end:
+            if time_end_max is None or row_end > time_end_max:
+                time_end_max = row_end
 
         header_signals = row.get("header_signals", {})
         if isinstance(header_signals, dict):
@@ -131,8 +150,14 @@ def build_usage_summary(records: list[dict[str, Any]]) -> dict[str, Any]:
         "total_fail": total_fail,
         "total_bytes": int(total_bytes),
         "total_retries": int(total_retries),
+        "status_code_counts": status_code_counts,
         "per_endpoint": endpoint_stats,
         "per_symbol": symbol_stats,
+        "endpoints_hit": sorted(endpoint_stats.keys()),
+        "retry_count_by_endpoint": retry_count_by_endpoint,
+        "time_start_min": time_start_min,
+        "time_end_max": time_end_max,
+        "rate_limit_sleep_ms_total": int(rate_limit_sleep_ms_total),
         "quota_signals": quota_signals,
         "credits_used": credits_used,
         "credits_remaining": credits_remaining,
