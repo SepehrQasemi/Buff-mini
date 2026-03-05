@@ -85,6 +85,36 @@ def _load_latest_usage_doc() -> dict[str, Any]:
     return payload
 
 
+def _ensure_usage_doc(status: str) -> None:
+    if USAGE_JSON.exists():
+        return
+    USAGE_JSON.parent.mkdir(parents=True, exist_ok=True)
+    USAGE_JSON.write_text(
+        json.dumps(
+            {
+                "runs": [],
+                "latest": {
+                    "status": str(status),
+                    "total_requests_planned": 0,
+                    "total_requests_selected": 0,
+                    "total_requests_made": 0,
+                    "status_code_counts": {},
+                    "endpoints_hit": [],
+                    "retry_counts": {"total": 0, "by_endpoint": {}},
+                    "time_range": {"start": None, "end": None},
+                    "rate_limit_sleep_ms_total": 0,
+                    "estimated_credits_used": None,
+                    "credits_estimation_mode": "UNKNOWN",
+                },
+                "totals": {"total_requests_planned": 0, "total_requests_made": 0, "run_count": 0},
+            },
+            indent=2,
+            allow_nan=False,
+        ),
+        encoding="utf-8",
+    )
+
+
 def _write_auth_cli_doc() -> None:
     AUTH_CLI_MD.parent.mkdir(parents=True, exist_ok=True)
     lines = [
@@ -226,6 +256,7 @@ def run_stage35_real_download(args: argparse.Namespace) -> dict[str, Any]:
 
     if status_cmd["returncode"] != 0 or status_stdout.startswith("MISSING"):
         payload["status"] = "AUTH_BLOCKED"
+        _ensure_usage_doc(payload["status"])
         _write_report(payload)
         return payload
 
@@ -257,6 +288,7 @@ def run_stage35_real_download(args: argparse.Namespace) -> dict[str, Any]:
         usage_doc = _load_latest_usage_doc()
         latest = usage_doc.get("latest", {}) if isinstance(usage_doc, dict) else {}
         payload["status_code_counts"] = dict(latest.get("status_code_counts", {})) if isinstance(latest, dict) else {}
+        _ensure_usage_doc(payload["status"])
         _write_report(payload)
         return payload
 
@@ -265,6 +297,7 @@ def run_stage35_real_download(args: argparse.Namespace) -> dict[str, Any]:
     payload["plan_stderr"] = plan_cmd["stderr"]
     if plan_cmd["returncode"] != 0:
         payload["status"] = "PLAN_FAILED"
+        _ensure_usage_doc(payload["status"])
         _write_report(payload)
         return payload
     plan_kv = _parse_key_values(plan_cmd["stdout"])
@@ -276,6 +309,7 @@ def run_stage35_real_download(args: argparse.Namespace) -> dict[str, Any]:
     payload["plan_within_budget"] = not truncated
     if truncated:
         payload["status"] = "PLAN_OVER_BUDGET"
+        _ensure_usage_doc(payload["status"])
         _write_report(payload)
         return payload
 
@@ -289,6 +323,7 @@ def run_stage35_real_download(args: argparse.Namespace) -> dict[str, Any]:
         payload["status_code_counts"] = dict(latest.get("status_code_counts", {}))
     if download_cmd["returncode"] != 0:
         payload["status"] = "DOWNLOAD_FAILED"
+        _ensure_usage_doc(payload["status"])
         _write_report(payload)
         return payload
 
@@ -298,6 +333,7 @@ def run_stage35_real_download(args: argparse.Namespace) -> dict[str, Any]:
     payload["coverage_ok"] = bool(coverage_ok)
     payload["missing_coverage"] = missing
     payload["status"] = "DOWNLOAD_COMPLETE" if coverage_ok else "INSUFFICIENT_COVERAGE"
+    _ensure_usage_doc(payload["status"])
     _write_report(payload)
     return payload
 
@@ -312,4 +348,3 @@ def main() -> None:
 
 if __name__ == "__main__":
     main()
-
