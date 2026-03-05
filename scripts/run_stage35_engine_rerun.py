@@ -77,34 +77,49 @@ def _write_report(payload: dict[str, Any]) -> None:
         f"- reason: `{payload.get('reason', '')}`",
         f"- stage35_status: `{payload.get('stage35_status', '')}`",
         f"- promising: `{payload.get('promising', False)}`",
+        f"- biggest_blocker: `{payload.get('biggest_blocker', '')}`",
         "",
         "## Metrics",
         f"- baseline: `{payload.get('baseline_metrics', {})}`",
         f"- after: `{payload.get('after_metrics', {})}`",
         f"- multi_seed_count: `{len(payload.get('multi_seed_runs', []))}`",
         "",
-        "## Command Evidence",
-        "### stage35 stdout",
-        "```text",
-        _snippet(str(payload.get("stage35_stdout", ""))),
-        "```",
-        "### stage35 stderr",
-        "```text",
-        _snippet(str(payload.get("stage35_stderr", ""))),
-        "```",
+        "## Next Actions",
     ]
+    actions = payload.get("next_actions", [])
+    if isinstance(actions, list) and actions:
+        for action in actions:
+            lines.append(f"- `{action}`")
+    else:
+        lines.append("- none")
+    lines.extend(
+        [
+            "",
+            "## Command Evidence",
+            "### stage35 stdout",
+            "```text",
+            _snippet(str(payload.get("stage35_stdout", ""))),
+            "```",
+            "### stage35 stderr",
+            "```text",
+            _snippet(str(payload.get("stage35_stderr", ""))),
+            "```",
+        ]
+    )
     REPORT_MD.write_text("\n".join(lines).strip() + "\n", encoding="utf-8")
 
 
 def run_engine_rerun(args: argparse.Namespace) -> dict[str, Any]:
     download_summary = _load_json(MASTER_DOWNLOAD_SUMMARY)
-    status = str(download_summary.get("status", "MISSING_STAGE35_7_REPORT"))
+    stage35_status = str(download_summary.get("status", "MISSING_STAGE35_7_REPORT"))
     coverage_ok = bool(download_summary.get("coverage_ok", False))
     payload: dict[str, Any] = {
         "status": "NOT_EXECUTED",
         "reason": "",
-        "stage35_status": status,
+        "stage35_status": stage35_status,
         "promising": False,
+        "biggest_blocker": "",
+        "next_actions": [],
         "baseline_metrics": {},
         "after_metrics": {},
         "multi_seed_runs": [],
@@ -114,10 +129,18 @@ def run_engine_rerun(args: argparse.Namespace) -> dict[str, Any]:
 
     if not download_summary:
         payload["reason"] = "stage35_7_report_summary_missing"
+        payload["biggest_blocker"] = "Stage-35.7 download summary missing"
+        payload["next_actions"] = [
+            "python scripts/run_stage35_real_download.py --config configs/local_coinapi.yaml --seed 42",
+        ]
         _write_report(payload)
         return payload
     if not coverage_ok:
         payload["reason"] = "coverage_insufficient_or_download_blocked"
+        payload["biggest_blocker"] = "Coverage gate not satisfied for engine rerun"
+        payload["next_actions"] = [
+            "python scripts/run_stage35_real_download.py --config configs/local_coinapi.yaml --seed 42",
+        ]
         _write_report(payload)
         return payload
 
@@ -136,6 +159,7 @@ def run_engine_rerun(args: argparse.Namespace) -> dict[str, Any]:
     payload["stage35_stderr"] = out["stderr"]
     if out["returncode"] != 0:
         payload["reason"] = "stage35_orchestrator_failed"
+        payload["biggest_blocker"] = "Stage-35 orchestrator command failed"
         _write_report(payload)
         return payload
 
@@ -148,6 +172,10 @@ def run_engine_rerun(args: argparse.Namespace) -> dict[str, Any]:
     if not promising:
         payload["status"] = "NO_EDGE"
         payload["reason"] = "promising_gate_not_met"
+        payload["biggest_blocker"] = "No positive edge under promising gate"
+        payload["next_actions"] = [
+            "Review docs/stage35_report_summary.json and docs/stage34_report_summary.json for bottlenecks",
+        ]
         _write_report(payload)
         return payload
 
@@ -176,6 +204,8 @@ def run_engine_rerun(args: argparse.Namespace) -> dict[str, Any]:
     payload["multi_seed_runs"] = multi_seed_runs
     payload["status"] = "PROMISING_MULTI_SEED_DONE"
     payload["reason"] = "promising_gate_met"
+    payload["biggest_blocker"] = ""
+    payload["next_actions"] = []
     _write_report(payload)
     return payload
 

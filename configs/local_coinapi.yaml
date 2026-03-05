@@ -1,0 +1,913 @@
+universe:
+  symbols:
+  - BTC/USDT
+  - ETH/USDT
+  timeframe: 1h
+  base_timeframe: 1h
+  operational_timeframe: 1h
+  htf_timeframes:
+  - 4h
+  start: '2023-01-01T00:00:00Z'
+  end: null
+  resolved_end_ts: null
+costs:
+  round_trip_cost_pct: 0.1
+  slippage_pct: 0.0005
+  funding_pct_per_day: 0.0
+cost_model:
+  mode: simple
+  round_trip_cost_pct: 0.1
+  v2:
+    slippage_bps_base: 0.5
+    slippage_bps_vol_mult: 2.0
+    spread_bps: 0.5
+    delay_bars: 0
+    vol_proxy: atr_pct
+    vol_lookback: 14
+    max_total_bps_per_side: 10.0
+risk:
+  risk_per_trade_pct: 0.01
+  max_drawdown_pct: 0.25
+  max_daily_loss_pct: 0.05
+  max_concurrent_positions: 1
+  max_gross_exposure: 5.0
+  max_net_exposure_per_symbol: 5.0
+  max_open_positions: 10
+  sizing:
+    mode: risk_budget
+    risk_per_trade_pct: 1.0
+    fixed_fraction_pct: 10.0
+  killswitch:
+    enabled: true
+    max_daily_loss_pct: 5.0
+    max_peak_to_valley_dd_pct: 20.0
+    max_consecutive_losses: 8
+    cool_down_bars: 48
+  reeval:
+    cadence: weekly
+    min_new_bars: 168
+execution:
+  mode: net
+  per_symbol_netting: true
+  allow_opposite_signals: false
+  symbol_scope: per_symbol
+  risk_auto_bump:
+    enabled: true
+    max_risk_cap: 0.2
+search:
+  candidates: 100
+  seed: 42
+data:
+  backend: parquet
+  resample_source: direct
+  partial_last_bucket: false
+  coverage:
+    required_years: 4.0
+    min_years_to_run: 1.0
+    fail_if_below_min: true
+  snapshot:
+    id: DATA_FROZEN_v1
+    path: data/snapshots/DATA_FROZEN_v1.json
+  feature_cache:
+    enabled: true
+  include_futures_extras: false
+  futures_extras:
+    symbols:
+    - BTC/USDT
+    - ETH/USDT
+    timeframe: 1h
+    max_fill_gap_bars: 8
+    funding:
+      z_windows:
+      - 30
+      - 90
+      trend_window: 24
+      abs_pctl_window: 4320
+      extreme_pctl: 0.95
+    open_interest:
+      chg_windows:
+      - 1
+      - 24
+      z_window: 30
+      oi_to_volume_window: 24
+      overlay:
+        enabled: false
+        recent_window_days: 30
+        max_recent_window_days: 90
+        clamp_to_available: true
+        inactive_value: nan
+features:
+  extras:
+    enabled: false
+    sources:
+    - coinapi
+    max_staleness:
+      funding_rates: 12h
+      open_interest: 2d
+      liquidations: 6h
+coinapi:
+  enabled: true
+  symbols:
+  - BINANCE_PERP_BTC_USDT
+  - BINANCE_PERP_ETH_USDT
+  priority_endpoints:
+  - funding_rates
+  - open_interest
+  - liquidations
+  max_days_per_run: 30
+  max_total_requests: 2000
+  sleep_ms: 120
+  store_raw: true
+  raw_compression: gzip
+  timeframes_base:
+  - 1m
+  - 1h
+  - 4h
+  build_derived_from_1m: true
+  derived_timeframes:
+  - 5m
+  - 15m
+  - 30m
+  - 2h
+  - 6h
+  - 12h
+  - 1d
+  - 1w
+  - 1mo
+  require_min_coverage_years: 2.0
+  cost_reporting:
+    enabled: true
+portfolio:
+  walkforward:
+    min_usable_windows: 3
+    min_forward_trades: 10
+    min_forward_exposure: 0.01
+    pf_clip_max: 5.0
+    stability_metric: exp_lcb
+  leverage_selector:
+    methods:
+    - equal
+    - vol
+    leverage_levels:
+    - 1
+    - 2
+    - 3
+    - 5
+    - 10
+    - 15
+    - 20
+    - 25
+    - 50
+    bootstrap: block
+    block_size_trades: 10
+    n_paths: 20000
+    seed: 42
+    initial_equity: 10000
+    ruin_dd_threshold: 0.5
+    constraints:
+      max_p_ruin: 0.01
+      max_dd_p95: 0.25
+      min_return_p05: 0.0
+    utility:
+      objective: expected_log_growth
+      epsilon: 1.0e-12
+      use_final_equity: true
+      penalize_dd: false
+    reporting:
+      include_per_leverage_tables: true
+      include_binding_constraints: true
+evaluation:
+  stage0_enabled: true
+  stage06:
+    window_months: 36
+    end_mode: latest
+  stage1:
+    enabled: true
+    candidate_count: 5000
+    top_k: 100
+    top_m: 20
+    stage_a_months: 9
+    stage_b_months: 24
+    holdout_months: 9
+    split_mode: '60_20_20'
+    min_holdout_trades: 50
+    recent_weight: 2.0
+    min_validation_exposure_ratio: 0.01
+    min_validation_active_days: 10
+    target_trades_per_month_holdout: 8
+    low_signal_penalty_weight: 1.0
+    min_trades_per_month_floor: 2
+    allow_rare_if_high_expectancy: false
+    rare_expectancy_threshold: 3.0
+    rare_penalty_relief: 0.1
+    result_thresholds:
+      TierA:
+        min_exp_lcb_holdout: 0
+        min_effective_edge: 0
+        min_trades_per_month_holdout: 5
+        min_pf_adj_holdout: 1.1
+        max_drawdown_holdout: 0.15
+        min_exposure_ratio: 0.02
+      TierB:
+        min_exp_lcb_holdout: 0
+        min_effective_edge: 0
+        min_trades_per_month_holdout: 2.0
+        min_pf_adj_holdout: 1.05
+        max_drawdown_holdout: 0.2
+        min_exposure_ratio: 0.02
+      NearMiss:
+        min_exp_lcb_holdout: -5
+    promotion_holdout_months:
+    - 3
+    - 6
+    - 9
+    - 12
+    walkforward_splits: 3
+    early_stop_patience: 1000
+    min_stage_a_evals: 1000
+    instability_perturbations: 2
+    weights:
+      expectancy: 1.0
+      log_profit_factor: 1.5
+      max_drawdown: 1.0
+      complexity: 0.5
+      instability: 0.75
+    search_space:
+      families:
+      - DonchianBreakout
+      - RSIMeanReversion
+      - TrendPullback
+      - BollingerMeanReversion
+      - RangeBreakoutTrendFilter
+      gating_modes:
+      - none
+      - vol
+      - vol+regime
+      exit_modes:
+      - fixed_atr
+      - breakeven_1r
+      - trailing_atr
+      - partial_then_trail
+      donchian_periods:
+      - 20
+      - 55
+      - 100
+      ema_pairs:
+      - - 20
+        - 200
+      - - 50
+        - 200
+      - - 50
+        - 100
+      rsi_long_entry_min: 20
+      rsi_long_entry_max: 40
+      rsi_short_entry_min: 60
+      rsi_short_entry_max: 80
+      bollinger_period: 20
+      bollinger_stds:
+      - 1.5
+      - 2.0
+      - 2.5
+      atr_sl_min: 0.8
+      atr_sl_max: 2.5
+      atr_tp_min: 1.0
+      atr_tp_max: 5.0
+      trailing_atr_k_min: 1.0
+      trailing_atr_k_max: 2.5
+      max_holding_bars:
+      - 12
+      - 24
+      - 48
+      - 96
+  stage4:
+    source_stage2_run_id: ''
+    source_stage3_3_run_id: ''
+    default_method: equal
+    default_leverage: 1.0
+    output:
+      write_docs_summary: true
+      write_run_artifacts: true
+  stage6:
+    enabled: false
+    regime:
+      atr_percentile_window: 252
+      vol_expansion_threshold: 0.8
+      trend_strength_threshold: 0.01
+      range_atr_threshold: 0.4
+    confidence_sizing:
+      scale: 2.0
+      multiplier_min: 0.5
+      multiplier_max: 1.5
+    dynamic_leverage:
+      trend_multiplier: 1.2
+      range_multiplier: 0.9
+      vol_expansion_multiplier: 0.7
+      dd_soft_threshold: 0.08
+      dd_soft_multiplier: 0.8
+      dd_lookback_bars: 168
+      max_leverage: 50.0
+      allowed_levels:
+      - 1
+      - 2
+      - 3
+      - 5
+      - 10
+      - 15
+      - 20
+      - 25
+      - 50
+  stage8:
+    enabled: true
+    walkforward_v2:
+      train_days: 180
+      holdout_days: 30
+      forward_days: 30
+      step_days: 30
+      reserve_tail_days: 0
+      min_trades: 10
+      min_exposure: 0.01
+      min_usable_windows: 3
+      stable_min_median_expectancy: 0.0
+      stable_min_worst_expectancy: 0.0
+      stable_min_median_profit_factor: 1.0
+      stable_min_p05_return: 0.0
+      stable_max_median_max_drawdown: 0.25
+      stop_atr_multiple: 1.5
+      take_profit_atr_multiple: 3.0
+      max_hold_bars: 24
+      initial_capital: null
+  stage9:
+    enabled: false
+    dsl_lite:
+      enabled: false
+      funding_selector_enabled: true
+      oi_selector_enabled: true
+  stage9_3:
+    enabled: false
+    report_windows_days:
+    - 30
+    - 60
+    - 90
+    nan_policy: condition_false
+    ab_non_corruption:
+      enabled: true
+      max_trade_count_delta_pct: 1.0
+      require_equity_identical_for_non_oi: true
+  stage10:
+    enabled: false
+    cost_mode: v2
+    walkforward_v2: true
+    regimes:
+      trend_rank_strong: 0.6
+      trend_rank_weak: 0.4
+      high_vol_rank: 0.75
+      low_vol_rank: 0.25
+      chop_flip_window: 48
+      chop_flip_threshold: 0.18
+      compression_z: -0.8
+      expansion_z: 1.0
+      volume_z_high: 1.0
+    activation:
+      multiplier_min: 0.9
+      multiplier_max: 1.1
+      trend_boost: 1.05
+      range_boost: 1.03
+      vol_cut: 0.95
+      chop_cut: 0.93
+    signals:
+      families:
+      - BreakoutRetest
+      - MA_SlopePullback
+      - VolCompressionBreakout
+      - BollingerSnapBack
+      - ATR_DistanceRevert
+      - RangeFade
+      enabled_families:
+      - BreakoutRetest
+      - MA_SlopePullback
+      - ATR_DistanceRevert
+      - RangeFade
+      - VolCompressionBreakout
+      defaults:
+        BreakoutRetest:
+          donchian_period: 20
+          retest_atr_k: 0.8
+        MA_SlopePullback:
+          slope_min: 0.003
+          pullback_atr_k: 1.2
+        VolCompressionBreakout:
+          donchian_period: 20
+          compression_z: -0.8
+          expansion_z: 0.6
+        BollingerSnapBack:
+          rsi_low: 35
+          rsi_high: 65
+        ATR_DistanceRevert:
+          distance_k: 2.0
+        RangeFade:
+          donchian_period: 20
+          edge_atr_k: 0.6
+    exits:
+      modes:
+      - fixed_atr
+      - atr_trailing
+      trailing_atr_k: 1.5
+      partial_fraction: 0.5
+    evaluation:
+      initial_capital: 10000.0
+      stop_atr_multiple: 1.5
+      take_profit_atr_multiple: 3.0
+      max_hold_bars: 24
+      dry_run_rows: 2400
+    sandbox:
+      top_k_per_category: 2
+      bootstrap_resamples: 500
+      exit_mode: fixed_atr
+  stage11:
+    enabled: false
+    allow_noop: false
+    mtf:
+      base_timeframe: 1h
+      layers:
+      - name: htf_4h
+        timeframe: 4h
+        role: context
+        features:
+        - ema_50
+        - ema_200
+        - ema_slope_50
+        - atr_14
+        - atr_pct
+        - atr_pct_rank_252
+        - bb_mid_20
+        - bb_upper_20_2
+        - bb_lower_20_2
+        - bb_bandwidth_20
+        - volume_z_120
+        tolerance_bars: 4
+        enabled: true
+      - name: ltf_15m
+        timeframe: 15m
+        role: confirm
+        features:
+        - ema_50
+        - ema_slope_50
+        - atr_pct_rank_252
+        - volume_z_120
+        tolerance_bars: 2
+        enabled: false
+      feature_pack_params: {}
+      hooks_enabled:
+        bias: true
+        confirm: false
+        exit: false
+    hooks:
+      bias:
+        enabled: true
+        multiplier_min: 0.9
+        multiplier_max: 1.1
+        trend_boost: 1.1
+        range_boost: 1.05
+        vol_cut: 0.95
+        trend_slope_scale: 0.01
+      confirm:
+        enabled: false
+        threshold: 0.55
+        max_delay_bars: 3
+      exit:
+        enabled: false
+        tighten_trailing_scale: 0.9
+    trade_count_guard:
+      bias_max_drop_pct: 2.0
+      confirm_max_drop_pct: 25.0
+      material_pf_improvement: 0.05
+      material_exp_lcb_improvement: 0.5
+  stage11_55:
+    cache:
+      max_entries_per_tf: 5
+      max_total_mb: 2048
+  stage12:
+    enabled: false
+    base_timeframe: 1m
+    symbols:
+    - BTC/USDT
+    - ETH/USDT
+    timeframes:
+    - 15m
+    - 30m
+    - 1h
+    - 2h
+    - 4h
+    - 1d
+    include_stage06_baselines: true
+    include_stage10_families: true
+    exits:
+      variants:
+      - fixed_atr
+      - structure_trailing
+      - time_based
+      time_based_stop_atr_multiple: 1000000.0
+      time_based_take_profit_atr_multiple: 1000000.0
+    cost_scenarios:
+      low:
+        slippage_bps_base: 0.25
+        slippage_bps_vol_mult: 1.0
+        spread_bps: 0.25
+        delay_bars: 0
+      realistic:
+        use_config_default: true
+      high:
+        slippage_bps_base: 1.5
+        slippage_bps_vol_mult: 3.0
+        spread_bps: 1.5
+        delay_bars: 1
+    robustness:
+      instability_penalty:
+        STABLE: 0.0
+        UNSTABLE: 0.5
+        INSUFFICIENT_DATA: 1.0
+      cost_sensitivity_penalty_weight: 1.0
+    min_usable_windows_valid: 3
+    monte_carlo:
+      enabled: true
+      top_pct: 0.2
+      bootstrap: block
+      block_size_trades: 10
+      n_paths: 5000
+      initial_equity: 10000
+      ruin_dd_threshold: 0.5
+    forensics:
+      suspicious_backtest_ms_threshold: 5.0
+      context_model:
+        regime_alignment_weight: 0.4
+        volatility_alignment_weight: 0.25
+        trend_strength_weight: 0.25
+        chop_penalty_weight: 0.2
+        separation_effect_size_threshold: 0.1
+        min_samples: 30
+  stage12_3:
+    enabled: false
+    soft_weights:
+      enabled: true
+      min_weight: 0.25
+      regime_mismatch_weight: 0.5
+      vol_mismatch_weight: 0.5
+    usability_adaptive:
+      enabled: true
+      min_floor: 5
+      alpha: 0.35
+      max_floor: 80
+  stage12_4:
+    enabled: false
+    threshold_grid:
+    - 0.2
+    - 0.3
+    - 0.4
+    - 0.5
+    - 0.6
+    - 0.7
+    - 0.8
+    weight_values:
+    - 0.5
+    - 1.0
+    - 1.5
+    trade_rate_target:
+      tpm_min: 2.0
+      tpm_max: 40.0
+    cache:
+      enabled: true
+  modes:
+    research:
+      min_notional_override: 1.0
+      ignore_exchange_precision: true
+      enforce_margin_caps: false
+      enforce_min_notional: false
+      enforce_size_step: false
+    live:
+      use_exchange_rules: true
+  constraints:
+    mode: live
+    live:
+      min_trade_notional: 10.0
+      min_trade_qty: 0.0
+      qty_step: 0.001
+    research:
+      min_trade_notional: 0.0
+      min_trade_qty: 0.0
+      qty_step: 0.0
+  stage23:
+    enabled: false
+    sizing_fix_enabled: true
+    order_builder:
+      min_stop_atr_mult: 0.8
+      min_stop_bps: 8.0
+      min_rr: 0.8
+      min_trade_notional: 10.0
+      min_trade_qty: 0.0
+      qty_step: 0.001
+      allow_size_bump_to_min_notional: true
+      rr_fallback_exit_mode: fixed_atr
+    sizing:
+      qty_rounding_default: floor
+      qty_rounding_on_min_notional_bump: ceil
+      allow_single_step_ceil_rescue: true
+      ceil_rescue_max_overage_steps: 1
+    eligibility:
+      min_score_default: 0.35
+      per_regime_thresholds: {}
+    execution:
+      allow_partial_fill: true
+      partial_fill_min_ratio: 0.3
+      allow_size_reduction_on_margin_fail: true
+      max_size_reduction_steps: 5
+      slippage_soft_threshold_bps: 15.0
+      slippage_hard_threshold_bps: 40.0
+  stage24:
+    enabled: false
+    base_timeframe: 1m
+    operational_timeframe: 1h
+    sizing:
+      mode: risk_pct
+      alloc_pct: 0.25
+      risk_pct_user: null
+      risk_ladder:
+        enabled: true
+        r_min: 0.02
+        r_max: 0.2
+        e_ref: 1000.0
+        r_ref: 0.08
+        k: 0.5
+      clamps:
+        dd_soft: 0.1
+        dd_hard: 0.2
+        dd_soft_mult: 0.7
+        dd_hard_mult: 0.4
+        losing_streak_soft: 3
+        losing_streak_hard: 5
+        streak_soft_mult: 0.7
+        streak_hard_mult: 0.4
+    order_constraints:
+      min_trade_notional: 10.0
+      allow_size_bump_to_min_notional: true
+      max_notional_pct_of_equity: 1.0
+    simulation:
+      initial_equities:
+      - 100
+      - 1000
+      - 10000
+      - 100000
+      seed: 42
+      use_stage3_selector_if_available: true
+  stage13:
+    enabled: false
+    seed: 42
+    families:
+      enabled:
+      - price
+      - volatility
+      - flow
+    composer:
+      mode: weighted_sum
+      weights:
+        price: 0.45
+        volatility: 0.35
+        flow: 0.2
+      gated:
+        gate_family: volatility
+        gate_threshold: 0.2
+        entry_threshold: 0.25
+    gates:
+      zero_trade_pct_max: 40.0
+      min_trade_count_ratio_vs_baseline: 0.6
+      min_walkforward_executed_true_pct: 1.0
+      min_mc_trigger_rate: 1.0
+    price:
+      entry_threshold: 0.3
+      donchian_period: 20
+      retest_bars: 6
+      retest_atr_k: 0.8
+      trend_pullback_k: 1.2
+      false_break_lookback: 4
+      seq_min_len: 2
+      false_signal_horizon_bars: 6
+      sweep_grid:
+        entry_threshold:
+        - 0.22
+        - 0.28
+        - 0.34
+        - 0.4
+        retest_atr_k:
+        - 0.6
+        - 0.8
+        - 1.0
+        trend_pullback_k:
+        - 0.8
+        - 1.2
+        - 1.6
+    volatility:
+      entry_threshold: 0.28
+      compression_z: -0.8
+      expansion_z: 0.8
+      exhaustion_rank: 0.9
+      atr_slope_window: 12
+      vol_wide_stop_mult: 1.1
+      sweep_grid:
+        entry_threshold:
+        - 0.22
+        - 0.28
+        - 0.34
+        compression_z:
+        - -1.2
+        - -0.8
+        - -0.4
+        expansion_z:
+        - 0.6
+        - 0.8
+        - 1.0
+    flow:
+      entry_threshold: 0.3
+      volume_window: 48
+      anomaly_cap: 3.0
+      riskoff_hard_gate: false
+      risk_off_penalty: 0.85
+      sweep_grid:
+        entry_threshold:
+        - 0.25
+        - 0.3
+        - 0.35
+        anomaly_cap:
+        - 2.0
+        - 3.0
+        - 4.0
+  stage14:
+    enabled: false
+    seed: 42
+    models:
+      allowed:
+      - logreg_l2
+      - ridge
+    max_features: 20
+    trade_rate_bounds:
+      min_tpm: 5.0
+      max_tpm: 80.0
+    weighting:
+      enabled: true
+      l2_grid:
+      - 0.1
+      - 0.3
+      - 1.0
+      - 3.0
+      coef_clip: 3.0
+      drift_threshold: 0.4
+    threshold_calibration:
+      enabled: true
+      low_grid:
+      - 0.2
+      - 0.25
+      - 0.3
+      high_grid:
+      - 0.35
+      - 0.45
+      - 0.55
+    nested_walkforward:
+      enabled: true
+      folds: 3
+    meta_family:
+      enabled: false
+      min_families_required: 2
+  stage26:
+    enabled: false
+    seed: 42
+    base_timeframe: 1m
+    timeframes:
+    - 15m
+    - 30m
+    - 1h
+    - 2h
+    - 4h
+    symbols:
+    - BTC/USDT
+    - ETH/USDT
+    required_years: 4
+    constraints_mode_discovery: research
+    constraints_mode_live: live
+    window_mode: full
+    rolling:
+      window_months:
+      - 3
+      - 6
+      step_months: 1
+    context:
+      rank_window: 252
+      vol_window: 24
+      bb_window: 20
+      volume_window: 120
+      chop_window: 48
+      trend_lookback: 24
+    conditional_eval:
+      bootstrap_samples: 500
+      min_occurrences: 30
+      min_trades: 30
+      rare_min_trades: 10
+      rolling_months:
+      - 3
+      - 6
+      - 12
+    policy:
+      top_k: 2
+      min_occurrences_per_context: 30
+      min_trades_in_context: 30
+      w_min: 0.05
+      w_max: 0.8
+      conflict_mode: net
+    cost_levels:
+    - realistic
+    - high
+  stage28:
+    enabled: false
+    seed: 42
+    symbols:
+    - BTC/USDT
+    - ETH/USDT
+    timeframes:
+    - 15m
+    - 30m
+    - 1h
+    - 2h
+    - 4h
+    windows:
+    - 3
+    - 6
+    step_months: 1
+    funnel:
+      stage_b_top_pct: 0.35
+      stage_b_budget: 60
+      stage_c_budget: 25
+      exploration_pct: 0.15
+      min_exploration_pct: 0.1
+      sim_threshold: 0.9
+    ml_ranker:
+      enabled: false
+      exploration_pct: 0.15
+      alpha: 1.0
+      max_features: 20
+  stage34:
+    enabled: false
+    offline_only: true
+    seed: 42
+    symbols:
+    - BTC/USDT
+    - ETH/USDT
+    timeframes:
+    - 15m
+    - 30m
+    - 1h
+    - 4h
+    required_timeframes:
+    - 1m
+    - 5m
+    - 15m
+    - 30m
+    - 1h
+    - 4h
+    - 1d
+    fixed_snapshot_id: DATA_FROZEN_v1
+    dataset:
+      max_features: 120
+      max_rows_per_symbol: 300000
+      window_horizons_hours:
+      - 24
+      - 72
+    training:
+      models:
+      - logreg
+      - hgbt
+      - rf
+      calibration: platt
+    evaluation:
+      threshold: 0.55
+      window_months:
+      - 3
+      - 6
+      step_months: 1
+      min_usable_windows: 3
+      mc_min_trades: 30
+    evolution:
+      generations: 10
+      max_models_per_generation: 12
+      exploration_pct: 0.2
+      budget: small
+ui:
+  stage5:
+    presets:
+      quick:
+        candidate_count: 1000
+        run_stage4_simulate: 0
+      full:
+        candidate_count: 5000
+        run_stage4_simulate: 0
+    window_months_options:
+    - 3
+    - 6
+    - 12
+    - 36

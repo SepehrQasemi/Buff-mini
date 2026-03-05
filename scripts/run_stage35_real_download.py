@@ -161,6 +161,7 @@ def _write_report(payload: dict[str, Any]) -> None:
         f"- requests_made: `{payload.get('requests_made', 0)}`",
         f"- status_code_counts: `{payload.get('status_code_counts', {})}`",
         f"- coverage_ok: `{payload.get('coverage_ok', False)}`",
+        f"- biggest_blocker: `{payload.get('biggest_blocker', '')}`",
         "",
         "## Coverage Years",
     ]
@@ -170,6 +171,13 @@ def _write_report(payload: dict[str, Any]) -> None:
             lines.append(f"- {symbol}: {rows}")
     else:
         lines.append("- not available")
+    lines.extend(["", "## Next Actions"])
+    actions = payload.get("next_actions", [])
+    if isinstance(actions, list) and actions:
+        for action in actions:
+            lines.append(f"- `{action}`")
+    else:
+        lines.append("- none")
     lines.extend(
         [
             "",
@@ -178,13 +186,25 @@ def _write_report(payload: dict[str, Any]) -> None:
             "```text",
             _snippet(str(payload.get("key_status_stdout", ""))),
             "```",
+            "### key_status stderr",
+            "```text",
+            _snippet(str(payload.get("key_status_stderr", ""))),
+            "```",
             "### verify stdout",
             "```text",
             _snippet(str(payload.get("verify_stdout", ""))),
             "```",
+            "### verify stderr",
+            "```text",
+            _snippet(str(payload.get("verify_stderr", ""))),
+            "```",
             "### plan stdout",
             "```text",
             _snippet(str(payload.get("plan_stdout", ""))),
+            "```",
+            "### plan stderr",
+            "```text",
+            _snippet(str(payload.get("plan_stderr", ""))),
             "```",
             "### download stdout",
             "```text",
@@ -252,10 +272,18 @@ def run_stage35_real_download(args: argparse.Namespace) -> dict[str, Any]:
         "plan_stderr": "",
         "download_stdout": "",
         "download_stderr": "",
+        "biggest_blocker": "",
+        "next_actions": [],
     }
 
     if status_cmd["returncode"] != 0 or status_stdout.startswith("MISSING"):
         payload["status"] = "AUTH_BLOCKED"
+        payload["biggest_blocker"] = "No CoinAPI key source resolved"
+        payload["next_actions"] = [
+            "python scripts/coinapi_key_doctor.py --status",
+            "python scripts/coinapi_key_doctor.py --write",
+            "python scripts/run_stage35_real_download.py --config configs/local_coinapi.yaml --seed 42",
+        ]
         _ensure_usage_doc(payload["status"])
         _write_report(payload)
         return payload
@@ -285,6 +313,13 @@ def run_stage35_real_download(args: argparse.Namespace) -> dict[str, Any]:
     payload["verify_ok"] = verify_cmd["returncode"] == 0
     if verify_cmd["returncode"] != 0:
         payload["status"] = "VERIFY_FAILED"
+        payload["biggest_blocker"] = "CoinAPI auth verification failed"
+        payload["next_actions"] = [
+            "python scripts/coinapi_key_doctor.py --status",
+            "python scripts/coinapi_key_doctor.py --wipe-old",
+            "python scripts/coinapi_key_doctor.py --write",
+            "python scripts/update_coinapi_extras.py --verify --config configs/local_coinapi.yaml --seed 42 --symbols BTC/USDT,ETH/USDT --endpoints funding,oi --years 4 --increment-days 7 --max-requests 1500",
+        ]
         usage_doc = _load_latest_usage_doc()
         latest = usage_doc.get("latest", {}) if isinstance(usage_doc, dict) else {}
         payload["status_code_counts"] = dict(latest.get("status_code_counts", {})) if isinstance(latest, dict) else {}
@@ -297,6 +332,10 @@ def run_stage35_real_download(args: argparse.Namespace) -> dict[str, Any]:
     payload["plan_stderr"] = plan_cmd["stderr"]
     if plan_cmd["returncode"] != 0:
         payload["status"] = "PLAN_FAILED"
+        payload["biggest_blocker"] = "Planner execution failed"
+        payload["next_actions"] = [
+            "python scripts/update_coinapi_extras.py --plan --config configs/local_coinapi.yaml --seed 42 --symbols BTC/USDT,ETH/USDT --endpoints funding,oi --years 4 --increment-days 7 --max-requests 1500",
+        ]
         _ensure_usage_doc(payload["status"])
         _write_report(payload)
         return payload
@@ -309,6 +348,10 @@ def run_stage35_real_download(args: argparse.Namespace) -> dict[str, Any]:
     payload["plan_within_budget"] = not truncated
     if truncated:
         payload["status"] = "PLAN_OVER_BUDGET"
+        payload["biggest_blocker"] = "Requested window exceeds max request budget"
+        payload["next_actions"] = [
+            "python scripts/update_coinapi_extras.py --plan --config configs/local_coinapi.yaml --seed 42 --symbols BTC/USDT,ETH/USDT --endpoints funding,oi --years 4 --increment-days 14 --max-requests 1500",
+        ]
         _ensure_usage_doc(payload["status"])
         _write_report(payload)
         return payload
@@ -323,6 +366,10 @@ def run_stage35_real_download(args: argparse.Namespace) -> dict[str, Any]:
         payload["status_code_counts"] = dict(latest.get("status_code_counts", {}))
     if download_cmd["returncode"] != 0:
         payload["status"] = "DOWNLOAD_FAILED"
+        payload["biggest_blocker"] = "Download execution failed"
+        payload["next_actions"] = [
+            "python scripts/update_coinapi_extras.py --download --config configs/local_coinapi.yaml --seed 42 --symbols BTC/USDT,ETH/USDT --endpoints funding,oi --years 4 --increment-days 7 --max-requests 1500",
+        ]
         _ensure_usage_doc(payload["status"])
         _write_report(payload)
         return payload
@@ -333,6 +380,16 @@ def run_stage35_real_download(args: argparse.Namespace) -> dict[str, Any]:
     payload["coverage_ok"] = bool(coverage_ok)
     payload["missing_coverage"] = missing
     payload["status"] = "DOWNLOAD_COMPLETE" if coverage_ok else "INSUFFICIENT_COVERAGE"
+    if coverage_ok:
+        payload["biggest_blocker"] = ""
+        payload["next_actions"] = [
+            "python scripts/run_stage35_engine_rerun.py --config configs/local_coinapi.yaml --seed 42",
+        ]
+    else:
+        payload["biggest_blocker"] = "Coverage below configured minimum"
+        payload["next_actions"] = [
+            "python scripts/update_coinapi_extras.py --plan --config configs/local_coinapi.yaml --seed 42 --symbols BTC/USDT,ETH/USDT --endpoints funding,oi --years 4 --increment-days 14 --max-requests 1500",
+        ]
     _ensure_usage_doc(payload["status"])
     _write_report(payload)
     return payload

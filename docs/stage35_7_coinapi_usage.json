@@ -1,0 +1,121 @@
+{
+  "runs": [
+    {
+      "run_id": "20260305_195429_056af4ae6871_stage35",
+      "action": "verify",
+      "plan_id": "b2451edba784",
+      "total_requests_planned": 836,
+      "total_requests_selected": 836,
+      "total_requests_made": 1,
+      "status_code_counts": {
+        "401": 1
+      },
+      "endpoints_hit": [
+        "verify_auth"
+      ],
+      "retry_counts": {
+        "total": 0,
+        "by_endpoint": {
+          "verify_auth": 0
+        }
+      },
+      "time_range": {
+        "start": "2022-03-05T19:54:29+00:00",
+        "end": "2026-03-05T19:54:29+00:00"
+      },
+      "rate_limit_sleep_ms_total": 0,
+      "estimated_credits_used": null,
+      "credits_estimation_mode": "UNKNOWN",
+      "run_usage_path": "C:/dev/Buff-mini/runs/20260305_195429_056af4ae6871_stage35/coinapi_usage.json"
+    },
+    {
+      "run_id": "20260305_200121_e880d544c48f_stage35",
+      "action": "verify",
+      "plan_id": "27f91c7ea522",
+      "total_requests_planned": 836,
+      "total_requests_selected": 836,
+      "total_requests_made": 2,
+      "status_code_counts": {
+        "401": 2
+      },
+      "endpoints_hit": [
+        "verify_auth"
+      ],
+      "retry_counts": {
+        "total": 0,
+        "by_endpoint": {
+          "verify_auth": 0
+        }
+      },
+      "time_range": {
+        "start": "2022-03-05T19:54:29+00:00",
+        "end": "2026-03-05T20:01:21+00:00"
+      },
+      "rate_limit_sleep_ms_total": 0,
+      "estimated_credits_used": null,
+      "credits_estimation_mode": "UNKNOWN",
+      "run_usage_path": "C:/dev/Buff-mini/runs/20260305_200121_e880d544c48f_stage35/coinapi_usage.json"
+    },
+    {
+      "run_id": "20260305_201014_b1b208069b29_stage35",
+      "action": "verify",
+      "plan_id": "234806c9cbb2",
+      "total_requests_planned": 836,
+      "total_requests_selected": 836,
+      "total_requests_made": 3,
+      "status_code_counts": {
+        "401": 3
+      },
+      "endpoints_hit": [
+        "verify_auth"
+      ],
+      "retry_counts": {
+        "total": 0,
+        "by_endpoint": {
+          "verify_auth": 0
+        }
+      },
+      "time_range": {
+        "start": "2022-03-05T19:54:29+00:00",
+        "end": "2026-03-05T20:10:14+00:00"
+      },
+      "rate_limit_sleep_ms_total": 0,
+      "estimated_credits_used": null,
+      "credits_estimation_mode": "UNKNOWN",
+      "run_usage_path": "C:/dev/Buff-mini/runs/20260305_201014_b1b208069b29_stage35/coinapi_usage.json"
+    }
+  ],
+  "latest": {
+    "run_id": "20260305_201014_b1b208069b29_stage35",
+    "action": "verify",
+    "plan_id": "234806c9cbb2",
+    "total_requests_planned": 836,
+    "total_requests_selected": 836,
+    "total_requests_made": 3,
+    "status_code_counts": {
+      "401": 3
+    },
+    "endpoints_hit": [
+      "verify_auth"
+    ],
+    "retry_counts": {
+      "total": 0,
+      "by_endpoint": {
+        "verify_auth": 0
+      }
+    },
+    "time_range": {
+      "start": "2022-03-05T19:54:29+00:00",
+      "end": "2026-03-05T20:10:14+00:00"
+    },
+    "rate_limit_sleep_ms_total": 0,
+    "estimated_credits_used": null,
+    "credits_estimation_mode": "UNKNOWN",
+    "run_usage_path": "C:/dev/Buff-mini/runs/20260305_201014_b1b208069b29_stage35/coinapi_usage.json"
+  },
+  "totals": {
+    "total_requests_planned": 2508,
+    "total_requests_made": 6,
+    "run_count": 3
+  }
+}

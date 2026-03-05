@@ -1,0 +1,31 @@
+{
+  "status": "VERIFY_FAILED",
+  "key_source": "SECRETS_TXT",
+  "verify_ok": false,
+  "plan_within_budget": false,
+  "planned_requests": 0,
+  "selected_requests": 0,
+  "requests_made": 0,
+  "status_code_counts": {
+    "401": 3
+  },
+  "coverage_ok": false,
+  "coverage_required_years": null,
+  "coverage_years": {},
+  "missing_coverage": [],
+  "key_status_stdout": "OK source=SECRETS_TXT\n",
+  "key_status_stderr": "",
+  "verify_stdout": "",
+  "verify_stderr": "Auth failed during verify endpoint=verify_auth error=HTTP Error 401: Unauthorized\n",
+  "plan_stdout": "",
+  "plan_stderr": "",
+  "download_stdout": "",
+  "download_stderr": "",
+  "biggest_blocker": "CoinAPI auth verification failed",
+  "next_actions": [
+    "python scripts/coinapi_key_doctor.py --status",
+    "python scripts/coinapi_key_doctor.py --wipe-old",
+    "python scripts/coinapi_key_doctor.py --write",
+    "python scripts/update_coinapi_extras.py --verify --config configs/local_coinapi.yaml --seed 42 --symbols BTC/USDT,ETH/USDT --endpoints funding,oi --years 4 --increment-days 7 --max-requests 1500"
+  ]
+}
