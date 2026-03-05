@@ -5,7 +5,6 @@ from __future__ import annotations
 import argparse
 import gzip
 import json
-import os
 from pathlib import Path
 from typing import Any
 
@@ -18,6 +17,7 @@ from buffmini.data.coinapi.endpoints.funding_rates import normalize_funding_rate
 from buffmini.data.coinapi.endpoints.liquidations import normalize_liquidations, write_liquidations_canonical
 from buffmini.data.coinapi.endpoints.open_interest import normalize_open_interest, write_open_interest_canonical
 from buffmini.data.coinapi.planner import build_backfill_plan
+from buffmini.data.coinapi.secrets import resolve_coinapi_key
 from buffmini.data.coinapi.usage import CoinAPIUsageLedger, build_usage_summary
 from buffmini.utils.hashing import stable_hash
 from buffmini.utils.time import utc_now_compact
@@ -29,22 +29,36 @@ ADAPTERS = {
     "liquidations": (normalize_liquidations, write_liquidations_canonical),
 }
 
+ENDPOINT_ALIASES = {
+    "funding": "funding_rates",
+    "funding_rates": "funding_rates",
+    "oi": "open_interest",
+    "open_interest": "open_interest",
+    "liquidations": "liquidations",
+}
 
-def parse_args() -> argparse.Namespace:
+
+def parse_args(argv: list[str] | None = None) -> argparse.Namespace:
     parser = argparse.ArgumentParser(description="Update CoinAPI enriched extras with budget-aware planning")
+    actions = parser.add_mutually_exclusive_group()
+    actions.add_argument("--plan", action="store_true")
+    actions.add_argument("--download", action="store_true")
+    actions.add_argument("--verify", action="store_true")
     parser.add_argument("--config", type=Path, default=DEFAULT_CONFIG_PATH)
     parser.add_argument("--seed", type=int, default=42)
     parser.add_argument("--symbols", type=str, default="")
     parser.add_argument("--endpoints", type=str, default="")
     parser.add_argument("--start", type=str, default="")
     parser.add_argument("--end", type=str, default="")
+    parser.add_argument("--years", type=int, default=0)
     parser.add_argument("--last-days", type=int, default=0)
     parser.add_argument("--increment-days", type=int, default=7)
     parser.add_argument("--max-requests", type=int, default=0)
+    parser.add_argument("--budget-requests", type=int, default=0)
     parser.add_argument("--offline", action="store_true")
     parser.add_argument("--dry-run", action="store_true")
     parser.add_argument("--runs-dir", type=Path, default=RUNS_DIR)
-    return parser.parse_args()
+    return parser.parse_args(argv)
 
 
 def _split_csv(value: str) -> list[str]:
@@ -75,16 +89,75 @@ def _default_coinapi_config(config: dict[str, Any]) -> dict[str, Any]:
     return merged
 
 
-def _resolve_range(*, start: str, end: str, last_days: int, default_days: int) -> tuple[pd.Timestamp, pd.Timestamp]:
+def _resolve_range(*, start: str, end: str, years: int, last_days: int, default_days: int) -> tuple[pd.Timestamp, pd.Timestamp]:
     end_ts = pd.Timestamp.utcnow().floor("s") if not str(end).strip() else pd.to_datetime(end, utc=True)
     if str(start).strip():
         start_ts = pd.to_datetime(start, utc=True)
     else:
         days = int(last_days) if int(last_days) > 0 else int(default_days)
+        if int(years) > 0:
+            days = int(round(float(years) * 365.25))
         start_ts = end_ts - pd.Timedelta(days=max(1, days))
     if end_ts < start_ts:
         raise ValueError("--end must be >= --start")
     return pd.Timestamp(start_ts), pd.Timestamp(end_ts)
+
+
+def normalize_endpoints(endpoints: list[str]) -> list[str]:
+    out: list[str] = []
+    unknown: list[str] = []
+    for endpoint in endpoints:
+        key = str(endpoint).strip().lower()
+        if not key:
+            continue
+        mapped = ENDPOINT_ALIASES.get(key)
+        if mapped is None:
+            unknown.append(str(endpoint))
+            continue
+        if mapped not in out:
+            out.append(mapped)
+    if unknown:
+        allowed = ", ".join(sorted(ENDPOINT_ALIASES))
+        raise SystemExit(f"Unknown endpoint(s): {unknown}. Allowed endpoint names/aliases: {allowed}")
+    return out
+
+
+def resolve_action(args: argparse.Namespace) -> str:
+    if bool(args.verify):
+        return "verify"
+    if bool(args.plan) or bool(args.dry_run):
+        return "plan"
+    if bool(args.download):
+        return "download"
+    return "download"
+
+
+def resolve_max_requests(*, args: argparse.Namespace, cfg_max_requests: int) -> int:
+    requested = int(args.max_requests) if int(args.max_requests) > 0 else int(args.budget_requests)
+    if requested <= 0:
+        requested = int(cfg_max_requests)
+    return min(int(requested), int(cfg_max_requests))
+
+
+def _build_run_id(*, symbols: list[str], endpoints: list[str], seed: int, start_ts: pd.Timestamp, end_ts: pd.Timestamp) -> str:
+    return (
+        f"{utc_now_compact()}_"
+        f"{stable_hash({'symbols': symbols, 'endpoints': endpoints, 'seed': int(seed), 'start': start_ts.isoformat(), 'end': end_ts.isoformat()}, length=12)}"
+        "_stage35"
+    )
+
+
+def _print_plan_stdout(*, run_id: str, plan: dict[str, Any], plan_path: Path) -> None:
+    print(f"run_id: {run_id}")
+    print(f"plan_id: {plan.get('plan_id', '')}")
+    print(f"planned_count: {plan.get('planned_count', 0)}")
+    print(f"selected_count: {plan.get('selected_count', 0)}")
+    print(f"truncated: {plan.get('truncated', False)}")
+    print(f"plan_path: {plan_path.as_posix()}")
+
+
+def _missing_key_error() -> str:
+    return "COINAPI_KEY missing; use secrets/coinapi_key.txt (gitignored) or environment variable."
 
 
 def _extract_payload_rows(payload: Any) -> list[dict[str, Any]]:
@@ -210,6 +283,7 @@ def execute_plan_items(
 
 def main() -> None:
     args = parse_args()
+    action = resolve_action(args)
     config = load_config(args.config)
     coinapi_cfg = _default_coinapi_config(config)
     enabled = bool(coinapi_cfg.get("enabled", False))
@@ -217,20 +291,26 @@ def main() -> None:
         raise SystemExit("--offline cannot be used when coinapi.enabled=true")
 
     symbols = _split_csv(args.symbols) or [str(v) for v in coinapi_cfg.get("symbols", [])]
-    endpoints = _split_csv(args.endpoints) or [str(v) for v in coinapi_cfg.get("priority_endpoints", [])]
+    raw_endpoints = _split_csv(args.endpoints) or [str(v) for v in coinapi_cfg.get("priority_endpoints", [])]
+    endpoints = normalize_endpoints(raw_endpoints)
     start_ts, end_ts = _resolve_range(
         start=str(args.start),
         end=str(args.end),
+        years=int(args.years),
         last_days=int(args.last_days),
         default_days=int(coinapi_cfg.get("max_days_per_run", 30)),
     )
-    run_id = f"{utc_now_compact()}_{stable_hash({'symbols': symbols, 'endpoints': endpoints, 'seed': int(args.seed), 'start': start_ts.isoformat(), 'end': end_ts.isoformat()}, length=12)}_stage35"
+    run_id = _build_run_id(
+        symbols=symbols,
+        endpoints=endpoints,
+        seed=int(args.seed),
+        start_ts=start_ts,
+        end_ts=end_ts,
+    )
     run_dir = Path(args.runs_dir) / run_id / "stage35"
     run_dir.mkdir(parents=True, exist_ok=True)
 
-    cfg_max_requests = int(coinapi_cfg.get("max_total_requests", 2000))
-    max_requests = int(args.max_requests) if int(args.max_requests) > 0 else cfg_max_requests
-    max_requests = min(max_requests, cfg_max_requests)
+    max_requests = resolve_max_requests(args=args, cfg_max_requests=int(coinapi_cfg.get("max_total_requests", 2000)))
 
     plan = build_backfill_plan(
         symbols=symbols,
@@ -243,22 +323,17 @@ def main() -> None:
     plan_path = run_dir / "coinapi_plan.json"
     plan_path.write_text(json.dumps(plan, indent=2, allow_nan=False), encoding="utf-8")
 
-    if bool(args.dry_run):
-        print(f"run_id: {run_id}")
-        print(f"plan_id: {plan.get('plan_id', '')}")
-        print(f"planned_count: {plan.get('planned_count', 0)}")
-        print(f"selected_count: {plan.get('selected_count', 0)}")
-        print(f"truncated: {plan.get('truncated', False)}")
-        print(f"plan_path: {plan_path.as_posix()}")
+    if action == "plan":
+        _print_plan_stdout(run_id=run_id, plan=plan, plan_path=plan_path)
         return
 
     if not enabled:
         raise SystemExit("coinapi.enabled=false in config. Enable it for network execution.")
 
-    key = str(os.environ.get("COINAPI_KEY", "")).strip()
+    key = str(resolve_coinapi_key(repo_root=Path.cwd()) or "").strip()
     if not key:
-        raise SystemExit("COINAPI_KEY is required for CoinAPI execution")
-    base_url = str(os.environ.get("COINAPI_BASE_URL", coinapi_cfg.get("base_url", "https://rest.coinapi.io")))
+        raise SystemExit(_missing_key_error())
+    base_url = str(coinapi_cfg.get("base_url", "https://rest.coinapi.io"))
     ledger_path = Path("data") / "coinapi" / "meta" / "usage_ledger.jsonl"
     ledger = CoinAPIUsageLedger(ledger_path)
     client = CoinAPIClient(
@@ -268,6 +343,33 @@ def main() -> None:
         max_total_requests=max_requests,
         ledger=ledger,
     )
+    if action == "verify":
+        try:
+            client.request_json(
+                "/v1/exchanges",
+                endpoint_name="verify_auth",
+                symbol="verify",
+                time_start=start_ts.isoformat(),
+                time_end=end_ts.isoformat(),
+                plan_id=str(plan.get("plan_id", "")),
+            )
+        except CoinAPIRequestError as exc:
+            usage_summary = build_usage_summary(ledger.load_records())
+            usage_summary["verify_error"] = str(exc)
+            usage_summary_path = run_dir / "coinapi_usage_summary.json"
+            usage_summary_path.write_text(json.dumps(usage_summary, indent=2, allow_nan=False), encoding="utf-8")
+            message = str(exc)
+            if "401" in message or "403" in message:
+                raise SystemExit(f"Auth failed during verify endpoint=verify_auth error={message}")
+            raise SystemExit(f"Verify failed endpoint=verify_auth error={message}")
+        usage_summary = build_usage_summary(ledger.load_records())
+        usage_summary_path = run_dir / "coinapi_usage_summary.json"
+        usage_summary_path.write_text(json.dumps(usage_summary, indent=2, allow_nan=False), encoding="utf-8")
+        print(f"run_id: {run_id}")
+        print("verify_status: OK")
+        print(f"usage_summary_path: {usage_summary_path.as_posix()}")
+        return
+
     result = execute_plan_items(
         plan=plan,
         client=client,
@@ -291,4 +393,3 @@ def main() -> None:
 
 if __name__ == "__main__":
     main()
-
