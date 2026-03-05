@@ -6,10 +6,12 @@ import json
 import time
 from dataclasses import dataclass
 from datetime import datetime, timezone
+from pathlib import Path
 from types import MappingProxyType
 from typing import Any, Callable
 from urllib import error, parse, request
 
+from .secrets import resolve_coinapi_key
 from .usage import CoinAPIUsageLedger, parse_coinapi_header_signals
 
 
@@ -58,7 +60,7 @@ class CoinAPIClient:
 
     def __init__(
         self,
-        key: str,
+        key: str | None = None,
         *,
         base_url: str = "https://rest.coinapi.io",
         sleep_ms: int = 120,
@@ -67,10 +69,14 @@ class CoinAPIClient:
         max_retries: int = 3,
         ledger: CoinAPIUsageLedger | None = None,
         transport: TransportFn | None = None,
+        repo_root: str | Path | None = None,
     ) -> None:
-        token = str(key).strip()
+        token = str(key or "").strip()
         if not token:
-            raise ValueError("CoinAPI key is required")
+            root = Path(repo_root).resolve() if repo_root is not None else None
+            token = str(resolve_coinapi_key(repo_root=root) or "").strip()
+        if not token:
+            raise ValueError("CoinAPI key is required (COINAPI_KEY or secrets/coinapi_key.txt)")
         self._key = token
         self.base_url = str(base_url).rstrip("/")
         self.sleep_ms = max(0, int(sleep_ms))
@@ -271,4 +277,3 @@ def _safe_query_params(params: dict[str, Any]) -> dict[str, Any]:
         else:
             safe[k] = str(value)
     return safe
-

@@ -32,3 +32,6 @@ runs/*
 
 # Streamlit
 .streamlit/
+
+secrets/
+.env
