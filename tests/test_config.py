@@ -71,6 +71,15 @@ def test_load_config_success() -> None:
     assert config["features"]["extras"]["max_staleness"]["funding_rates"] == "12h"
     assert config["features"]["extras"]["max_staleness"]["open_interest"] == "2d"
     assert config["features"]["extras"]["max_staleness"]["liquidations"] == "6h"
+    assert config["coinapi"]["enabled"] is False
+    assert config["coinapi"]["symbols"] == ["BINANCE_PERP_BTC_USDT", "BINANCE_PERP_ETH_USDT"]
+    assert config["coinapi"]["priority_endpoints"] == ["funding_rates", "open_interest", "liquidations"]
+    assert config["coinapi"]["max_days_per_run"] == 30
+    assert config["coinapi"]["max_total_requests"] == 2000
+    assert config["coinapi"]["store_raw"] is True
+    assert config["coinapi"]["raw_compression"] == "gzip"
+    assert config["coinapi"]["require_min_coverage_years"] == 2.0
+    assert config["coinapi"]["cost_reporting"]["enabled"] is True
     assert config["cost_model"]["mode"] == "simple"
     assert config["cost_model"]["round_trip_cost_pct"] == 0.1
     assert config["cost_model"]["v2"]["slippage_bps_base"] == 0.5
@@ -237,4 +246,12 @@ def test_validate_config_rejects_enabled_extras_without_coinapi_source() -> None
     config["features"]["extras"]["enabled"] = True
     config["features"]["extras"]["sources"] = ["other"]
     with pytest.raises(ValueError, match="must include 'coinapi'"):
+        validate_config(config)
+
+
+def test_validate_config_rejects_invalid_coinapi_endpoint() -> None:
+    root = Path(__file__).resolve().parents[1]
+    config = load_config(root / "configs" / "default.yaml")
+    config["coinapi"]["priority_endpoints"] = ["unknown_endpoint"]
+    with pytest.raises(ValueError, match="unsupported endpoint"):
         validate_config(config)

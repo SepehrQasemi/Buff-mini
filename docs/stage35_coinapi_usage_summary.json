@@ -1,0 +1,15 @@
+{
+  "total_requests": 0,
+  "total_success": 0,
+  "total_fail": 0,
+  "total_bytes": 0,
+  "total_retries": 0,
+  "per_endpoint": {},
+  "per_symbol": {},
+  "quota_signals": {},
+  "credits_used": null,
+  "credits_remaining": null,
+  "quota_used": null,
+  "quota_remaining": null,
+  "credits_estimation_mode": "UNKNOWN"
+}

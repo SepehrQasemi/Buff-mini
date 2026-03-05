@@ -98,6 +98,22 @@ FEATURES_DEFAULTS = {
     }
 }
 
+COINAPI_DEFAULTS = {
+    "enabled": False,
+    "symbols": ["BINANCE_PERP_BTC_USDT", "BINANCE_PERP_ETH_USDT"],
+    "priority_endpoints": ["funding_rates", "open_interest", "liquidations"],
+    "max_days_per_run": 30,
+    "max_total_requests": 2000,
+    "sleep_ms": 120,
+    "store_raw": True,
+    "raw_compression": "gzip",
+    "timeframes_base": ["1m", "1h", "4h"],
+    "build_derived_from_1m": True,
+    "derived_timeframes": ["5m", "15m", "30m", "2h", "6h", "12h", "1d", "1w", "1mo"],
+    "require_min_coverage_years": 2.0,
+    "cost_reporting": {"enabled": True},
+}
+
 COST_MODEL_DEFAULTS = {
     "mode": "simple",
     "round_trip_cost_pct": 0.1,
@@ -1133,6 +1149,51 @@ def validate_config(config: ConfigDict) -> None:
             raise ValueError(f"features.extras.max_staleness.{key} must be non-empty")
     features_cfg["extras"] = extras_cfg
     config["features"] = features_cfg
+
+    coinapi_cfg = _merge_defaults(COINAPI_DEFAULTS, config.get("coinapi", {}))
+    if not isinstance(coinapi_cfg.get("enabled", False), bool):
+        raise ValueError("coinapi.enabled must be bool")
+    symbols_coinapi = coinapi_cfg.get("symbols", [])
+    if not isinstance(symbols_coinapi, list) or not symbols_coinapi:
+        raise ValueError("coinapi.symbols must be a non-empty list")
+    endpoint_list = coinapi_cfg.get("priority_endpoints", [])
+    if not isinstance(endpoint_list, list) or not endpoint_list:
+        raise ValueError("coinapi.priority_endpoints must be a non-empty list")
+    allowed_endpoints = {"funding_rates", "open_interest", "liquidations", "trades_by_side", "orderbook"}
+    normalized_eps = [str(v).strip().lower() for v in endpoint_list]
+    if any(item not in allowed_endpoints for item in normalized_eps):
+        raise ValueError("coinapi.priority_endpoints contains unsupported endpoint")
+    if int(coinapi_cfg.get("max_days_per_run", 30)) < 1:
+        raise ValueError("coinapi.max_days_per_run must be >= 1")
+    if int(coinapi_cfg.get("max_total_requests", 2000)) < 1:
+        raise ValueError("coinapi.max_total_requests must be >= 1")
+    if int(coinapi_cfg.get("sleep_ms", 120)) < 0:
+        raise ValueError("coinapi.sleep_ms must be >= 0")
+    if not isinstance(coinapi_cfg.get("store_raw", True), bool):
+        raise ValueError("coinapi.store_raw must be bool")
+    if str(coinapi_cfg.get("raw_compression", "gzip")).lower() not in {"gzip", "zstd"}:
+        raise ValueError("coinapi.raw_compression must be gzip|zstd")
+    base_tfs = coinapi_cfg.get("timeframes_base", [])
+    if not isinstance(base_tfs, list) or not base_tfs:
+        raise ValueError("coinapi.timeframes_base must be a non-empty list")
+    for idx, tf in enumerate(base_tfs):
+        tfv = str(tf)
+        if tfv not in SUPPORTED_TIMEFRAMES:
+            raise ValueError(f"coinapi.timeframes_base[{idx}] must be one of {SUPPORTED_TIMEFRAMES}")
+    if not isinstance(coinapi_cfg.get("build_derived_from_1m", True), bool):
+        raise ValueError("coinapi.build_derived_from_1m must be bool")
+    derived_tfs = coinapi_cfg.get("derived_timeframes", [])
+    if not isinstance(derived_tfs, list) or not derived_tfs:
+        raise ValueError("coinapi.derived_timeframes must be a non-empty list")
+    if float(coinapi_cfg.get("require_min_coverage_years", 2.0)) <= 0:
+        raise ValueError("coinapi.require_min_coverage_years must be > 0")
+    cost_reporting_cfg = coinapi_cfg.get("cost_reporting", {})
+    if not isinstance(cost_reporting_cfg, dict):
+        raise ValueError("coinapi.cost_reporting must be mapping")
+    if not isinstance(cost_reporting_cfg.get("enabled", True), bool):
+        raise ValueError("coinapi.cost_reporting.enabled must be bool")
+    coinapi_cfg["priority_endpoints"] = normalized_eps
+    config["coinapi"] = coinapi_cfg
 
     portfolio = _merge_defaults(PORTFOLIO_DEFAULTS, config.get("portfolio", {}))
     if int(portfolio["walkforward"]["min_usable_windows"]) < 1:

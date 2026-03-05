@@ -25,6 +25,8 @@ Thumbs.db
 # Project artifacts
 data/raw/*
 !data/raw/.gitkeep
+data/coinapi/*
+!data/coinapi/.gitkeep
 runs/*
 !runs/.gitkeep
 
