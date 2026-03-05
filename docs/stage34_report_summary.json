@@ -1,0 +1,178 @@
+{
+  "run_id": "20260305_060126_70a58817c197_stage34",
+  "seed": 42,
+  "config_hash": "55ddf8a401cd",
+  "data_hash": "b1b6f031a041d620",
+  "resolved_end_ts": "2026-03-02T00:00:00+00:00",
+  "snapshot_hash": "fee406f197c5055f8d33245c",
+  "dataset": {
+    "rows_total": 507726,
+    "feature_count": 35,
+    "timeframes": [
+      "15m",
+      "30m",
+      "1h",
+      "4h"
+    ],
+    "dataset_hash": "ee12b5490af817b4"
+  },
+  "training": {
+    "rows_total": 507726,
+    "splits": {
+      "train": 355408,
+      "val": 76159,
+      "test": 76159
+    },
+    "feature_count": 35,
+    "models": [
+      {
+        "model_name": "logreg",
+        "train_rows": 355408,
+        "val_rows": 76159,
+        "test_rows": 76159,
+        "val_logloss": 0.6920139427765969,
+        "test_logloss": 0.6937630436615213,
+        "val_brier": 0.24943319424833374,
+        "test_brier": 0.2503066472282552,
+        "prob_mean": 0.49393725329588334,
+        "prob_std": 0.025584140367411346
+      },
+      {
+        "model_name": "hgbt",
+        "train_rows": 355408,
+        "val_rows": 76159,
+        "test_rows": 76159,
+        "val_logloss": 0.6928780609213754,
+        "test_logloss": 0.692065555182037,
+        "val_brier": 0.24986545873178556,
+        "test_brier": 0.24945922345850857,
+        "prob_mean": 0.49274353154130085,
+        "prob_std": 0.001088840100203956
+      },
+      {
+        "model_name": "rf",
+        "train_rows": 355408,
+        "val_rows": 76159,
+        "test_rows": 76159,
+        "val_logloss": 0.6926470824017359,
+        "test_logloss": 0.6921539628652773,
+        "val_brier": 0.24974999652409752,
+        "test_brier": 0.2495034323724239,
+        "prob_mean": 0.4922132342864906,
+        "prob_std": 0.0032566111919549376
+      }
+    ],
+    "train_summary_hash": "65ecc9f77a630858"
+  },
+  "evaluation": {
+    "wf_executed_pct": 33.33333333333333,
+    "mc_trigger_pct": 33.33333333333333,
+    "failure_mode_counts": {
+      "no_trades_due_to_thresholds": 8,
+      "no_trades_due_to_cost_drag": 4
+    },
+    "research_best_exp_lcb": 0.0,
+    "live_best_exp_lcb": 0.0
+  },
+  "policy": {
+    "policy_id": "stage34_cac0fef838e3",
+    "model_name": "logreg",
+    "status": "NO_EDGE",
+    "research_trade_count": 3898,
+    "live_trade_count": 3903,
+    "accepted_rejected_breakdown": {
+      "accepted": 5515,
+      "rejected": 0
+    },
+    "top_reject_reasons": []
+  },
+  "generations": {
+    "generation_count": 10,
+    "best_generation": 3,
+    "trend": [
+      {
+        "generation": 0,
+        "best_exp_lcb": 2.97115718774426,
+        "median_exp_lcb": 0.0,
+        "worst_exp_lcb": -21.2781260124508
+      },
+      {
+        "generation": 1,
+        "best_exp_lcb": 9.381584684627294,
+        "median_exp_lcb": 0.0,
+        "worst_exp_lcb": -13.263535555193393
+      },
+      {
+        "generation": 2,
+        "best_exp_lcb": 0.0,
+        "median_exp_lcb": 0.0,
+        "worst_exp_lcb": -14.769601995340027
+      },
+      {
+        "generation": 3,
+        "best_exp_lcb": 84.20130068332038,
+        "median_exp_lcb": 0.0,
+        "worst_exp_lcb": -61.19850764222791
+      },
+      {
+        "generation": 4,
+        "best_exp_lcb": 0.0,
+        "median_exp_lcb": 0.0,
+        "worst_exp_lcb": -17.736533544713748
+      },
+      {
+        "generation": 5,
+        "best_exp_lcb": 20.170054963880386,
+        "median_exp_lcb": 0.0,
+        "worst_exp_lcb": -28.967865080145607
+      },
+      {
+        "generation": 6,
+        "best_exp_lcb": 3.9773779272422494,
+        "median_exp_lcb": 0.0,
+        "worst_exp_lcb": -20.773474735474306
+      },
+      {
+        "generation": 7,
+        "best_exp_lcb": 29.130468734769565,
+        "median_exp_lcb": -3.143447393897072,
+        "worst_exp_lcb": -129.10854935154612
+      },
+      {
+        "generation": 8,
+        "best_exp_lcb": 10.576039660268401,
+        "median_exp_lcb": 0.0,
+        "worst_exp_lcb": -17.196618406480116
+      },
+      {
+        "generation": 9,
+        "best_exp_lcb": 18.897892852940778,
+        "median_exp_lcb": -7.835506531290232,
+        "worst_exp_lcb": -119.14690411453635
+      }
+    ]
+  },
+  "best_generation": 3,
+  "best_combo": {
+    "model_name": "logreg",
+    "threshold": 0.55
+  },
+  "final_verdict": "NO_EDGE",
+  "top_bottleneck": "signal_quality",
+  "bottleneck_evidence": {
+    "live_trade_count": 3903,
+    "top_reject_reason": "",
+    "failure_mode": "no_trades_due_to_thresholds",
+    "wf_executed_pct": 33.33333333333333,
+    "mc_trigger_pct": 33.33333333333333,
+    "live_best_exp_lcb": 0.0,
+    "research_best_exp_lcb": 0.0
+  },
+  "did_generations_improve": true,
+  "if_false_why": "",
+  "data_snapshot_id": "DATA_FROZEN_v1",
+  "data_snapshot_hash": "c734cebc1e80bf15",
+  "data_snapshot_path": "data/snapshots/DATA_FROZEN_v1.json",
+  "data_snapshot_exists": true,
+  "summary_hash": "45d6dac77114b956"
+}

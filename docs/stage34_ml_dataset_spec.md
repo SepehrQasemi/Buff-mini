@@ -1,14 +1,11 @@
 # Stage-34 ML Dataset Spec
 
-## Scope
 - symbols: `['BTC/USDT', 'ETH/USDT']`
 - timeframes: `['15m', '30m', '1h', '4h']`
-- horizons_hours: `[24, 72]`
 - rows_total: `507726`
-- max_features: `120` (active=35)
-- max_rows_per_symbol: `300000`
+- data_hash: `b1b6f031a041d620`
 
-## Feature List
+## Features
 - `ret_1`
 - `log_ret_1`
 - `ret_3`
@@ -45,30 +42,10 @@
 - `dow_sin`
 - `dow_cos`
 
-## Label Definitions
-- `label_primary`: primary triple-barrier-like direction label in {-1,0,1}.
+## Labels
+- `label_primary`: triple-barrier-like directional label.
 - `label_auxiliary`: forward adverse excursion proxy.
 
-## Row Counts
-- `BTC/USDT|15m`: `140084`
-- `BTC/USDT|1h`: `35008`
-- `BTC/USDT|30m`: `70033`
-- `BTC/USDT|4h`: `8738`
-- `ETH/USDT|15m`: `140084`
-- `ETH/USDT|1h`: `35008`
-- `ETH/USDT|30m`: `70033`
-- `ETH/USDT|4h`: `8738`
-
-## Sampling / Limiting
-- Time-consistent truncation only (`tail(max_rows_per_symbol)`), no random sampling.
-
-## No-Leakage Guarantees
-- Features are computed from current/past bars only.
-- Labels may use forward horizons but are aligned to current timestamp.
-- Leakage harness tests include a synthetic intentionally leaky feature check.
-
-## Reproducibility
-- config_hash: `55ddf8a401cd`
-- data_hash: `b1b6f031a041d620`
-- dataset_hash: `ee12b5490af817b4`
-- resolved_end_ts: `2026-03-02T00:00:00+00:00`
+## Leakage Safety
+- Features are strictly based on current/past bars.
+- Labels use future horizon alignment in supervised-learning-safe form only.
