@@ -14,6 +14,7 @@ from .self_learning import (
     select_elites_deterministic,
     upsert_learning_registry_entry,
 )
+from .reporting import validate_stage37_engine_summary
 
 __all__ = [
     "ActivationHuntConfig",
@@ -26,4 +27,5 @@ __all__ = [
     "prune_features_by_contribution",
     "select_elites_deterministic",
     "upsert_learning_registry_entry",
+    "validate_stage37_engine_summary",
 ]
