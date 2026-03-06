@@ -1,0 +1,68 @@
+{
+  "generated_at_utc": "2026-03-06T03:05:30.447548+00:00",
+  "stage": "Stage-36 - Data Resolution and Final Enrichment",
+  "coinapi_provider_verdict": "BLOCKED_FOR_REQUIRED_DERIVATIVES",
+  "coinapi_required_derivatives_usable": false,
+  "coinapi_probe": {
+    "auth_ok": true,
+    "key_source": "SECRETS_TXT",
+    "discovery_requests_used": 19,
+    "discovery_budget_max": 50
+  },
+  "chosen_branch": "BRANCH_C",
+  "fallback_used": true,
+  "final_dataset_families": {
+    "ohlcv": "existing_local",
+    "funding": {
+      "provider": "binance_public_ccxt",
+      "btc_years": 3.9993155373032168,
+      "eth_years": 3.9993155373032168
+    },
+    "open_interest": {
+      "provider": "binance_public_ccxt",
+      "btc_years": 0.09399954369153547,
+      "eth_years": 0.09399954369153547
+    }
+  },
+  "engine_rerun": {
+    "baseline_verdict": "NO_EDGE",
+    "enriched_verdict": "NO_EDGE",
+    "comparison": {
+      "wf_executed_pct": {
+        "baseline": 100.0,
+        "enriched": 100.0,
+        "delta": 0.0
+      },
+      "mc_trigger_pct": {
+        "baseline": 100.0,
+        "enriched": 100.0,
+        "delta": 0.0
+      },
+      "research_trade_count": {
+        "baseline": 0.0,
+        "enriched": 0.0,
+        "delta": 0.0
+      },
+      "live_trade_count": {
+        "baseline": 0.0,
+        "enriched": 0.0,
+        "delta": 0.0
+      },
+      "research_best_exp_lcb": {
+        "baseline": 0.0,
+        "enriched": 0.0,
+        "delta": 0.0
+      },
+      "live_best_exp_lcb": {
+        "baseline": 0.0,
+        "enriched": 0.0,
+        "delta": 0.0
+      }
+    },
+    "promising": false,
+    "stability_runs_executed": false
+  },
+  "biggest_remaining_bottleneck": "Even with near-4y funding fallback, policy activation remains zero trades (signal quality/cost gating bottleneck).",
+  "cheapest_next_step": "Add one more free derivatives context family (e.g., Binance taker buy/sell volume or long/short ratio) with the same no-leak alignment and rerun Stage-28 baseline vs enriched.",
+  "final_verdict": "DATA_RESOLVED_BUT_NO_EDGE"
+}
