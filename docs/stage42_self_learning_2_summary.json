@@ -1,0 +1,107 @@
+{
+  "stage": "42",
+  "seed": 42,
+  "stage28_run_id": "20260306_152631_2a029423a621_stage28",
+  "registry_rows_v2": 1,
+  "elite_count": 1,
+  "family_memory": {
+    "family_weights": {
+      "__all__": 0.19999999999999996
+    },
+    "top_configs_per_family": {
+      "__all__": [
+        {
+          "run_id": "stage37_seed42_20260306_152631_2a029423a621_stage28",
+          "generation": 0,
+          "family": "__all__",
+          "feature_subset_signature": "family::__all__",
+          "threshold_configuration": {
+            "activation_threshold": 0.0
+          },
+          "raw_signal_count": 0,
+          "activation_rate": 0.0,
+          "top_reject_reason": "no_signal",
+          "cost_gate_fail_rate": 0.0,
+          "feasibility_fail_rate": 0.0,
+          "final_trade_count": 0,
+          "exp_lcb": 0.0,
+          "stability_score": 0.0,
+          "status": "dead_end",
+          "elite": true,
+          "failure_motif_tags": [
+            "NO_RAW_SIGNAL",
+            "REJECT::NO_SIGNAL"
+          ],
+          "seed": 42,
+          "context": "global",
+          "raw_candidate_count": 0,
+          "shortlisted_count": 5,
+          "mutation_origin": "stage42_self_learning_v2",
+          "mutation_guidance": "widen_context_and_expand_grammar"
+        }
+      ]
+    },
+    "dead_branches_per_family": {
+      "__all__": 1
+    },
+    "recurring_failure_motifs": {
+      "NO_RAW_SIGNAL": 1,
+      "REJECT::NO_SIGNAL": 1
+    }
+  },
+  "stability_pruning": {
+    "kept_features": [
+      "flow",
+      "taker_buy_sell"
+    ],
+    "dropped_features": [
+      "funding",
+      "long_short_ratio",
+      "open_interest",
+      "price",
+      "volatility"
+    ],
+    "contribution_stats": {
+      "flow": {
+        "mean_gain": 0.3333333333333333,
+        "observations": 1
+      },
+      "funding": {
+        "mean_gain": 0.0,
+        "observations": 1
+      },
+      "long_short_ratio": {
+        "mean_gain": -0.08333333333333333,
+        "observations": 1
+      },
+      "open_interest": {
+        "mean_gain": 0.0,
+        "observations": 1
+      },
+      "price": {
+        "mean_gain": -0.08333333333333333,
+        "observations": 1
+      },
+      "taker_buy_sell": {
+        "mean_gain": 0.16666666666666666,
+        "observations": 1
+      },
+      "volatility": {
+        "mean_gain": -0.3333333333333333,
+        "observations": 1
+      }
+    }
+  },
+  "self_diagnosis": {
+    "improved": [
+      "raw_candidate_generation",
+      "stage_b_survival"
+    ],
+    "regressed": [],
+    "mutate_next": "widen_context_and_expand_grammar",
+    "explore_less": [
+      "__all__"
+    ],
+    "explore_more": []
+  }
+}
