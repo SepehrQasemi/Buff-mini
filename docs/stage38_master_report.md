@@ -35,9 +35,9 @@
 - still_no_edge: `True`
 
 ## Remaining Bottleneck
-- biggest_remaining_bottleneck: `cost_drag_vs_signal`
+- biggest_remaining_bottleneck: `upstream_signal_generation`
 - next_cheapest_high_confidence_action: `Increase upstream candidate signal quality (family/context generation), then rerun Stage-37/38 lineage checks.`
 
 ## Verdict
 - `SELF_LEARNING_NOW_REAL_BUT_SIGNAL_WEAK`
-- summary_hash: `1024d9be2719caa8`
+- summary_hash: `d8e71f2f8a6c94d0`

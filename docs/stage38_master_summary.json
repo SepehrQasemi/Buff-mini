@@ -73,12 +73,12 @@
     "failure_motif_tags_non_empty": true
   },
   "verdict": "SELF_LEARNING_NOW_REAL_BUT_SIGNAL_WEAK",
-  "biggest_remaining_bottleneck": "cost_drag_vs_signal",
+  "biggest_remaining_bottleneck": "upstream_signal_generation",
   "next_action": "Increase upstream candidate signal quality (family/context generation), then rerun Stage-37/38 lineage checks.",
   "report_paths": {
     "flow_report": "docs/stage38_end_to_end_flow_report.md",
     "logic_report": "docs/stage38_logic_audit_report.md",
     "test_hardening_report": "docs/stage38_test_hardening_report.md"
   },
-  "summary_hash": "1024d9be2719caa8"
+  "summary_hash": "d8e71f2f8a6c94d0"
 }

@@ -222,6 +222,8 @@ def main() -> None:
         engine_raw_signal_count=engine_raw_signal_count,
     )
     bottleneck = str(stage28_summary.get("next_bottleneck", "")) or str(logic_payload.get("collapse_reason", ""))
+    if engine_raw_signal_count <= 0:
+        bottleneck = "upstream_signal_generation"
     next_action = (
         "Increase upstream candidate signal quality (family/context generation), then rerun Stage-37/38 lineage checks."
         if engine_raw_signal_count <= 0
@@ -280,4 +282,3 @@ def main() -> None:
 
 if __name__ == "__main__":
     main()
-
