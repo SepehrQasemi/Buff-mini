@@ -1,0 +1,135 @@
+{
+  "generated_at_utc": "2026-03-06T01:11:20.994360+00:00",
+  "coinapi_branch": "BRANCH_C",
+  "coinapi_discovery_requests": 19,
+  "fallback_source": "binance_public_via_ccxt_update_futures_extras",
+  "coverage": {
+    "BTC/USDT": {
+      "funding": {
+        "provider": "binance_public_ccxt",
+        "file_exists": true,
+        "sample_count_non_null": 35057,
+        "start_ts": "2022-03-03T16:00:00+00:00",
+        "end_ts": "2026-03-03T10:00:00+00:00",
+        "coverage_years": 3.9993155373032168,
+        "duplicate_count": 0
+      },
+      "open_interest": {
+        "provider": "binance_public_ccxt",
+        "file_exists": true,
+        "sample_count_non_null": 825,
+        "start_ts": "2026-01-28T02:00:00+00:00",
+        "end_ts": "2026-03-03T10:00:00+00:00",
+        "coverage_years": 0.09399954369153547,
+        "duplicate_count": 0
+      }
+    },
+    "ETH/USDT": {
+      "funding": {
+        "provider": "binance_public_ccxt",
+        "file_exists": true,
+        "sample_count_non_null": 35057,
+        "start_ts": "2022-03-03T16:00:00+00:00",
+        "end_ts": "2026-03-03T10:00:00+00:00",
+        "coverage_years": 3.9993155373032168,
+        "duplicate_count": 0
+      },
+      "open_interest": {
+        "provider": "binance_public_ccxt",
+        "file_exists": true,
+        "sample_count_non_null": 825,
+        "start_ts": "2026-01-28T02:00:00+00:00",
+        "end_ts": "2026-03-03T10:00:00+00:00",
+        "coverage_years": 0.09399954369153547,
+        "duplicate_count": 0
+      }
+    }
+  },
+  "meta": {
+    "BTC/USDT": {
+      "funding": {
+        "symbol": "BTC/USDT",
+        "timeframe": "1h",
+        "source": "binance",
+        "kind": "funding",
+        "start_ts": "2022-03-03T16:00:00.005000+00:00",
+        "end_ts": "2026-03-03T08:00:00+00:00",
+        "row_count": 4383,
+        "gaps_count": 0,
+        "fetched_at_utc": "20260306_010918"
+      },
+      "open_interest": {
+        "symbol": "BTC/USDT",
+        "timeframe": "1h",
+        "source": "binance",
+        "kind": "open_interest",
+        "start_ts": "2026-02-06T02:00:00+00:00",
+        "end_ts": "2026-03-03T10:00:00+00:00",
+        "row_count": 609,
+        "total_expected_rows": 35063,
+        "coverage_ratio": 0.01736873627470553,
+        "gaps_count": 0,
+        "largest_gap_hours": 1.0,
+        "quality_rows": 609,
+        "quality_gaps_count": 0,
+        "requests_count": 2,
+        "stop_reason": "insufficient_chunk_rows",
+        "backfill_attempted": true,
+        "force_backfill": false,
+        "fetched_at_utc": "20260306_010919",
+        "warnings": [
+          "Coverage ratio below 0.90; Binance OI history retention likely limited."
+        ],
+        "previous_start_ts": "2026-01-28T03:00:00+00:00",
+        "previous_end_ts": "2026-02-26T09:00:00+00:00",
+        "previous_row_count": 703,
+        "previous_coverage_ratio": 0.02541760069419336
+      }
+    },
+    "ETH/USDT": {
+      "funding": {
+        "symbol": "ETH/USDT",
+        "timeframe": "1h",
+        "source": "binance",
+        "kind": "funding",
+        "start_ts": "2022-03-03T16:00:00.005000+00:00",
+        "end_ts": "2026-03-03T08:00:00+00:00",
+        "row_count": 4383,
+        "gaps_count": 0,
+        "fetched_at_utc": "20260306_010921"
+      },
+      "open_interest": {
+        "symbol": "ETH/USDT",
+        "timeframe": "1h",
+        "source": "binance",
+        "kind": "open_interest",
+        "start_ts": "2026-02-06T02:00:00+00:00",
+        "end_ts": "2026-03-03T10:00:00+00:00",
+        "row_count": 609,
+        "total_expected_rows": 35063,
+        "coverage_ratio": 0.01736873627470553,
+        "gaps_count": 0,
+        "largest_gap_hours": 1.0,
+        "quality_rows": 609,
+        "quality_gaps_count": 0,
+        "requests_count": 2,
+        "stop_reason": "insufficient_chunk_rows",
+        "backfill_attempted": true,
+        "force_backfill": false,
+        "fetched_at_utc": "20260306_010922",
+        "warnings": [
+          "Coverage ratio below 0.90; Binance OI history retention likely limited."
+        ],
+        "previous_start_ts": "2026-01-28T03:00:00+00:00",
+        "previous_end_ts": "2026-02-26T09:00:00+00:00",
+        "previous_row_count": 703,
+        "previous_coverage_ratio": 0.02541760069419336
+      }
+    }
+  },
+  "desired_families_unavailable": [
+    "coinapi_funding_rates_binance_perp",
+    "coinapi_open_interest_binance_perp",
+    "coinapi_liquidations_binance_perp"
+  ]
+}

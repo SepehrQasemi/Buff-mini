@@ -164,17 +164,19 @@ def calculate_features(
         if _synthetic_extras_for_tests:
             funding_df, oi_df = synthetic_futures_extras(data)
         else:
-            funding_df = load_derived_parquet(
+            funding_df = _load_optional_derived_extras(
                 kind="funding",
                 symbol=resolved_symbol,
                 timeframe=timeframe,
                 data_dir=derived_data_dir,
+                value_col="funding_rate",
             )
-            oi_df = load_derived_parquet(
+            oi_df = _load_optional_derived_extras(
                 kind="open_interest",
                 symbol=resolved_symbol,
                 timeframe=timeframe,
                 data_dir=derived_data_dir,
+                value_col="open_interest",
             )
 
         extras = build_all_futures_features(
@@ -251,6 +253,27 @@ def calculate_features(
         data = data.merge(aligned, on="timestamp", how="left")
 
     return data
+
+
+def _load_optional_derived_extras(
+    *,
+    kind: str,
+    symbol: str,
+    timeframe: str,
+    data_dir: str | Path,
+    value_col: str,
+) -> pd.DataFrame:
+    """Load derived extras; return empty schema when file is missing."""
+
+    try:
+        return load_derived_parquet(
+            kind=kind,
+            symbol=symbol,
+            timeframe=timeframe,
+            data_dir=data_dir,
+        )
+    except FileNotFoundError:
+        return pd.DataFrame(columns=["timestamp", value_col])
 
 
 def _should_include_futures_extras(config: dict[str, Any] | None) -> bool:
