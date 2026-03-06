@@ -1,0 +1,14 @@
+{
+  "stage": "37.5",
+  "promising_from_seed42": false,
+  "executed_seed_count": 0,
+  "rows": [],
+  "distribution": {
+    "activation_rate_median": 0.0,
+    "trade_count_median": 0.0,
+    "live_exp_lcb_median": 0.0,
+    "live_exp_lcb_worst": 0.0,
+    "live_exp_lcb_best": 0.0
+  },
+  "note": "Not promising on seed-42; skipped extra seeds to avoid waste."
+}

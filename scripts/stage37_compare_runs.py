@@ -24,6 +24,8 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument("--runs-dir", type=Path, default=RUNS_DIR)
     parser.add_argument("--docs-dir", type=Path, default=Path("docs"))
     parser.add_argument("--budget-small", action="store_true")
+    parser.add_argument("--baseline-run-id", type=str, default="")
+    parser.add_argument("--upgraded-run-id", type=str, default="")
     return parser.parse_args()
 
 
@@ -66,7 +68,10 @@ def _load_json(path: Path) -> dict[str, Any]:
 def _load_csv(path: Path) -> pd.DataFrame:
     if not path.exists():
         return pd.DataFrame()
-    return pd.read_csv(path)
+    try:
+        return pd.read_csv(path)
+    except pd.errors.EmptyDataError:
+        return pd.DataFrame()
 
 
 def _extract_metrics(run_dir: Path) -> dict[str, Any]:
@@ -178,20 +183,24 @@ def _render_report(payload: dict[str, Any]) -> str:
 
 def main() -> None:
     args = parse_args()
-    baseline_run_id, _, _ = _run_stage28(
-        config=Path(args.baseline_config),
-        seed=int(args.seed),
-        runs_dir=Path(args.runs_dir),
-        docs_dir=Path(args.docs_dir),
-        budget_small=bool(args.budget_small),
-    )
-    upgraded_run_id, _, _ = _run_stage28(
-        config=Path(args.upgraded_config),
-        seed=int(args.seed),
-        runs_dir=Path(args.runs_dir),
-        docs_dir=Path(args.docs_dir),
-        budget_small=bool(args.budget_small),
-    )
+    baseline_run_id = str(args.baseline_run_id).strip()
+    upgraded_run_id = str(args.upgraded_run_id).strip()
+    if not baseline_run_id:
+        baseline_run_id, _, _ = _run_stage28(
+            config=Path(args.baseline_config),
+            seed=int(args.seed),
+            runs_dir=Path(args.runs_dir),
+            docs_dir=Path(args.docs_dir),
+            budget_small=bool(args.budget_small),
+        )
+    if not upgraded_run_id:
+        upgraded_run_id, _, _ = _run_stage28(
+            config=Path(args.upgraded_config),
+            seed=int(args.seed),
+            runs_dir=Path(args.runs_dir),
+            docs_dir=Path(args.docs_dir),
+            budget_small=bool(args.budget_small),
+        )
 
     baseline_dir = Path(args.runs_dir) / baseline_run_id / "stage28"
     upgraded_dir = Path(args.runs_dir) / upgraded_run_id / "stage28"

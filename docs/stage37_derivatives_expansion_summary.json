@@ -1,0 +1,86 @@
+{
+  "stage": "37.2",
+  "symbols": [
+    "BTC/USDT",
+    "ETH/USDT"
+  ],
+  "timeframe": "1h",
+  "funding_available": true,
+  "taker_available": true,
+  "long_short_available": true,
+  "oi_short_only_mode": false,
+  "rows": [
+    {
+      "symbol": "BTC/USDT",
+      "family": "funding",
+      "source": "binance_public_futures",
+      "sample_count": 35061,
+      "start_ts": "2022-03-03T12:00:00+00:00",
+      "end_ts": "2026-03-03T10:00:00+00:00",
+      "coverage_years": 3.9997718457677394
+    },
+    {
+      "symbol": "BTC/USDT",
+      "family": "open_interest",
+      "source": "binance_public_futures",
+      "sample_count": 35062,
+      "start_ts": "2022-03-03T12:00:00+00:00",
+      "end_ts": "2026-03-03T10:00:00+00:00",
+      "coverage_years": 3.9997718457677394
+    },
+    {
+      "symbol": "BTC/USDT",
+      "family": "taker_buy_sell",
+      "source": "binance_public_futures",
+      "sample_count": 35061,
+      "start_ts": "2022-03-03T12:00:00+00:00",
+      "end_ts": "2026-03-03T10:00:00+00:00",
+      "coverage_years": 3.9997718457677394
+    },
+    {
+      "symbol": "BTC/USDT",
+      "family": "long_short_ratio",
+      "source": "binance_public_futures",
+      "sample_count": 35061,
+      "start_ts": "2022-03-03T12:00:00+00:00",
+      "end_ts": "2026-03-03T10:00:00+00:00",
+      "coverage_years": 3.9997718457677394
+    },
+    {
+      "symbol": "ETH/USDT",
+      "family": "funding",
+      "source": "binance_public_futures",
+      "sample_count": 35061,
+      "start_ts": "2022-03-03T12:00:00+00:00",
+      "end_ts": "2026-03-03T10:00:00+00:00",
+      "coverage_years": 3.9997718457677394
+    },
+    {
+      "symbol": "ETH/USDT",
+      "family": "open_interest",
+      "source": "binance_public_futures",
+      "sample_count": 35062,
+      "start_ts": "2022-03-03T12:00:00+00:00",
+      "end_ts": "2026-03-03T10:00:00+00:00",
+      "coverage_years": 3.9997718457677394
+    },
+    {
+      "symbol": "ETH/USDT",
+      "family": "taker_buy_sell",
+      "source": "binance_public_futures",
+      "sample_count": 35061,
+      "start_ts": "2022-03-03T12:00:00+00:00",
+      "end_ts": "2026-03-03T10:00:00+00:00",
+      "coverage_years": 3.9997718457677394
+    },
+    {
+      "symbol": "ETH/USDT",
+      "family": "long_short_ratio",
+      "source": "binance_public_futures",
+      "sample_count": 35061,
+      "start_ts": "2022-03-03T12:00:00+00:00",
+      "end_ts": "2026-03-03T10:00:00+00:00",
+      "coverage_years": 3.9997718457677394
+    }
+  ]
+}

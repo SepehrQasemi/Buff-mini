@@ -26,6 +26,10 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument("--budget-small", action="store_true")
     parser.add_argument("--runs-dir", type=Path, default=RUNS_DIR)
     parser.add_argument("--docs-dir", type=Path, default=Path("docs"))
+    parser.add_argument("--resume-from-docs", action="store_true")
+    parser.add_argument("--baseline-run-id", type=str, default="")
+    parser.add_argument("--upgraded-run-id", type=str, default="")
+    parser.add_argument("--skip-seed-reruns", action="store_true")
     return parser.parse_args()
 
 
@@ -190,53 +194,55 @@ def main() -> None:
     stage37_dir = Path(args.runs_dir) / stage37_run_id / "stage37"
     stage37_dir.mkdir(parents=True, exist_ok=True)
 
-    activation_cmd = [
-        sys.executable,
-        "scripts/stage37_activation_hunt.py",
-        "--config",
-        str(args.config),
-        "--seed",
-        str(int(args.seed)),
-        "--mode",
-        "both",
-        "--runs-dir",
-        str(args.runs_dir),
-        "--docs-dir",
-        str(docs_dir),
-    ]
-    if bool(args.budget_small):
-        activation_cmd.append("--budget-small")
-    activation_out, _ = _run_checked(activation_cmd, label="stage37_activation_hunt")
+    if not bool(args.resume_from_docs):
+        activation_cmd = [
+            sys.executable,
+            "scripts/stage37_activation_hunt.py",
+            "--config",
+            str(args.config),
+            "--seed",
+            str(int(args.seed)),
+            "--mode",
+            "both",
+            "--runs-dir",
+            str(args.runs_dir),
+            "--docs-dir",
+            str(docs_dir),
+        ]
+        if bool(args.budget_small):
+            activation_cmd.append("--budget-small")
+        _run_checked(activation_cmd, label="stage37_activation_hunt")
+
+        derivatives_cmd = [
+            sys.executable,
+            "scripts/stage37_build_derivatives_features.py",
+            "--config",
+            str(args.config),
+            "--data-dir",
+            "data/canonical",
+            "--derived-dir",
+            "data/derived",
+            "--docs-dir",
+            str(docs_dir),
+        ]
+        _run_checked(derivatives_cmd, label="stage37_build_derivatives_features")
+
+        self_learning_cmd = [
+            sys.executable,
+            "scripts/stage37_self_learning_rerun.py",
+            "--config",
+            str(args.config),
+            "--seed",
+            str(int(args.seed)),
+            "--runs-dir",
+            str(args.runs_dir),
+            "--docs-dir",
+            str(docs_dir),
+        ]
+        _run_checked(self_learning_cmd, label="stage37_self_learning_rerun")
+
     activation_summary = _load_json(docs_dir / "stage37_activation_hunt_summary.json")
-
-    derivatives_cmd = [
-        sys.executable,
-        "scripts/stage37_build_derivatives_features.py",
-        "--config",
-        str(args.config),
-        "--data-dir",
-        "data/canonical",
-        "--derived-dir",
-        "data/derived",
-        "--docs-dir",
-        str(docs_dir),
-    ]
-    _run_checked(derivatives_cmd, label="stage37_build_derivatives_features")
     derivatives_summary = _load_json(docs_dir / "stage37_derivatives_expansion_summary.json")
-
-    self_learning_cmd = [
-        sys.executable,
-        "scripts/stage37_self_learning_rerun.py",
-        "--config",
-        str(args.config),
-        "--seed",
-        str(int(args.seed)),
-        "--runs-dir",
-        str(args.runs_dir),
-        "--docs-dir",
-        str(docs_dir),
-    ]
-    _run_checked(self_learning_cmd, label="stage37_self_learning_rerun")
     self_learning_summary = _load_json(docs_dir / "stage37_self_learning_upgrade_summary.json")
 
     upgraded_cfg = _build_upgraded_config(base_config=Path(args.config), out_path=stage37_dir / "stage37_upgraded.yaml")
@@ -254,15 +260,24 @@ def main() -> None:
         "--docs-dir",
         str(docs_dir),
     ]
+    if str(args.baseline_run_id).strip():
+        compare_cmd.extend(["--baseline-run-id", str(args.baseline_run_id).strip()])
+    if str(args.upgraded_run_id).strip():
+        compare_cmd.extend(["--upgraded-run-id", str(args.upgraded_run_id).strip()])
     if bool(args.budget_small):
         compare_cmd.append("--budget-small")
-    _run_checked(compare_cmd, label="stage37_compare_runs")
+    if not (bool(args.resume_from_docs) and not str(args.baseline_run_id).strip() and not str(args.upgraded_run_id).strip() and (docs_dir / "stage37_engine_summary.json").exists()):
+        _run_checked(compare_cmd, label="stage37_compare_runs")
     engine_summary = _load_json(docs_dir / "stage37_engine_summary.json")
     promising = bool(engine_summary.get("promising", False))
 
     seed_rows: list[dict[str, Any]] = []
-    seed_list = [43, 44, 45, 46, 47] if promising else [43]
-    note = "" if promising else "Not promising on seed-42; ran minimal diagnostic seed only."
+    seed_list = [43, 44, 45, 46, 47] if (promising and not bool(args.skip_seed_reruns)) else []
+    note = ""
+    if not promising:
+        note = "Not promising on seed-42; skipped extra seeds to avoid waste."
+    elif bool(args.skip_seed_reruns):
+        note = "Promising but seed reruns explicitly skipped."
     for seed in seed_list:
         cmd = [
             sys.executable,
@@ -306,29 +321,31 @@ def main() -> None:
     (docs_dir / "stage37_5seed_report.md").write_text(_render_5seed(five_seed_payload), encoding="utf-8")
 
     # Determinism check: rerun seed-42 upgraded and compare summary hash.
-    det_cmd = [
-        sys.executable,
-        "scripts/run_stage28.py",
-        "--config",
-        str(upgraded_cfg),
-        "--seed",
-        str(int(args.seed)),
-        "--mode",
-        "both",
-        "--runs-dir",
-        str(args.runs_dir),
-        "--docs-dir",
-        str(docs_dir),
-    ]
-    if bool(args.budget_small):
-        det_cmd.append("--budget-small")
-    det_out, _ = _run_checked(det_cmd, label="stage28_upgraded_seed42_rerun")
-    det_run_id = _parse_run_id(det_out)
-    det_metrics = _extract_stage28_metrics(Path(args.runs_dir) / det_run_id / "stage28") if det_run_id else {}
-    deterministic = bool(
-        det_metrics
-        and str(det_metrics.get("summary_hash", "")) == str((engine_summary.get("upgraded", {}) or {}).get("summary_hash", ""))
-    )
+    deterministic = False
+    if not bool(args.skip_seed_reruns):
+        det_cmd = [
+            sys.executable,
+            "scripts/run_stage28.py",
+            "--config",
+            str(upgraded_cfg),
+            "--seed",
+            str(int(args.seed)),
+            "--mode",
+            "both",
+            "--runs-dir",
+            str(args.runs_dir),
+            "--docs-dir",
+            str(docs_dir),
+        ]
+        if bool(args.budget_small):
+            det_cmd.append("--budget-small")
+        det_out, _ = _run_checked(det_cmd, label="stage28_upgraded_seed42_rerun")
+        det_run_id = _parse_run_id(det_out)
+        det_metrics = _extract_stage28_metrics(Path(args.runs_dir) / det_run_id / "stage28") if det_run_id else {}
+        deterministic = bool(
+            det_metrics
+            and str(det_metrics.get("summary_hash", "")) == str((engine_summary.get("upgraded", {}) or {}).get("summary_hash", ""))
+        )
 
     biggest_bottleneck = str((engine_summary.get("upgraded", {}) or {}).get("next_bottleneck", "signal_quality"))
     next_action = "Tune Stage-28/37 activation and cost-gate settings per family using stage37_activation_hunt_report.md"
