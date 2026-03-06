@@ -25,8 +25,8 @@
 - fix_summary: `Normalized active_candidates now maps NaN/None/'nan' to empty before raw-signal gating, and lineage now tracks composer_signal_count explicitly.`
 
 ## OI Short-Only Enforcement
-- short_only_enabled: `False`
-- timeframe: ``
+- short_only_enabled: `True`
+- timeframe: `1h`
 - timeframe_allowed: `False`
 - oi_active_runtime: `False`
 - oi_non_null_rows: `0`

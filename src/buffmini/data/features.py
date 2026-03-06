@@ -217,13 +217,18 @@ def calculate_features(
         data = data.merge(extras, on="timestamp", how="left")
 
         oi_cfg = dict(extras_cfg.get("open_interest", {}))
+        oi_short_only = _oi_short_horizon_only(oi_cfg)
+        oi_cutoff = str(oi_cfg.get("short_horizon_max", "30m")).strip().lower()
+        oi_timeframe_allowed = _is_timeframe_shorter_or_equal(timeframe=timeframe, threshold=oi_cutoff)
+        oi_applied_mask = False
+
         if _oi_short_horizon_only(oi_cfg):
-            oi_cutoff = str(oi_cfg.get("short_horizon_max", "30m")).strip().lower()
-            if not _is_timeframe_shorter_or_equal(timeframe=timeframe, threshold=oi_cutoff):
+            if not oi_timeframe_allowed:
                 for col in OI_DEPENDENT_COLUMNS:
                     if col in data.columns:
                         data[col] = np.nan
                 data["oi_active"] = False
+                oi_applied_mask = True
 
         if _oi_overlay_enabled(config):
             overlay_cfg = dict(
@@ -251,6 +256,25 @@ def calculate_features(
             )
             data["oi_active"] = oi_active
             data.attrs["oi_overlay"] = overlay_metadata_dict(window=window, oi_active=oi_active, total_rows=len(data))
+
+        oi_cols = [col for col in OI_DEPENDENT_COLUMNS if col in data.columns]
+        oi_non_null_rows = int(data[oi_cols].notna().any(axis=1).sum()) if oi_cols else 0
+        if "oi_active" in data.columns:
+            oi_active_series = pd.to_numeric(data["oi_active"], errors="coerce").fillna(0).astype(bool)
+            oi_active_runtime = bool(oi_active_series.any())
+        else:
+            oi_active_runtime = bool(oi_non_null_rows > 0)
+            data["oi_active"] = bool(oi_active_runtime)
+        data.attrs["oi_usage"] = {
+            "short_only_enabled": bool(oi_short_only),
+            "short_horizon_max": str(oi_cutoff),
+            "timeframe": str(timeframe),
+            "timeframe_allowed": bool(oi_timeframe_allowed),
+            "applied_mask": bool(oi_applied_mask),
+            "oi_columns": oi_cols,
+            "oi_non_null_rows": int(oi_non_null_rows),
+            "oi_active": bool(oi_active_runtime),
+        }
 
     if config_extras_enabled(config):
         resolved_symbol = symbol or str(data.attrs.get("symbol") or "")

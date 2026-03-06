@@ -44,13 +44,44 @@
     "failure_motif_tags_non_empty": false
   },
   "oi_usage": {
-    "short_only_enabled": false,
-    "short_horizon_max": "",
-    "timeframe": "",
+    "short_only_enabled": true,
+    "short_horizon_max": "30m",
+    "timeframe": "1h",
     "timeframe_allowed": false,
-    "oi_columns_present": [],
+    "oi_columns_present": [
+      "oi",
+      "oi_chg_1",
+      "oi_chg_24",
+      "oi_z_30",
+      "oi_to_volume",
+      "oi_accel",
+      "crowd_long_risk",
+      "crowd_short_risk",
+      "leverage_building"
+    ],
     "oi_non_null_rows": 0,
     "oi_active_runtime": false,
-    "rule": ""
+    "rule": "short_only_enforced",
+    "attrs_oi_usage": {
+      "short_only_enabled": true,
+      "short_horizon_max": "30m",
+      "timeframe": "1h",
+      "timeframe_allowed": false,
+      "applied_mask": true,
+      "oi_columns": [
+        "oi",
+        "oi_chg_1",
+        "oi_chg_24",
+        "oi_z_30",
+        "oi_to_volume",
+        "oi_accel",
+        "crowd_long_risk",
+        "crowd_short_risk",
+        "leverage_building"
+      ],
+      "oi_non_null_rows": 0,
+      "oi_active": false
+    },
+    "runtime_vs_attrs_match": true
   }
 }
