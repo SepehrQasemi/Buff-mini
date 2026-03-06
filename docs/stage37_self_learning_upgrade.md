@@ -2,7 +2,7 @@
 
 ## Registry
 - registry_rows: `1`
-- new_rows_added: `1`
+- new_rows_added: `0`
 - stage28_run_id: `20260306_152631_2a029423a621_stage28`
 
 ## Family Exploration Weights

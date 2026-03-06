@@ -1,0 +1,84 @@
+{
+  "stage": "38.6",
+  "seed": 42,
+  "config_path": "C:\\dev\\Buff-mini\\configs\\default.yaml",
+  "config_hash": "760822715be4c5c0",
+  "stage28_run_id": "20260306_152631_2a029423a621_stage28",
+  "trace_hash": "4e4d501fbca6d698",
+  "lineage_table": {
+    "raw_signal_count": 0,
+    "post_threshold_count": 0,
+    "post_cost_gate_count": 0,
+    "post_feasibility_count": 0,
+    "composer_signal_count": 0,
+    "engine_raw_signal_count": 0,
+    "final_trade_count": 0.0,
+    "live_trade_count": 0.0,
+    "shadow_reject_count": 0,
+    "top_reject_reasons": {},
+    "legacy_raw_signal_count": 87650,
+    "collapse_reason": "no_raw_candidates",
+    "composer_vs_engine_consistent": true,
+    "final_trade_consistent": true,
+    "contradiction_fixed": true
+  },
+  "collapse_reason": "no_raw_candidates",
+  "contradiction_fixed": true,
+  "oi_usage": {
+    "short_only_enabled": true,
+    "short_horizon_max": "30m",
+    "timeframe": "1h",
+    "timeframe_allowed": false,
+    "oi_columns_present": [
+      "oi",
+      "oi_chg_1",
+      "oi_chg_24",
+      "oi_z_30",
+      "oi_to_volume",
+      "oi_accel",
+      "crowd_long_risk",
+      "crowd_short_risk",
+      "leverage_building"
+    ],
+    "oi_non_null_rows": 0,
+    "oi_active_runtime": false,
+    "rule": "short_only_enforced",
+    "attrs_oi_usage": {
+      "short_only_enabled": true,
+      "short_horizon_max": "30m",
+      "timeframe": "1h",
+      "timeframe_allowed": false,
+      "applied_mask": true,
+      "oi_columns": [
+        "oi",
+        "oi_chg_1",
+        "oi_chg_24",
+        "oi_z_30",
+        "oi_to_volume",
+        "oi_accel",
+        "crowd_long_risk",
+        "crowd_short_risk",
+        "leverage_building"
+      ],
+      "oi_non_null_rows": 0,
+      "oi_active": false
+    },
+    "runtime_vs_attrs_match": true
+  },
+  "self_learning": {
+    "registry_path": "C:/dev/Buff-mini/runs/20260306_152631_2a029423a621_stage28/stage37/learning_registry.json",
+    "registry_rows": 1,
+    "elites_count": 1,
+    "dead_family_count": 1,
+    "failure_motif_tags_non_empty": true
+  },
+  "verdict": "SELF_LEARNING_NOW_REAL_BUT_SIGNAL_WEAK",
+  "biggest_remaining_bottleneck": "cost_drag_vs_signal",
+  "next_action": "Increase upstream candidate signal quality (family/context generation), then rerun Stage-37/38 lineage checks.",
+  "report_paths": {
+    "flow_report": "docs/stage38_end_to_end_flow_report.md",
+    "logic_report": "docs/stage38_logic_audit_report.md",
+    "test_hardening_report": "docs/stage38_test_hardening_report.md"
+  },
+  "summary_hash": "1024d9be2719caa8"
+}
