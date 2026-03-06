@@ -157,7 +157,7 @@ def _print_plan_stdout(*, run_id: str, plan: dict[str, Any], plan_path: Path) ->
 
 
 def _missing_key_error() -> str:
-    return "COINAPI_KEY missing; use secrets/coinapi_key.txt (gitignored) or environment variable."
+    return "COINAPI_KEY missing; use .secrets/coinapi_key.txt (gitignored) or environment variable."
 
 
 def _write_stage35_7_usage_doc(
@@ -242,6 +242,16 @@ def _empty_usage_summary(*, start_ts: pd.Timestamp, end_ts: pd.Timestamp, endpoi
     }
 
 
+def _usage_records_for_plan(records: list[dict[str, Any]], *, plan_id: str) -> list[dict[str, Any]]:
+    key = str(plan_id or "").strip()
+    if not key:
+        return [row for row in records if isinstance(row, dict)]
+    filtered = [row for row in records if isinstance(row, dict) and str(row.get("plan_id", "")).strip() == key]
+    if filtered:
+        return filtered
+    return [row for row in records if isinstance(row, dict)]
+
+
 def _extract_payload_rows(payload: Any) -> list[dict[str, Any]]:
     if isinstance(payload, list):
         return [row for row in payload if isinstance(row, dict)]
@@ -298,6 +308,7 @@ def execute_plan_items(
         endpoint = str(item.get("endpoint", ""))
         symbol = str(item.get("symbol", ""))
         symbol_id = str(item.get("symbol_id", ""))
+        period_id = str(item.get("period_id", "")).strip()
         start_ts = str(item.get("start_ts", ""))
         end_ts = str(item.get("end_ts", ""))
         path = str(item.get("endpoint_path", ""))
@@ -308,6 +319,8 @@ def execute_plan_items(
             "time_end": end_ts,
             "limit": "100000",
         }
+        if period_id:
+            params["period_id"] = period_id
         try:
             payload, meta = client.request_json(
                 path,
@@ -373,7 +386,10 @@ def main() -> None:
     action = resolve_action(args)
     config = load_config(args.config)
     coinapi_cfg = _default_coinapi_config(config)
-    enabled = bool(coinapi_cfg.get("enabled", False))
+    cfg_enabled = bool(coinapi_cfg.get("enabled", False))
+    enabled = bool(cfg_enabled)
+    if action in {"verify", "download"} and not bool(cfg_enabled):
+        enabled = True
     if bool(args.offline) and enabled:
         raise SystemExit("--offline cannot be used when coinapi.enabled=true")
 
@@ -430,6 +446,8 @@ def main() -> None:
 
     if not enabled:
         raise SystemExit("coinapi.enabled=false in config. Enable it for network execution.")
+    if action in {"verify", "download"} and not bool(cfg_enabled):
+        print("coinapi.enabled=false in config; proceeding because explicit network action was requested.")
 
     if bool(plan.get("truncated", False)):
         usage_summary = _empty_usage_summary(start_ts=start_ts, end_ts=end_ts, endpoints=endpoints)
@@ -471,7 +489,9 @@ def main() -> None:
                 plan_id=str(plan.get("plan_id", "")),
             )
         except CoinAPIRequestError as exc:
-            usage_summary = build_usage_summary(ledger.load_records())
+            usage_summary = build_usage_summary(
+                _usage_records_for_plan(ledger.load_records(), plan_id=str(plan.get("plan_id", "")))
+            )
             usage_summary["verify_error"] = str(exc)
             usage_summary_path = run_coinapi_dir / "usage_summary.json"
             usage_summary_path.write_text(json.dumps(usage_summary, indent=2, allow_nan=False), encoding="utf-8")
@@ -488,7 +508,7 @@ def main() -> None:
             if "401" in message or "403" in message:
                 raise SystemExit(f"Auth failed during verify endpoint=verify_auth error={message}")
             raise SystemExit(f"Verify failed endpoint=verify_auth error={message}")
-        usage_summary = build_usage_summary(ledger.load_records())
+        usage_summary = build_usage_summary(_usage_records_for_plan(ledger.load_records(), plan_id=str(plan.get("plan_id", ""))))
         usage_summary_path = run_coinapi_dir / "usage_summary.json"
         usage_summary_path.write_text(json.dumps(usage_summary, indent=2, allow_nan=False), encoding="utf-8")
         run_usage_path = run_root / "coinapi_usage.json"
@@ -516,7 +536,7 @@ def main() -> None:
     result_path.write_text(json.dumps(result, indent=2, allow_nan=False), encoding="utf-8")
     (run_coinapi_dir / "result.json").write_text(json.dumps(result, indent=2, allow_nan=False), encoding="utf-8")
 
-    usage_summary = build_usage_summary(ledger.load_records())
+    usage_summary = build_usage_summary(_usage_records_for_plan(ledger.load_records(), plan_id=str(plan.get("plan_id", ""))))
     usage_summary_path = run_coinapi_dir / "usage_summary.json"
     usage_summary_path.write_text(json.dumps(usage_summary, indent=2, allow_nan=False), encoding="utf-8")
     (run_stage35_dir / "coinapi_usage_summary.json").write_text(json.dumps(usage_summary, indent=2, allow_nan=False), encoding="utf-8")

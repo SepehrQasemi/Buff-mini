@@ -1,0 +1,303 @@
+{
+  "generated_at_utc": "2026-03-06T00:28:29.149754+00:00",
+  "key_resolution": {
+    "present": true,
+    "source": "SECRETS_TXT"
+  },
+  "verify": {
+    "ok": true,
+    "http_status": 200,
+    "key_source": "SECRETS_TXT"
+  },
+  "plan": {
+    "run_id": "20260306_000213_bb35841bc25d_stage35",
+    "plan_id": "f9072f74a9e1",
+    "planned_count": 836,
+    "selected_count": 836,
+    "max_requests": 1500,
+    "truncated": false,
+    "symbols": [
+      "BTC/USDT",
+      "ETH/USDT"
+    ],
+    "endpoints": [
+      "funding_rates",
+      "open_interest"
+    ],
+    "years": 4
+  },
+  "download": {
+    "run_id": "20260306_000224_5170837df92b_stage35",
+    "plan_id": "bc822127416d",
+    "success_count": 836,
+    "failure_count": 0,
+    "usage_summary_path": "runs/20260306_000224_5170837df92b_stage35/coinapi/usage_summary.json",
+    "data_root": "data/coinapi"
+  },
+  "usage": {
+    "total_requests": 836,
+    "successful_requests": 836,
+    "failed_requests": 0,
+    "status_code_counts": {
+      "200": 836
+    },
+    "requests_by_endpoint": {
+      "funding_rates": 418,
+      "open_interest": 418
+    },
+    "requests_by_symbol": {
+      "BTC/USDT": 418,
+      "ETH/USDT": 418
+    },
+    "retry_counts": {
+      "total": 0,
+      "by_endpoint": {
+        "funding_rates": 0,
+        "open_interest": 0
+      }
+    },
+    "rate_limit_hits": 0,
+    "bytes_downloaded": 1672,
+    "estimated_credit_usage": "UNKNOWN",
+    "credits_estimation_mode": "UNKNOWN"
+  },
+  "quality": {
+    "symbols": {
+      "BTC/USDT": {
+        "funding_rates": {
+          "start_ts": "2026-01-01T00:00:00+00:00",
+          "end_ts": "2026-01-05T00:00:00+00:00",
+          "sample_count": 3,
+          "duplicate_count": 0,
+          "monotonic_ts_pass": true,
+          "gap_count": 2,
+          "max_gap_hours": 48.0,
+          "coverage_years": 0.010951403148528405
+        },
+        "open_interest": {
+          "start_ts": null,
+          "end_ts": null,
+          "sample_count": 0,
+          "duplicate_count": 0,
+          "monotonic_ts_pass": true,
+          "gap_count": 0,
+          "max_gap_hours": 0.0,
+          "coverage_years": 0.0
+        }
+      },
+      "ETH/USDT": {
+        "funding_rates": {
+          "start_ts": null,
+          "end_ts": null,
+          "sample_count": 0,
+          "duplicate_count": 0,
+          "monotonic_ts_pass": true,
+          "gap_count": 0,
+          "max_gap_hours": 0.0,
+          "coverage_years": 0.0
+        },
+        "open_interest": {
+          "start_ts": null,
+          "end_ts": null,
+          "sample_count": 0,
+          "duplicate_count": 0,
+          "monotonic_ts_pass": true,
+          "gap_count": 0,
+          "max_gap_hours": 0.0,
+          "coverage_years": 0.0
+        }
+      }
+    },
+    "alignment": {
+      "BTC/USDT": {
+        "bars_count": 2103760,
+        "funding_non_null": 2163,
+        "open_interest_non_null": 0,
+        "funding_missing_ratio": 0.9989718408943986,
+        "open_interest_missing_ratio": 1.0,
+        "leakage": {
+          "funding_rates_future_matches": 0,
+          "open_interest_future_matches": 0
+        }
+      },
+      "ETH/USDT": {
+        "bars_count": 2103760,
+        "funding_non_null": 0,
+        "open_interest_non_null": 0,
+        "funding_missing_ratio": 1.0,
+        "open_interest_missing_ratio": 1.0,
+        "leakage": {
+          "funding_rates_future_matches": 0,
+          "open_interest_future_matches": 0
+        }
+      }
+    },
+    "derived_integrity": {
+      "BTC/USDT": {
+        "15m": {
+          "file_exists": true,
+          "rows": 140249,
+          "duplicate_ts": 0,
+          "monotonic_ts": true,
+          "integrity_ok": true
+        },
+        "1h": {
+          "file_exists": true,
+          "rows": 35061,
+          "duplicate_ts": 0,
+          "monotonic_ts": true,
+          "integrity_ok": true
+        },
+        "4h": {
+          "file_exists": true,
+          "rows": 8764,
+          "duplicate_ts": 0,
+          "monotonic_ts": true,
+          "integrity_ok": true
+        },
+        "1d": {
+          "file_exists": true,
+          "rows": 1459,
+          "duplicate_ts": 0,
+          "monotonic_ts": true,
+          "integrity_ok": true
+        }
+      },
+      "ETH/USDT": {
+        "15m": {
+          "file_exists": true,
+          "rows": 140249,
+          "duplicate_ts": 0,
+          "monotonic_ts": true,
+          "integrity_ok": true
+        },
+        "1h": {
+          "file_exists": true,
+          "rows": 35061,
+          "duplicate_ts": 0,
+          "monotonic_ts": true,
+          "integrity_ok": true
+        },
+        "4h": {
+          "file_exists": true,
+          "rows": 8764,
+          "duplicate_ts": 0,
+          "monotonic_ts": true,
+          "integrity_ok": true
+        },
+        "1d": {
+          "file_exists": true,
+          "rows": 1459,
+          "duplicate_ts": 0,
+          "monotonic_ts": true,
+          "integrity_ok": true
+        }
+      }
+    }
+  },
+  "coverage_gate": {
+    "BTC/USDT": {
+      "funding_rates": {
+        "coverage_years": 0.010951403148528405,
+        "required_years": 2.0,
+        "pass": false
+      },
+      "open_interest": {
+        "coverage_years": 0.0,
+        "required_years": 2.0,
+        "pass": false
+      }
+    },
+    "ETH/USDT": {
+      "funding_rates": {
+        "coverage_years": 0.0,
+        "required_years": 2.0,
+        "pass": false
+      },
+      "open_interest": {
+        "coverage_years": 0.0,
+        "required_years": 2.0,
+        "pass": false
+      }
+    }
+  },
+  "coverage_missing": [
+    {
+      "symbol": "BTC/USDT",
+      "endpoint": "funding_rates",
+      "coverage_years": 0.010951403148528405,
+      "missing_years": 1.9890485968514715,
+      "missing_days_estimate": 726.5
+    },
+    {
+      "symbol": "BTC/USDT",
+      "endpoint": "open_interest",
+      "coverage_years": 0.0,
+      "missing_years": 2.0,
+      "missing_days_estimate": 730.5
+    },
+    {
+      "symbol": "ETH/USDT",
+      "endpoint": "funding_rates",
+      "coverage_years": 0.0,
+      "missing_years": 2.0,
+      "missing_days_estimate": 730.5
+    },
+    {
+      "symbol": "ETH/USDT",
+      "endpoint": "open_interest",
+      "coverage_years": 0.0,
+      "missing_years": 2.0,
+      "missing_days_estimate": 730.5
+    }
+  ],
+  "provider_probe": {
+    "period_required_error_seen": true,
+    "period_fix_applied": true,
+    "post_fix_probe": {
+      "http_status": 200,
+      "payload_type": "list",
+      "payload_len": 0,
+      "request_cost_header": "0"
+    },
+    "interpretation": "Endpoint responds but returns empty datasets for requested futures funding/open-interest slices (likely provider endpoint availability/entitlement/mapping limitation).",
+    "mapping_audit_path": "docs/stage35_endpoint_mapping_audit.json",
+    "mapping_rows": 16,
+    "mapping_all_empty": true
+  },
+  "stage35": {
+    "run_id": "20260306_002542_12d9e1dca8f2_stage35",
+    "status": "INSUFFICIENT_COVERAGE",
+    "coinapi_enabled": false,
+    "download_attempted": false,
+    "missing_coverage": [
+      "BTC/USDT/funding_rates: years=0.011, missing_days~726.5",
+      "BTC/USDT/open_interest: years=0.000, missing_days~730.5",
+      "ETH/USDT/funding_rates: years=0.000, missing_days~730.5",
+      "ETH/USDT/open_interest: years=0.000, missing_days~730.5"
+    ]
+  },
+  "engine_rerun": {
+    "stage35_run_id": "20260306_002542_12d9e1dca8f2_stage35",
+    "stage35_status": "INSUFFICIENT_COVERAGE",
+    "research_live_rerun_executed": false,
+    "reason_not_executed": "coverage_threshold_not_met",
+    "research_best_exp_lcb": null,
+    "live_best_exp_lcb": null
+  },
+  "verdict": "INSUFFICIENT_COVERAGE",
+  "biggest_blocker": "CoinAPI futures funding/open-interest history calls return HTTP 200 with empty datasets for all planned BTC/ETH slices.",
+  "next_actions": [
+    "Run a provider capability check for these futures endpoints/symbol mappings with CoinAPI support and account plan details.",
+    "Switch Stage-35 extras source for funding/open-interest to an alternate provider with guaranteed historical coverage for BINANCE BTC/ETH perpetuals.",
+    "After source fix, rerun: python scripts/update_coinapi_extras.py --endpoints funding,oi --symbols BTC/USDT,ETH/USDT --years 4 --max-requests 1500"
+  ],
+  "evidence": {
+    "key_status_stdout": "OK source=SECRETS_TXT",
+    "verify_stdout": "ok=true http_status=200 key_source=SECRETS_TXT reason=ok",
+    "plan_stdout": "run_id: 20260306_000213_bb35841bc25d_stage35\nplan_id: f9072f74a9e1\nplanned_count: 836\nselected_count: 836\ntruncated: False\nplan_path: C:/dev/Buff-mini/runs/20260306_000213_bb35841bc25d_stage35/coinapi/plan.json",
+    "download_stdout": "run_id: 20260306_000224_5170837df92b_stage35\nplan_id: bc822127416d\nsuccess_count: 836\nfailure_count: 0\nusage_summary_path: C:/dev/Buff-mini/runs/20260306_000224_5170837df92b_stage35/coinapi/usage_summary.json",
+    "stage35_summary_path": "docs/stage35_report_summary.json",
+    "usage_path": "docs/stage35_coinapi_usage_latest.json"
+  }
+}

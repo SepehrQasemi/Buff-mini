@@ -21,6 +21,5 @@ def test_coinapi_key_never_written_to_ledger(tmp_path: Path) -> None:
 
     text = ledger_path.read_text(encoding="utf-8")
     assert secret not in text
-    assert secret[-4:] in text
-    assert "***" in text
-
+    assert secret[-4:] not in text
+    assert "masked_api_key" not in text

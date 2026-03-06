@@ -1,0 +1,29 @@
+{
+  "required_years": 2.0,
+  "symbols": {
+    "BTC/USDT": {
+      "funding_rates": {
+        "coverage_years": 0.010951403148528405,
+        "required_years": 2.0,
+        "pass": false
+      },
+      "open_interest": {
+        "coverage_years": 0.0,
+        "required_years": 2.0,
+        "pass": false
+      }
+    },
+    "ETH/USDT": {
+      "funding_rates": {
+        "coverage_years": 0.0,
+        "required_years": 2.0,
+        "pass": false
+      },
+      "open_interest": {
+        "coverage_years": 0.0,
+        "required_years": 2.0,
+        "pass": false
+      }
+    }
+  }
+}

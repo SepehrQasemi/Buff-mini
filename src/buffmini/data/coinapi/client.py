@@ -11,7 +11,7 @@ from types import MappingProxyType
 from typing import Any, Callable
 from urllib import error, parse, request
 
-from .secrets import resolve_coinapi_key
+from .secrets import resolve_coinapi_key, resolve_coinapi_key_presence
 from .usage import CoinAPIUsageLedger, parse_coinapi_header_signals
 
 
@@ -76,7 +76,7 @@ class CoinAPIClient:
             root = Path(repo_root).resolve() if repo_root is not None else None
             token = str(resolve_coinapi_key(repo_root=root) or "").strip()
         if not token:
-            raise ValueError("CoinAPI key is required (COINAPI_KEY or secrets/coinapi_key.txt)")
+            raise ValueError("CoinAPI key is required (COINAPI_KEY or .secrets/coinapi_key.txt)")
         self._key = token
         self.base_url = str(base_url).rstrip("/")
         self.sleep_ms = max(0, int(sleep_ms))
@@ -163,7 +163,11 @@ class CoinAPIClient:
                 body = exc.read() if hasattr(exc, "read") else b""
                 response_bytes = int(len(body))
                 response_headers = {str(k): str(v) for k, v in dict(getattr(exc, "headers", {}) or {}).items()}
-                last_exc = exc
+                body_text = body.decode("utf-8", errors="replace").strip()
+                if body_text:
+                    last_exc = CoinAPIRequestError(f"http_{status_code}:{body_text[:256]}")
+                else:
+                    last_exc = exc
                 if status_code not in {429, 500, 502, 503, 504} or attempt >= self.max_retries:
                     break
             except (error.URLError, TimeoutError, CoinAPIRequestError, json.JSONDecodeError) as exc:
@@ -266,7 +270,6 @@ class CoinAPIClient:
                 "backoff_sleep_ms": int(backoff_sleep_ms),
                 "error_message": str(error_message),
                 "plan_id": str(plan_id or ""),
-                "masked_api_key": self.masked_key,
             }
         )
 
@@ -285,3 +288,10 @@ def _safe_query_params(params: dict[str, Any]) -> dict[str, Any]:
         else:
             safe[k] = str(value)
     return safe
+
+
+def resolve_coinapi_key_status(*, repo_root: str | Path | None = None) -> tuple[bool, str]:
+    """Resolve key availability status without exposing key content."""
+
+    root = Path(repo_root).resolve() if repo_root is not None else None
+    return resolve_coinapi_key_presence(repo_root=root)

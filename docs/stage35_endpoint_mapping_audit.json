@@ -1,0 +1,246 @@
+{
+  "window_start": "2026-02-04T00:29:35+00:00",
+  "window_end": "2026-03-06T00:29:35+00:00",
+  "rows": [
+    {
+      "combo": "symbol_perp",
+      "endpoint": "funding_rates",
+      "status_code": 200,
+      "payload_len": 0,
+      "request_cost_header": "0",
+      "params": {
+        "time_start": "2026-02-04T00:29:35+00:00",
+        "time_end": "2026-03-06T00:29:35+00:00",
+        "period_id": "8HRS",
+        "limit": "200",
+        "symbol_id": "BINANCE_PERP_BTC_USDT"
+      }
+    },
+    {
+      "combo": "symbol_perp",
+      "endpoint": "open_interest",
+      "status_code": 200,
+      "payload_len": 0,
+      "request_cost_header": "0",
+      "params": {
+        "time_start": "2026-02-04T00:29:35+00:00",
+        "time_end": "2026-03-06T00:29:35+00:00",
+        "period_id": "1HRS",
+        "limit": "200",
+        "symbol_id": "BINANCE_PERP_BTC_USDT"
+      }
+    },
+    {
+      "combo": "symbol_fts",
+      "endpoint": "funding_rates",
+      "status_code": 200,
+      "payload_len": 0,
+      "request_cost_header": "0",
+      "params": {
+        "time_start": "2026-02-04T00:29:35+00:00",
+        "time_end": "2026-03-06T00:29:35+00:00",
+        "period_id": "8HRS",
+        "limit": "200",
+        "symbol_id": "BINANCEFTS_PERP_BTC_USDT"
+      }
+    },
+    {
+      "combo": "symbol_fts",
+      "endpoint": "open_interest",
+      "status_code": 200,
+      "payload_len": 0,
+      "request_cost_header": "0",
+      "params": {
+        "time_start": "2026-02-04T00:29:35+00:00",
+        "time_end": "2026-03-06T00:29:35+00:00",
+        "period_id": "1HRS",
+        "limit": "200",
+        "symbol_id": "BINANCEFTS_PERP_BTC_USDT"
+      }
+    },
+    {
+      "combo": "asset_pair_usdt",
+      "endpoint": "funding_rates",
+      "status_code": 200,
+      "payload_len": 0,
+      "request_cost_header": "0",
+      "params": {
+        "time_start": "2026-02-04T00:29:35+00:00",
+        "time_end": "2026-03-06T00:29:35+00:00",
+        "period_id": "8HRS",
+        "limit": "200",
+        "asset_id_base": "BTC",
+        "asset_id_quote": "USDT"
+      }
+    },
+    {
+      "combo": "asset_pair_usdt",
+      "endpoint": "open_interest",
+      "status_code": 200,
+      "payload_len": 0,
+      "request_cost_header": "0",
+      "params": {
+        "time_start": "2026-02-04T00:29:35+00:00",
+        "time_end": "2026-03-06T00:29:35+00:00",
+        "period_id": "1HRS",
+        "limit": "200",
+        "asset_id_base": "BTC",
+        "asset_id_quote": "USDT"
+      }
+    },
+    {
+      "combo": "asset_pair_usd",
+      "endpoint": "funding_rates",
+      "status_code": 200,
+      "payload_len": 0,
+      "request_cost_header": "0",
+      "params": {
+        "time_start": "2026-02-04T00:29:35+00:00",
+        "time_end": "2026-03-06T00:29:35+00:00",
+        "period_id": "8HRS",
+        "limit": "200",
+        "asset_id_base": "BTC",
+        "asset_id_quote": "USD"
+      }
+    },
+    {
+      "combo": "asset_pair_usd",
+      "endpoint": "open_interest",
+      "status_code": 200,
+      "payload_len": 0,
+      "request_cost_header": "0",
+      "params": {
+        "time_start": "2026-02-04T00:29:35+00:00",
+        "time_end": "2026-03-06T00:29:35+00:00",
+        "period_id": "1HRS",
+        "limit": "200",
+        "asset_id_base": "BTC",
+        "asset_id_quote": "USD"
+      }
+    },
+    {
+      "combo": "exchange_pair_binance",
+      "endpoint": "funding_rates",
+      "status_code": 200,
+      "payload_len": 0,
+      "request_cost_header": "0",
+      "params": {
+        "time_start": "2026-02-04T00:29:35+00:00",
+        "time_end": "2026-03-06T00:29:35+00:00",
+        "period_id": "8HRS",
+        "limit": "200",
+        "exchange_id": "BINANCE",
+        "asset_id_base": "BTC",
+        "asset_id_quote": "USDT"
+      }
+    },
+    {
+      "combo": "exchange_pair_binance",
+      "endpoint": "open_interest",
+      "status_code": 200,
+      "payload_len": 0,
+      "request_cost_header": "0",
+      "params": {
+        "time_start": "2026-02-04T00:29:35+00:00",
+        "time_end": "2026-03-06T00:29:35+00:00",
+        "period_id": "1HRS",
+        "limit": "200",
+        "exchange_id": "BINANCE",
+        "asset_id_base": "BTC",
+        "asset_id_quote": "USDT"
+      }
+    },
+    {
+      "combo": "exchange_pair_binancefts",
+      "endpoint": "funding_rates",
+      "status_code": 200,
+      "payload_len": 0,
+      "request_cost_header": "0",
+      "params": {
+        "time_start": "2026-02-04T00:29:35+00:00",
+        "time_end": "2026-03-06T00:29:35+00:00",
+        "period_id": "8HRS",
+        "limit": "200",
+        "exchange_id": "BINANCEFTS",
+        "asset_id_base": "BTC",
+        "asset_id_quote": "USDT"
+      }
+    },
+    {
+      "combo": "exchange_pair_binancefts",
+      "endpoint": "open_interest",
+      "status_code": 200,
+      "payload_len": 0,
+      "request_cost_header": "0",
+      "params": {
+        "time_start": "2026-02-04T00:29:35+00:00",
+        "time_end": "2026-03-06T00:29:35+00:00",
+        "period_id": "1HRS",
+        "limit": "200",
+        "exchange_id": "BINANCEFTS",
+        "asset_id_base": "BTC",
+        "asset_id_quote": "USDT"
+      }
+    },
+    {
+      "combo": "exchange_symbol_binance",
+      "endpoint": "funding_rates",
+      "status_code": 200,
+      "payload_len": 0,
+      "request_cost_header": "0",
+      "params": {
+        "time_start": "2026-02-04T00:29:35+00:00",
+        "time_end": "2026-03-06T00:29:35+00:00",
+        "period_id": "8HRS",
+        "limit": "200",
+        "exchange_id": "BINANCE",
+        "symbol_id": "BINANCE_PERP_BTC_USDT"
+      }
+    },
+    {
+      "combo": "exchange_symbol_binance",
+      "endpoint": "open_interest",
+      "status_code": 200,
+      "payload_len": 0,
+      "request_cost_header": "0",
+      "params": {
+        "time_start": "2026-02-04T00:29:35+00:00",
+        "time_end": "2026-03-06T00:29:35+00:00",
+        "period_id": "1HRS",
+        "limit": "200",
+        "exchange_id": "BINANCE",
+        "symbol_id": "BINANCE_PERP_BTC_USDT"
+      }
+    },
+    {
+      "combo": "exchange_symbol_binancefts",
+      "endpoint": "funding_rates",
+      "status_code": 200,
+      "payload_len": 0,
+      "request_cost_header": "0",
+      "params": {
+        "time_start": "2026-02-04T00:29:35+00:00",
+        "time_end": "2026-03-06T00:29:35+00:00",
+        "period_id": "8HRS",
+        "limit": "200",
+        "exchange_id": "BINANCEFTS",
+        "symbol_id": "BINANCEFTS_PERP_BTC_USDT"
+      }
+    },
+    {
+      "combo": "exchange_symbol_binancefts",
+      "endpoint": "open_interest",
+      "status_code": 200,
+      "payload_len": 0,
+      "request_cost_header": "0",
+      "params": {
+        "time_start": "2026-02-04T00:29:35+00:00",
+        "time_end": "2026-03-06T00:29:35+00:00",
+        "period_id": "1HRS",
+        "limit": "200",
+        "exchange_id": "BINANCEFTS",
+        "symbol_id": "BINANCEFTS_PERP_BTC_USDT"
+      }
+    }
+  ]
+}

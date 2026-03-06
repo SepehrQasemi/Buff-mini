@@ -19,6 +19,7 @@ def test_coinapi_planner_builds_deterministic_slices() -> None:
     assert plan["planned_count"] == 12
     assert plan["selected_count"] == 12
     assert plan["truncated"] is False
+    assert all(str(item.get("period_id", "")).strip() for item in plan["items"])
     # deterministic plan id
     plan2 = build_backfill_plan(
         symbols=["BTC/USDT", "ETH/USDT"],
@@ -46,9 +47,11 @@ def test_coinapi_planner_respects_max_requests_and_stops_execution() -> None:
     class FakeClient:
         def __init__(self) -> None:
             self.calls = 0
+            self.period_ids: list[str] = []
 
         def request_json(self, path: str, *, params: dict[str, Any], endpoint_name: str, symbol: str, time_start: str, time_end: str, plan_id: str):  # noqa: ANN001, D401, E501
             self.calls += 1
+            self.period_ids.append(str(params.get("period_id", "")))
             return [{"time_exchange": time_start, "value": 1.0, "open_interest": 2.0, "funding_rate": 0.1}], type(
                 "Meta",
                 (),
@@ -58,6 +61,6 @@ def test_coinapi_planner_respects_max_requests_and_stops_execution() -> None:
     fake = FakeClient()
     result = execute_plan_items(plan=plan, client=fake, store_raw=False)
     assert fake.calls == 3
+    assert all(fake.period_ids)
     assert result["selected_count"] == 3
     assert result["success_count"] == 3
-

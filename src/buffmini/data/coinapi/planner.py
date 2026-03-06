@@ -20,9 +20,9 @@ COINAPI_SYMBOL_MAP: dict[str, str] = {
 
 
 ENDPOINT_CONFIG: dict[str, dict[str, Any]] = {
-    "funding_rates": {"path": "/v1/exchangerate/futures/funding_rate/history"},
-    "open_interest": {"path": "/v1/exchangerate/futures/open_interest/history"},
-    "liquidations": {"path": "/v1/exchangerate/futures/liquidations/history"},
+    "funding_rates": {"path": "/v1/exchangerate/futures/funding_rate/history", "period_id": "8HRS"},
+    "open_interest": {"path": "/v1/exchangerate/futures/open_interest/history", "period_id": "1HRS"},
+    "liquidations": {"path": "/v1/exchangerate/futures/liquidations/history", "period_id": "1HRS"},
 }
 
 
@@ -33,6 +33,7 @@ class PlanSlice:
     endpoint_path: str
     symbol: str
     symbol_id: str
+    period_id: str
     start_ts: str
     end_ts: str
 
@@ -43,6 +44,7 @@ class PlanSlice:
             "endpoint_path": str(self.endpoint_path),
             "symbol": str(self.symbol),
             "symbol_id": str(self.symbol_id),
+            "period_id": str(self.period_id),
             "start_ts": str(self.start_ts),
             "end_ts": str(self.end_ts),
         }
@@ -94,6 +96,7 @@ def build_backfill_plan(
         ep_path = str(ENDPOINT_CONFIG[endpoint]["path"])
         for symbol in symbol_list:
             symbol_id = map_symbol_to_coinapi(symbol)
+            period_id = str(ENDPOINT_CONFIG[endpoint].get("period_id", ""))
             for left, right in windows:
                 items.append(
                     PlanSlice(
@@ -102,6 +105,7 @@ def build_backfill_plan(
                         endpoint_path=ep_path,
                         symbol=symbol,
                         symbol_id=symbol_id,
+                        period_id=period_id,
                         start_ts=left.isoformat(),
                         end_ts=right.isoformat(),
                     )
@@ -140,4 +144,3 @@ def estimate_additional_days_required(*, coverage_years: float, required_years: 
         return 0.0
     missing_years = float(required_years) - float(coverage_years)
     return float(max(0.0, missing_years * 365.25))
-
