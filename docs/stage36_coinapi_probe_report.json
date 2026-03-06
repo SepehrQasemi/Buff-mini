@@ -1,0 +1,514 @@
+{
+  "generated_at_utc": "2026-03-06T01:08:40.651554+00:00",
+  "budget_max_requests": 50,
+  "budget_used_requests": 19,
+  "auth_ok": true,
+  "key_source": "SECRETS_TXT",
+  "coinapi_available": true,
+  "exchange_ids_binance": [
+    "BINANCE",
+    "BINANCEDEX",
+    "BINANCEFTS",
+    "BINANCEFTSC",
+    "BINANCEJE",
+    "BINANCEJEX",
+    "BINANCEOPT",
+    "BINANCEOPTV",
+    "BINANCEUS"
+  ],
+  "chosen_symbol_mapping": {
+    "BTC/USDT": "BINANCE_PERP_BTC_USDT",
+    "ETH/USDT": "BINANCE_PERP_ETH_USDT"
+  },
+  "mapping_evidence": {
+    "BTC/USDT": [
+      {
+        "candidate": "BINANCE_PERP_BTC_USDT",
+        "status_code": 200,
+        "payload_len": 0,
+        "non_empty": false
+      },
+      {
+        "candidate": "BINANCEFTS_PERP_BTC_USDT",
+        "status_code": 200,
+        "payload_len": 0,
+        "non_empty": false
+      }
+    ],
+    "ETH/USDT": [
+      {
+        "candidate": "BINANCE_PERP_ETH_USDT",
+        "status_code": 200,
+        "payload_len": 0,
+        "non_empty": false
+      },
+      {
+        "candidate": "BINANCEFTS_PERP_ETH_USDT",
+        "status_code": 200,
+        "payload_len": 0,
+        "non_empty": false
+      }
+    ]
+  },
+  "family_results": {
+    "funding": [
+      {
+        "symbol": "BTC/USDT",
+        "mapped_symbol_id": "BINANCE_PERP_BTC_USDT",
+        "checks": [
+          {
+            "window": "1d",
+            "status_code": 200,
+            "payload_len": 0,
+            "non_empty": false,
+            "request_cost_header": "0"
+          },
+          {
+            "window": "7d",
+            "status_code": 200,
+            "payload_len": 0,
+            "non_empty": false,
+            "request_cost_header": "0"
+          }
+        ],
+        "payload_non_empty": false,
+        "historical_viability": "none",
+        "recommended_action": "skip"
+      },
+      {
+        "symbol": "ETH/USDT",
+        "mapped_symbol_id": "BINANCE_PERP_ETH_USDT",
+        "checks": [
+          {
+            "window": "1d",
+            "status_code": 200,
+            "payload_len": 0,
+            "non_empty": false,
+            "request_cost_header": "0"
+          },
+          {
+            "window": "7d",
+            "status_code": 200,
+            "payload_len": 0,
+            "non_empty": false,
+            "request_cost_header": "0"
+          }
+        ],
+        "payload_non_empty": false,
+        "historical_viability": "none",
+        "recommended_action": "skip"
+      }
+    ],
+    "open_interest": [
+      {
+        "symbol": "BTC/USDT",
+        "mapped_symbol_id": "BINANCE_PERP_BTC_USDT",
+        "checks": [
+          {
+            "window": "1d",
+            "status_code": 200,
+            "payload_len": 0,
+            "non_empty": false,
+            "request_cost_header": "0"
+          },
+          {
+            "window": "7d",
+            "status_code": 200,
+            "payload_len": 0,
+            "non_empty": false,
+            "request_cost_header": "0"
+          }
+        ],
+        "payload_non_empty": false,
+        "historical_viability": "none",
+        "recommended_action": "skip"
+      },
+      {
+        "symbol": "ETH/USDT",
+        "mapped_symbol_id": "BINANCE_PERP_ETH_USDT",
+        "checks": [
+          {
+            "window": "1d",
+            "status_code": 200,
+            "payload_len": 0,
+            "non_empty": false,
+            "request_cost_header": "0"
+          },
+          {
+            "window": "7d",
+            "status_code": 200,
+            "payload_len": 0,
+            "non_empty": false,
+            "request_cost_header": "0"
+          }
+        ],
+        "payload_non_empty": false,
+        "historical_viability": "none",
+        "recommended_action": "skip"
+      }
+    ],
+    "liquidations": [
+      {
+        "symbol": "BTC/USDT",
+        "mapped_symbol_id": "BINANCE_PERP_BTC_USDT",
+        "checks": [
+          {
+            "window": "1d",
+            "status_code": 200,
+            "payload_len": 0,
+            "non_empty": false,
+            "request_cost_header": "0"
+          },
+          {
+            "window": "7d",
+            "status_code": 200,
+            "payload_len": 0,
+            "non_empty": false,
+            "request_cost_header": "0"
+          }
+        ],
+        "payload_non_empty": false,
+        "historical_viability": "none",
+        "recommended_action": "skip"
+      },
+      {
+        "symbol": "ETH/USDT",
+        "mapped_symbol_id": "BINANCE_PERP_ETH_USDT",
+        "checks": [
+          {
+            "window": "1d",
+            "status_code": 200,
+            "payload_len": 0,
+            "non_empty": false,
+            "request_cost_header": "0"
+          },
+          {
+            "window": "7d",
+            "status_code": 200,
+            "payload_len": 0,
+            "non_empty": false,
+            "request_cost_header": "0"
+          }
+        ],
+        "payload_non_empty": false,
+        "historical_viability": "none",
+        "recommended_action": "skip"
+      }
+    ]
+  },
+  "probe_rows": [
+    {
+      "family": "metadata",
+      "label": "auth_and_exchanges",
+      "symbol": "",
+      "path": "/v1/exchanges",
+      "params": {},
+      "status_code": 200,
+      "payload_len": 409,
+      "non_empty": true,
+      "request_cost_header": "1",
+      "error": ""
+    },
+    {
+      "family": "metadata",
+      "label": "list_periods",
+      "symbol": "",
+      "path": "/v1/exchangerate/list_periods",
+      "params": {},
+      "status_code": 200,
+      "payload_len": 2,
+      "non_empty": true,
+      "request_cost_header": "1",
+      "error": ""
+    },
+    {
+      "family": "funding",
+      "label": "mapping_probe_BTC/USDT_BINANCE_PERP_BTC_USDT_1d",
+      "symbol": "BTC/USDT",
+      "path": "/v1/exchangerate/futures/funding_rate/history",
+      "params": {
+        "symbol_id": "BINANCE_PERP_BTC_USDT",
+        "time_start": "2026-03-05T01:08:26+00:00",
+        "time_end": "2026-03-06T01:08:26+00:00",
+        "period_id": "8HRS",
+        "limit": "200"
+      },
+      "status_code": 200,
+      "payload_len": 0,
+      "non_empty": false,
+      "request_cost_header": "0",
+      "error": ""
+    },
+    {
+      "family": "funding",
+      "label": "mapping_probe_BTC/USDT_BINANCEFTS_PERP_BTC_USDT_1d",
+      "symbol": "BTC/USDT",
+      "path": "/v1/exchangerate/futures/funding_rate/history",
+      "params": {
+        "symbol_id": "BINANCEFTS_PERP_BTC_USDT",
+        "time_start": "2026-03-05T01:08:26+00:00",
+        "time_end": "2026-03-06T01:08:26+00:00",
+        "period_id": "8HRS",
+        "limit": "200"
+      },
+      "status_code": 200,
+      "payload_len": 0,
+      "non_empty": false,
+      "request_cost_header": "0",
+      "error": ""
+    },
+    {
+      "family": "funding",
+      "label": "mapping_probe_ETH/USDT_BINANCE_PERP_ETH_USDT_1d",
+      "symbol": "ETH/USDT",
+      "path": "/v1/exchangerate/futures/funding_rate/history",
+      "params": {
+        "symbol_id": "BINANCE_PERP_ETH_USDT",
+        "time_start": "2026-03-05T01:08:26+00:00",
+        "time_end": "2026-03-06T01:08:26+00:00",
+        "period_id": "8HRS",
+        "limit": "200"
+      },
+      "status_code": 200,
+      "payload_len": 0,
+      "non_empty": false,
+      "request_cost_header": "0",
+      "error": ""
+    },
+    {
+      "family": "funding",
+      "label": "mapping_probe_ETH/USDT_BINANCEFTS_PERP_ETH_USDT_1d",
+      "symbol": "ETH/USDT",
+      "path": "/v1/exchangerate/futures/funding_rate/history",
+      "params": {
+        "symbol_id": "BINANCEFTS_PERP_ETH_USDT",
+        "time_start": "2026-03-05T01:08:26+00:00",
+        "time_end": "2026-03-06T01:08:26+00:00",
+        "period_id": "8HRS",
+        "limit": "200"
+      },
+      "status_code": 200,
+      "payload_len": 0,
+      "non_empty": false,
+      "request_cost_header": "0",
+      "error": ""
+    },
+    {
+      "family": "funding",
+      "label": "funding_BTC/USDT_1d",
+      "symbol": "BTC/USDT",
+      "path": "/v1/exchangerate/futures/funding_rate/history",
+      "params": {
+        "symbol_id": "BINANCE_PERP_BTC_USDT",
+        "time_start": "2026-03-05T01:08:26+00:00",
+        "time_end": "2026-03-06T01:08:26+00:00",
+        "period_id": "8HRS",
+        "limit": "500"
+      },
+      "status_code": 200,
+      "payload_len": 0,
+      "non_empty": false,
+      "request_cost_header": "0",
+      "error": ""
+    },
+    {
+      "family": "funding",
+      "label": "funding_BTC/USDT_7d",
+      "symbol": "BTC/USDT",
+      "path": "/v1/exchangerate/futures/funding_rate/history",
+      "params": {
+        "symbol_id": "BINANCE_PERP_BTC_USDT",
+        "time_start": "2026-02-27T01:08:26+00:00",
+        "time_end": "2026-03-06T01:08:26+00:00",
+        "period_id": "8HRS",
+        "limit": "500"
+      },
+      "status_code": 200,
+      "payload_len": 0,
+      "non_empty": false,
+      "request_cost_header": "0",
+      "error": ""
+    },
+    {
+      "family": "funding",
+      "label": "funding_ETH/USDT_1d",
+      "symbol": "ETH/USDT",
+      "path": "/v1/exchangerate/futures/funding_rate/history",
+      "params": {
+        "symbol_id": "BINANCE_PERP_ETH_USDT",
+        "time_start": "2026-03-05T01:08:26+00:00",
+        "time_end": "2026-03-06T01:08:26+00:00",
+        "period_id": "8HRS",
+        "limit": "500"
+      },
+      "status_code": 200,
+      "payload_len": 0,
+      "non_empty": false,
+      "request_cost_header": "0",
+      "error": ""
+    },
+    {
+      "family": "funding",
+      "label": "funding_ETH/USDT_7d",
+      "symbol": "ETH/USDT",
+      "path": "/v1/exchangerate/futures/funding_rate/history",
+      "params": {
+        "symbol_id": "BINANCE_PERP_ETH_USDT",
+        "time_start": "2026-02-27T01:08:26+00:00",
+        "time_end": "2026-03-06T01:08:26+00:00",
+        "period_id": "8HRS",
+        "limit": "500"
+      },
+      "status_code": 200,
+      "payload_len": 0,
+      "non_empty": false,
+      "request_cost_header": "0",
+      "error": ""
+    },
+    {
+      "family": "open_interest",
+      "label": "open_interest_BTC/USDT_1d",
+      "symbol": "BTC/USDT",
+      "path": "/v1/exchangerate/futures/open_interest/history",
+      "params": {
+        "symbol_id": "BINANCE_PERP_BTC_USDT",
+        "time_start": "2026-03-05T01:08:26+00:00",
+        "time_end": "2026-03-06T01:08:26+00:00",
+        "period_id": "1HRS",
+        "limit": "500"
+      },
+      "status_code": 200,
+      "payload_len": 0,
+      "non_empty": false,
+      "request_cost_header": "0",
+      "error": ""
+    },
+    {
+      "family": "open_interest",
+      "label": "open_interest_BTC/USDT_7d",
+      "symbol": "BTC/USDT",
+      "path": "/v1/exchangerate/futures/open_interest/history",
+      "params": {
+        "symbol_id": "BINANCE_PERP_BTC_USDT",
+        "time_start": "2026-02-27T01:08:26+00:00",
+        "time_end": "2026-03-06T01:08:26+00:00",
+        "period_id": "1HRS",
+        "limit": "500"
+      },
+      "status_code": 200,
+      "payload_len": 0,
+      "non_empty": false,
+      "request_cost_header": "0",
+      "error": ""
+    },
+    {
+      "family": "open_interest",
+      "label": "open_interest_ETH/USDT_1d",
+      "symbol": "ETH/USDT",
+      "path": "/v1/exchangerate/futures/open_interest/history",
+      "params": {
+        "symbol_id": "BINANCE_PERP_ETH_USDT",
+        "time_start": "2026-03-05T01:08:26+00:00",
+        "time_end": "2026-03-06T01:08:26+00:00",
+        "period_id": "1HRS",
+        "limit": "500"
+      },
+      "status_code": 200,
+      "payload_len": 0,
+      "non_empty": false,
+      "request_cost_header": "0",
+      "error": ""
+    },
+    {
+      "family": "open_interest",
+      "label": "open_interest_ETH/USDT_7d",
+      "symbol": "ETH/USDT",
+      "path": "/v1/exchangerate/futures/open_interest/history",
+      "params": {
+        "symbol_id": "BINANCE_PERP_ETH_USDT",
+        "time_start": "2026-02-27T01:08:26+00:00",
+        "time_end": "2026-03-06T01:08:26+00:00",
+        "period_id": "1HRS",
+        "limit": "500"
+      },
+      "status_code": 200,
+      "payload_len": 0,
+      "non_empty": false,
+      "request_cost_header": "0",
+      "error": ""
+    },
+    {
+      "family": "liquidations",
+      "label": "liquidations_BTC/USDT_1d",
+      "symbol": "BTC/USDT",
+      "path": "/v1/exchangerate/futures/liquidations/history",
+      "params": {
+        "symbol_id": "BINANCE_PERP_BTC_USDT",
+        "time_start": "2026-03-05T01:08:26+00:00",
+        "time_end": "2026-03-06T01:08:26+00:00",
+        "period_id": "1HRS",
+        "limit": "500"
+      },
+      "status_code": 200,
+      "payload_len": 0,
+      "non_empty": false,
+      "request_cost_header": "0",
+      "error": ""
+    },
+    {
+      "family": "liquidations",
+      "label": "liquidations_BTC/USDT_7d",
+      "symbol": "BTC/USDT",
+      "path": "/v1/exchangerate/futures/liquidations/history",
+      "params": {
+        "symbol_id": "BINANCE_PERP_BTC_USDT",
+        "time_start": "2026-02-27T01:08:26+00:00",
+        "time_end": "2026-03-06T01:08:26+00:00",
+        "period_id": "1HRS",
+        "limit": "500"
+      },
+      "status_code": 200,
+      "payload_len": 0,
+      "non_empty": false,
+      "request_cost_header": "0",
+      "error": ""
+    },
+    {
+      "family": "liquidations",
+      "label": "liquidations_ETH/USDT_1d",
+      "symbol": "ETH/USDT",
+      "path": "/v1/exchangerate/futures/liquidations/history",
+      "params": {
+        "symbol_id": "BINANCE_PERP_ETH_USDT",
+        "time_start": "2026-03-05T01:08:26+00:00",
+        "time_end": "2026-03-06T01:08:26+00:00",
+        "period_id": "1HRS",
+        "limit": "500"
+      },
+      "status_code": 200,
+      "payload_len": 0,
+      "non_empty": false,
+      "request_cost_header": "0",
+      "error": ""
+    },
+    {
+      "family": "liquidations",
+      "label": "liquidations_ETH/USDT_7d",
+      "symbol": "ETH/USDT",
+      "path": "/v1/exchangerate/futures/liquidations/history",
+      "params": {
+        "symbol_id": "BINANCE_PERP_ETH_USDT",
+        "time_start": "2026-02-27T01:08:26+00:00",
+        "time_end": "2026-03-06T01:08:26+00:00",
+        "period_id": "1HRS",
+        "limit": "500"
+      },
+      "status_code": 200,
+      "payload_len": 0,
+      "non_empty": false,
+      "request_cost_header": "0",
+      "error": ""
+    }
+  ],
+  "errors": []
+}
