@@ -85,6 +85,7 @@ def render_stage38_logic_audit_report(payload: dict[str, Any]) -> str:
     ]
     for key in (
         "raw_signal_count",
+        "legacy_raw_signal_count",
         "post_threshold_count",
         "post_cost_gate_count",
         "post_feasibility_count",
@@ -93,12 +94,27 @@ def render_stage38_logic_audit_report(payload: dict[str, Any]) -> str:
         "final_trade_count",
     ):
         lines.append(f"| {key} | {float(table.get(key, 0.0)):.6f} |")
+    root_cause = str(payload.get("root_cause", "")).strip()
+    fix_summary = str(payload.get("fix_summary", "")).strip()
+    before_after = list(payload.get("before_after", []))
+    if before_after:
+        lines.extend(["", "## Before vs After Evidence", "| metric | before | after |", "| --- | ---: | ---: |"])
+        for row in before_after:
+            lines.append(
+                "| {metric} | {before:.6f} | {after:.6f} |".format(
+                    metric=str(row.get("metric", "")),
+                    before=float(row.get("before", 0.0)),
+                    after=float(row.get("after", 0.0)),
+                )
+            )
     lines.extend(
         [
             "",
             "## Collapse Point",
             f"- collapse_reason: `{payload.get('collapse_reason', '')}`",
             f"- contradiction_fixed: `{bool(payload.get('contradiction_fixed', False))}`",
+            f"- root_cause: `{root_cause}`",
+            f"- fix_summary: `{fix_summary}`",
             "",
             "## OI Short-Only Enforcement",
             f"- short_only_enabled: `{bool(oi.get('short_only_enabled', False))}`",
@@ -145,6 +161,7 @@ def validate_stage38_master_summary(payload: dict[str, Any]) -> None:
         raise ValueError("lineage_table must be object")
     for key in (
         "raw_signal_count",
+        "legacy_raw_signal_count",
         "post_threshold_count",
         "post_cost_gate_count",
         "post_feasibility_count",
@@ -180,4 +197,3 @@ def _net_signal_coherence(payload: dict[str, Any]) -> bool:
 
 def _fmt_bool(value: bool) -> str:
     return "true" if bool(value) else "false"
-

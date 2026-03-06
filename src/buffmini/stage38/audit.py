@@ -2,10 +2,14 @@
 
 from __future__ import annotations
 
+import json
+from pathlib import Path
 from typing import Any
 
 import numpy as np
 import pandas as pd
+
+from buffmini.stage37.activation import compute_reject_chain_metrics
 
 
 def detect_lineage_collapse_reason(*, raw_signal_count: int, post_cost_gate_count: int, composer_signal_count: int, final_trade_count: float, shadow_reject_count: int) -> str:
@@ -28,6 +32,64 @@ def detect_lineage_collapse_reason(*, raw_signal_count: int, post_cost_gate_coun
     if final_trades <= 0.0:
         return "backtest_or_execution_zero_trade"
     return "no_collapse"
+
+
+def build_lineage_table_from_stage28(*, stage28_dir: Path, threshold: float, quality_floor: float) -> dict[str, Any]:
+    """Compute side-by-side hunt and engine lineage metrics from one Stage-28 run."""
+
+    run_dir = Path(stage28_dir)
+    summary = _load_json(run_dir / "summary.json")
+    trace = _safe_read_csv(run_dir / "policy_trace.csv")
+    shadow = _safe_read_csv(run_dir / "shadow_live_rejects.csv")
+    finalists = _safe_read_csv(run_dir / "finalists_stageC.csv")
+
+    live_trade_count = float(((summary.get("policy_metrics", {}) or {}).get("live", {}) or {}).get("trade_count", 0.0))
+    chain = compute_reject_chain_metrics(
+        trace_df=trace,
+        shadow_df=shadow,
+        finalists_df=finalists,
+        threshold=float(threshold),
+        quality_floor=float(quality_floor),
+        final_trade_count=live_trade_count,
+    )
+    overall = dict(chain.get("overall", {}))
+
+    final_signal = pd.to_numeric(trace.get("final_signal", 0), errors="coerce").fillna(0).astype(int)
+    engine_raw = int(final_signal.ne(0).sum()) if not trace.empty else 0
+    table = {
+        "raw_signal_count": int(overall.get("raw_signal_count", 0)),
+        "post_threshold_count": int(overall.get("post_threshold_count", 0)),
+        "post_cost_gate_count": int(overall.get("post_cost_gate_count", 0)),
+        "post_feasibility_count": int(overall.get("post_feasibility_count", 0)),
+        "composer_signal_count": int(overall.get("composer_signal_count", 0)),
+        "engine_raw_signal_count": int(engine_raw),
+        "final_trade_count": float(overall.get("final_trade_count", 0.0)),
+        "live_trade_count": float(live_trade_count),
+        "shadow_reject_count": int(shadow.shape[0]),
+        "top_reject_reasons": dict(overall.get("top_reject_reasons", {})),
+        "legacy_raw_signal_count": int(legacy_raw_signal_count(trace)),
+    }
+    table["collapse_reason"] = detect_lineage_collapse_reason(
+        raw_signal_count=int(table["raw_signal_count"]),
+        post_cost_gate_count=int(table["post_cost_gate_count"]),
+        composer_signal_count=int(table["composer_signal_count"]),
+        final_trade_count=float(table["final_trade_count"]),
+        shadow_reject_count=int(table["shadow_reject_count"]),
+    )
+    table["composer_vs_engine_consistent"] = bool(int(table["composer_signal_count"]) == int(table["engine_raw_signal_count"]))
+    table["final_trade_consistent"] = bool(abs(float(table["final_trade_count"]) - float(table["live_trade_count"])) <= 1e-9)
+    table["contradiction_fixed"] = bool(table["composer_vs_engine_consistent"] and table["final_trade_consistent"])
+    return table
+
+
+def legacy_raw_signal_count(trace: pd.DataFrame) -> int:
+    """Replicate pre-fix raw-signal counting that treated NaN active-candidates as active."""
+
+    if not isinstance(trace, pd.DataFrame) or trace.empty:
+        return 0
+    active = trace.get("active_candidates", "").astype(str).fillna("")
+    net_score = pd.to_numeric(trace.get("net_score", 0.0), errors="coerce").fillna(0.0)
+    return int((active.str.len().gt(0) | net_score.ne(0.0)).sum())
 
 
 def oi_runtime_usage(*, frame: pd.DataFrame, oi_columns: list[str], timeframe: str, short_horizon_max: str, short_only_enabled: bool) -> dict[str, Any]:
@@ -189,3 +251,20 @@ def _rate(*, pre: int, post: int) -> float:
         return 0.0
     return float(np.clip((p - q) / max(1, p), 0.0, 1.0))
 
+
+def _safe_read_csv(path: Path) -> pd.DataFrame:
+    p = Path(path)
+    if not p.exists():
+        return pd.DataFrame()
+    try:
+        return pd.read_csv(p)
+    except (pd.errors.EmptyDataError, ValueError):
+        return pd.DataFrame()
+
+
+def _load_json(path: Path) -> dict[str, Any]:
+    p = Path(path)
+    if not p.exists():
+        return {}
+    payload = json.loads(p.read_text(encoding="utf-8"))
+    return payload if isinstance(payload, dict) else {}

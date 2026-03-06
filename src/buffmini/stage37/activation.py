@@ -111,7 +111,7 @@ def compute_activation_metrics(
     threshold: float,
     quality_floor: float,
     rejected_keys: set[tuple[str, str]] | None = None,
-    final_trade_count: float = 0.0,
+    final_trade_count: float | None = None,
 ) -> dict[str, Any]:
     """Compute gate counts for one threshold and quality floor."""
 
@@ -139,11 +139,16 @@ def compute_activation_metrics(
         blocked = pd.Series([(key[0], key[1]) in reject_set for key in key_series], index=trace.index, dtype=bool)
         feasibility_mask = feasibility_mask & (~blocked)
 
+    composer_mask = feasibility_mask & trace["final_signal"].astype(int).ne(0)
     raw_count = int(raw_mask.sum())
     post_threshold = int(thr_mask.sum())
     post_cost = int(cost_mask.sum())
     post_feasible = int(feasibility_mask.sum())
-    final_count = float(min(max(0.0, final_trade_count), float(post_feasible))) if final_trade_count > 0 else float(post_feasible)
+    composer_count = int(composer_mask.sum())
+    if final_trade_count is None:
+        final_count = float(composer_count)
+    else:
+        final_count = float(min(max(0.0, float(final_trade_count)), float(composer_count)))
     activation_rate = float(final_count / max(1, raw_count))
     avg_quality = float(quality.loc[cost_mask].mean()) if bool(cost_mask.any()) else 0.0
     return {
@@ -151,6 +156,7 @@ def compute_activation_metrics(
         "post_threshold_count": post_threshold,
         "post_cost_gate_count": post_cost,
         "post_feasibility_count": post_feasible,
+        "composer_signal_count": composer_count,
         "final_trade_count": float(final_count),
         "activation_rate": activation_rate,
         "avg_context_quality": avg_quality,
@@ -208,7 +214,7 @@ def compute_reject_chain_metrics(
             threshold=float(threshold),
             quality_floor=float(quality_floor),
             rejected_keys=rejected_keys,
-            final_trade_count=0.0,
+            final_trade_count=None,
         )
         keys = set(zip(family_rows["timestamp_key"].astype(str), family_rows["context"].astype(str), strict=False))
         fam_reject = shadow.loc[
@@ -245,7 +251,12 @@ def _normalize_trace(frame: pd.DataFrame) -> pd.DataFrame:
     out["context"] = out.get("context", "UNKNOWN").astype(str).fillna("UNKNOWN")
     out["net_score"] = pd.to_numeric(out.get("net_score", 0.0), errors="coerce").fillna(0.0)
     out["abs_net_score"] = out["net_score"].abs()
-    active = out.get("active_candidates", "").astype(str).fillna("")
+    raw_active = out.get("active_candidates", "")
+    if isinstance(raw_active, pd.Series):
+        active = raw_active.where(raw_active.notna(), "")
+    else:
+        active = pd.Series(raw_active, index=out.index).where(lambda s: s.notna(), "")
+    active = active.astype(str).replace({"nan": "", "None": ""}).fillna("")
     out["active_candidates"] = active
     out["raw_signal_flag"] = active.str.len().gt(0) | out["net_score"].ne(0.0)
     return out

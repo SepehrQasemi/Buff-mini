@@ -105,6 +105,7 @@ def _render_markdown(payload: dict[str, Any]) -> str:
         f"| post_threshold_count | {int(strict_overall.get('post_threshold_count', 0))} | {int(hunt_overall.get('post_threshold_count', 0))} |",
         f"| post_cost_gate_count | {int(strict_overall.get('post_cost_gate_count', 0))} | {int(hunt_overall.get('post_cost_gate_count', 0))} |",
         f"| post_feasibility_count | {int(strict_overall.get('post_feasibility_count', 0))} | {int(hunt_overall.get('post_feasibility_count', 0))} |",
+        f"| composer_signal_count | {int(strict_overall.get('composer_signal_count', 0))} | {int(hunt_overall.get('composer_signal_count', 0))} |",
         f"| final_trade_count | {float(strict_overall.get('final_trade_count', 0.0)):.3f} | {float(hunt_overall.get('final_trade_count', 0.0)):.3f} |",
         f"| activation_rate | {float(strict_overall.get('activation_rate', 0.0)):.6f} | {float(hunt_overall.get('activation_rate', 0.0)):.6f} |",
         "",
