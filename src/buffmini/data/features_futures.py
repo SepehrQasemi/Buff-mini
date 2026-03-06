@@ -7,7 +7,12 @@ from typing import Any
 import numpy as np
 import pandas as pd
 
-from buffmini.data.futures_extras import align_funding_to_ohlcv, align_open_interest_to_ohlcv
+from buffmini.data.futures_extras import (
+    align_funding_to_ohlcv,
+    align_long_short_ratio_to_ohlcv,
+    align_open_interest_to_ohlcv,
+    align_taker_buy_sell_to_ohlcv,
+)
 
 FUTURES_FEATURE_COLUMNS: tuple[str, ...] = (
     "funding_rate",
@@ -17,6 +22,12 @@ FUTURES_FEATURE_COLUMNS: tuple[str, ...] = (
     "funding_abs_pctl_180d",
     "funding_extreme_pos",
     "funding_extreme_neg",
+    "funding_zscore",
+    "funding_regime",
+    "funding_shock",
+    "funding_persistence",
+    "funding_price_divergence",
+    "funding_reversal_context",
     "oi",
     "oi_chg_1",
     "oi_chg_24",
@@ -26,6 +37,17 @@ FUTURES_FEATURE_COLUMNS: tuple[str, ...] = (
     "crowd_long_risk",
     "crowd_short_risk",
     "leverage_building",
+    "taker_buy_ratio",
+    "taker_sell_ratio",
+    "taker_imbalance",
+    "imbalance_persistence",
+    "imbalance_volatility_interaction",
+    "taker_burst_flag",
+    "ls_ratio_level",
+    "ls_ratio_zscore",
+    "ls_ratio_extreme",
+    "ratio_reversal",
+    "price_ratio_divergence",
 )
 
 
@@ -141,10 +163,95 @@ def build_interaction_features(
     return frame
 
 
+def build_funding_context_features(df_ohlcv: pd.DataFrame, base: pd.DataFrame) -> pd.DataFrame:
+    """Build Stage-37 first-class funding context features."""
+
+    out = pd.DataFrame({"timestamp": pd.to_datetime(df_ohlcv["timestamp"], utc=True)})
+    rate = pd.to_numeric(base.get("funding_rate"), errors="coerce").astype(float)
+    z30 = pd.to_numeric(base.get("funding_z_30"), errors="coerce").astype(float)
+    out["funding_zscore"] = z30
+    out["funding_regime"] = np.sign(rate.fillna(0.0)).astype(float)
+    out["funding_shock"] = (z30.abs() >= 1.5).astype(float)
+    out["funding_persistence"] = out["funding_regime"].rolling(window=12, min_periods=3).mean()
+
+    close = pd.to_numeric(df_ohlcv.get("close"), errors="coerce").astype(float)
+    ret_24 = close.pct_change(24)
+    out["funding_price_divergence"] = z30 * ret_24
+    sign_flip = out["funding_regime"].diff().fillna(0.0).abs() > 1.0
+    out["funding_reversal_context"] = ((out["funding_shock"] > 0.0) & sign_flip).astype(float)
+    return out
+
+
+def build_taker_features(df_ohlcv: pd.DataFrame, df_taker: pd.DataFrame | None = None, timeframe: str = "1h") -> pd.DataFrame:
+    """Build taker buy/sell imbalance context features."""
+
+    ts = pd.DataFrame({"timestamp": pd.to_datetime(df_ohlcv["timestamp"], utc=True)})
+    if df_taker is None or df_taker.empty:
+        out = ts.copy()
+        for col in (
+            "taker_buy_ratio",
+            "taker_sell_ratio",
+            "taker_imbalance",
+            "imbalance_persistence",
+            "imbalance_volatility_interaction",
+            "taker_burst_flag",
+        ):
+            out[col] = np.nan
+        return out
+
+    aligned = _normalize_taker_input(df_ohlcv=df_ohlcv, df_taker=df_taker, timeframe=timeframe)
+    buy = pd.to_numeric(aligned.get("taker_buy_volume"), errors="coerce").astype(float)
+    sell = pd.to_numeric(aligned.get("taker_sell_volume"), errors="coerce").astype(float)
+    total = buy + sell
+    out = ts.copy()
+    out["taker_buy_ratio"] = buy / total.replace(0.0, np.nan)
+    out["taker_sell_ratio"] = sell / total.replace(0.0, np.nan)
+    out["taker_imbalance"] = (buy - sell) / total.replace(0.0, np.nan)
+    out["imbalance_persistence"] = out["taker_imbalance"].rolling(window=12, min_periods=3).mean()
+    vol_48 = pd.to_numeric(df_ohlcv.get("close"), errors="coerce").astype(float).pct_change().rolling(48, min_periods=12).std(ddof=0)
+    out["imbalance_volatility_interaction"] = out["taker_imbalance"] * vol_48
+    imb_z = (out["taker_imbalance"] - out["taker_imbalance"].rolling(48, min_periods=12).mean()) / (
+        out["taker_imbalance"].rolling(48, min_periods=12).std(ddof=0).replace(0.0, np.nan)
+    )
+    out["taker_burst_flag"] = (imb_z.abs() >= 1.5).astype(float)
+    return out
+
+
+def build_long_short_ratio_features(
+    df_ohlcv: pd.DataFrame,
+    df_long_short: pd.DataFrame | None = None,
+    timeframe: str = "1h",
+) -> pd.DataFrame:
+    """Build long/short ratio context features."""
+
+    ts = pd.DataFrame({"timestamp": pd.to_datetime(df_ohlcv["timestamp"], utc=True)})
+    if df_long_short is None or df_long_short.empty:
+        out = ts.copy()
+        for col in ("ls_ratio_level", "ls_ratio_zscore", "ls_ratio_extreme", "ratio_reversal", "price_ratio_divergence"):
+            out[col] = np.nan
+        return out
+
+    aligned = _normalize_long_short_input(df_ohlcv=df_ohlcv, df_long_short=df_long_short, timeframe=timeframe)
+    ratio = pd.to_numeric(aligned.get("long_short_ratio"), errors="coerce").astype(float)
+    out = ts.copy()
+    out["ls_ratio_level"] = ratio
+    mean_48 = ratio.rolling(48, min_periods=12).mean()
+    std_48 = ratio.rolling(48, min_periods=12).std(ddof=0)
+    z = (ratio - mean_48) / std_48.replace(0.0, np.nan)
+    out["ls_ratio_zscore"] = z
+    out["ls_ratio_extreme"] = (z.abs() >= 1.5).astype(float)
+    out["ratio_reversal"] = (np.sign(ratio.diff()) != np.sign(ratio.diff().shift(1))).astype(float)
+    ret_24 = pd.to_numeric(df_ohlcv.get("close"), errors="coerce").astype(float).pct_change(24)
+    out["price_ratio_divergence"] = z * ret_24
+    return out
+
+
 def build_all_futures_features(
     df_ohlcv: pd.DataFrame,
     df_funding: pd.DataFrame,
     df_oi: pd.DataFrame,
+    df_taker: pd.DataFrame | None = None,
+    df_long_short: pd.DataFrame | None = None,
     config: dict[str, Any] | None = None,
 ) -> pd.DataFrame:
     """Build all Stage-9 futures extras features as one frame keyed by timestamp."""
@@ -172,6 +279,19 @@ def build_all_futures_features(
 
     merged = funding_features.merge(oi_features, on="timestamp", how="left")
     merged = build_interaction_features(merged)
+
+    funding_context = build_funding_context_features(df_ohlcv=df_ohlcv, base=merged)
+    merged = merged.merge(funding_context, on="timestamp", how="left")
+
+    taker_features = build_taker_features(df_ohlcv=df_ohlcv, df_taker=df_taker)
+    merged = merged.merge(taker_features, on="timestamp", how="left")
+
+    long_short_features = build_long_short_ratio_features(df_ohlcv=df_ohlcv, df_long_short=df_long_short)
+    merged = merged.merge(long_short_features, on="timestamp", how="left")
+
+    for col in registered_futures_feature_columns():
+        if col not in merged.columns:
+            merged[col] = np.nan
     return merged[["timestamp", *registered_futures_feature_columns()]]
 
 
@@ -194,6 +314,30 @@ def synthetic_futures_extras(df_ohlcv: pd.DataFrame) -> tuple[pd.DataFrame, pd.D
         }
     )
     return funding, open_interest
+
+
+def synthetic_derivatives_context(df_ohlcv: pd.DataFrame) -> tuple[pd.DataFrame, pd.DataFrame]:
+    """Generate deterministic synthetic taker and long/short ratio series."""
+
+    ts = pd.to_datetime(df_ohlcv["timestamp"], utc=True)
+    idx = np.arange(len(ts), dtype=float)
+    taker = pd.DataFrame(
+        {
+            "timestamp": ts,
+            "taker_buy_volume": 2000.0 + (80.0 * np.sin(idx / 8.0)) + (idx * 2.0),
+            "taker_sell_volume": 1950.0 + (70.0 * np.cos(idx / 9.0)) + (idx * 1.8),
+            "taker_buy_sell_ratio": 1.0 + (0.08 * np.sin(idx / 11.0)),
+        }
+    )
+    long_short = pd.DataFrame(
+        {
+            "timestamp": ts,
+            "long_short_ratio": 1.0 + (0.12 * np.sin(idx / 15.0)),
+            "long_account_ratio": 0.52 + (0.03 * np.sin(idx / 13.0)),
+            "short_account_ratio": 0.48 + (0.03 * np.cos(idx / 13.0)),
+        }
+    )
+    return taker, long_short
 
 
 def _normalize_funding_input(df_ohlcv: pd.DataFrame, df_funding: pd.DataFrame, timeframe: str) -> pd.DataFrame:
@@ -221,6 +365,43 @@ def _normalize_oi_input(df_ohlcv: pd.DataFrame, df_oi: pd.DataFrame, timeframe: 
     if "ts" in df_oi.columns:
         return align_open_interest_to_ohlcv(ohlcv=df_ohlcv, open_interest=df_oi[["ts", "open_interest"]], timeframe=timeframe)
     raise ValueError("open-interest input must contain either timestamp or ts column")
+
+
+def _normalize_taker_input(df_ohlcv: pd.DataFrame, df_taker: pd.DataFrame, timeframe: str) -> pd.DataFrame:
+    required = {"taker_buy_volume", "taker_sell_volume"}
+    if not required.issubset(set(df_taker.columns)):
+        raise ValueError("taker input must contain taker_buy_volume and taker_sell_volume")
+    if "timestamp" in df_taker.columns:
+        aligned = df_taker.copy()
+        aligned["timestamp"] = pd.to_datetime(aligned["timestamp"], utc=True, errors="coerce")
+        aligned = aligned.sort_values("timestamp").drop_duplicates(subset=["timestamp"], keep="last")
+        return df_ohlcv[["timestamp"]].merge(
+            aligned[["timestamp", "taker_buy_volume", "taker_sell_volume"]],
+            on="timestamp",
+            how="left",
+        )
+    if "ts" in df_taker.columns:
+        aligned = align_taker_buy_sell_to_ohlcv(ohlcv=df_ohlcv, taker=df_taker, timeframe=timeframe)
+        return aligned
+    raise ValueError("taker input must contain either timestamp or ts column")
+
+
+def _normalize_long_short_input(df_ohlcv: pd.DataFrame, df_long_short: pd.DataFrame, timeframe: str) -> pd.DataFrame:
+    if "long_short_ratio" not in df_long_short.columns:
+        raise ValueError("long_short input must contain long_short_ratio")
+    if "timestamp" in df_long_short.columns:
+        aligned = df_long_short.copy()
+        aligned["timestamp"] = pd.to_datetime(aligned["timestamp"], utc=True, errors="coerce")
+        aligned = aligned.sort_values("timestamp").drop_duplicates(subset=["timestamp"], keep="last")
+        return df_ohlcv[["timestamp"]].merge(
+            aligned[["timestamp", "long_short_ratio"]],
+            on="timestamp",
+            how="left",
+        )
+    if "ts" in df_long_short.columns:
+        aligned = align_long_short_ratio_to_ohlcv(ohlcv=df_ohlcv, long_short=df_long_short, timeframe=timeframe)
+        return aligned
+    raise ValueError("long_short input must contain either timestamp or ts column")
 
 
 def _rolling_percentile(series: pd.Series, window: int) -> pd.Series:

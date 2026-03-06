@@ -90,12 +90,22 @@ data:
       chg_windows: [1, 24]
       z_window: 30
       oi_to_volume_window: 24
+      short_horizon_only: false
+      short_horizon_max: "30m"
       overlay:
         enabled: false
         recent_window_days: 30
         max_recent_window_days: 90
         clamp_to_available: true
         inactive_value: "nan"
+    taker_buy_sell:
+      enabled: true
+      z_window: 48
+      burst_z: 1.5
+    long_short_ratio:
+      enabled: true
+      z_window: 48
+      extreme_z: 1.5
 
 features:
   extras:
@@ -731,6 +741,17 @@ evaluation:
       max_models_per_generation: 12
       exploration_pct: 0.20
       budget: "small"
+  stage37:
+    enabled: false
+    activation_hunt:
+      quality_floor: 0.0
+      min_quality_floor: -0.02
+      threshold_grid: [0.0, 0.02, 0.04, 0.06, 0.08, 0.10, 0.12, 0.15, 0.20, 0.25, 0.30]
+      min_selected_rows: 1
+    self_learning:
+      enabled: true
+      elite_count: 5
+      dead_family_min_weight: 0.05
 
 ui:
   stage5:

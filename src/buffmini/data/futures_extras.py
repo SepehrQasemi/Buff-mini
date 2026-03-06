@@ -1,9 +1,9 @@
-"""Funding and open-interest data loaders for futures extras."""
+"""Funding/open-interest/taker/ratio data loaders for futures extras."""
 
 from __future__ import annotations
 
 import time
-from typing import Any
+from typing import Any, Callable
 
 import ccxt
 import numpy as np
@@ -288,6 +288,209 @@ def _fetch_open_interest_chunk(
     return []
 
 
+def _fetch_taker_buy_sell_chunk(
+    exchange: ccxt.Exchange,
+    perp_symbol: str,
+    timeframe: str,
+    start_ms: int,
+    end_ms: int,
+    limit: int,
+    max_retries: int,
+    retry_backoff_sec: float,
+) -> list[dict[str, Any]]:
+    params = {
+        "symbol": binance_oi_symbol(perp_symbol),
+        "period": str(timeframe),
+        "limit": int(limit),
+        "endTime": int(end_ms),
+    }
+    if int(start_ms) > 0:
+        params["startTime"] = int(start_ms)
+    for attempt in range(int(max_retries)):
+        try:
+            return exchange.fapiDataGetTakerlongshortRatio(params)
+        except AttributeError:
+            return []
+        except ccxt.BadRequest:
+            if "startTime" in params:
+                fallback = dict(params)
+                fallback.pop("startTime", None)
+                return exchange.fapiDataGetTakerlongshortRatio(fallback)
+            raise
+        except (ccxt.NetworkError, ccxt.ExchangeNotAvailable, ccxt.RequestTimeout):
+            if attempt + 1 >= int(max_retries):
+                raise
+            time.sleep(float(retry_backoff_sec) * float(2**attempt))
+    return []
+
+
+def _fetch_long_short_ratio_chunk(
+    exchange: ccxt.Exchange,
+    perp_symbol: str,
+    timeframe: str,
+    start_ms: int,
+    end_ms: int,
+    limit: int,
+    max_retries: int,
+    retry_backoff_sec: float,
+) -> list[dict[str, Any]]:
+    params = {
+        "symbol": binance_oi_symbol(perp_symbol),
+        "period": str(timeframe),
+        "limit": int(limit),
+        "endTime": int(end_ms),
+    }
+    if int(start_ms) > 0:
+        params["startTime"] = int(start_ms)
+    for attempt in range(int(max_retries)):
+        try:
+            return exchange.fapiDataGetGlobalLongShortAccountRatio(params)
+        except AttributeError:
+            return []
+        except ccxt.BadRequest:
+            if "startTime" in params:
+                fallback = dict(params)
+                fallback.pop("startTime", None)
+                return exchange.fapiDataGetGlobalLongShortAccountRatio(fallback)
+            raise
+        except (ccxt.NetworkError, ccxt.ExchangeNotAvailable, ccxt.RequestTimeout):
+            if attempt + 1 >= int(max_retries):
+                raise
+            time.sleep(float(retry_backoff_sec) * float(2**attempt))
+    return []
+
+
+def _normalize_taker_batch(batch: list[dict[str, Any]], start_ms: int, end_ms: int) -> list[dict[str, Any]]:
+    rows: list[dict[str, Any]] = []
+    for item in batch:
+        ts_ms = int(item.get("timestamp", 0) or 0)
+        if ts_ms <= 0 or ts_ms < start_ms or ts_ms > end_ms:
+            continue
+        buy = item.get("buyVol")
+        sell = item.get("sellVol")
+        ratio = item.get("buySellRatio")
+        info = item.get("info") if isinstance(item.get("info"), dict) else {}
+        buy = buy if buy is not None else info.get("buyVol")
+        sell = sell if sell is not None else info.get("sellVol")
+        ratio = ratio if ratio is not None else info.get("buySellRatio")
+        if ratio is None:
+            if buy is not None and sell is not None and float(sell) != 0.0:
+                ratio = float(buy) / float(sell)
+            else:
+                continue
+        rows.append(
+            {
+                "ts": pd.to_datetime(ts_ms, unit="ms", utc=True),
+                "taker_buy_volume": float(buy) if buy is not None else np.nan,
+                "taker_sell_volume": float(sell) if sell is not None else np.nan,
+                "taker_buy_sell_ratio": float(ratio),
+            }
+        )
+    return rows
+
+
+def _normalize_long_short_batch(batch: list[dict[str, Any]], start_ms: int, end_ms: int) -> list[dict[str, Any]]:
+    rows: list[dict[str, Any]] = []
+    for item in batch:
+        ts_ms = int(item.get("timestamp", 0) or 0)
+        if ts_ms <= 0 or ts_ms < start_ms or ts_ms > end_ms:
+            continue
+        ratio = item.get("longShortRatio")
+        long_acc = item.get("longAccount")
+        short_acc = item.get("shortAccount")
+        info = item.get("info") if isinstance(item.get("info"), dict) else {}
+        ratio = ratio if ratio is not None else info.get("longShortRatio")
+        long_acc = long_acc if long_acc is not None else info.get("longAccount")
+        short_acc = short_acc if short_acc is not None else info.get("shortAccount")
+        if ratio is None:
+            continue
+        rows.append(
+            {
+                "ts": pd.to_datetime(ts_ms, unit="ms", utc=True),
+                "long_short_ratio": float(ratio),
+                "long_account_ratio": float(long_acc) if long_acc is not None else np.nan,
+                "short_account_ratio": float(short_acc) if short_acc is not None else np.nan,
+            }
+        )
+    return rows
+
+
+def _backfill_generic_series(
+    *,
+    exchange: ccxt.Exchange,
+    symbol: str,
+    start_ms: int,
+    end_ms: int,
+    timeframe: str,
+    limit: int,
+    max_retries: int,
+    retry_backoff_sec: float,
+    sleep_between_chunks_sec: float,
+    chunk_fetcher: Callable[..., list[dict[str, Any]]],
+    row_normalizer: Callable[[list[dict[str, Any]], int, int], list[dict[str, Any]]],
+    stop_reason_empty: str,
+) -> tuple[pd.DataFrame, dict[str, Any]]:
+    since = int(start_ms)
+    end_ms = int(end_ms)
+    perp = futures_symbol(symbol)
+    interval_ms = int(exchange.parse_timeframe(str(timeframe))) * 1000
+    chunk_span_ms = max(interval_ms, int(limit) * interval_ms)
+    cursor_end_ms = int(end_ms)
+    requests_count = 0
+    stop_reason = "reached_start"
+    warnings: list[str] = []
+    rows: list[dict[str, Any]] = []
+
+    while cursor_end_ms >= since:
+        chunk_start_ms = max(since, cursor_end_ms - chunk_span_ms + 1)
+        try:
+            batch = chunk_fetcher(
+                exchange=exchange,
+                perp_symbol=perp,
+                timeframe=str(timeframe),
+                start_ms=int(chunk_start_ms),
+                end_ms=int(cursor_end_ms),
+                limit=int(limit),
+                max_retries=int(max_retries),
+                retry_backoff_sec=float(retry_backoff_sec),
+            )
+        except ccxt.BadRequest:
+            stop_reason = "api_rejected_older_timestamps"
+            warnings.append("Binance endpoint rejected older timestamps before requested start.")
+            break
+        requests_count += 1
+        if not batch:
+            stop_reason = str(stop_reason_empty)
+            break
+        rows.extend(row_normalizer(batch, since, end_ms))
+        batch_sorted = sorted(batch, key=lambda item: int(item.get("timestamp", 0) or 0))
+        earliest_ts = int(batch_sorted[0].get("timestamp", 0) or 0)
+        if earliest_ts <= since:
+            stop_reason = "reached_start"
+            break
+        next_cursor_end = earliest_ts - 1
+        if next_cursor_end >= cursor_end_ms:
+            stop_reason = "stuck_cursor"
+            break
+        cursor_end_ms = next_cursor_end
+        if len(batch) < int(limit):
+            stop_reason = "insufficient_chunk_rows"
+            break
+        if float(sleep_between_chunks_sec) > 0:
+            time.sleep(float(sleep_between_chunks_sec))
+
+    frame = pd.DataFrame(rows) if rows else pd.DataFrame()
+    if not frame.empty and "ts" in frame.columns:
+        frame["ts"] = pd.to_datetime(frame["ts"], utc=True, errors="coerce")
+        frame = frame.dropna(subset=["ts"]).drop_duplicates(subset=["ts"], keep="last").sort_values("ts").reset_index(drop=True)
+    info = {
+        "requests_count": int(requests_count),
+        "stop_reason": str(stop_reason),
+        "warnings": warnings,
+    }
+    return frame, info
+
+
 def align_open_interest_to_ohlcv(
     ohlcv: pd.DataFrame,
     open_interest: pd.DataFrame,
@@ -356,6 +559,151 @@ def open_interest_coverage_report(
         "warnings": warnings,
         "timeframe": str(timeframe),
     }
+
+
+def fetch_taker_buy_sell_history_backfill(
+    exchange: ccxt.Exchange,
+    symbol: str,
+    start_ms: int,
+    end_ms: int,
+    timeframe: str = "1h",
+    limit: int = 500,
+    max_retries: int = 3,
+    retry_backoff_sec: float = 0.8,
+    sleep_between_chunks_sec: float = 0.0,
+    chunk_fetcher: Callable[..., list[dict[str, Any]]] | None = None,
+) -> tuple[pd.DataFrame, dict[str, Any]]:
+    """Backfill taker buy/sell volume ratio history from Binance futures endpoint."""
+
+    frame, info = _backfill_generic_series(
+        exchange=exchange,
+        symbol=symbol,
+        start_ms=start_ms,
+        end_ms=end_ms,
+        timeframe=timeframe,
+        limit=limit,
+        max_retries=max_retries,
+        retry_backoff_sec=retry_backoff_sec,
+        sleep_between_chunks_sec=sleep_between_chunks_sec,
+        chunk_fetcher=chunk_fetcher or _fetch_taker_buy_sell_chunk,
+        row_normalizer=_normalize_taker_batch,
+        stop_reason_empty="no_more_data",
+    )
+    if frame.empty:
+        return pd.DataFrame(columns=["ts", "taker_buy_volume", "taker_sell_volume", "taker_buy_sell_ratio"]), info
+    return frame, info
+
+
+def align_taker_buy_sell_to_ohlcv(
+    ohlcv: pd.DataFrame,
+    taker: pd.DataFrame,
+    timeframe: str = "1h",
+) -> pd.DataFrame:
+    """Align taker buy/sell series to candle-open timestamps."""
+
+    base = _align_latest_event_to_candles(
+        ohlcv=ohlcv,
+        events=taker,
+        value_col="taker_buy_volume",
+        timeframe=timeframe,
+    )
+    if taker.empty:
+        base["taker_sell_volume"] = np.nan
+        base["taker_buy_sell_ratio"] = np.nan
+        return base
+
+    sell = _align_latest_event_to_candles(
+        ohlcv=ohlcv,
+        events=taker.rename(columns={"taker_sell_volume": "value"}),
+        value_col="value",
+        timeframe=timeframe,
+    ).rename(columns={"value": "taker_sell_volume"})
+    ratio = _align_latest_event_to_candles(
+        ohlcv=ohlcv,
+        events=taker.rename(columns={"taker_buy_sell_ratio": "value"}),
+        value_col="value",
+        timeframe=timeframe,
+    ).rename(columns={"value": "taker_buy_sell_ratio"})
+    out = base.merge(sell, on="timestamp", how="left").merge(ratio, on="timestamp", how="left")
+    return out
+
+
+def taker_buy_sell_quality_report(taker: pd.DataFrame) -> dict[str, Any]:
+    """Return quality checks for taker buy/sell ratio history."""
+
+    return _series_quality_report(frame=taker.rename(columns={"taker_buy_sell_ratio": "value"}), value_col="value", expected_gap_hours=1)
+
+
+def fetch_long_short_ratio_history_backfill(
+    exchange: ccxt.Exchange,
+    symbol: str,
+    start_ms: int,
+    end_ms: int,
+    timeframe: str = "1h",
+    limit: int = 500,
+    max_retries: int = 3,
+    retry_backoff_sec: float = 0.8,
+    sleep_between_chunks_sec: float = 0.0,
+    chunk_fetcher: Callable[..., list[dict[str, Any]]] | None = None,
+) -> tuple[pd.DataFrame, dict[str, Any]]:
+    """Backfill global long/short account ratio history from Binance futures endpoint."""
+
+    frame, info = _backfill_generic_series(
+        exchange=exchange,
+        symbol=symbol,
+        start_ms=start_ms,
+        end_ms=end_ms,
+        timeframe=timeframe,
+        limit=limit,
+        max_retries=max_retries,
+        retry_backoff_sec=retry_backoff_sec,
+        sleep_between_chunks_sec=sleep_between_chunks_sec,
+        chunk_fetcher=chunk_fetcher or _fetch_long_short_ratio_chunk,
+        row_normalizer=_normalize_long_short_batch,
+        stop_reason_empty="no_more_data",
+    )
+    if frame.empty:
+        return pd.DataFrame(columns=["ts", "long_short_ratio", "long_account_ratio", "short_account_ratio"]), info
+    return frame, info
+
+
+def align_long_short_ratio_to_ohlcv(
+    ohlcv: pd.DataFrame,
+    long_short: pd.DataFrame,
+    timeframe: str = "1h",
+) -> pd.DataFrame:
+    """Align long/short ratio series to candle-open timestamps."""
+
+    base = _align_latest_event_to_candles(
+        ohlcv=ohlcv,
+        events=long_short,
+        value_col="long_short_ratio",
+        timeframe=timeframe,
+    )
+    if long_short.empty:
+        base["long_account_ratio"] = np.nan
+        base["short_account_ratio"] = np.nan
+        return base
+    long_acc = _align_latest_event_to_candles(
+        ohlcv=ohlcv,
+        events=long_short.rename(columns={"long_account_ratio": "value"}),
+        value_col="value",
+        timeframe=timeframe,
+    ).rename(columns={"value": "long_account_ratio"})
+    short_acc = _align_latest_event_to_candles(
+        ohlcv=ohlcv,
+        events=long_short.rename(columns={"short_account_ratio": "value"}),
+        value_col="value",
+        timeframe=timeframe,
+    ).rename(columns={"value": "short_account_ratio"})
+    out = base.merge(long_acc, on="timestamp", how="left").merge(short_acc, on="timestamp", how="left")
+    return out
+
+
+def long_short_ratio_quality_report(long_short: pd.DataFrame) -> dict[str, Any]:
+    """Return quality checks for long/short ratio history."""
+
+    return _series_quality_report(frame=long_short.rename(columns={"long_short_ratio": "value"}), value_col="value", expected_gap_hours=1)
 
 
 def _align_latest_event_to_candles(

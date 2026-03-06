@@ -13,6 +13,7 @@ from buffmini.data.derived_store import load_derived_parquet
 from buffmini.data.features_futures import (
     build_all_futures_features,
     registered_futures_feature_columns,
+    synthetic_derivatives_context,
     synthetic_futures_extras,
 )
 from buffmini.features.extras_align import align_coinapi_extras_to_bars, config_extras_enabled, load_coinapi_endpoint_frame
@@ -163,6 +164,7 @@ def calculate_features(
 
         if _synthetic_extras_for_tests:
             funding_df, oi_df = synthetic_futures_extras(data)
+            taker_df, long_short_df = synthetic_derivatives_context(data)
         else:
             funding_df = _load_optional_derived_extras(
                 kind="funding",
@@ -170,6 +172,7 @@ def calculate_features(
                 timeframe=timeframe,
                 data_dir=derived_data_dir,
                 value_col="funding_rate",
+                fallback_timeframe="1h",
             )
             oi_df = _load_optional_derived_extras(
                 kind="open_interest",
@@ -177,12 +180,33 @@ def calculate_features(
                 timeframe=timeframe,
                 data_dir=derived_data_dir,
                 value_col="open_interest",
+                fallback_timeframe="1h",
+            )
+            taker_df = _load_optional_derived_extras(
+                kind="taker_buy_sell",
+                symbol=resolved_symbol,
+                timeframe=timeframe,
+                data_dir=derived_data_dir,
+                value_col="taker_buy_volume",
+                extra_cols=["taker_sell_volume", "taker_buy_sell_ratio"],
+                fallback_timeframe="1h",
+            )
+            long_short_df = _load_optional_derived_extras(
+                kind="long_short_ratio",
+                symbol=resolved_symbol,
+                timeframe=timeframe,
+                data_dir=derived_data_dir,
+                value_col="long_short_ratio",
+                extra_cols=["long_account_ratio", "short_account_ratio"],
+                fallback_timeframe="1h",
             )
 
         extras = build_all_futures_features(
             df_ohlcv=data,
             df_funding=funding_df,
             df_oi=oi_df,
+            df_taker=taker_df,
+            df_long_short=long_short_df,
             config={
                 "timeframe": str(extras_cfg.get("timeframe", timeframe)),
                 "max_fill_gap_bars": int(extras_cfg.get("max_fill_gap_bars", 8)),
@@ -191,6 +215,15 @@ def calculate_features(
             },
         )
         data = data.merge(extras, on="timestamp", how="left")
+
+        oi_cfg = dict(extras_cfg.get("open_interest", {}))
+        if _oi_short_horizon_only(oi_cfg):
+            oi_cutoff = str(oi_cfg.get("short_horizon_max", "30m")).strip().lower()
+            if not _is_timeframe_shorter_or_equal(timeframe=timeframe, threshold=oi_cutoff):
+                for col in OI_DEPENDENT_COLUMNS:
+                    if col in data.columns:
+                        data[col] = np.nan
+                data["oi_active"] = False
 
         if _oi_overlay_enabled(config):
             overlay_cfg = dict(
@@ -262,18 +295,32 @@ def _load_optional_derived_extras(
     timeframe: str,
     data_dir: str | Path,
     value_col: str,
+    extra_cols: list[str] | None = None,
+    fallback_timeframe: str | None = None,
 ) -> pd.DataFrame:
     """Load derived extras; return empty schema when file is missing."""
 
+    cols = ["timestamp", value_col, *(extra_cols or [])]
     try:
-        return load_derived_parquet(
+        frame = load_derived_parquet(
             kind=kind,
             symbol=symbol,
             timeframe=timeframe,
             data_dir=data_dir,
         )
+        return frame
     except FileNotFoundError:
-        return pd.DataFrame(columns=["timestamp", value_col])
+        if fallback_timeframe and str(fallback_timeframe) != str(timeframe):
+            try:
+                return load_derived_parquet(
+                    kind=kind,
+                    symbol=symbol,
+                    timeframe=str(fallback_timeframe),
+                    data_dir=data_dir,
+                )
+            except FileNotFoundError:
+                pass
+        return pd.DataFrame(columns=cols)
 
 
 def _should_include_futures_extras(config: dict[str, Any] | None) -> bool:
@@ -301,3 +348,27 @@ def _oi_overlay_enabled(config: dict[str, Any] | None) -> bool:
     if not isinstance(overlay_cfg, dict):
         return False
     return bool(overlay_cfg.get("enabled", False))
+
+
+def _oi_short_horizon_only(oi_cfg: dict[str, Any]) -> bool:
+    if not isinstance(oi_cfg, dict):
+        return False
+    return bool(oi_cfg.get("short_horizon_only", False))
+
+
+def _is_timeframe_shorter_or_equal(*, timeframe: str, threshold: str) -> bool:
+    minutes_map = {
+        "1m": 1,
+        "5m": 5,
+        "15m": 15,
+        "30m": 30,
+        "1h": 60,
+        "2h": 120,
+        "4h": 240,
+        "1d": 1440,
+    }
+    tf = minutes_map.get(str(timeframe).strip().lower())
+    cutoff = minutes_map.get(str(threshold).strip().lower())
+    if tf is None or cutoff is None:
+        return False
+    return bool(tf <= cutoff)

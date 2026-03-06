@@ -75,6 +75,8 @@ DATA_DEFAULTS = {
             "chg_windows": [1, 24],
             "z_window": 30,
             "oi_to_volume_window": 24,
+            "short_horizon_only": False,
+            "short_horizon_max": "30m",
             "overlay": {
                 "enabled": False,
                 "recent_window_days": 30,
@@ -82,6 +84,16 @@ DATA_DEFAULTS = {
                 "clamp_to_available": True,
                 "inactive_value": "nan",
             },
+        },
+        "taker_buy_sell": {
+            "enabled": True,
+            "z_window": 48,
+            "burst_z": 1.5,
+        },
+        "long_short_ratio": {
+            "enabled": True,
+            "z_window": 48,
+            "extreme_z": 1.5,
         },
     },
 }
@@ -739,6 +751,21 @@ STAGE34_DEFAULTS = {
     },
 }
 
+STAGE37_DEFAULTS = {
+    "enabled": False,
+    "activation_hunt": {
+        "quality_floor": 0.0,
+        "min_quality_floor": -0.02,
+        "threshold_grid": [0.0, 0.02, 0.04, 0.06, 0.08, 0.10, 0.12, 0.15, 0.20, 0.25, 0.30],
+        "min_selected_rows": 1,
+    },
+    "self_learning": {
+        "enabled": True,
+        "elite_count": 5,
+        "dead_family_min_weight": 0.05,
+    },
+}
+
 UI_STAGE5_DEFAULTS = {
     "stage5": {
         "presets": {
@@ -1112,6 +1139,12 @@ def validate_config(config: ConfigDict) -> None:
         raise ValueError("data.futures_extras.open_interest.z_window must be >= 2")
     if int(oi_cfg["oi_to_volume_window"]) < 1:
         raise ValueError("data.futures_extras.open_interest.oi_to_volume_window must be >= 1")
+    if not isinstance(oi_cfg.get("short_horizon_only", False), bool):
+        raise ValueError("data.futures_extras.open_interest.short_horizon_only must be bool")
+    short_horizon_max = str(oi_cfg.get("short_horizon_max", "30m")).strip().lower()
+    if short_horizon_max not in {"1m", "5m", "15m", "30m"}:
+        raise ValueError("data.futures_extras.open_interest.short_horizon_max must be one of 1m|5m|15m|30m")
+    oi_cfg["short_horizon_max"] = short_horizon_max
     overlay_cfg = _merge_defaults(DATA_DEFAULTS["futures_extras"]["open_interest"]["overlay"], oi_cfg.get("overlay", {}))
     if not isinstance(overlay_cfg["enabled"], bool):
         raise ValueError("data.futures_extras.open_interest.overlay.enabled must be bool")
@@ -1129,6 +1162,25 @@ def validate_config(config: ConfigDict) -> None:
         raise ValueError("data.futures_extras.open_interest.overlay.inactive_value must be 'nan'")
     oi_cfg["overlay"] = overlay_cfg
     futures_extras["open_interest"] = oi_cfg
+
+    taker_cfg = _merge_defaults(DATA_DEFAULTS["futures_extras"]["taker_buy_sell"], futures_extras.get("taker_buy_sell", {}))
+    if not isinstance(taker_cfg.get("enabled", True), bool):
+        raise ValueError("data.futures_extras.taker_buy_sell.enabled must be bool")
+    if int(taker_cfg.get("z_window", 48)) < 2:
+        raise ValueError("data.futures_extras.taker_buy_sell.z_window must be >= 2")
+    if float(taker_cfg.get("burst_z", 1.5)) <= 0:
+        raise ValueError("data.futures_extras.taker_buy_sell.burst_z must be > 0")
+    futures_extras["taker_buy_sell"] = taker_cfg
+
+    ls_cfg = _merge_defaults(DATA_DEFAULTS["futures_extras"]["long_short_ratio"], futures_extras.get("long_short_ratio", {}))
+    if not isinstance(ls_cfg.get("enabled", True), bool):
+        raise ValueError("data.futures_extras.long_short_ratio.enabled must be bool")
+    if int(ls_cfg.get("z_window", 48)) < 2:
+        raise ValueError("data.futures_extras.long_short_ratio.z_window must be >= 2")
+    if float(ls_cfg.get("extreme_z", 1.5)) <= 0:
+        raise ValueError("data.futures_extras.long_short_ratio.extreme_z must be > 0")
+    futures_extras["long_short_ratio"] = ls_cfg
+    data["futures_extras"] = futures_extras
     config["data"] = data
 
     features_cfg = _merge_defaults(FEATURES_DEFAULTS, config.get("features", {}))
@@ -2199,6 +2251,32 @@ def validate_config(config: ConfigDict) -> None:
     if str(evo34.get("budget", "small")).strip().lower() not in {"small", "medium"}:
         raise ValueError("evaluation.stage34.evolution.budget must be small|medium")
     evaluation["stage34"] = stage34
+
+    stage37 = _merge_defaults(STAGE37_DEFAULTS, evaluation.get("stage37", {}))
+    if not isinstance(stage37.get("enabled", False), bool):
+        raise ValueError("evaluation.stage37.enabled must be bool")
+    hunt37 = dict(stage37.get("activation_hunt", {}))
+    if float(hunt37.get("quality_floor", 0.0)) < -1.0 or float(hunt37.get("quality_floor", 0.0)) > 1.0:
+        raise ValueError("evaluation.stage37.activation_hunt.quality_floor must be in [-1,1]")
+    if float(hunt37.get("min_quality_floor", -0.02)) < -1.0 or float(hunt37.get("min_quality_floor", -0.02)) > 1.0:
+        raise ValueError("evaluation.stage37.activation_hunt.min_quality_floor must be in [-1,1]")
+    grid37 = hunt37.get("threshold_grid", [])
+    if not isinstance(grid37, list) or not grid37:
+        raise ValueError("evaluation.stage37.activation_hunt.threshold_grid must be a non-empty list")
+    if any(float(v) < 0 for v in grid37):
+        raise ValueError("evaluation.stage37.activation_hunt.threshold_grid values must be >= 0")
+    if int(hunt37.get("min_selected_rows", 1)) < 1:
+        raise ValueError("evaluation.stage37.activation_hunt.min_selected_rows must be >= 1")
+    stage37["activation_hunt"] = hunt37
+    sl37 = dict(stage37.get("self_learning", {}))
+    if not isinstance(sl37.get("enabled", True), bool):
+        raise ValueError("evaluation.stage37.self_learning.enabled must be bool")
+    if int(sl37.get("elite_count", 5)) < 1:
+        raise ValueError("evaluation.stage37.self_learning.elite_count must be >= 1")
+    if float(sl37.get("dead_family_min_weight", 0.05)) <= 0 or float(sl37.get("dead_family_min_weight", 0.05)) > 1:
+        raise ValueError("evaluation.stage37.self_learning.dead_family_min_weight must be in (0,1]")
+    stage37["self_learning"] = sl37
+    evaluation["stage37"] = stage37
 
     ui = _merge_defaults(UI_STAGE5_DEFAULTS, config.get("ui", {}))
     stage5_ui = ui.get("stage5", {})
