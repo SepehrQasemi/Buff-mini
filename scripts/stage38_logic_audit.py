@@ -24,7 +24,7 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument("--threshold", type=float, default=0.0)
     parser.add_argument("--quality-floor", type=float, default=-0.02)
     parser.add_argument("--activation-summary", type=Path, default=Path("docs") / "stage37_activation_hunt_summary.json")
-    parser.add_argument("--registry-path", type=Path, default=Path(""))
+    parser.add_argument("--registry-path", type=str, default="")
     parser.add_argument("--config", type=Path, default=Path("configs") / "default.yaml")
     return parser.parse_args()
 
@@ -35,6 +35,16 @@ def _load_json(path: Path) -> dict[str, Any]:
         return {}
     payload = json.loads(p.read_text(encoding="utf-8"))
     return payload if isinstance(payload, dict) else {}
+
+
+def _load_registry_rows(path: Path) -> list[dict[str, Any]]:
+    p = Path(path)
+    if not p.exists():
+        return []
+    payload = json.loads(p.read_text(encoding="utf-8"))
+    if not isinstance(payload, list):
+        return []
+    return [dict(row) for row in payload if isinstance(row, dict)]
 
 
 def main() -> None:
@@ -62,6 +72,18 @@ def main() -> None:
         "and lineage now tracks composer_signal_count explicitly."
     )
     oi_usage_payload = _runtime_oi_usage(cfg=cfg)
+    default_registry_path = stage28_dir.parent / "stage37" / "learning_registry.json"
+    registry_path = Path(str(args.registry_path).strip()) if str(args.registry_path).strip() else default_registry_path
+    registry_rows = _load_registry_rows(registry_path)
+    self_learning_payload = {
+        "registry_path": str(registry_path.as_posix()),
+        "registry_rows": int(len(registry_rows)),
+        "elites_count": int(sum(1 for row in registry_rows if bool(row.get("elite", False)))),
+        "dead_family_count": int(sum(1 for row in registry_rows if str(row.get("status", "")) == "dead_end")),
+        "failure_motif_tags_non_empty": bool(
+            any(bool(list(row.get("failure_motif_tags", []))) for row in registry_rows)
+        ),
+    }
     payload = {
         "stage": "38.2",
         "stage28_run_id": str(args.stage28_run_id),
@@ -84,13 +106,7 @@ def main() -> None:
         ],
         "activation_summary_source": str(Path(args.activation_summary).as_posix()),
         "activation_summary_present": bool(activation_payload),
-        "self_learning": {
-            "registry_path": str(args.registry_path.as_posix()) if str(args.registry_path).strip() else "",
-            "registry_rows": 0,
-            "elites_count": 0,
-            "dead_family_count": 0,
-            "failure_motif_tags_non_empty": False,
-        },
+        "self_learning": self_learning_payload,
         "oi_usage": oi_usage_payload,
     }
 

@@ -19,6 +19,7 @@ def _entry(*, run_id: str, family: str, activation_rate: float, exp_lcb: float, 
         family=family,
         feature_subset_signature=f"sig::{family}",
         threshold_configuration={"activation_threshold": 0.05},
+        raw_signal_count=max(1, int(trades)),
         activation_rate=activation_rate,
         top_reject_reason=reason,
         cost_gate_fail_rate=0.2,
@@ -27,6 +28,8 @@ def _entry(*, run_id: str, family: str, activation_rate: float, exp_lcb: float, 
         exp_lcb=exp_lcb,
         stability_score=activation_rate,
         status="active" if trades > 0 else "dead_end",
+        elite=False,
+        failure_motif_tags=("REJECT::SIZE_TOO_SMALL",),
     )
 
 

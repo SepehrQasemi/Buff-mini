@@ -32,8 +32,8 @@
 - oi_non_null_rows: `0`
 
 ## Self-Learning Registry
-- registry_path: `.`
-- registry_rows: `0`
-- elites_count: `0`
-- dead_family_count: `0`
-- failure_motif_tags_non_empty: `False`
+- registry_path: `C:/dev/Buff-mini/runs/20260306_152631_2a029423a621_stage28/stage37/learning_registry.json`
+- registry_rows: `1`
+- elites_count: `1`
+- dead_family_count: `1`
+- failure_motif_tags_non_empty: `True`

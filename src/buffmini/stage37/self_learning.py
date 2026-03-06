@@ -19,6 +19,7 @@ class LearningRegistryEntry:
     family: str
     feature_subset_signature: str
     threshold_configuration: dict[str, Any]
+    raw_signal_count: int
     activation_rate: float
     top_reject_reason: str
     cost_gate_fail_rate: float
@@ -27,6 +28,8 @@ class LearningRegistryEntry:
     exp_lcb: float
     stability_score: float
     status: str = "active"
+    elite: bool = False
+    failure_motif_tags: tuple[str, ...] = ()
 
     def as_dict(self) -> dict[str, Any]:
         return {
@@ -35,6 +38,7 @@ class LearningRegistryEntry:
             "family": str(self.family),
             "feature_subset_signature": str(self.feature_subset_signature),
             "threshold_configuration": dict(self.threshold_configuration),
+            "raw_signal_count": int(self.raw_signal_count),
             "activation_rate": float(self.activation_rate),
             "top_reject_reason": str(self.top_reject_reason),
             "cost_gate_fail_rate": float(self.cost_gate_fail_rate),
@@ -43,6 +47,8 @@ class LearningRegistryEntry:
             "exp_lcb": float(self.exp_lcb),
             "stability_score": float(self.stability_score),
             "status": str(self.status),
+            "elite": bool(self.elite),
+            "failure_motif_tags": [str(v) for v in self.failure_motif_tags],
         }
 
 
@@ -71,11 +77,60 @@ def save_learning_registry(path: Path, rows: list[dict[str, Any]]) -> None:
 def upsert_learning_registry_entry(path: Path, entry: LearningRegistryEntry | dict[str, Any]) -> list[dict[str, Any]]:
     row = entry.as_dict() if isinstance(entry, LearningRegistryEntry) else _normalize_row(dict(entry))
     rows = load_learning_registry(path)
-    key = (str(row.get("run_id", "")), int(row.get("generation", 0)), str(row.get("family", "")))
-    updated = [item for item in rows if (str(item.get("run_id", "")), int(item.get("generation", 0)), str(item.get("family", ""))) != key]
+    key = (
+        str(row.get("run_id", "")),
+        int(row.get("generation", 0)),
+        str(row.get("family", "")),
+        str(row.get("feature_subset_signature", "")),
+    )
+    updated = [
+        item
+        for item in rows
+        if (
+            str(item.get("run_id", "")),
+            int(item.get("generation", 0)),
+            str(item.get("family", "")),
+            str(item.get("feature_subset_signature", "")),
+        )
+        != key
+    ]
     updated.append(row)
     save_learning_registry(path, updated)
     return load_learning_registry(path)
+
+
+def apply_elite_flags(rows: list[dict[str, Any]], elite_rows: list[dict[str, Any]]) -> list[dict[str, Any]]:
+    """Mark elites deterministically in registry rows."""
+
+    elite_keys = {
+        (
+            str(row.get("run_id", "")),
+            int(row.get("generation", 0)),
+            str(row.get("family", "")),
+            str(row.get("feature_subset_signature", "")),
+        )
+        for row in elite_rows
+    }
+    out: list[dict[str, Any]] = []
+    for row in rows:
+        item = _normalize_row(dict(row))
+        key = (
+            str(item.get("run_id", "")),
+            int(item.get("generation", 0)),
+            str(item.get("family", "")),
+            str(item.get("feature_subset_signature", "")),
+        )
+        item["elite"] = bool(key in elite_keys)
+        out.append(item)
+    return sorted(
+        out,
+        key=lambda row: (
+            int(row.get("generation", 0)),
+            str(row.get("run_id", "")),
+            str(row.get("family", "")),
+            str(row.get("feature_subset_signature", "")),
+        ),
+    )
 
 
 def select_elites_deterministic(rows: list[dict[str, Any]], *, top_k: int = 5) -> list[dict[str, Any]]:
@@ -151,6 +206,7 @@ def _normalize_row(row: dict[str, Any]) -> dict[str, Any]:
     out["family"] = str(out.get("family", ""))
     out["feature_subset_signature"] = str(out.get("feature_subset_signature", ""))
     out["threshold_configuration"] = dict(out.get("threshold_configuration", {}) or {})
+    out["raw_signal_count"] = int(out.get("raw_signal_count", 0))
     out["activation_rate"] = float(out.get("activation_rate", 0.0))
     out["top_reject_reason"] = str(out.get("top_reject_reason", "unknown"))
     out["cost_gate_fail_rate"] = float(out.get("cost_gate_fail_rate", 0.0))
@@ -159,4 +215,7 @@ def _normalize_row(row: dict[str, Any]) -> dict[str, Any]:
     out["exp_lcb"] = float(out.get("exp_lcb", 0.0))
     out["stability_score"] = float(out.get("stability_score", 0.0))
     out["status"] = str(out.get("status", "active"))
+    out["elite"] = bool(out.get("elite", False))
+    motifs = out.get("failure_motif_tags", [])
+    out["failure_motif_tags"] = [str(v) for v in motifs] if isinstance(motifs, list) else []
     return out

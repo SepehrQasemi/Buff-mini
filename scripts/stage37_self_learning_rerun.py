@@ -12,13 +12,15 @@ import pandas as pd
 from buffmini.config import load_config
 from buffmini.constants import DEFAULT_CONFIG_PATH, RUNS_DIR
 from buffmini.stage37.self_learning import (
-    LearningRegistryEntry,
+    apply_elite_flags,
     compute_family_exploration_weights,
     load_learning_registry,
     prune_features_by_contribution,
+    save_learning_registry,
     select_elites_deterministic,
     upsert_learning_registry_entry,
 )
+from buffmini.stage38.audit import build_failure_aware_registry_rows
 
 
 def parse_args() -> argparse.Namespace:
@@ -123,51 +125,32 @@ def main() -> None:
     if not stage28_run_id:
         raise SystemExit("stage28_run_id could not be resolved")
 
-    per_family = dict((((activation_payload.get("hunt", {}) or {}).get("per_family", {})) or {}))
     run_id = f"stage37_seed{int(args.seed)}_{stage28_run_id}"
     registry_path = Path(args.runs_dir) / stage28_run_id / "stage37" / "learning_registry.json"
     registry_before = load_learning_registry(registry_path)
     before_rows = len(registry_before)
 
-    for family in sorted(per_family.keys()):
-        row = dict(per_family.get(family, {}))
-        raw = int(row.get("raw_signal_count", 0))
-        post_threshold = int(row.get("post_threshold_count", 0))
-        post_cost = int(row.get("post_cost_gate_count", 0))
-        post_feasible = int(row.get("post_feasibility_count", 0))
-        final_trade_count = int(round(float(row.get("final_trade_count", 0.0))))
-        cost_fail_rate = float((post_threshold - post_cost) / max(1, post_threshold))
-        feasibility_fail_rate = float((post_cost - post_feasible) / max(1, post_cost))
-        top_reason = "none"
-        reasons = dict(row.get("top_reject_reasons", {}))
-        if reasons:
-            top_reason = sorted(reasons.items(), key=lambda kv: (-int(kv[1]), str(kv[0])))[0][0]
-        status = "dead_end" if raw > 0 and final_trade_count <= 0 else "active"
-        entry = LearningRegistryEntry(
-            run_id=run_id,
-            generation=0,
-            family=str(family),
-            feature_subset_signature=f"family::{family}",
-            threshold_configuration={"activation_threshold": float(activation_payload.get("chosen_threshold", 0.0))},
-            activation_rate=float(row.get("activation_rate", 0.0)),
-            top_reject_reason=str(top_reason),
-            cost_gate_fail_rate=cost_fail_rate,
-            feasibility_fail_rate=feasibility_fail_rate,
-            final_trade_count=final_trade_count,
-            exp_lcb=float(row.get("avg_context_quality", 0.0)),
-            stability_score=float(row.get("activation_rate", 0.0)),
-            status=status,
-        )
-        upsert_learning_registry_entry(registry_path, entry)
+    generated_rows = build_failure_aware_registry_rows(activation_payload=activation_payload, run_id=run_id)
+    for row in generated_rows:
+        upsert_learning_registry_entry(registry_path, row)
 
     registry = load_learning_registry(registry_path)
     family_weights = compute_family_exploration_weights(registry)
-    elites = select_elites_deterministic(registry, top_k=elite_count)
+    elite_rows = select_elites_deterministic(registry, top_k=elite_count)
+    registry = apply_elite_flags(registry, elite_rows)
+    save_learning_registry(registry_path, registry)
+    elites = [dict(row) for row in registry if bool(row.get("elite", False))]
+    if not elites:
+        elites = [dict(row) for row in elite_rows]
 
     failure_motifs: dict[str, int] = {}
     for row in registry:
-        key = str(row.get("top_reject_reason", "unknown"))
-        failure_motifs[key] = int(failure_motifs.get(key, 0) + 1)
+        tags = list(row.get("failure_motif_tags", []))
+        if not tags:
+            tags = [f"REJECT::{str(row.get('top_reject_reason', 'unknown')).upper()}"]
+        for tag in tags:
+            key = str(tag)
+            failure_motifs[key] = int(failure_motifs.get(key, 0) + 1)
 
     finalists = _load_finalists(Path(args.runs_dir), stage28_run_id)
     contrib_rows: list[dict[str, Any]] = []
@@ -185,6 +168,7 @@ def main() -> None:
         "new_rows_added": int(len(registry) - before_rows),
         "family_weights": family_weights,
         "elites": elites,
+        "dead_family_count": int(sum(1 for row in registry if str(row.get("status", "")) == "dead_end")),
         "failure_motifs": failure_motifs,
         "feature_pruning": pruning,
     }
