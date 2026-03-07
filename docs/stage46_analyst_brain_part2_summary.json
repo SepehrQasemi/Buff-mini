@@ -1,0 +1,15 @@
+{
+  "stage": "46",
+  "status": "SUCCESS",
+  "flow_regime_enabled": true,
+  "crowding_layer_enabled": true,
+  "mtf_bias_enabled": true,
+  "trade_geometry_enabled": true,
+  "oi_short_only_guard_verified": true,
+  "modules_contract_compliant": true,
+  "flow_rows": 720,
+  "crowding_rows": 720,
+  "mtf_rows": 720,
+  "geometry_rows": 720,
+  "summary_hash": "aa6a373251d46613"
+}
