@@ -1,0 +1,23 @@
+{
+  "stage44_status": "SUCCESS",
+  "stage45_status": "SUCCESS",
+  "stage46_status": "SUCCESS",
+  "stage47_status": "SUCCESS",
+  "stage48_status": "SUCCESS",
+  "stage49_status": "SUCCESS",
+  "stage50_status": "SUCCESS",
+  "stage47_raw_candidates_before": 24,
+  "stage47_raw_candidates_after": 73,
+  "stage48_stage_a_survivors": 69,
+  "stage48_stage_b_survivors": 69,
+  "stage49_registry_rows": 5,
+  "stage49_elites_count": 5,
+  "stage50_runtime_seconds_baseline": 2274.7064704999793,
+  "stage50_runtime_seconds_upgraded": 2361.5518056,
+  "stage50_promising": false,
+  "stage50_5seed_executed": 0,
+  "final_verdict": "RAW_SIGNAL_IMPROVED_BUT_COST_STILL_DOMINANT",
+  "biggest_remaining_bottleneck": "cost_drag_vs_signal",
+  "next_cheapest_action": "Increase setup quality per trade (RR and cost-adjusted edge) and rerun Stage-48/50 with tightened cost-drag motifs.",
+  "deterministic_summary_hash": "adfeee56f43ca864"
+}

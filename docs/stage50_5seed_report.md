@@ -1,0 +1,14 @@
+# Stage-50 5-Seed Report
+
+- status: `PARTIAL`
+- skipped: `True`
+- skip_reason_if_any: `upgraded_seed42_dead_no_measurable_improvement`
+- executed_seeds: `[]`
+
+## Distributions
+- activation_rate_distribution: `{'median': 0.0, 'worst': 0.0, 'best': 0.0}`
+- trade_count_distribution: `{'median': 0.0, 'worst': 0.0, 'best': 0.0}`
+- exp_lcb_distribution: `{'median': 0.0, 'worst': 0.0, 'best': 0.0}`
+- family_consistency: `{'crowded_side_squeeze': 0.21428571428571427, 'flow_exhaustion_reversal': 0.21428571428571427, 'liquidity_sweep_reversal': 0.05714285714285714, 'regime_shift_entry': 0.2571428571428571, 'squeeze_flow_breakout': 0.2571428571428571}`
+
+- summary_hash: `5582866f9829119d`
