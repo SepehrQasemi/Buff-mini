@@ -1,0 +1,13 @@
+{
+  "stage": "49",
+  "status": "SUCCESS",
+  "registry_rows": 5,
+  "elites_count": 5,
+  "recurring_motifs": {
+    "REJECT::NO_SIGNAL": 5
+  },
+  "family_weights_present": true,
+  "mutate_next": "reshape_trigger_composition",
+  "learning_depth_assessment": "EARLY_BUT_STRUCTURED",
+  "summary_hash": "a9cf6b381fcbc2a4"
+}
