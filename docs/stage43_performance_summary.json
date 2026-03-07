@@ -1,0 +1,73 @@
+{
+  "stage": "43.3",
+  "seed": 42,
+  "baseline": {
+    "run_id": "20260306_160459_2a029423a621_stage28",
+    "summary_hash": "137b0b65eab61ae8",
+    "raw_signal_count": 0,
+    "activation_rate": 0.0,
+    "trade_count": 0.0,
+    "research_best_exp_lcb": 0.0,
+    "live_best_exp_lcb": 0.0,
+    "wf_executed_pct": 100.0,
+    "mc_trigger_pct": 100.0,
+    "runtime_seconds": 2274.7064704999793,
+    "top_reject_reasons": {},
+    "next_bottleneck": "cost_drag_vs_signal",
+    "verdict": "NO_EDGE"
+  },
+  "upgraded": {
+    "run_id": "20260306_144056_4b655c81c2a5_stage28",
+    "summary_hash": "8a94033cf4f63568",
+    "raw_signal_count": 0,
+    "activation_rate": 0.0,
+    "trade_count": 0.0,
+    "research_best_exp_lcb": 0.0,
+    "live_best_exp_lcb": 0.0,
+    "wf_executed_pct": 100.0,
+    "mc_trigger_pct": 100.0,
+    "runtime_seconds": 2361.5518056,
+    "top_reject_reasons": {},
+    "next_bottleneck": "cost_drag_vs_signal",
+    "verdict": "NO_EDGE"
+  },
+  "delta": {
+    "delta_raw_signal_count": 0.0,
+    "delta_activation_rate": 0.0,
+    "delta_trade_count": 0.0,
+    "delta_research_best_exp_lcb": 0.0,
+    "delta_live_best_exp_lcb": 0.0,
+    "delta_runtime_seconds": 86.84533510002075
+  },
+  "promising": false,
+  "phase_runtime_seconds": {
+    "config_load": 0.05047550000017509,
+    "data_load": 0.05826960000558756,
+    "extras_alignment": 8.300004992634058e-06,
+    "feature_generation": 0.0037219999940134585,
+    "candidate_generation": 0.011474800005089492,
+    "stage_a_objective": 0.0023028999858070165,
+    "stage_b_objective": 0.0006178999901749194,
+    "composer_policy_build": 0.09481629999936558,
+    "replay_backtest": 2361.5518056,
+    "walkforward": 0.0,
+    "monte_carlo": 0.0,
+    "report_generation": 0.0021177000016905367
+  },
+  "slowest_phase": "replay_backtest",
+  "budget_mode": "small",
+  "runtime_notes": "run_stage28 exposes total runtime only; walkforward/monte_carlo remain embedded in replay_backtest runtime.",
+  "stage39_counts": {
+    "raw_candidate_count": 24,
+    "shortlisted_count": 5
+  },
+  "stage40_counts": {
+    "input": 5,
+    "stage_a": 3,
+    "stage_b": 3,
+    "before_strict_direct": 4
+  },
+  "stage41_top_family": "flow",
+  "stage42_registry_rows_v2": 1,
+  "summary_hash": "6b0fe5f7425fc5dc"
+}

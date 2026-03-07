@@ -1,0 +1,375 @@
+{
+  "stage": "39_43",
+  "seed": 42,
+  "stage28_run_id": "20260306_152631_2a029423a621_stage28",
+  "stage39": {
+    "raw_candidate_count": 24,
+    "light_pruned_count": 5,
+    "shortlisted_count": 5,
+    "family_counts_layer_a": {
+      "flow": 8,
+      "volatility": 8,
+      "taker_buy_sell": 4,
+      "long_short_ratio": 2,
+      "price": 2
+    },
+    "family_counts_layer_b": {
+      "flow": 2,
+      "taker_buy_sell": 1,
+      "long_short_ratio": 1,
+      "volatility": 1
+    },
+    "family_counts_layer_c": {
+      "flow": 2,
+      "taker_buy_sell": 1,
+      "long_short_ratio": 1,
+      "volatility": 1
+    },
+    "context_counts_layer_a": {
+      "shock": 15,
+      "squeeze": 5,
+      "range": 4
+    },
+    "context_counts_layer_b": {
+      "shock": 4,
+      "range": 1
+    },
+    "context_counts_layer_c": {
+      "shock": 4,
+      "range": 1
+    },
+    "nonzero_branches": [
+      "long_short_extreme_exhaustion",
+      "taker_imbalance_squeeze_break",
+      "vol_compression_flow_burst"
+    ],
+    "stage": "39",
+    "seed": 42,
+    "stage28_run_id": "20260306_152631_2a029423a621_stage28",
+    "baseline_engine_raw_signal_count": 0
+  },
+  "stage40": {
+    "stage": "40",
+    "seed": 42,
+    "stage28_run_id": "20260306_152631_2a029423a621_stage28",
+    "stage39_raw_candidate_count": 24,
+    "stage39_shortlisted_count": 5,
+    "counts": {
+      "input": 5,
+      "stage_a": 3,
+      "stage_b": 3,
+      "before_strict_direct": 4
+    },
+    "label_stats": {
+      "tradable_rate": 0.17833333333333334,
+      "tp_before_sl_rate": 0.36833333333333335,
+      "net_return_after_cost_mean": -0.0014807659049252222
+    },
+    "strongest_bottleneck_step": "stage_a_activation"
+  },
+  "stage41": {
+    "stage": "41",
+    "seed": 42,
+    "stage28_run_id": "20260306_152631_2a029423a621_stage28",
+    "funding_available": true,
+    "taker_available": true,
+    "long_short_available": true,
+    "oi_short_only_mode_enabled": true,
+    "oi_runtime_guard": {
+      "timeframe": "1h",
+      "short_only_enabled": true,
+      "short_horizon_max": "30m",
+      "timeframe_allowed": false,
+      "oi_allowed": false
+    },
+    "family_contributions": [
+      {
+        "family": "flow",
+        "layer_a_count": 8,
+        "layer_c_count": 2,
+        "stage_a_count": 2,
+        "stage_b_count": 2,
+        "candidate_lift": 0.3333333333333333,
+        "activation_lift": 1.0,
+        "tradability_lift": 1.0,
+        "shortlist_share": 0.4,
+        "final_policy_share": 0.6666666666666666
+      },
+      {
+        "family": "taker_buy_sell",
+        "layer_a_count": 4,
+        "layer_c_count": 1,
+        "stage_a_count": 1,
+        "stage_b_count": 1,
+        "candidate_lift": 0.16666666666666666,
+        "activation_lift": 1.0,
+        "tradability_lift": 1.0,
+        "shortlist_share": 0.2,
+        "final_policy_share": 0.3333333333333333
+      },
+      {
+        "family": "volatility",
+        "layer_a_count": 8,
+        "layer_c_count": 1,
+        "stage_a_count": 0,
+        "stage_b_count": 0,
+        "candidate_lift": 0.3333333333333333,
+        "activation_lift": 0.0,
+        "tradability_lift": 0.0,
+        "shortlist_share": 0.2,
+        "final_policy_share": 0.0
+      },
+      {
+        "family": "long_short_ratio",
+        "layer_a_count": 2,
+        "layer_c_count": 1,
+        "stage_a_count": 0,
+        "stage_b_count": 0,
+        "candidate_lift": 0.08333333333333333,
+        "activation_lift": 0.0,
+        "tradability_lift": 0.0,
+        "shortlist_share": 0.2,
+        "final_policy_share": 0.0
+      },
+      {
+        "family": "price",
+        "layer_a_count": 2,
+        "layer_c_count": 0,
+        "stage_a_count": 0,
+        "stage_b_count": 0,
+        "candidate_lift": 0.08333333333333333,
+        "activation_lift": 0.0,
+        "tradability_lift": 0.0,
+        "shortlist_share": 0.0,
+        "final_policy_share": 0.0
+      },
+      {
+        "family": "funding",
+        "layer_a_count": 0,
+        "layer_c_count": 0,
+        "stage_a_count": 0,
+        "stage_b_count": 0,
+        "candidate_lift": 0.0,
+        "activation_lift": 0.0,
+        "tradability_lift": 0.0,
+        "shortlist_share": 0.0,
+        "final_policy_share": 0.0
+      },
+      {
+        "family": "open_interest",
+        "layer_a_count": 0,
+        "layer_c_count": 0,
+        "stage_a_count": 0,
+        "stage_b_count": 0,
+        "candidate_lift": 0.0,
+        "activation_lift": 0.0,
+        "tradability_lift": 0.0,
+        "shortlist_share": 0.0,
+        "final_policy_share": 0.0
+      }
+    ]
+  },
+  "stage42": {
+    "stage": "42",
+    "seed": 42,
+    "stage28_run_id": "20260306_152631_2a029423a621_stage28",
+    "registry_rows_v2": 1,
+    "elite_count": 1,
+    "family_memory": {
+      "family_weights": {
+        "__all__": 0.19999999999999996
+      },
+      "top_configs_per_family": {
+        "__all__": [
+          {
+            "run_id": "stage37_seed42_20260306_152631_2a029423a621_stage28",
+            "generation": 0,
+            "family": "__all__",
+            "feature_subset_signature": "family::__all__",
+            "threshold_configuration": {
+              "activation_threshold": 0.0
+            },
+            "raw_signal_count": 0,
+            "activation_rate": 0.0,
+            "top_reject_reason": "no_signal",
+            "cost_gate_fail_rate": 0.0,
+            "feasibility_fail_rate": 0.0,
+            "final_trade_count": 0,
+            "exp_lcb": 0.0,
+            "stability_score": 0.0,
+            "status": "dead_end",
+            "elite": true,
+            "failure_motif_tags": [
+              "NO_RAW_SIGNAL",
+              "REJECT::NO_SIGNAL"
+            ],
+            "seed": 42,
+            "context": "global",
+            "raw_candidate_count": 0,
+            "shortlisted_count": 5,
+            "mutation_origin": "stage42_self_learning_v2",
+            "mutation_guidance": "widen_context_and_expand_grammar"
+          }
+        ]
+      },
+      "dead_branches_per_family": {
+        "__all__": 1
+      },
+      "recurring_failure_motifs": {
+        "NO_RAW_SIGNAL": 1,
+        "REJECT::NO_SIGNAL": 1
+      }
+    },
+    "stability_pruning": {
+      "kept_features": [
+        "flow",
+        "taker_buy_sell"
+      ],
+      "dropped_features": [
+        "funding",
+        "long_short_ratio",
+        "open_interest",
+        "price",
+        "volatility"
+      ],
+      "contribution_stats": {
+        "flow": {
+          "mean_gain": 0.3333333333333333,
+          "observations": 1
+        },
+        "funding": {
+          "mean_gain": 0.0,
+          "observations": 1
+        },
+        "long_short_ratio": {
+          "mean_gain": -0.08333333333333333,
+          "observations": 1
+        },
+        "open_interest": {
+          "mean_gain": 0.0,
+          "observations": 1
+        },
+        "price": {
+          "mean_gain": -0.08333333333333333,
+          "observations": 1
+        },
+        "taker_buy_sell": {
+          "mean_gain": 0.16666666666666666,
+          "observations": 1
+        },
+        "volatility": {
+          "mean_gain": -0.3333333333333333,
+          "observations": 1
+        }
+      }
+    },
+    "self_diagnosis": {
+      "improved": [
+        "raw_candidate_generation",
+        "stage_b_survival"
+      ],
+      "regressed": [],
+      "mutate_next": "widen_context_and_expand_grammar",
+      "explore_less": [
+        "__all__"
+      ],
+      "explore_more": []
+    }
+  },
+  "stage43_performance": {
+    "stage": "43.3",
+    "seed": 42,
+    "baseline": {
+      "run_id": "20260306_160459_2a029423a621_stage28",
+      "summary_hash": "137b0b65eab61ae8",
+      "raw_signal_count": 0,
+      "activation_rate": 0.0,
+      "trade_count": 0.0,
+      "research_best_exp_lcb": 0.0,
+      "live_best_exp_lcb": 0.0,
+      "wf_executed_pct": 100.0,
+      "mc_trigger_pct": 100.0,
+      "runtime_seconds": 2274.7064704999793,
+      "top_reject_reasons": {},
+      "next_bottleneck": "cost_drag_vs_signal",
+      "verdict": "NO_EDGE"
+    },
+    "upgraded": {
+      "run_id": "20260306_144056_4b655c81c2a5_stage28",
+      "summary_hash": "8a94033cf4f63568",
+      "raw_signal_count": 0,
+      "activation_rate": 0.0,
+      "trade_count": 0.0,
+      "research_best_exp_lcb": 0.0,
+      "live_best_exp_lcb": 0.0,
+      "wf_executed_pct": 100.0,
+      "mc_trigger_pct": 100.0,
+      "runtime_seconds": 2361.5518056,
+      "top_reject_reasons": {},
+      "next_bottleneck": "cost_drag_vs_signal",
+      "verdict": "NO_EDGE"
+    },
+    "delta": {
+      "delta_raw_signal_count": 0.0,
+      "delta_activation_rate": 0.0,
+      "delta_trade_count": 0.0,
+      "delta_research_best_exp_lcb": 0.0,
+      "delta_live_best_exp_lcb": 0.0,
+      "delta_runtime_seconds": 86.84533510002075
+    },
+    "promising": false,
+    "phase_runtime_seconds": {
+      "config_load": 0.05047550000017509,
+      "data_load": 0.05826960000558756,
+      "extras_alignment": 8.300004992634058e-06,
+      "feature_generation": 0.0037219999940134585,
+      "candidate_generation": 0.011474800005089492,
+      "stage_a_objective": 0.0023028999858070165,
+      "stage_b_objective": 0.0006178999901749194,
+      "composer_policy_build": 0.09481629999936558,
+      "replay_backtest": 2361.5518056,
+      "walkforward": 0.0,
+      "monte_carlo": 0.0,
+      "report_generation": 0.0021177000016905367
+    },
+    "slowest_phase": "replay_backtest",
+    "budget_mode": "small",
+    "runtime_notes": "run_stage28 exposes total runtime only; walkforward/monte_carlo remain embedded in replay_backtest runtime.",
+    "stage39_counts": {
+      "raw_candidate_count": 24,
+      "shortlisted_count": 5
+    },
+    "stage40_counts": {
+      "input": 5,
+      "stage_a": 3,
+      "stage_b": 3,
+      "before_strict_direct": 4
+    },
+    "stage41_top_family": "flow",
+    "stage42_registry_rows_v2": 1,
+    "summary_hash": "6b0fe5f7425fc5dc"
+  },
+  "stage43_5seed": {
+    "stage": "43.4",
+    "seed": 42,
+    "upgraded_reference_run_id": "20260306_144056_4b655c81c2a5_stage28",
+    "executed_seed_count": 0,
+    "skipped": true,
+    "skip_reason": "upgraded_run_dead_zero_signal_no_improvement",
+    "note": "Skipped 5-seed validation because upgraded seed-42 remained fully dead (zero raw signals and zero trades).",
+    "rows": [],
+    "distribution": {
+      "raw_candidate_count_median": 0.0,
+      "activation_rate_median": 0.0,
+      "trade_count_median": 0.0,
+      "live_exp_lcb_median": 0.0,
+      "live_exp_lcb_worst": 0.0,
+      "live_exp_lcb_best": 0.0
+    },
+    "summary_hash": "0b6867b421c8dab6"
+  },
+  "verdict": "RAW_SIGNAL_IMPROVED_BUT_NO_EDGE",
+  "biggest_remaining_bottleneck": "cost_drag_vs_signal",
+  "next_cheapest_action": "Increase upstream tradable signal families and tune Stage-A acceptance while preserving cost realism.",
+  "summary_hash": "a715969f47e950fc"
+}

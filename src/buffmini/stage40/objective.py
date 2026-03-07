@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import time
 from dataclasses import dataclass
 from typing import Any
 
@@ -98,19 +99,59 @@ def route_two_stage_objective(
 ) -> dict[str, Any]:
     """Route candidates through Stage-A tradability then Stage-B robustness."""
 
+    return _route_two_stage_objective_impl(
+        candidates=candidates,
+        labels=labels,
+        cfg=cfg,
+        include_trace=False,
+    )
+
+
+def route_two_stage_objective_with_trace(
+    candidates: pd.DataFrame,
+    *,
+    labels: pd.DataFrame,
+    cfg: TradabilityConfig | None = None,
+) -> dict[str, Any]:
+    """Route candidates and return per-stage objective timing trace."""
+
+    return _route_two_stage_objective_impl(
+        candidates=candidates,
+        labels=labels,
+        cfg=cfg,
+        include_trace=True,
+    )
+
+
+def _route_two_stage_objective_impl(
+    *,
+    candidates: pd.DataFrame,
+    labels: pd.DataFrame,
+    cfg: TradabilityConfig | None,
+    include_trace: bool,
+) -> dict[str, Any]:
+    """Internal two-stage routing implementation with optional timing trace."""
+
     conf = cfg or TradabilityConfig()
     work = candidates.copy() if isinstance(candidates, pd.DataFrame) else pd.DataFrame()
     if work.empty:
-        return {
+        out = {
             "stage_a_survivors": pd.DataFrame(),
             "stage_b_survivors": pd.DataFrame(),
             "counts": {"input": 0, "stage_a": 0, "stage_b": 0, "before_strict_direct": 0},
             "bottleneck_step": "stage_a_activation",
         }
+        if include_trace:
+            out["timings"] = {"stage_a_seconds": 0.0, "stage_b_seconds": 0.0}
+        return out
 
-    work["layer_score"] = pd.to_numeric(work.get("layer_score", 0.0), errors="coerce").fillna(0.0)
-    work["exp_lcb_proxy"] = pd.to_numeric(work.get("exp_lcb_proxy", 0.0), errors="coerce").fillna(0.0)
-    work["context"] = work.get("broad_context", "range").astype(str)
+    stage_a_started = time.perf_counter()
+    layer_score = work["layer_score"] if "layer_score" in work.columns else pd.Series(0.0, index=work.index, dtype=float)
+    exp_lcb_proxy = work["exp_lcb_proxy"] if "exp_lcb_proxy" in work.columns else pd.Series(0.0, index=work.index, dtype=float)
+    context = work["broad_context"] if "broad_context" in work.columns else pd.Series("range", index=work.index, dtype=str)
+    work["layer_score"] = pd.to_numeric(layer_score, errors="coerce").fillna(0.0)
+    work["exp_lcb_proxy"] = pd.to_numeric(exp_lcb_proxy, errors="coerce").fillna(0.0)
+    work["context"] = context.astype(str)
 
     tradable_rate = float(pd.to_numeric(labels.get("tradable", 0), errors="coerce").fillna(0).astype(int).mean()) if not labels.empty else 0.0
     net_rate = float(pd.to_numeric(labels.get("net_return_after_cost", 0.0), errors="coerce").fillna(0.0).mean()) if not labels.empty else 0.0
@@ -127,16 +168,19 @@ def route_two_stage_objective(
     stage_a = work.loc[work["stage_a_score"] >= float(conf.stage_a_threshold), :].copy()
     if stage_a.empty and not work.empty:
         stage_a = work.nlargest(min(3, len(work)), "stage_a_score").copy()
+    stage_a_seconds = float(time.perf_counter() - stage_a_started)
 
+    stage_b_started = time.perf_counter()
     stage_b_score = pd.to_numeric(stage_a.get("exp_lcb_proxy", 0.0), errors="coerce").fillna(0.0)
     stage_a["stage_b_score"] = stage_b_score
     stage_b = stage_a.loc[stage_a["stage_b_score"] >= float(conf.stage_b_threshold), :].copy()
+    stage_b_seconds = float(time.perf_counter() - stage_b_started)
 
     before_direct = int((work["exp_lcb_proxy"] >= float(conf.stage_b_threshold)).sum())
     drop_a = int(max(0, len(work) - len(stage_a)))
     drop_b = int(max(0, len(stage_a) - len(stage_b)))
     bottleneck = "stage_a_activation" if drop_a >= drop_b else "stage_b_robustness"
-    return {
+    out = {
         "stage_a_survivors": stage_a.reset_index(drop=True),
         "stage_b_survivors": stage_b.reset_index(drop=True),
         "counts": {
@@ -152,6 +196,12 @@ def route_two_stage_objective(
             "net_return_after_cost_mean": net_rate,
         },
     }
+    if include_trace:
+        out["timings"] = {
+            "stage_a_seconds": stage_a_seconds,
+            "stage_b_seconds": stage_b_seconds,
+        }
+    return out
 
 
 def _first_hit_index(series: pd.Series, *, threshold: float, direction: str) -> float:
@@ -175,4 +225,3 @@ def _context_weight(value: str) -> float:
     if key in {"range", "exhaustion", "sentiment-extreme"}:
         return 0.95
     return 1.0
-
