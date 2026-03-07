@@ -1,0 +1,15 @@
+{
+  "stage": "45",
+  "status": "SUCCESS",
+  "structure_engine_enabled": true,
+  "liquidity_map_enabled": true,
+  "volatility_regime_enabled": true,
+  "htf_bias_enabled": true,
+  "modules_contract_compliant": true,
+  "synthetic_tests_passed": true,
+  "structure_rows": 720,
+  "liquidity_rows": 720,
+  "volatility_rows": 720,
+  "htf_rows": 720,
+  "summary_hash": "136297ce9418cfb4"
+}
