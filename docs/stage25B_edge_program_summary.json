@@ -1,6 +1,6 @@
 {
   "stage": "25B",
-  "run_id": "20260303_124318_a3027d37b4f7_stage25B",
+  "run_id": "20260304_115845_a3027d37b4f7_stage25B",
   "seed": 42,
   "mode": "live",
   "dry_run": true,
@@ -27,21 +27,21 @@
     "realistic",
     "high"
   ],
-  "runtime_seconds": 24.372621899994556,
+  "runtime_seconds": 26.67157830001088,
   "trace_refs": [
     {
       "cost_level": "realistic",
-      "trace_run_id": "20260303_124318_424fa0ae6feb_stage15_9_trace",
-      "trace_dir": "C:\\dev\\Buff-mini\\runs\\20260303_124318_424fa0ae6feb_stage15_9_trace\\trace",
-      "config_hash": "d3563b5d039d",
+      "trace_run_id": "20260304_115845_d2d7db6a29f5_stage15_9_trace",
+      "trace_dir": "C:\\dev\\Buff-mini\\runs\\20260304_115845_d2d7db6a29f5_stage15_9_trace\\trace",
+      "config_hash": "753895e1647f",
       "data_hash": "b6faf10f0f3a44a9",
       "resolved_end_ts": "2025-04-10T23:00:00+00:00"
     },
     {
       "cost_level": "high",
-      "trace_run_id": "20260303_124330_505384ef4665_stage15_9_trace",
-      "trace_dir": "C:\\dev\\Buff-mini\\runs\\20260303_124330_505384ef4665_stage15_9_trace\\trace",
-      "config_hash": "8cc74a20ddae",
+      "trace_run_id": "20260304_115858_2e3c0b73684b_stage15_9_trace",
+      "trace_dir": "C:\\dev\\Buff-mini\\runs\\20260304_115858_2e3c0b73684b_stage15_9_trace\\trace",
+      "config_hash": "077286145245",
       "data_hash": "b6faf10f0f3a44a9",
       "resolved_end_ts": "2025-04-10T23:00:00+00:00"
     }
@@ -244,7 +244,7 @@
     ]
   },
   "status": "NO_EDGE_IN_LIVE",
-  "summary_hash": "706b106d8ed677ef",
+  "summary_hash": "590c72be7735c7fa",
   "data_snapshot_id": "DATA_FROZEN_v1",
   "data_snapshot_hash": "c734cebc1e80bf15",
   "data_snapshot_path": "data/snapshots/DATA_FROZEN_v1.json",

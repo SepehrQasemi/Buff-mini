@@ -1,0 +1,20 @@
+{
+  "date": "2026-03-05",
+  "status": "NOT_EXECUTED",
+  "reason": "AUTH_BLOCKED",
+  "coinapi_download_completed": false,
+  "baseline_run": null,
+  "after_run": null,
+  "metrics": {
+    "exp_lcb": null,
+    "exp_med": null,
+    "trade_count": null,
+    "maxDD": null,
+    "wf_executed_pct": null,
+    "mc_trigger_pct": null
+  },
+  "determinism_check": {
+    "executed": false,
+    "match": null
+  }
+}

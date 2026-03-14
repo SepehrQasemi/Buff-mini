@@ -1,0 +1,15 @@
+# Stage-70 Report
+
+- status: `SUCCESS`
+- execution_status: `EXECUTED`
+- stage_role: `heuristic_filter`
+- validation_state: `CANDIDATE_GENERATION_PASSED`
+- budget_mode_selected: `search`
+- candidate_count: `2500`
+- family_count: `12`
+- timeframe_count: `5`
+- economic_fingerprint_count: `2500`
+- diversity_ok: `True`
+- target_min_candidates: `2500`
+- blocker_reason: ``
+- summary_hash: `5d3c7cf0443fda53`

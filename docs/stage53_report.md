@@ -1,0 +1,18 @@
+# Stage-53 Report
+
+- status: `PARTIAL`
+- input_mode: `stage52_stage48_artifacts`
+- stage28_run_id: `20260313_154858_044fff9053df_stage28`
+- model_names: `['hgbt', 'logreg', 'rf']`
+- feature_columns: `['rr_first_target', 'expected_hold_bars_feature', 'cost_edge_proxy', 'beam_score', 'family_code', 'timeframe_code', 'exp_lcb_proxy', 'geometry_stop_distance_pct', 'geometry_first_target_pct', 'geometry_stretch_target_pct', 'entry_zone_span_pct', 'stage48_rank_score', 'stage48_stage_a_score', 'stage48_layer_score', 'stage48_replay_worthiness']`
+- effective_feature_count: `15`
+- non_constant_feature_count: `11`
+- label_coverage: `1.0`
+- quality_gate_passed: `False`
+- quality_gate_reason: `label_variance_missing`
+- candidate_count: `15`
+- stage_a_survivors: `9`
+- stage_b_survivors: `9`
+- replay_metrics_artifact_path: `runs\20260313_154858_044fff9053df_stage28\stage53\replay_metrics_real.json`
+- blocker_reason: `label_variance_missing`
+- summary_hash: `526f4a714343027f`

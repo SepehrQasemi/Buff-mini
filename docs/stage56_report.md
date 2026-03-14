@@ -1,0 +1,10 @@
+# Stage-56 Report
+
+- status: `PARTIAL`
+- input_mode: `stage52_stage53_artifacts`
+- stage28_run_id: `20260313_154858_044fff9053df_stage28`
+- registry_rows: `15`
+- learning_depth: `EARLY_OR_DEAD_PATH`
+- allocation_adjustments: `{'family_allocation': {'liquidity_sweep_reversal': 1.44059838, 'squeeze_flow_breakout': 1.43565293, 'structure_pullback_continuation': 1.41575293}, 'timeframe_allocation': {'15m': 1.40449308, '1h': 1.43886808, '2h': 1.44386808, '30m': 1.42224308, '4h': 1.44386808}, 'threshold_priors': {'stage_a_prob_threshold': 0.55, 'min_rr': 1.5}, 'replay_budget_allocation': {'liquidity_sweep_reversal': 0.06836654, 'squeeze_flow_breakout': 0.06732461}}`
+- blocker_reason: `dead_upstream_path`
+- summary_hash: `d42ee537a4c53758`

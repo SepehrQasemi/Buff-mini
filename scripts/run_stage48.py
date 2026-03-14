@@ -86,9 +86,11 @@ def _render(payload: dict[str, Any], *, notes: list[str]) -> str:
         f"- strict_direct_survivors_before: `{int(payload.get('strict_direct_survivors_before', 0))}`",
         f"- stage_a_survivors_after: `{int(payload.get('stage_a_survivors_after', 0))}`",
         f"- stage_b_survivors_after: `{int(payload.get('stage_b_survivors_after', 0))}`",
+        f"- stage_b_economic_fingerprint_count: `{int(payload.get('stage_b_economic_fingerprint_count', 0))}`",
         f"- tradable_rate: `{float(payload.get('tradable_rate', 0.0)):.6f}`",
         f"- net_return_after_cost_mean: `{float(payload.get('net_return_after_cost_mean', 0.0)):.6f}`",
         f"- ranker_enabled: `{bool(payload.get('ranker_enabled', False))}`",
+        f"- ranking_semantics: `{payload.get('ranking_semantics', '')}`",
         f"- strongest_bottleneck: `{payload.get('strongest_bottleneck', '')}`",
         "",
     ]
@@ -142,6 +144,11 @@ def main() -> None:
     strict_before = int(routed.get("strict_direct_survivors_before", 0))
     stage_a = pd.DataFrame(routed.get("stage_a_survivors", pd.DataFrame()))
     stage_b = pd.DataFrame(routed.get("stage_b_survivors", pd.DataFrame()))
+    dedup_fingerprint_count = (
+        int(stage_b.get("economic_fingerprint", pd.Series(dtype=str)).astype(str).nunique(dropna=True))
+        if not stage_b.empty and "economic_fingerprint" in stage_b.columns
+        else 0
+    )
     tradable_rate = float(pd.to_numeric(labels.get("tradable", 0), errors="coerce").fillna(0).astype(int).mean()) if not labels.empty else 0.0
     net_mean = float(pd.to_numeric(labels.get("net_return_after_cost", 0.0), errors="coerce").fillna(0.0).mean()) if not labels.empty else 0.0
 
@@ -160,9 +167,11 @@ def main() -> None:
         "strict_direct_survivors_before": strict_before,
         "stage_a_survivors_after": int(stage_a.shape[0]),
         "stage_b_survivors_after": int(stage_b.shape[0]),
+        "stage_b_economic_fingerprint_count": int(dedup_fingerprint_count),
         "tradable_rate": tradable_rate,
         "net_return_after_cost_mean": net_mean,
         "ranker_enabled": True,
+        "ranking_semantics": "candidate_specific_weighted_score",
         "strongest_bottleneck": str(routed.get("strongest_bottleneck", "stage_a_tradability")),
     }
     payload["summary_hash"] = stable_hash(
@@ -172,9 +181,11 @@ def main() -> None:
             "strict_direct_survivors_before": payload["strict_direct_survivors_before"],
             "stage_a_survivors_after": payload["stage_a_survivors_after"],
             "stage_b_survivors_after": payload["stage_b_survivors_after"],
+            "stage_b_economic_fingerprint_count": payload["stage_b_economic_fingerprint_count"],
             "tradable_rate": payload["tradable_rate"],
             "net_return_after_cost_mean": payload["net_return_after_cost_mean"],
             "ranker_enabled": payload["ranker_enabled"],
+            "ranking_semantics": payload["ranking_semantics"],
             "strongest_bottleneck": payload["strongest_bottleneck"],
         },
         length=16,
@@ -201,4 +212,3 @@ def main() -> None:
 
 if __name__ == "__main__":
     main()
-

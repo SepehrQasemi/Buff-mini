@@ -63,10 +63,154 @@ search:
   candidates: 100
   seed: 42
 
+research_scope:
+  primary_symbols: ["BTC/USDT"]
+  discovery_timeframes: ["15m", "30m", "1h", "2h", "4h"]
+  promotion_timeframes: 2
+  final_validation_timeframes: 1
+  active_setup_families:
+    - structure_pullback_continuation
+    - liquidity_sweep_reversal
+    - squeeze_flow_breakout
+  expansion_rules:
+    transfer_symbol: "ETH/USDT"
+    require_stage57_pass: true
+    oi_core_enabled: false
+
+budget_mode:
+  selected: search
+  smoke:
+    candidate_limit: 24
+    stage_a_limit: 12
+    stage_b_limit: 6
+    micro_replay_limit: 4
+    full_replay_limit: 2
+    walkforward_limit: 1
+    monte_carlo_limit: 0
+    max_runtime_seconds: 180
+  search:
+    candidate_limit: 60
+    stage_a_limit: 24
+    stage_b_limit: 12
+    micro_replay_limit: 20
+    full_replay_limit: 8
+    walkforward_limit: 3
+    monte_carlo_limit: 2
+    max_runtime_seconds: 1800
+  validate:
+    candidate_limit: 24
+    stage_a_limit: 12
+    stage_b_limit: 6
+    micro_replay_limit: 8
+    full_replay_limit: 3
+    walkforward_limit: 3
+    monte_carlo_limit: 3
+    max_runtime_seconds: 3600
+  full_audit:
+    candidate_limit: 120
+    stage_a_limit: 48
+    stage_b_limit: 24
+    micro_replay_limit: 24
+    full_replay_limit: 12
+    walkforward_limit: 6
+    monte_carlo_limit: 5
+    max_runtime_seconds: 10800
+
+promotion_gates:
+  strict_real_evidence: true
+  stage_a:
+    min_expected_net_after_cost: 0.0
+    min_tp_before_sl_prob: 0.55
+    min_rr: 1.5
+    max_expected_hold_bars: 24
+    min_cost_edge_proxy: 0.0
+  replay:
+    min_trade_count: 40
+    min_exp_lcb: 0.0
+    max_drawdown: 0.20
+    max_failure_reason_dominance: 0.60
+  walkforward:
+    min_usable_windows: 5
+    min_median_forward_exp_lcb: 0.0
+  cross_seed:
+    min_passing_seeds: 3
+    total_seeds: 5
+
+tradability_model:
+  enabled: true
+  feature_columns:
+    - ret_1
+    - ret_3
+    - range_pct
+    - atr_pct
+    - volume_z
+    - funding_rate
+    - taker_buy_ratio
+    - taker_sell_ratio
+    - long_short_ratio
+    - rr_value
+    - stop_pct
+    - target_pct
+    - hold_bars
+    - cost_edge_proxy
+  probability_bins: 10
+  calibration: platt
+
+data_sources:
+  enabled: ["binance", "bybit", "deribit"]
+  source_priority: ["binance", "bybit", "deribit"]
+  source_rate_limits:
+    binance:
+      mode: "respect_provider"
+      max_requests_per_min: null
+    bybit:
+      mode: "respect_provider"
+      max_requests_per_min: null
+    deribit:
+      mode: "respect_provider"
+      max_requests_per_min: null
+
+model_stack_v3:
+  enabled: true
+  base_models: ["logreg", "hgbt", "rf"]
+  optional_models: ["xgboost", "lightgbm", "catboost"]
+  stacking: "mean_ensemble"
+  calibration: "platt"
+
+validation_protocol_v3:
+  enabled: true
+  n_splits: 5
+  min_train_rows: 128
+  test_size_rows: 64
+  purge_gap_rows: 8
+
+uncertainty_gate:
+  enabled: true
+  max_uncertainty: 0.25
+  min_tp_before_sl_prob: 0.55
+  min_expected_net_after_cost: 0.0
+  allow_proxy_uncertainty: false
+
+campaign_memory:
+  enabled: true
+  mode: "allocation_only"
+  cold_start_each_run: true
+  store_path: "docs/stage69_campaign_memory.json"
+
+reproducibility:
+  frozen_research_mode: false
+  require_resolved_end_ts: false
+  deterministic_sorting: true
+
 data:
   backend: parquet
   resample_source: direct
   partial_last_bucket: false
+  continuity:
+    strict_mode: false
+    timeframe: "1h"
+    max_gap_bars: 0
+    fail_on_gap: false
   coverage:
     required_years: 4.0
     min_years_to_run: 1.0

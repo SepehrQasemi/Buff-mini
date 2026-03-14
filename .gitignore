@@ -12,6 +12,7 @@ __pycache__/
 .venv/
 venv/
 env/
+.venv_ci_test/
 
 # IDE / editor
 .vscode/
@@ -27,6 +28,12 @@ data/raw/*
 !data/raw/.gitkeep
 data/coinapi/*
 !data/coinapi/.gitkeep
+data/canonical/
+data/derived/
+data/features_cache/
+data/features_ml/
+data/features_mtf/
+data/stage11_55_tmp/
 runs/*
 !runs/.gitkeep
 
@@ -34,4 +41,5 @@ runs/*
 .streamlit/
 
 secrets/
+.secrets/
 .env

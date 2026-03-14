@@ -1,11 +1,67 @@
 {
-  "total_requests": 0,
-  "total_success": 0,
-  "total_fail": 0,
-  "total_bytes": 0,
+  "total_requests": 1682,
+  "total_success": 842,
+  "total_fail": 840,
+  "total_bytes": 95464,
   "total_retries": 0,
-  "per_endpoint": {},
-  "per_symbol": {},
+  "status_code_counts": {
+    "401": 3,
+    "400": 837,
+    "200": 842
+  },
+  "per_endpoint": {
+    "verify_auth": {
+      "requests": 3,
+      "success": 0,
+      "fail": 3,
+      "bytes": 873
+    },
+    "funding_rates": {
+      "requests": 840,
+      "success": 421,
+      "fail": 419,
+      "bytes": 47351
+    },
+    "open_interest": {
+      "requests": 839,
+      "success": 421,
+      "fail": 418,
+      "bytes": 47240
+    }
+  },
+  "per_symbol": {
+    "verify": {
+      "requests": 3,
+      "success": 0,
+      "fail": 3,
+      "bytes": 873
+    },
+    "BTC/USDT": {
+      "requests": 841,
+      "success": 422,
+      "fail": 419,
+      "bytes": 47353
+    },
+    "ETH/USDT": {
+      "requests": 838,
+      "success": 420,
+      "fail": 418,
+      "bytes": 47238
+    }
+  },
+  "endpoints_hit": [
+    "funding_rates",
+    "open_interest",
+    "verify_auth"
+  ],
+  "retry_count_by_endpoint": {
+    "verify_auth": 0,
+    "funding_rates": 0,
+    "open_interest": 0
+  },
+  "time_start_min": "2022-03-05T19:54:29+00:00",
+  "time_end_max": "2026-03-06T00:02:24+00:00",
+  "rate_limit_sleep_ms_total": 0,
   "quota_signals": {},
   "credits_used": null,
   "credits_remaining": null,

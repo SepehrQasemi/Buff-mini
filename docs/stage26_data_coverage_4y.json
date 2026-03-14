@@ -1,13 +1,14 @@
 {
   "stage": "26.1",
+  "generated_at": "20260304_203829",
   "required_years": 4.0,
-  "coverage_ok_all_symbols": 1,
+  "timeframe": "1m",
   "rows": [
     {
       "symbol": "BTC/USDT",
       "timeframe": "1m",
       "path": "C:/dev/Buff-mini/data/raw/binance/BTC-USDT/1m.parquet",
-      "exists": 1,
+      "exists": true,
       "start_ts": "2022-03-03T11:56:00+00:00",
       "end_ts": "2026-03-03T11:55:00+00:00",
       "coverage_days": 1461.0,
@@ -15,25 +16,10 @@
       "expected_bars": 2103840,
       "observed_bars": 2103760,
       "duplicate_timestamps": 0,
-      "non_monotonic": 0,
-      "missing_bars_estimate": 80,
-      "gap_days_estimate": 0.05555555555555555
-    },
-    {
-      "symbol": "ETH/USDT",
-      "timeframe": "1m",
-      "path": "C:/dev/Buff-mini/data/raw/binance/ETH-USDT/1m.parquet",
-      "exists": 1,
-      "start_ts": "2022-03-03T11:56:00+00:00",
-      "end_ts": "2026-03-03T11:55:00+00:00",
-      "coverage_days": 1461.0,
-      "coverage_years": 4.0,
-      "expected_bars": 2103840,
-      "observed_bars": 2103760,
-      "duplicate_timestamps": 0,
-      "non_monotonic": 0,
+      "non_monotonic": false,
       "missing_bars_estimate": 80,
       "gap_days_estimate": 0.05555555555555555
     }
-  ]
+  ],
+  "coverage_ok_all_symbols": true
 }

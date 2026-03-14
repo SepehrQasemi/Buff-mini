@@ -1,46 +1,54 @@
 {
-  "raw_candidate_count": 24,
-  "light_pruned_count": 5,
-  "shortlisted_count": 5,
+  "raw_candidate_count": 64,
+  "light_pruned_count": 7,
+  "shortlisted_count": 7,
   "family_counts_layer_a": {
-    "flow": 8,
-    "volatility": 8,
-    "taker_buy_sell": 4,
-    "long_short_ratio": 2,
-    "price": 2
+    "flow": 23,
+    "volatility": 20,
+    "taker_buy_sell": 10,
+    "long_short_ratio": 4,
+    "price": 4,
+    "funding": 3
   },
   "family_counts_layer_b": {
-    "flow": 2,
+    "flow": 4,
     "taker_buy_sell": 1,
     "long_short_ratio": 1,
     "volatility": 1
   },
   "family_counts_layer_c": {
-    "flow": 2,
+    "flow": 4,
     "taker_buy_sell": 1,
     "long_short_ratio": 1,
     "volatility": 1
   },
   "context_counts_layer_a": {
-    "shock": 15,
+    "shock": 40,
+    "range": 8,
+    "flow-dominant": 7,
     "squeeze": 5,
-    "range": 4
+    "trend": 4
   },
   "context_counts_layer_b": {
     "shock": 4,
-    "range": 1
+    "range": 1,
+    "trend": 1,
+    "flow-dominant": 1
   },
   "context_counts_layer_c": {
     "shock": 4,
-    "range": 1
+    "range": 1,
+    "trend": 1,
+    "flow-dominant": 1
   },
   "nonzero_branches": [
+    "funding_divergence_continuation",
     "long_short_extreme_exhaustion",
     "taker_imbalance_squeeze_break",
     "vol_compression_flow_burst"
   ],
   "stage": "39",
   "seed": 42,
-  "stage28_run_id": "20260306_152631_2a029423a621_stage28",
+  "stage28_run_id": "20260313_154858_044fff9053df_stage28",
   "baseline_engine_raw_signal_count": 0
 }

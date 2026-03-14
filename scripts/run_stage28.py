@@ -530,8 +530,36 @@ def main() -> None:
     wf_pct = float(pd.to_numeric(usability_df.get("wf_triggered", False), errors="coerce").fillna(0).astype(bool).mean() * 100.0) if not usability_df.empty else 0.0
     mc_pct = float(pd.to_numeric(usability_df.get("mc_triggered", False), errors="coerce").fillna(0).astype(bool).mean() * 100.0) if not usability_df.empty else 0.0
 
+    policy_input = stage_c.copy()
+    if not usability_df.empty:
+        policy_input = policy_input.merge(
+            usability_df[
+                [
+                    "candidate_id",
+                    "usable",
+                    "reason",
+                    "pooled_trades",
+                    "pooled_occurrences",
+                ]
+            ],
+            on="candidate_id",
+            how="left",
+        )
+        policy_input["usable"] = pd.to_numeric(policy_input.get("usable", 0), errors="coerce").fillna(0).astype(bool)
+        policy_input["context_occurrences"] = np.where(
+            policy_input["usable"].to_numpy(),
+            pd.to_numeric(policy_input.get("pooled_occurrences", 0), errors="coerce").fillna(0.0).to_numpy(),
+            pd.to_numeric(policy_input.get("context_occurrences", 0), errors="coerce").fillna(0.0).to_numpy(),
+        )
+        policy_input["trades_in_context"] = np.where(
+            policy_input["usable"].to_numpy(),
+            pd.to_numeric(policy_input.get("pooled_trades", 0), errors="coerce").fillna(0.0).to_numpy(),
+            pd.to_numeric(policy_input.get("trades_in_context", 0), errors="coerce").fillna(0.0).to_numpy(),
+        )
+        policy_input = policy_input.loc[policy_input["usable"].astype(bool), :].copy()
+
     policy = build_policy_v2(
-        stage_c,
+        policy_input,
         data_snapshot_id=str(snapshot_meta.get("data_snapshot_id", "")),
         data_snapshot_hash=str(snapshot_meta.get("data_snapshot_hash", "")),
         config_hash=str(config_hash),
@@ -656,6 +684,7 @@ def main() -> None:
         "wf_executed_pct": float(wf_pct),
         "mc_trigger_pct": float(mc_pct),
         "qualified_finalists": int(stage_c.shape[0]),
+        "policy_input_candidates": int(policy_input.shape[0]),
         "top_contextual_edges": top_edges,
         "policy_metrics": {"research": research_metrics, "live": live_metrics},
         "shadow_live_reject_rate": float(shadow_rate),

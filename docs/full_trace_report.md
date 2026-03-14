@@ -1,0 +1,111 @@
+# Full Trace Report
+
+- generated_at_utc: `2026-03-14T13:36:21.705697+00:00`
+- stage28_run_id: `20260313_154858_044fff9053df_stage28`
+- chain_id: `87ce91606543db479790cd33`
+- config_hash: `ecc9bcde3ad875fd`
+- summary_hash: `899c89717d9e5255`
+
+## Zero Reasons
+- stage57_status:PARTIAL
+
+## Evidence Quality
+- decision_evidence_allowed: `False`
+- missing_real_sources: `['real_replay', 'real_walkforward', 'real_monte_carlo', 'real_cross_perturbation']`
+- blocked_decision_metrics: `[]`
+- source_types: `{'replay': 'real_replay', 'walkforward': 'real_walkforward', 'monte_carlo': 'real_monte_carlo', 'cross_seed': 'real_cross_perturbation'}`
+
+## Stage Sequence
+- stage 10.6: status= hash=
+- stage 10.7: status= hash=
+- stage 10: status= hash=
+- stage 11.1: status= hash=
+- stage 11.4: status= hash=
+- stage 11.55: status= hash=
+- stage 11.5: status= hash=
+- stage 11: status= hash=
+- stage 12: status= hash=
+- stage 13_14: status= hash=
+- stage 13: status= hash=
+- stage 13.2: status= hash=
+- stage 13.3: status= hash=
+- stage 13.4: status= hash=
+- stage 13.5: status= hash=
+- stage 13.6: status= hash=
+- stage 13.7: status= hash=
+- stage 14.1: status= hash=
+- stage 14.2: status= hash=
+- stage 14.3: status= hash=
+- stage 14.4: status= hash=
+- stage 15_22: status= hash=
+- stage 23.6: status= hash=
+- stage 23: status= hash=
+- stage 24: status= hash=9fdd3c6c15812653
+- stage 25A: status=IN_PROGRESS hash=
+- stage 25B: status=NO_EDGE_IN_LIVE hash=590c72be7735c7fa
+- stage 25: status= hash=f49a8a54f2d45e10
+- stage 26.9.4: status= hash=
+- stage 26.9.5: status= hash=
+- stage 26: status= hash=
+- stage 27.9.7: status= hash=5391ceb64443528a
+- stage 27.9.6: status=OK hash=5391ceb64443528a
+- stage 27.9.4: status= hash=
+- stage 27.1: status= hash=
+- stage 27.4: status= hash=6baec93b532b70d5
+- stage 27: status= hash=
+- stage 27.5: status= hash=
+- stage 27.3: status= hash=
+- stage 28.10: status= hash=
+- stage 28: status= hash=0cb723d0d4db3d0a
+- stage 30_33_master: status= hash=04e0ad38e2f4d59f
+- stage 30: status=COMPLETE hash=
+- stage 31: status=COMPLETE hash=
+- stage 32: status=COMPLETE hash=
+- stage 33: status=COMPLETE hash=
+- stage Stage-36 - Data Resolution and Final Enrichment: status= hash=
+- stage 37.5: status= hash=
+- stage 37.1: status= hash=
+- stage 37.2: status= hash=
+- stage 37.4: status= hash=
+- stage 37.6: status= hash=
+- stage 37.3: status= hash=
+- stage 38.2: status= hash=
+- stage 38.6: status= hash=d8e71f2f8a6c94d0
+- stage 39_43: status= hash=a715969f47e950fc
+- stage 39: status= hash=
+- stage 40: status= hash=
+- stage 41: status= hash=
+- stage 42: status= hash=
+- stage 43.4: status= hash=0b6867b421c8dab6
+- stage 43.3: status= hash=6b0fe5f7425fc5dc
+- stage 44: status=SUCCESS hash=31a4f77fdb55be36
+- stage 45: status=SUCCESS hash=136297ce9418cfb4
+- stage 46: status=SUCCESS hash=aa6a373251d46613
+- stage 47: status=SUCCESS hash=f2b4df574f8305cc
+- stage 48: status=SUCCESS hash=1d8803b70f89f9e1
+- stage 49: status=SUCCESS hash=a9cf6b381fcbc2a4
+- stage 50_5seed: status=PARTIAL hash=5582866f9829119d
+- stage 50: status=SUCCESS hash=1f65f53163ca34f7
+- stage 51: status=SUCCESS hash=48715d11b6373648
+- stage 52: status=SUCCESS hash=3d6ca9ff24be2a68
+- stage 53: status=PARTIAL hash=526f4a714343027f
+- stage 54: status=SUCCESS hash=bf97e44a2cc30faf
+- stage 55: status=PARTIAL hash=0a63af34115eeeb2
+- stage 56: status=PARTIAL hash=d42ee537a4c53758
+- stage 57: status=PARTIAL hash=69de1ab64a1b8203
+- stage 58: status=PARTIAL hash=84e1447b1f08bc68
+- stage 59: status=PARTIAL hash=f3a1e747d55dea5c
+- stage 60: status=SUCCESS hash=70f6d250fe935965
+- stage 61: status=SUCCESS hash=77d6fc9951939213
+- stage 62: status=PARTIAL hash=33ce79fd23cad8f7
+- stage 63: status=SUCCESS hash=34f114791e56b118
+- stage 64: status=SUCCESS hash=74fe5cb07ad04192
+- stage 65: status=SUCCESS hash=978e12ddc020feb4
+- stage 66: status=SUCCESS hash=e6b60a7c31e1f42f
+- stage 67: status=PARTIAL hash=ee28da8c60a5a4fd
+- stage 68: status=PARTIAL hash=1d0205a36eb62004
+- stage 69: status=SUCCESS hash=264a17bc08e5a978
+- stage 70: status=SUCCESS hash=5d3c7cf0443fda53
+- stage 71: status=SUCCESS hash=dcbc4fefb6fa9162
+- stage 72: status=PARTIAL hash=fa4a3eeed8f6da1f
+- stage 73: status=SUCCESS hash=763964aa5b3b4888

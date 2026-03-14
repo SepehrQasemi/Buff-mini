@@ -1,0 +1,73 @@
+{
+  "stage": "65",
+  "status": "SUCCESS",
+  "execution_status": "EXECUTED",
+  "validation_state": "CONTINUITY_OK",
+  "feature_count": 12,
+  "leakage_safe_feature_count": 12,
+  "continuity_report": {
+    "rows": 1500,
+    "gap_count": 0,
+    "max_gap_bars": 0,
+    "largest_gap_bars": 0,
+    "total_missing_bars": 0,
+    "missing_ratio": 0.0,
+    "passed": true,
+    "passes_strict": true,
+    "gaps": []
+  },
+  "top_features": [
+    {
+      "feature": "ret_1",
+      "importance": 0.653906274797133,
+      "method": "abs_corr"
+    },
+    {
+      "feature": "ret_3",
+      "importance": 0.3296700281697368,
+      "method": "abs_corr"
+    },
+    {
+      "feature": "ret_6",
+      "importance": 0.23501499628140646,
+      "method": "abs_corr"
+    },
+    {
+      "feature": "crowding_proxy_24",
+      "importance": 0.12551511547892727,
+      "method": "abs_corr"
+    },
+    {
+      "feature": "vol_chg_3",
+      "importance": 0.057122333802815485,
+      "method": "abs_corr"
+    },
+    {
+      "feature": "liquidity_shock_12",
+      "importance": 0.05292732055657844,
+      "method": "abs_corr"
+    },
+    {
+      "feature": "range_pct",
+      "importance": 0.047756741385006775,
+      "method": "abs_corr"
+    },
+    {
+      "feature": "regime_vol_rank_96",
+      "importance": 0.04067036142744396,
+      "method": "abs_corr"
+    },
+    {
+      "feature": "vol_z_24",
+      "importance": 0.03524295488988837,
+      "method": "abs_corr"
+    },
+    {
+      "feature": "hlc3",
+      "importance": 0.012161754278036114,
+      "method": "abs_corr"
+    }
+  ],
+  "blocker_reason": "",
+  "summary_hash": "978e12ddc020feb4"
+}

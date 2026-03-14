@@ -87,17 +87,42 @@ def score_candidates_with_ranker(candidates: pd.DataFrame, labels: pd.DataFrame)
     work = candidates.copy() if isinstance(candidates, pd.DataFrame) else pd.DataFrame()
     if work.empty:
         return pd.DataFrame(columns=["candidate_id", "rank_score", "predicted_tradability", "replay_worthiness"])
-    work["layer_score"] = pd.to_numeric(work.get("beam_score", work.get("layer_score", 0.0)), errors="coerce").fillna(0.0)
-    work["exp_lcb_proxy"] = pd.to_numeric(work.get("exp_lcb_proxy", 0.0), errors="coerce").fillna(0.0)
+    _augment_candidate_specific_fields(work)
     tradable_rate = float(pd.to_numeric(labels.get("tradable", 0), errors="coerce").fillna(0).astype(int).mean()) if not labels.empty else 0.0
     net_mean = float(pd.to_numeric(labels.get("net_return_after_cost", 0.0), errors="coerce").fillna(0.0).mean()) if not labels.empty else 0.0
     rr_ok = float(pd.to_numeric(labels.get("rr_adequacy", 0), errors="coerce").fillna(0).astype(int).mean()) if not labels.empty else 0.0
 
-    rank_score = (work["layer_score"] * 0.55) + (tradable_rate * 0.20) + (max(0.0, net_mean) * 25.0 * 0.15) + (rr_ok * 0.10)
-    work["rank_score"] = rank_score.astype(float)
+    rank_score = (
+        (work["layer_score"] * 0.30)
+        + (work["exp_lcb_proxy"].clip(lower=0.0) * 6.0 * 0.25)
+        + (work["cost_edge_proxy"].clip(lower=0.0) * 100.0 * 0.15)
+        + (work["rr_first_target"].clip(lower=0.0, upper=3.0) / 3.0 * 0.10)
+        + (work["no_reject_penalty"] * 0.10)
+        + (tradable_rate * 0.05)
+        + (max(0.0, net_mean) * 25.0 * 0.03)
+        + (rr_ok * 0.02)
+    )
+    work["rank_score"] = rank_score.astype(float).clip(lower=-2.0, upper=2.0)
     work["predicted_tradability"] = float(tradable_rate)
-    work["replay_worthiness"] = (work["rank_score"] >= work["rank_score"].median()).astype(int)
-    cols = [c for c in ("candidate_id", "rank_score", "predicted_tradability", "replay_worthiness") if c in work.columns]
+    median_score = float(work["rank_score"].median()) if not work.empty else 0.0
+    worth_mask = (
+        (work["rank_score"] >= median_score)
+        & (work["exp_lcb_proxy"] > -0.0001)
+        & (work["cost_edge_proxy"] > -0.0001)
+    )
+    work["replay_worthiness"] = worth_mask.astype(int)
+    cols = [
+        c
+        for c in (
+            "candidate_id",
+            "source_candidate_id",
+            "economic_fingerprint",
+            "rank_score",
+            "predicted_tradability",
+            "replay_worthiness",
+        )
+        if c in work.columns
+    ]
     return work.sort_values(["rank_score", "candidate_id"], ascending=[False, True]).loc[:, cols].reset_index(drop=True)
 
 
@@ -119,8 +144,7 @@ def route_stage_a_stage_b(
             "counts": {"input": 0, "stage_a": 0, "stage_b": 0},
             "strongest_bottleneck": "stage_a_tradability",
         }
-    work["layer_score"] = pd.to_numeric(work.get("beam_score", work.get("layer_score", 0.0)), errors="coerce").fillna(0.0)
-    work["exp_lcb_proxy"] = pd.to_numeric(work.get("exp_lcb_proxy", 0.0), errors="coerce").fillna(0.0)
+    _augment_candidate_specific_fields(work)
 
     tradable_rate = float(pd.to_numeric(labels.get("tradable", 0), errors="coerce").fillna(0).astype(int).mean()) if not labels.empty else 0.0
     net_mean = float(pd.to_numeric(labels.get("net_return_after_cost", 0.0), errors="coerce").fillna(0.0).mean()) if not labels.empty else 0.0
@@ -128,16 +152,35 @@ def route_stage_a_stage_b(
     expected_hold = float(pd.to_numeric(labels.get("expected_hold_validity", 0), errors="coerce").fillna(0).astype(int).mean()) if not labels.empty else 0.0
 
     work["stage_a_score"] = (
-        (work["layer_score"] * 0.45)
-        + (tradable_rate * 0.20)
-        + (max(0.0, net_mean) * 25.0 * 0.20)
-        + (rr_ok * 0.10)
-        + (expected_hold * 0.05)
+        (work["layer_score"] * 0.25)
+        + (work["exp_lcb_proxy"].clip(lower=0.0) * 6.0 * 0.25)
+        + (work["cost_edge_proxy"].clip(lower=0.0) * 100.0 * 0.20)
+        + (work["rr_first_target"].clip(lower=0.0, upper=3.0) / 3.0 * 0.15)
+        + (work["no_reject_penalty"] * 0.05)
+        + (tradable_rate * 0.05)
+        + (max(0.0, net_mean) * 25.0 * 0.03)
+        + (rr_ok * 0.015)
+        + (expected_hold * 0.005)
     )
-    stage_a = work.loc[work["stage_a_score"] >= float(conf.stage_a_threshold), :].copy()
+    stage_a = work.loc[
+        (work["stage_a_score"] >= float(conf.stage_a_threshold))
+        & (work["cost_edge_proxy"] > -0.0001)
+        & (work["rr_first_target"] >= float(conf.min_rr) * 0.85),
+        :,
+    ].copy()
     if stage_a.empty and not work.empty:
         stage_a = work.nlargest(min(4, len(work)), "stage_a_score").copy()
-    stage_b = stage_a.loc[stage_a["exp_lcb_proxy"] >= float(conf.stage_b_threshold), :].copy()
+    stage_b = stage_a.loc[
+        (stage_a["exp_lcb_proxy"] >= float(conf.stage_b_threshold))
+        & (stage_a["cost_edge_proxy"] > 0.0),
+        :,
+    ].copy()
+    if "economic_fingerprint" in stage_b.columns:
+        stage_b = (
+            stage_b.sort_values(["stage_a_score", "candidate_id"], ascending=[False, True])
+            .drop_duplicates(subset=["economic_fingerprint"], keep="first")
+            .reset_index(drop=True)
+        )
     strict_before = int((work["exp_lcb_proxy"] >= float(conf.stage_b_threshold)).sum())
 
     drop_a = int(len(work) - len(stage_a))
@@ -163,3 +206,26 @@ def _first_hit(series: pd.Series, *, threshold: float, direction: str) -> float:
             return float(idx)
     return float(np.nan)
 
+
+def _augment_candidate_specific_fields(frame: pd.DataFrame) -> None:
+    beam_or_layer = frame["beam_score"] if "beam_score" in frame.columns else _series_or_default(frame, "layer_score", 0.0)
+    frame["layer_score"] = pd.to_numeric(beam_or_layer, errors="coerce").fillna(0.0)
+    frame["exp_lcb_proxy"] = pd.to_numeric(_series_or_default(frame, "exp_lcb_proxy", 0.0), errors="coerce").fillna(0.0)
+    frame["cost_edge_proxy"] = pd.to_numeric(_series_or_default(frame, "cost_edge_proxy", 0.0), errors="coerce").fillna(0.0)
+    rr_values: list[float] = []
+    reject_penalty: list[float] = []
+    for raw_rr, raw_reject in zip(
+        frame.get("rr_model", pd.Series([{}] * len(frame), index=frame.index)).tolist(),
+        frame.get("pre_replay_reject_reason", pd.Series([""] * len(frame), index=frame.index)).tolist(),
+    ):
+        rr_model = raw_rr if isinstance(raw_rr, dict) else {}
+        rr_values.append(float(rr_model.get("first_target_rr", 0.0)))
+        reject_penalty.append(0.0 if str(raw_reject).strip() else 1.0)
+    frame["rr_first_target"] = pd.to_numeric(pd.Series(rr_values, index=frame.index), errors="coerce").fillna(0.0)
+    frame["no_reject_penalty"] = pd.to_numeric(pd.Series(reject_penalty, index=frame.index), errors="coerce").fillna(0.0)
+
+
+def _series_or_default(frame: pd.DataFrame, column: str, default: float) -> pd.Series:
+    if column in frame.columns:
+        return frame[column]
+    return pd.Series([default] * len(frame), index=frame.index, dtype=float)

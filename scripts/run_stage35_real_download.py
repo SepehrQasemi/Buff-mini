@@ -122,9 +122,8 @@ def _write_auth_cli_doc() -> None:
         "",
         "## Secret Resolution Order",
         "1. `COINAPI_KEY` from environment",
-        "2. `secrets/coinapi_key.txt` (gitignored)",
-        "3. `secrets/coinapi_key.json` with `COINAPI_KEY` key (gitignored)",
-        "4. repo `.env` with `COINAPI_KEY=...` (gitignored)",
+        "2. `.secrets/coinapi_key.txt` (gitignored)",
+        "3. `.secrets/coinapi_key` (gitignored)",
         "",
         "## Key Doctor Commands",
         "- status: `python scripts/coinapi_key_doctor.py --status`",
@@ -141,7 +140,7 @@ def _write_auth_cli_doc() -> None:
         "",
         "## Missing Key Error",
         "When key is unavailable, downloader exits with:",
-        "`COINAPI_KEY missing; use secrets/coinapi_key.txt (gitignored) or environment variable.`",
+        "`COINAPI_KEY missing; use .secrets/coinapi_key.txt (gitignored) or environment variable.`",
     ]
     AUTH_CLI_MD.write_text("\n".join(lines).strip() + "\n", encoding="utf-8")
 

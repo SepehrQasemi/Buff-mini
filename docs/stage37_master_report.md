@@ -13,14 +13,14 @@
 
 ## Engine
 - baseline_run_id: `20260306_160459_2a029423a621_stage28`
-- upgraded_run_id: `20260306_144056_4b655c81c2a5_stage28`
+- upgraded_run_id: `20260306_164256_4b655c81c2a5_stage28`
 - delta_activation_rate: `0.000000`
 - delta_trade_count: `0.000000`
 - delta_live_exp_lcb: `0.000000`
 
 ## Stability
-- executed_seed_count: `0`
-- note: `Not promising on seed-42; skipped extra seeds to avoid waste.`
+- executed_seed_count: `1`
+- note: `Not promising on seed-42; ran minimal diagnostic seed only.`
 
 ## Verdict
 - verdict: `DATA_IMPROVED_BUT_NO_EDGE`

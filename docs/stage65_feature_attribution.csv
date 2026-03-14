@@ -1,0 +1,13 @@
+feature,importance,method
+ret_1,0.653906274797133,abs_corr
+ret_3,0.3296700281697368,abs_corr
+ret_6,0.23501499628140646,abs_corr
+crowding_proxy_24,0.12551511547892727,abs_corr
+vol_chg_3,0.057122333802815485,abs_corr
+liquidity_shock_12,0.05292732055657844,abs_corr
+range_pct,0.047756741385006775,abs_corr
+regime_vol_rank_96,0.04067036142744396,abs_corr
+vol_z_24,0.03524295488988837,abs_corr
+hlc3,0.012161754278036114,abs_corr
+trend_slope_24,0.009529025296763121,abs_corr
+atr_proxy_14,0.004954399931397753,abs_corr

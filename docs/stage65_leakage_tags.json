@@ -1,0 +1,14 @@
+{
+  "ret_1": true,
+  "ret_3": true,
+  "ret_6": true,
+  "range_pct": true,
+  "hlc3": true,
+  "vol_chg_3": true,
+  "vol_z_24": true,
+  "atr_proxy_14": true,
+  "trend_slope_24": true,
+  "regime_vol_rank_96": true,
+  "liquidity_shock_12": true,
+  "crowding_proxy_24": true
+}

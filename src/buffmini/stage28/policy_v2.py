@@ -14,6 +14,8 @@ from buffmini.ui.components.library import LIBRARY_DIR, load_library_index, save
 from buffmini.utils.hashing import stable_hash
 from buffmini.utils.time import utc_now_compact
 
+_BUILD_TS_UTC = utc_now_compact()
+
 
 @dataclass(frozen=True)
 class PolicyV2Config:
@@ -51,7 +53,7 @@ def build_policy_v2(
         return {
             "policy_id": f"stage28_{policy_id}",
             "version": "stage28_policy_v2",
-            "generated_at": utc_now_compact(),
+            "generated_at": _BUILD_TS_UTC,
             "data_snapshot_id": str(data_snapshot_id),
             "data_snapshot_hash": str(data_snapshot_hash),
             "config_hash": str(config_hash),
@@ -115,7 +117,7 @@ def build_policy_v2(
 
     policy_payload = {
         "version": "stage28_policy_v2",
-        "generated_at": utc_now_compact(),
+        "generated_at": _BUILD_TS_UTC,
         "data_snapshot_id": str(data_snapshot_id),
         "data_snapshot_hash": str(data_snapshot_hash),
         "config_hash": str(config_hash),

@@ -1,0 +1,12 @@
+{
+  "stale_sources": [
+    "binance",
+    "bybit",
+    "deribit"
+  ],
+  "fresh_sources": [
+    "binance",
+    "bybit",
+    "deribit"
+  ]
+}

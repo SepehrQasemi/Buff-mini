@@ -83,39 +83,371 @@
       "estimated_credits_used": null,
       "credits_estimation_mode": "UNKNOWN",
       "run_usage_path": "C:/dev/Buff-mini/runs/20260305_201014_b1b208069b29_stage35/coinapi_usage.json"
+    },
+    {
+      "run_id": "20260305_205440_0a8e8db31b29_stage35",
+      "action": "plan",
+      "plan_id": "64b44e96ab3b",
+      "total_requests_planned": 836,
+      "total_requests_selected": 836,
+      "total_requests_made": 0,
+      "status_code_counts": {},
+      "endpoints_hit": [],
+      "retry_counts": {
+        "total": 0,
+        "by_endpoint": {
+          "funding_rates": 0,
+          "open_interest": 0
+        }
+      },
+      "time_range": {
+        "start": "2022-03-05T20:54:40+00:00",
+        "end": "2026-03-05T20:54:40+00:00"
+      },
+      "rate_limit_sleep_ms_total": 0,
+      "estimated_credits_used": null,
+      "credits_estimation_mode": "UNKNOWN",
+      "run_usage_path": "C:/dev/Buff-mini/runs/20260305_205440_0a8e8db31b29_stage35/coinapi_usage.json"
+    },
+    {
+      "run_id": "20260305_231500_6d78a8183e4c_stage35",
+      "action": "plan",
+      "plan_id": "fca7eb06b4b9",
+      "total_requests_planned": 836,
+      "total_requests_selected": 836,
+      "total_requests_made": 0,
+      "status_code_counts": {},
+      "endpoints_hit": [],
+      "retry_counts": {
+        "total": 0,
+        "by_endpoint": {
+          "funding_rates": 0,
+          "open_interest": 0
+        }
+      },
+      "time_range": {
+        "start": "2022-03-05T23:15:00+00:00",
+        "end": "2026-03-05T23:15:00+00:00"
+      },
+      "rate_limit_sleep_ms_total": 0,
+      "estimated_credits_used": null,
+      "credits_estimation_mode": "UNKNOWN",
+      "run_usage_path": "C:/dev/Buff-mini/runs/20260305_231500_6d78a8183e4c_stage35/coinapi_usage.json"
+    },
+    {
+      "run_id": "20260305_232149_5eafb76cd013_stage35",
+      "action": "download",
+      "plan_id": "4fe74839acf0",
+      "total_requests_planned": 836,
+      "total_requests_selected": 836,
+      "total_requests_made": 839,
+      "status_code_counts": {
+        "401": 3,
+        "400": 836
+      },
+      "endpoints_hit": [
+        "funding_rates",
+        "open_interest",
+        "verify_auth"
+      ],
+      "retry_counts": {
+        "total": 0,
+        "by_endpoint": {
+          "verify_auth": 0,
+          "funding_rates": 0,
+          "open_interest": 0
+        }
+      },
+      "time_range": {
+        "start": "2022-03-05T19:54:29+00:00",
+        "end": "2026-03-05T23:21:49+00:00"
+      },
+      "rate_limit_sleep_ms_total": 0,
+      "estimated_credits_used": null,
+      "credits_estimation_mode": "UNKNOWN",
+      "run_usage_path": "C:/dev/Buff-mini/runs/20260305_232149_5eafb76cd013_stage35/coinapi_usage.json"
+    },
+    {
+      "run_id": "20260305_234058_214e5d94a685_stage35",
+      "action": "plan",
+      "plan_id": "e7818f7e9cc1",
+      "total_requests_planned": 836,
+      "total_requests_selected": 836,
+      "total_requests_made": 0,
+      "status_code_counts": {},
+      "endpoints_hit": [],
+      "retry_counts": {
+        "total": 0,
+        "by_endpoint": {
+          "funding_rates": 0,
+          "open_interest": 0
+        }
+      },
+      "time_range": {
+        "start": "2022-03-05T23:40:58+00:00",
+        "end": "2026-03-05T23:40:58+00:00"
+      },
+      "rate_limit_sleep_ms_total": 0,
+      "estimated_credits_used": null,
+      "credits_estimation_mode": "UNKNOWN",
+      "run_usage_path": "C:/dev/Buff-mini/runs/20260305_234058_214e5d94a685_stage35/coinapi_usage.json"
+    },
+    {
+      "run_id": "20260305_234109_2ec66f382e5f_stage35",
+      "action": "download",
+      "plan_id": "36152b976b74",
+      "total_requests_planned": 2,
+      "total_requests_selected": 1,
+      "total_requests_made": 0,
+      "status_code_counts": {},
+      "endpoints_hit": [],
+      "retry_counts": {
+        "total": 0,
+        "by_endpoint": {
+          "funding_rates": 0
+        }
+      },
+      "time_range": {
+        "start": "2025-03-05T23:41:09+00:00",
+        "end": "2026-03-05T23:41:09+00:00"
+      },
+      "rate_limit_sleep_ms_total": 0,
+      "estimated_credits_used": null,
+      "credits_estimation_mode": "UNKNOWN",
+      "run_usage_path": "C:/dev/Buff-mini/runs/20260305_234109_2ec66f382e5f_stage35/coinapi_usage.json"
+    },
+    {
+      "run_id": "20260305_234117_718ff0012261_stage35",
+      "action": "download",
+      "plan_id": "ef23a95f803f",
+      "total_requests_planned": 1,
+      "total_requests_selected": 1,
+      "total_requests_made": 840,
+      "status_code_counts": {
+        "401": 3,
+        "400": 837
+      },
+      "endpoints_hit": [
+        "funding_rates",
+        "open_interest",
+        "verify_auth"
+      ],
+      "retry_counts": {
+        "total": 0,
+        "by_endpoint": {
+          "verify_auth": 0,
+          "funding_rates": 0,
+          "open_interest": 0
+        }
+      },
+      "time_range": {
+        "start": "2022-03-05T19:54:29+00:00",
+        "end": "2026-03-05T23:41:17+00:00"
+      },
+      "rate_limit_sleep_ms_total": 0,
+      "estimated_credits_used": null,
+      "credits_estimation_mode": "UNKNOWN",
+      "run_usage_path": "C:/dev/Buff-mini/runs/20260305_234117_718ff0012261_stage35/coinapi_usage.json"
+    },
+    {
+      "run_id": "20260306_000135_4ccdfb32d719_stage35",
+      "action": "download",
+      "plan_id": "aa274d496b7e",
+      "total_requests_planned": 1,
+      "total_requests_selected": 1,
+      "total_requests_made": 841,
+      "status_code_counts": {
+        "401": 3,
+        "400": 837,
+        "200": 1
+      },
+      "endpoints_hit": [
+        "funding_rates",
+        "open_interest",
+        "verify_auth"
+      ],
+      "retry_counts": {
+        "total": 0,
+        "by_endpoint": {
+          "verify_auth": 0,
+          "funding_rates": 0,
+          "open_interest": 0
+        }
+      },
+      "time_range": {
+        "start": "2022-03-05T19:54:29+00:00",
+        "end": "2026-03-06T00:01:35+00:00"
+      },
+      "rate_limit_sleep_ms_total": 0,
+      "estimated_credits_used": null,
+      "credits_estimation_mode": "UNKNOWN",
+      "run_usage_path": "C:/dev/Buff-mini/runs/20260306_000135_4ccdfb32d719_stage35/coinapi_usage.json"
+    },
+    {
+      "run_id": "20260306_000148_feaaa995bbf5_stage35",
+      "action": "download",
+      "plan_id": "e583558943a6",
+      "total_requests_planned": 1,
+      "total_requests_selected": 1,
+      "total_requests_made": 842,
+      "status_code_counts": {
+        "401": 3,
+        "400": 837,
+        "200": 2
+      },
+      "endpoints_hit": [
+        "funding_rates",
+        "open_interest",
+        "verify_auth"
+      ],
+      "retry_counts": {
+        "total": 0,
+        "by_endpoint": {
+          "verify_auth": 0,
+          "funding_rates": 0,
+          "open_interest": 0
+        }
+      },
+      "time_range": {
+        "start": "2022-03-05T19:54:29+00:00",
+        "end": "2026-03-06T00:01:48+00:00"
+      },
+      "rate_limit_sleep_ms_total": 0,
+      "estimated_credits_used": null,
+      "credits_estimation_mode": "UNKNOWN",
+      "run_usage_path": "C:/dev/Buff-mini/runs/20260306_000148_feaaa995bbf5_stage35/coinapi_usage.json"
+    },
+    {
+      "run_id": "20260306_000159_d165b1810722_stage35",
+      "action": "download",
+      "plan_id": "25b40303c381",
+      "total_requests_planned": 4,
+      "total_requests_selected": 4,
+      "total_requests_made": 846,
+      "status_code_counts": {
+        "401": 3,
+        "400": 837,
+        "200": 6
+      },
+      "endpoints_hit": [
+        "funding_rates",
+        "open_interest",
+        "verify_auth"
+      ],
+      "retry_counts": {
+        "total": 0,
+        "by_endpoint": {
+          "verify_auth": 0,
+          "funding_rates": 0,
+          "open_interest": 0
+        }
+      },
+      "time_range": {
+        "start": "2022-03-05T19:54:29+00:00",
+        "end": "2026-03-06T00:01:59+00:00"
+      },
+      "rate_limit_sleep_ms_total": 0,
+      "estimated_credits_used": null,
+      "credits_estimation_mode": "UNKNOWN",
+      "run_usage_path": "C:/dev/Buff-mini/runs/20260306_000159_d165b1810722_stage35/coinapi_usage.json"
+    },
+    {
+      "run_id": "20260306_000213_bb35841bc25d_stage35",
+      "action": "plan",
+      "plan_id": "f9072f74a9e1",
+      "total_requests_planned": 836,
+      "total_requests_selected": 836,
+      "total_requests_made": 0,
+      "status_code_counts": {},
+      "endpoints_hit": [],
+      "retry_counts": {
+        "total": 0,
+        "by_endpoint": {
+          "funding_rates": 0,
+          "open_interest": 0
+        }
+      },
+      "time_range": {
+        "start": "2022-03-06T00:02:13+00:00",
+        "end": "2026-03-06T00:02:13+00:00"
+      },
+      "rate_limit_sleep_ms_total": 0,
+      "estimated_credits_used": null,
+      "credits_estimation_mode": "UNKNOWN",
+      "run_usage_path": "C:/dev/Buff-mini/runs/20260306_000213_bb35841bc25d_stage35/coinapi_usage.json"
+    },
+    {
+      "run_id": "20260306_000224_5170837df92b_stage35",
+      "action": "download",
+      "plan_id": "bc822127416d",
+      "total_requests_planned": 836,
+      "total_requests_selected": 836,
+      "total_requests_made": 1682,
+      "status_code_counts": {
+        "401": 3,
+        "400": 837,
+        "200": 842
+      },
+      "endpoints_hit": [
+        "funding_rates",
+        "open_interest",
+        "verify_auth"
+      ],
+      "retry_counts": {
+        "total": 0,
+        "by_endpoint": {
+          "verify_auth": 0,
+          "funding_rates": 0,
+          "open_interest": 0
+        }
+      },
+      "time_range": {
+        "start": "2022-03-05T19:54:29+00:00",
+        "end": "2026-03-06T00:02:24+00:00"
+      },
+      "rate_limit_sleep_ms_total": 0,
+      "estimated_credits_used": null,
+      "credits_estimation_mode": "UNKNOWN",
+      "run_usage_path": "C:/dev/Buff-mini/runs/20260306_000224_5170837df92b_stage35/coinapi_usage.json"
     }
   ],
   "latest": {
-    "run_id": "20260305_201014_b1b208069b29_stage35",
-    "action": "verify",
-    "plan_id": "234806c9cbb2",
+    "run_id": "20260306_000224_5170837df92b_stage35",
+    "action": "download",
+    "plan_id": "bc822127416d",
     "total_requests_planned": 836,
     "total_requests_selected": 836,
-    "total_requests_made": 3,
+    "total_requests_made": 1682,
     "status_code_counts": {
-      "401": 3
+      "401": 3,
+      "400": 837,
+      "200": 842
     },
     "endpoints_hit": [
+      "funding_rates",
+      "open_interest",
       "verify_auth"
     ],
     "retry_counts": {
       "total": 0,
       "by_endpoint": {
-        "verify_auth": 0
+        "verify_auth": 0,
+        "funding_rates": 0,
+        "open_interest": 0
       }
     },
     "time_range": {
       "start": "2022-03-05T19:54:29+00:00",
-      "end": "2026-03-05T20:10:14+00:00"
+      "end": "2026-03-06T00:02:24+00:00"
     },
     "rate_limit_sleep_ms_total": 0,
     "estimated_credits_used": null,
     "credits_estimation_mode": "UNKNOWN",
-    "run_usage_path": "C:/dev/Buff-mini/runs/20260305_201014_b1b208069b29_stage35/coinapi_usage.json"
+    "run_usage_path": "C:/dev/Buff-mini/runs/20260306_000224_5170837df92b_stage35/coinapi_usage.json"
   },
   "totals": {
-    "total_requests_planned": 2508,
-    "total_requests_made": 6,
-    "run_count": 3
+    "total_requests_planned": 7533,
+    "total_requests_made": 5896,
+    "run_count": 14
   }
 }

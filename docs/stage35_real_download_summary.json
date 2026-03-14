@@ -1,0 +1,24 @@
+{
+  "status": "BLOCKED",
+  "blocker": "MISSING_COINAPI_KEY",
+  "coinapi_key_present": false,
+  "network_download_attempted": false,
+  "commands_executed": [
+    "python -m compileall src scripts tests launch_app.py",
+    "python -m pytest -q",
+    "python -c \"import os,sys; sys.exit(0 if os.environ.get('COINAPI_KEY','').strip() else 1)\""
+  ],
+  "gates": {
+    "compileall": "PASS",
+    "pytest_pass_count": 457
+  },
+  "next_required_steps": [
+    "Set COINAPI_KEY in active shell session",
+    "Run planner dry-run",
+    "Run budget-capped funding+oi download",
+    "Run stage35 orchestrator only if coverage threshold is met"
+  ],
+  "coverage_threshold_years": 2.0,
+  "insufficient_coverage_reason": "not_evaluated_due_to_missing_key"
+}
+

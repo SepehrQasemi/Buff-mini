@@ -1,0 +1,10 @@
+# Stage-64 Report
+
+- status: `SUCCESS`
+- source_rows: `12`
+- disabled_families: `[]`
+- stale_sources: `['binance', 'bybit', 'deribit']`
+- fresh_sources: `['binance', 'bybit', 'deribit']`
+- source_cost: `0.0`
+- blocker_reason: ``
+- summary_hash: `74fe5cb07ad04192`

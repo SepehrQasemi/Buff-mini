@@ -15,19 +15,19 @@
   "live_best_exp_lcb_after": 0.0,
   "promising": false,
   "phase_runtime_seconds": {
-    "config_load": 0.051329199981410056,
-    "data_load": 0.00134680001065135,
+    "config_load": 0.04947509997873567,
+    "data_load": 0.0013367999927140772,
     "extras_alignment": 2.00001522898674e-07,
-    "analyst_brain_part1": 7.00005330145359e-07,
-    "analyst_brain_part2": 4.00003045797348e-07,
+    "analyst_brain_part1": 6.00004568696022e-07,
+    "analyst_brain_part2": 3.00002284348011e-07,
     "setup_generation": 5.00003807246685e-07,
-    "stage_a_tradability_filter": 4.00003045797348e-07,
-    "stage_b_robustness": 2.00001522898674e-07,
+    "stage_a_tradability_filter": 3.00002284348011e-07,
+    "stage_b_robustness": 4.00003045797348e-07,
     "ranker_scoring": 4.00003045797348e-07,
     "replay_backtest": 2361.5518056,
     "walkforward": 0.0,
     "monte_carlo": 0.0,
-    "report_generation": 6.599992047995329e-06
+    "report_generation": 6.999995093792677e-06
   },
   "summary_hash": "1f65f53163ca34f7"
 }

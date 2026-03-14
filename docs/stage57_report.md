@@ -1,0 +1,16 @@
+# Stage-57 Report
+
+- status: `PARTIAL`
+- execution_status: `BLOCKED_INSUFFICIENT_INPUTS`
+- stage_role: `real_validation`
+- validation_state: `EVIDENCE_INSUFFICIENT`
+- verdict: `PARTIAL`
+- stale_inputs: `{'stale': False, 'missing_paths': [], 'stale_paths': [], 'source_mtimes_utc': {'docs\\stage52_summary.json': '2026-03-14T13:36:00.728326+00:00', 'docs\\stage53_summary.json': '2026-03-14T13:36:01.675247+00:00', 'docs\\stage54_summary.json': '2026-03-14T13:36:02.449877+00:00', 'docs\\stage55_summary.json': '2026-03-14T13:36:03.228787+00:00', 'docs\\stage56_summary.json': '2026-03-14T13:36:03.991681+00:00', 'docs\\stage57_chain_metrics.json': '2026-03-14T13:36:17.696126+00:00'}, 'max_age_hours': 72.0}`
+- metrics_sufficiency: `{'valid': False, 'reason': 'stage53_quality_gate_not_passed', 'chain_metrics_path': 'docs\\stage57_chain_metrics.json'}`
+- replay_gate: `{'passed': False, 'trade_count': 0, 'exp_lcb': 0.0, 'maxDD': 1.0, 'failure_reason_dominance': 1.0}`
+- walkforward_gate: `{'passed': False, 'usable_windows': 0, 'median_forward_exp_lcb': 0.0}`
+- monte_carlo_gate: `{'passed': False, 'conservative_downside_bound': -1.0}`
+- cross_seed_gate: `{'passed': False, 'surviving_seeds': 0}`
+- decision_evidence: `{'allowed': False, 'reason': 'missing_or_invalid_chain_metrics', 'missing_real_sources': ['real_replay', 'real_walkforward', 'real_monte_carlo', 'real_cross_perturbation']}`
+- blocker_reason: `stage53_quality_gate_not_passed`
+- summary_hash: `69de1ab64a1b8203`

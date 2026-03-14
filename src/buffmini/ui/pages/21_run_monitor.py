@@ -84,6 +84,8 @@ if not run_id:
 run_dir = Path(RUNS_DIR) / run_id
 progress = _read_json(run_dir / "progress.json")
 pipeline_summary = _read_json(run_dir / "pipeline_summary.json")
+stage57_summary = _read_json(Path("docs") / "stage57_summary.json")
+stage72_summary = _read_json(Path("docs") / "stage72_summary.json")
 
 stage = str(progress.get("stage", pipeline_summary.get("status", "unknown")))
 stage_idx = int(progress.get("stage_idx", 0) or 0)
@@ -108,6 +110,25 @@ for name, item_status in _timeline(stage=stage, stage_idx=stage_idx, stage_total
 
 st.subheader("Live Counters")
 st.json(progress.get("counters", {}))
+
+st.subheader("Validation Evidence")
+if stage57_summary:
+    st.json(
+        {
+            "stage57_status": stage57_summary.get("status"),
+            "stage57_validation_state": stage57_summary.get("validation_state"),
+            "decision_evidence_allowed": (stage57_summary.get("decision_evidence", {}) or {}).get("allowed"),
+            "missing_real_sources": (stage57_summary.get("decision_evidence", {}) or {}).get("missing_real_sources", []),
+            "blocked_decision_metrics": (stage57_summary.get("decision_evidence", {}) or {}).get("blocked_decision_metrics", []),
+        }
+    )
+else:
+    st.info("stage57_summary.json not found.")
+if stage72_summary:
+    st.caption(
+        f"final_verdict={stage72_summary.get('verdict')} | "
+        f"decision_evidence_allowed={stage72_summary.get('decision_evidence_allowed')}"
+    )
 
 cpu, mem = _cpu_mem()
 if cpu is None:

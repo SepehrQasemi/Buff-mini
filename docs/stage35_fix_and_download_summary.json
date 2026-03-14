@@ -1,0 +1,29 @@
+{
+  "date": "2026-03-05",
+  "verdict": "AUTH_BLOCKED",
+  "coinapi_key_present": false,
+  "steps_completed": [
+    "0.1 compileall",
+    "0.1 pytest",
+    "0.2 env key check"
+  ],
+  "compileall": {
+    "exit_code": 0,
+    "status": "PASS"
+  },
+  "pytest": {
+    "exit_code": 0,
+    "status": "PASS",
+    "passed": 457,
+    "warnings": 161
+  },
+  "key_check": {
+    "exit_code": 1,
+    "status": "FAIL"
+  },
+  "download": {
+    "attempted": false,
+    "reason": "COINAPI_KEY missing in environment"
+  },
+  "next_command": "$env:COINAPI_KEY='<YOUR_COINAPI_KEY>'; python -c \"import os,sys; sys.exit(0 if bool(os.getenv('COINAPI_KEY')) else 1)\""
+}

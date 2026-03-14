@@ -1,10 +1,10 @@
 # Stage-35 Report
 
 ## Summary
-- head_commit: `d4da962`
-- run_id: `20260305_125344_2b45796557c7_stage35`
+- head_commit: `cea6093`
+- run_id: `20260306_002542_12d9e1dca8f2_stage35`
 - coinapi_enabled: `False`
-- dry_run: `True`
+- dry_run: `False`
 - status: `INSUFFICIENT_COVERAGE`
 
 ## Endpoints
@@ -23,9 +23,9 @@
   - open_interest: years=0.000, samples=0, range=None..None
 
 ## Usage
-- total_requests: `0`
-- total_success: `0`
-- total_fail: `0`
+- total_requests: `1682`
+- total_success: `842`
+- total_fail: `840`
 
 ## ML Trigger
 - ml_executed: `False`
@@ -39,6 +39,6 @@
 
 ## Storage
 - raw_mb: `0.000`
-- canonical_mb: `0.004`
-- meta_mb: `0.001`
-- total_mb: `0.005`
+- canonical_mb: `0.012`
+- meta_mb: `1.043`
+- total_mb: `1.055`

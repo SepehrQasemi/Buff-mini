@@ -28,6 +28,17 @@ dependencies = [
 duckdb = [
   "duckdb"
 ]
+free_max = [
+  "scikit-learn",
+  "optuna",
+  "numba",
+  "polars",
+  "duckdb",
+  "mapie"
+]
+test = [
+  "pytest-xdist"
+]
 
 [tool.setuptools]
 package-dir = { "" = "src" }
@@ -38,3 +49,9 @@ where = ["src"]
 [tool.pytest.ini_options]
 pythonpath = ["src", "."]
 testpaths = ["tests"]
+markers = [
+  "smoke: fast smoke coverage for core paths",
+  "core: default deterministic unit and integration coverage",
+  "heavy: slower replay and validation coverage",
+  "validation: replay, walk-forward, and monte-carlo coverage",
+]

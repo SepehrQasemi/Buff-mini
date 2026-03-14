@@ -1,0 +1,104 @@
+{
+  "enabled_sources": [
+    "binance",
+    "bybit",
+    "deribit"
+  ],
+  "source_priority": [
+    "binance",
+    "bybit",
+    "deribit"
+  ],
+  "source_contracts": [
+    {
+      "source": "binance",
+      "endpoints": [
+        "ohlcv",
+        "funding",
+        "oi",
+        "long_short",
+        "taker_flow"
+      ],
+      "rate_limit": {
+        "mode": "respect_provider",
+        "max_requests_per_min": null
+      },
+      "source_cost": 0.0
+    },
+    {
+      "source": "bybit",
+      "endpoints": [
+        "ohlcv",
+        "funding",
+        "oi",
+        "long_short"
+      ],
+      "rate_limit": {
+        "mode": "respect_provider",
+        "max_requests_per_min": null
+      },
+      "source_cost": 0.0
+    },
+    {
+      "source": "deribit",
+      "endpoints": [
+        "ohlcv",
+        "funding",
+        "oi"
+      ],
+      "rate_limit": {
+        "mode": "respect_provider",
+        "max_requests_per_min": null
+      },
+      "source_cost": 0.0
+    }
+  ],
+  "schema": {
+    "ohlcv": [
+      "timestamp",
+      "symbol",
+      "timeframe",
+      "open",
+      "high",
+      "low",
+      "close",
+      "volume",
+      "source"
+    ],
+    "funding": [
+      "timestamp",
+      "symbol",
+      "funding_rate",
+      "source",
+      "coverage_window",
+      "validity_mask"
+    ],
+    "oi": [
+      "timestamp",
+      "symbol",
+      "open_interest",
+      "source",
+      "coverage_window",
+      "validity_mask"
+    ],
+    "long_short": [
+      "timestamp",
+      "symbol",
+      "long_short_ratio",
+      "source",
+      "coverage_window",
+      "validity_mask"
+    ],
+    "taker_flow": [
+      "timestamp",
+      "symbol",
+      "buy_sell_ratio",
+      "buy_volume",
+      "sell_volume",
+      "source",
+      "coverage_window",
+      "validity_mask"
+    ]
+  },
+  "summary_hash": "8b74a1b8b406cf42"
+}

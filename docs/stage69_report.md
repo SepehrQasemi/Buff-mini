@@ -1,0 +1,16 @@
+# Stage-69 Report
+
+- status: `SUCCESS`
+- execution_status: `EXECUTED`
+- stage_role: `reporting_only`
+- validation_state: `REPORTING_ONLY`
+- stage28_run_id: `20260313_154858_044fff9053df_stage28`
+- new_memory_rows: `15`
+- campaign_memory_rows_total: `15`
+- frozen_research_mode: `False`
+- cold_start_each_run_effective: `True`
+- memory_path: `docs\stage69_campaign_memory.json`
+- memory_source_rows: `0`
+- priors: `{'family_allocation': {'liquidity_sweep_reversal': 0.5, 'squeeze_flow_breakout': 0.5, 'structure_pullback_continuation': 0.5}, 'timeframe_allocation': {'15m': 0.5, '1h': 0.5, '2h': 0.5, '30m': 0.5, '4h': 0.5}, 'threshold_prior': 0.55}`
+- blocker_reason: ``
+- summary_hash: `264a17bc08e5a978`

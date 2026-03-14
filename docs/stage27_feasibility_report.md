@@ -1,6 +1,6 @@
 # Stage-27 Feasibility Report
 
-- run_id: `20260303_123433_6de8efa3a87b_stage15_9_trace`
+- run_id: `20260304_120221_290f384a0124_stage15_9_trace`
 - seed: `42`
 - dry_run: `True`
 - used_symbols: `['BTC/USDT', 'ETH/USDT']`

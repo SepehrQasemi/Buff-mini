@@ -14,6 +14,7 @@ from buffmini.stage50.reporting import (
     validate_stage50_5seed_summary,
     validate_stage50_performance_summary,
 )
+from buffmini.stage57.verdicts import detect_stale_inputs
 from buffmini.utils.hashing import stable_hash
 
 
@@ -82,6 +83,28 @@ def _render_5seed(payload: dict[str, Any]) -> str:
     return "\n".join(lines).strip() + "\n"
 
 
+def _write_outputs(
+    *,
+    docs_dir: Path,
+    performance_payload: dict[str, Any],
+    five_seed_payload: dict[str, Any],
+    notes: list[str],
+) -> tuple[Path, Path]:
+    perf_report_path = docs_dir / "stage50_performance_validation_report.md"
+    seed_report_path = docs_dir / "stage50_5seed_report.md"
+    (docs_dir / "stage50_performance_validation_summary.json").write_text(
+        json.dumps(performance_payload, indent=2, allow_nan=False),
+        encoding="utf-8",
+    )
+    perf_report_path.write_text(_render_performance(performance_payload, notes=notes), encoding="utf-8")
+    (docs_dir / "stage50_5seed_summary.json").write_text(
+        json.dumps(five_seed_payload, indent=2, allow_nan=False),
+        encoding="utf-8",
+    )
+    seed_report_path.write_text(_render_5seed(five_seed_payload), encoding="utf-8")
+    return perf_report_path, seed_report_path
+
+
 def main() -> None:
     args = parse_args()
     docs_dir = Path(args.docs_dir)
@@ -92,6 +115,84 @@ def main() -> None:
     t0 = time.perf_counter()
     _cfg = load_config(Path(args.config))
     phase["config_load"] = float(time.perf_counter() - t0)
+
+    source_paths = [
+        docs_dir / "stage43_performance_summary.json",
+        docs_dir / "stage45_analyst_brain_part1_summary.json",
+        docs_dir / "stage46_analyst_brain_part2_summary.json",
+        docs_dir / "stage47_signal_gen2_summary.json",
+        docs_dir / "stage48_tradability_learning_summary.json",
+        docs_dir / "stage49_self_learning3_summary.json",
+    ]
+    stale_check = detect_stale_inputs(source_paths, max_age_hours=72.0)
+    if stale_check["stale"]:
+        notes = [
+            "Stage-50 stopped before validation because upstream summaries are stale or missing.",
+            f"stale_paths: {stale_check['stale_paths']}",
+            f"missing_paths: {stale_check['missing_paths']}",
+        ]
+        payload = {
+            "stage": "50",
+            "status": "STALE_INPUTS",
+            "baseline_runtime_seconds": 0.0,
+            "upgraded_runtime_seconds": 0.0,
+            "delta_runtime_seconds": 0.0,
+            "slowest_phase": "",
+            "baseline_raw_signals": 0,
+            "upgraded_raw_signals": 0,
+            "baseline_trade_count": 0.0,
+            "upgraded_trade_count": 0.0,
+            "research_best_exp_lcb_before": 0.0,
+            "research_best_exp_lcb_after": 0.0,
+            "live_best_exp_lcb_before": 0.0,
+            "live_best_exp_lcb_after": 0.0,
+            "promising": False,
+            "phase_runtime_seconds": dict(phase),
+            "stale_inputs": stale_check,
+        }
+        payload["summary_hash"] = stable_hash(
+            {
+                "stage": payload["stage"],
+                "status": payload["status"],
+                "stale_inputs": stale_check,
+            },
+            length=16,
+        )
+        validate_stage50_performance_summary(payload)
+        five_seed = {
+            "stage": "50_5seed",
+            "status": "STALE_INPUTS",
+            "skipped": True,
+            "skip_reason_if_any": "stale_inputs",
+            "executed_seeds": [],
+            "activation_rate_distribution": {"median": 0.0, "worst": 0.0, "best": 0.0},
+            "trade_count_distribution": {"median": 0.0, "worst": 0.0, "best": 0.0},
+            "exp_lcb_distribution": {"median": 0.0, "worst": 0.0, "best": 0.0},
+            "family_consistency": {},
+            "stale_inputs": stale_check,
+        }
+        five_seed["summary_hash"] = stable_hash(
+            {
+                "stage": five_seed["stage"],
+                "status": five_seed["status"],
+                "skip_reason_if_any": five_seed["skip_reason_if_any"],
+                "stale_inputs": stale_check,
+            },
+            length=16,
+        )
+        validate_stage50_5seed_summary(five_seed)
+        perf_report_path, seed_report_path = _write_outputs(
+            docs_dir=docs_dir,
+            performance_payload=payload,
+            five_seed_payload=five_seed,
+            notes=notes,
+        )
+        print(f"status: {payload['status']}")
+        print(f"performance_summary_hash: {payload['summary_hash']}")
+        print(f"five_seed_summary_hash: {five_seed['summary_hash']}")
+        print(f"performance_report: {perf_report_path}")
+        print(f"five_seed_report: {seed_report_path}")
+        return
 
     t0 = time.perf_counter()
     stage43 = _load_json(docs_dir / "stage43_performance_summary.json")
@@ -244,14 +345,12 @@ def main() -> None:
     )
     validate_stage50_5seed_summary(five_seed)
 
-    perf_summary_path = docs_dir / "stage50_performance_validation_summary.json"
-    perf_report_path = docs_dir / "stage50_performance_validation_report.md"
-    seed_summary_path = docs_dir / "stage50_5seed_summary.json"
-    seed_report_path = docs_dir / "stage50_5seed_report.md"
-    perf_summary_path.write_text(json.dumps(payload, indent=2, allow_nan=False), encoding="utf-8")
-    perf_report_path.write_text(_render_performance(payload, notes=notes), encoding="utf-8")
-    seed_summary_path.write_text(json.dumps(five_seed, indent=2, allow_nan=False), encoding="utf-8")
-    seed_report_path.write_text(_render_5seed(five_seed), encoding="utf-8")
+    perf_report_path, seed_report_path = _write_outputs(
+        docs_dir=docs_dir,
+        performance_payload=payload,
+        five_seed_payload=five_seed,
+        notes=notes,
+    )
 
     print(f"status: {payload['status']}")
     print(f"performance_summary_hash: {payload['summary_hash']}")
@@ -262,4 +361,3 @@ def main() -> None:
 
 if __name__ == "__main__":
     main()
-

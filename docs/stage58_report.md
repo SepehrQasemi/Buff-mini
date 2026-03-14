@@ -1,0 +1,11 @@
+# Stage-58 Report
+
+- status: `PARTIAL`
+- execution_status: `EXECUTED`
+- stage_role: `real_validation`
+- validation_state: `TRANSFER_NOT_CONFIRMED`
+- stage28_run_id: `20260313_154858_044fff9053df_stage28`
+- stage57_verdict: `PARTIAL`
+- transfer_artifact_exists: `False`
+- transfer_result: `{'verdict': 'PARTIAL', 'transfer_acceptable': False, 'reason': 'stage57_partial_insufficient_evidence'}`
+- summary_hash: `84e1447b1f08bc68`

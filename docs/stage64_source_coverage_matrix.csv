@@ -1,0 +1,13 @@
+source,family,coverage_days,coverage_window,validity_mask,source_cost
+binance,ohlcv,365.0,365d,True,0.0
+binance,funding,365.0,365d,True,0.0
+binance,oi,30.0,30d,True,0.0
+binance,long_short,30.0,30d,True,0.0
+binance,taker_flow,30.0,30d,True,0.0
+bybit,ohlcv,365.0,365d,True,0.0
+bybit,funding,365.0,365d,True,0.0
+bybit,oi,30.0,30d,True,0.0
+bybit,long_short,30.0,30d,True,0.0
+deribit,ohlcv,365.0,365d,True,0.0
+deribit,funding,365.0,365d,True,0.0
+deribit,oi,30.0,30d,True,0.0

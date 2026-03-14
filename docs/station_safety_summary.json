@@ -1,0 +1,7 @@
+{
+  "head_commit": "7cc5667dd305a971a5cb7c77929a677116091fd1",
+  "deterministic": true,
+  "inconsistencies": 3,
+  "limitations": 3,
+  "final_classification": "STABLE BUT HAS KNOWN LIMITATIONS"
+}

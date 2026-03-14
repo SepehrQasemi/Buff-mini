@@ -1,7 +1,7 @@
 # Stage-26 Report
 
-- head_commit: `03bcb0acffcad53aa981efcdb0c353532efe867d`
-- run_id: `20260303_124601_46a699696062_stage26`
+- head_commit: `ebde309639a2c39506fa54846470d1badc28bf75`
+- run_id: `20260304_120151_f7d8fa27e646_stage26`
 - seed: `42`
 - dry_run: `True`
 

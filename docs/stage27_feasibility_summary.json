@@ -1,6 +1,6 @@
 {
   "stage": "27.4",
-  "run_id": "20260303_123433_6de8efa3a87b_stage15_9_trace",
+  "run_id": "20260304_120221_290f384a0124_stage15_9_trace",
   "seed": 42,
   "dry_run": true,
   "requested_symbols": [
@@ -139,8 +139,8 @@
       "recommended_risk_floor": 9.48998922244559e-05
     }
   ],
-  "runtime_seconds": 3.230830899992725,
-  "config_hash": "f1765de9ff78",
+  "runtime_seconds": 3.9119646000035573,
+  "config_hash": "5a4e3847eafe",
   "data_hash": "b6faf10f0f3a44a9",
   "resolved_end_ts": "2025-04-10T23:00:00+00:00",
   "summary_hash": "6baec93b532b70d5"

@@ -1,0 +1,40 @@
+{
+  "version": "model_registry_v5",
+  "seed": 42,
+  "feature_columns": [
+    "rr_first_target",
+    "cost_edge_proxy",
+    "beam_score",
+    "family_code",
+    "timeframe_code",
+    "geometry_stop_distance_pct",
+    "geometry_first_target_pct",
+    "geometry_stretch_target_pct",
+    "entry_zone_span_pct",
+    "stage48_rank_score",
+    "stage48_replay_worthiness",
+    "replay_priority",
+    "rank_score",
+    "replay_worthiness"
+  ],
+  "base_models": [
+    "hgbt",
+    "logreg",
+    "rf"
+  ],
+  "optional_model_support": {
+    "xgboost": false,
+    "lightgbm": false,
+    "catboost": false
+  },
+  "stacking": {
+    "method": "mean_ensemble",
+    "calibration": "platt"
+  },
+  "metrics": {
+    "stack_logloss": 0.03047252,
+    "stack_brier": 0.00090077,
+    "train_summary_hash": "b7d448cd463cb1e1"
+  },
+  "summary_hash": "d16f638542e09f2a"
+}

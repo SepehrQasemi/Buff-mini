@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import json
 from pathlib import Path
 
 import pandas as pd
@@ -39,6 +40,12 @@ run_dir = Path(RUNS_DIR) / selected_run_id
 pipeline_payload, pipeline_warnings = load_pipeline_summary(run_dir)
 pipeline_summary = pipeline_payload.get("pipeline_summary", {})
 progress = pipeline_payload.get("progress", {})
+stage57_summary_path = PROJECT_ROOT / "docs" / "stage57_summary.json"
+stage58_summary_path = PROJECT_ROOT / "docs" / "stage58_summary.json"
+stage72_summary_path = PROJECT_ROOT / "docs" / "stage72_summary.json"
+stage57_summary = json.loads(stage57_summary_path.read_text(encoding="utf-8")) if stage57_summary_path.exists() else {}
+stage58_summary = json.loads(stage58_summary_path.read_text(encoding="utf-8")) if stage58_summary_path.exists() else {}
+stage72_summary = json.loads(stage72_summary_path.read_text(encoding="utf-8")) if stage72_summary_path.exists() else {}
 
 stage3_2_run_id = pipeline_summary.get("stage3_2_run_id")
 stage3_3_run_id = pipeline_summary.get("stage3_3_run_id")
@@ -93,6 +100,26 @@ with summary_tab:
         st.info("pipeline_summary.json not available for this run.")
     if progress:
         st.caption(f"Last stage: {progress.get('stage')} | status: {progress.get('status')}")
+    st.subheader("Evidence Quality")
+    if stage57_summary:
+        st.json(
+            {
+                "stage57_status": stage57_summary.get("status"),
+                "validation_state": stage57_summary.get("validation_state"),
+                "decision_evidence_allowed": (stage57_summary.get("decision_evidence", {}) or {}).get("allowed"),
+                "missing_real_sources": (stage57_summary.get("decision_evidence", {}) or {}).get("missing_real_sources", []),
+            }
+        )
+    if stage58_summary:
+        st.caption(
+            f"transfer_verdict={stage58_summary.get('transfer_result', {}).get('verdict')} | "
+            f"transfer_acceptable={stage58_summary.get('transfer_result', {}).get('transfer_acceptable')}"
+        )
+    if stage72_summary:
+        st.caption(
+            f"final_verdict={stage72_summary.get('verdict')} | "
+            f"decision_evidence_allowed={stage72_summary.get('decision_evidence_allowed')}"
+        )
 
     st.subheader("Save To Library")
     display_name = st.text_input("Display name (optional)", value="")

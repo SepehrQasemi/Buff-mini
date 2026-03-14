@@ -1,0 +1,17 @@
+{
+  "version": "stage33_policy_v3",
+  "generated_at": "20260305_050112",
+  "data_snapshot_id": "DATA_FROZEN_v1",
+  "data_snapshot_hash": "c734cebc1e80bf15",
+  "config_hash": "55ddf8a401cd",
+  "conflict_mode": "net",
+  "contexts": {},
+  "warnings": [
+    "no_rows_passed_policy_thresholds"
+  ],
+  "mtf": {
+    "supports_htf_bias": true,
+    "supports_ltf_trigger": true
+  },
+  "policy_id": "stage33_4ab593eb027b4a05"
+}

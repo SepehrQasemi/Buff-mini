@@ -1,0 +1,13 @@
+{
+  "status": "AUTH_BLOCKED",
+  "download_attempted": false,
+  "requests_planned": 0,
+  "requests_made": 0,
+  "successful_requests": 0,
+  "failed_requests": 0,
+  "http_status_counts": {},
+  "endpoints_used": [],
+  "symbols": [],
+  "estimated_credit_usage": "UNKNOWN",
+  "reason": "COINAPI_KEY missing in environment; no CoinAPI calls executed"
+}

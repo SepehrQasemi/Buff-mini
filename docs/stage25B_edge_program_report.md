@@ -5,7 +5,7 @@
 - Research mode isolates signal quality from exchange minima; live mode replays feasibility.
 
 ## Run Context
-- run_id: `20260303_124318_a3027d37b4f7_stage25B`
+- run_id: `20260304_115845_a3027d37b4f7_stage25B`
 - seed: `42`
 - mode: `live`
 - dry_run: `True`
@@ -54,6 +54,6 @@
 - `NO_EDGE_IN_LIVE`
 
 ## Artifacts
-- runs/20260303_124318_a3027d37b4f7_stage25B/stage25B/family_results.csv
-- runs/20260303_124318_a3027d37b4f7_stage25B/stage25B/family_results.json
-- runs/20260303_124318_a3027d37b4f7_stage25B/stage25B/best_candidates.json
+- runs/20260304_115845_a3027d37b4f7_stage25B/stage25B/family_results.csv
+- runs/20260304_115845_a3027d37b4f7_stage25B/stage25B/family_results.json
+- runs/20260304_115845_a3027d37b4f7_stage25B/stage25B/best_candidates.json

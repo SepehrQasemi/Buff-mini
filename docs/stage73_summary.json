@@ -1,0 +1,254 @@
+{
+  "stage": "73",
+  "status": "SUCCESS",
+  "compileall_status": "PASS",
+  "pytest_status": "PASS",
+  "integration_status": "PASS",
+  "problem_counts": {
+    "FULLY_FIXED": 3,
+    "PARTIALLY_FIXED": 21,
+    "NOT_FIXED": 1,
+    "NOT_APPLICABLE": 0,
+    "BLOCKED": 0
+  },
+  "problems": [
+    {
+      "problem_number": 1,
+      "title": "Validation semantics mixed with proxies",
+      "status": "PARTIALLY_FIXED",
+      "evidence": [
+        "stage57 decision_evidence.allowed=False",
+        "promotion_gates.strict_real_evidence=True"
+      ],
+      "remaining_limitations": "Still dependent on upstream real artifacts availability per run."
+    },
+    {
+      "problem_number": 2,
+      "title": "Late-stage orchestration acting like validation theater",
+      "status": "PARTIALLY_FIXED",
+      "evidence": [
+        "scripts/run_stage60_72.py reorders decision stages after real-validation artifacts"
+      ],
+      "remaining_limitations": "Legacy stage scripts still exist and can be executed out of order manually."
+    },
+    {
+      "problem_number": 3,
+      "title": "Discovery generator too template-based / weak hypothesis generation",
+      "status": "PARTIALLY_FIXED",
+      "evidence": [
+        "stage70 diversity_ok=True",
+        "stage70 uses context/trigger/confirmation/invalidation/exit/time_stop structure"
+      ],
+      "remaining_limitations": "Generator remains bounded and still heuristic, not open-ended hypothesis synthesis."
+    },
+    {
+      "problem_number": 4,
+      "title": "Economically identical candidates not deduplicated",
+      "status": "FULLY_FIXED",
+      "evidence": [
+        "stage52 economic_fingerprint + deduplicate_setup_candidates_by_economics",
+        "stage70 deduplicate_economic_candidates"
+      ],
+      "remaining_limitations": "Near-identical but non-identical fingerprints may still pass."
+    },
+    {
+      "problem_number": 5,
+      "title": "Ranking too proxy-heavy and not candidate-specific enough",
+      "status": "PARTIALLY_FIXED",
+      "evidence": [
+        "stage48 ranking now includes candidate-specific rr/cost/exp_lcb/reject penalties"
+      ],
+      "remaining_limitations": "Some global label priors remain in stage48 score composition."
+    },
+    {
+      "problem_number": 6,
+      "title": "Walk-forward validation not sufficiently real / artifact-backed",
+      "status": "FULLY_FIXED",
+      "evidence": [
+        "walkforward_metrics_real_exists=True",
+        "scripts/run_stage67.py writes walkforward_windows_real.csv + metrics JSON"
+      ],
+      "remaining_limitations": "If stage67 cannot run, fallback evidence remains insufficient."
+    },
+    {
+      "problem_number": 7,
+      "title": "Monte Carlo not sufficiently real / artifact-backed",
+      "status": "PARTIALLY_FIXED",
+      "evidence": [
+        "monte_carlo_metrics_real_exists=True",
+        "scripts/run_stage67.py writes stage57/monte_carlo_metrics_real.json"
+      ],
+      "remaining_limitations": "Monte Carlo is still simplified and not a full trade-path simulator."
+    },
+    {
+      "problem_number": 8,
+      "title": "Cross-seed weak and should become cross-perturbation robustness",
+      "status": "PARTIALLY_FIXED",
+      "evidence": [
+        "cross_perturbation_metrics_real_exists=True",
+        "scripts/run_stage67.py writes cross_perturbation metrics"
+      ],
+      "remaining_limitations": "Perturbation design is still basic and not exhaustive across market regimes."
+    },
+    {
+      "problem_number": 9,
+      "title": "Transfer validation can be synthetic / defaulted",
+      "status": "NOT_FIXED",
+      "evidence": [
+        "stage58 transfer_artifact_exists=False",
+        "stage58 blocks proxy/synthetic transfer evidence"
+      ],
+      "remaining_limitations": "No guaranteed real transfer dataset is produced in all environments."
+    },
+    {
+      "problem_number": 10,
+      "title": "Important config blocks not fully wired into actual stage behavior",
+      "status": "PARTIALLY_FIXED",
+      "evidence": [
+        "stage61/stage67/stage68 now emit used_config_keys/effective_values"
+      ],
+      "remaining_limitations": "Not all legacy config sections are fully wired end-to-end."
+    },
+    {
+      "problem_number": 11,
+      "title": "Funding realism incomplete in core backtest flow",
+      "status": "PARTIALLY_FIXED",
+      "evidence": [
+        "backtest engine now applies funding_cost_for_trade with funding_pct_per_day"
+      ],
+      "remaining_limitations": "Funding model is simplified and not venue-specific signed funding."
+    },
+    {
+      "problem_number": 12,
+      "title": "Position sizing too simplistic / unrealistic",
+      "status": "PARTIALLY_FIXED",
+      "evidence": [
+        "backtest engine now supports full_equity/fixed_fraction/risk_budget sizing modes"
+      ],
+      "remaining_limitations": "Sizing still single-position and lacks richer portfolio/risk interactions."
+    },
+    {
+      "problem_number": 13,
+      "title": "Reproducibility incomplete",
+      "status": "PARTIALLY_FIXED",
+      "evidence": [
+        "reproducibility.frozen_research_mode=False",
+        "stage71 stable hash-based seed mapping replaces Python hash() nondeterminism"
+      ],
+      "remaining_limitations": "Full deterministic replay still depends on full pipeline input immutability."
+    },
+    {
+      "problem_number": 14,
+      "title": "Campaign memory can break reproducibility",
+      "status": "PARTIALLY_FIXED",
+      "evidence": [
+        "stage69 cold_start_each_run + deduplicated sorted memory rows + frozen mode override"
+      ],
+      "remaining_limitations": "Historical memory remains mutable when cold_start_each_run is disabled."
+    },
+    {
+      "problem_number": 15,
+      "title": "Data continuity / missing-candle handling not strict enough",
+      "status": "PARTIALLY_FIXED",
+      "evidence": [
+        "stage65 continuity validation_state=CONTINUITY_OK",
+        "data.continuity report artifact added"
+      ],
+      "remaining_limitations": "Strict continuity mode is configurable and can still be disabled."
+    },
+    {
+      "problem_number": 16,
+      "title": "Docs / status semantics misleading",
+      "status": "PARTIALLY_FIXED",
+      "evidence": [
+        "stage reports now include execution_status/validation_state/stage_role fields"
+      ],
+      "remaining_limitations": "Older docs outside stage chain may still contain legacy semantics."
+    },
+    {
+      "problem_number": 17,
+      "title": "Performance claims partly projected rather than measured",
+      "status": "PARTIALLY_FIXED",
+      "evidence": [
+        "stage55 projection_only=True",
+        "stage71 projected_only=False"
+      ],
+      "remaining_limitations": "Stage55 still depends on external runtime probe files for FULL measured status."
+    },
+    {
+      "problem_number": 18,
+      "title": "UI can create false confidence by hiding provenance / evidence quality",
+      "status": "PARTIALLY_FIXED",
+      "evidence": [
+        "UI pages now surface decision_evidence_allowed/missing_real_sources/final verdict evidence flags"
+      ],
+      "remaining_limitations": "UI still allows reading legacy summaries that may predate semantic fixes."
+    },
+    {
+      "problem_number": 19,
+      "title": "Tests do not sufficiently validate scientific correctness",
+      "status": "PARTIALLY_FIXED",
+      "evidence": [
+        "New tests added: validation evidence, continuity, backtest realism, stage57 evidence semantics, stage67 real artifacts, stage53 replay artifact"
+      ],
+      "remaining_limitations": "Not all scientific assumptions are covered by deterministic end-to-end tests."
+    },
+    {
+      "problem_number": 20,
+      "title": "Search space too narrow / regime-limited",
+      "status": "PARTIALLY_FIXED",
+      "evidence": [
+        "stage70 expanded families + structured hypothesis components + diversity checks"
+      ],
+      "remaining_limitations": "Search space remains constrained and handcrafted."
+    },
+    {
+      "problem_number": 21,
+      "title": "Architecture has parallel stage ecosystems with semantic drift",
+      "status": "PARTIALLY_FIXED",
+      "evidence": [
+        "stage60_72 orchestration now centralizes final decision ordering with real evidence prerequisites"
+      ],
+      "remaining_limitations": "Parallel legacy stage ecosystems still exist in repository."
+    },
+    {
+      "problem_number": 22,
+      "title": "SUCCESS status semantics misleading",
+      "status": "PARTIALLY_FIXED",
+      "evidence": [
+        "stage summaries now include execution_status/validation_state and downgrade status on insufficient decision evidence"
+      ],
+      "remaining_limitations": "Legacy SUCCESS/PARTIAL contract remains for backward compatibility."
+    },
+    {
+      "problem_number": 23,
+      "title": "Late-stage ML stack can create false confidence",
+      "status": "PARTIALLY_FIXED",
+      "evidence": [
+        "stage66 decision_use_allowed=False stage_role=reporting_only"
+      ],
+      "remaining_limitations": "ML stack still present; misuse outside declared reporting-only role remains possible."
+    },
+    {
+      "problem_number": 24,
+      "title": "Metrics edge cases / pathological states can pollute ranking and reports",
+      "status": "FULLY_FIXED",
+      "evidence": [
+        "backtest metrics sanitize inf/nan and cap pathological profit_factor",
+        "metrics_sanitized flag added"
+      ],
+      "remaining_limitations": "Metric clipping threshold choices remain heuristic."
+    },
+    {
+      "problem_number": 25,
+      "title": "Runtime truth not sufficiently proven in a clean verification path",
+      "status": "PARTIALLY_FIXED",
+      "evidence": [
+        "full_trace report now includes evidence_quality/source_types and stage sequence hashes"
+      ],
+      "remaining_limitations": "Clean runtime truth still depends on successful offline chain execution in current environment."
+    }
+  ],
+  "final_verdict": "PARTIAL_REPAIR_MEANINGFUL",
+  "summary_hash": "763964aa5b3b4888"
+}

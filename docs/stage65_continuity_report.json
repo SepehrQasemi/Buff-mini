@@ -1,0 +1,11 @@
+{
+  "rows": 1500,
+  "gap_count": 0,
+  "max_gap_bars": 0,
+  "largest_gap_bars": 0,
+  "total_missing_bars": 0,
+  "missing_ratio": 0.0,
+  "passed": true,
+  "passes_strict": true,
+  "gaps": []
+}

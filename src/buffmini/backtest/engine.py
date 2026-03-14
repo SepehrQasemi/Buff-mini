@@ -35,9 +35,13 @@ def run_backtest(
     max_hold_bars: int = 24,
     round_trip_cost_pct: float = 0.1,
     slippage_pct: float = 0.0005,
+    funding_pct_per_day: float = 0.0,
     exit_mode: str = "fixed_atr",
     trailing_atr_k: float = 1.5,
     partial_size: float = 0.5,
+    position_sizing_mode: str = "full_equity",
+    risk_per_trade_pct: float = 0.01,
+    fixed_fraction_pct: float = 0.10,
     cost_model_cfg: dict[str, Any] | None = None,
     engine_mode: str = "numpy",
 ) -> BacktestResult:
@@ -61,9 +65,13 @@ def run_backtest(
             max_hold_bars=max_hold_bars,
             round_trip_cost_pct=round_trip_cost_pct,
             slippage_pct=slippage_pct,
+            funding_pct_per_day=funding_pct_per_day,
             exit_mode=exit_mode,
             trailing_atr_k=trailing_atr_k,
             partial_size=partial_size,
+            position_sizing_mode=position_sizing_mode,
+            risk_per_trade_pct=risk_per_trade_pct,
+            fixed_fraction_pct=fixed_fraction_pct,
             cost_model_cfg=cost_model_cfg,
         )
     return _run_backtest_numpy(
@@ -78,9 +86,13 @@ def run_backtest(
         max_hold_bars=max_hold_bars,
         round_trip_cost_pct=round_trip_cost_pct,
         slippage_pct=slippage_pct,
+        funding_pct_per_day=funding_pct_per_day,
         exit_mode=exit_mode,
         trailing_atr_k=trailing_atr_k,
         partial_size=partial_size,
+        position_sizing_mode=position_sizing_mode,
+        risk_per_trade_pct=risk_per_trade_pct,
+        fixed_fraction_pct=fixed_fraction_pct,
         cost_model_cfg=cost_model_cfg,
     )
 
@@ -109,9 +121,13 @@ def _run_backtest_pandas(
     max_hold_bars: int,
     round_trip_cost_pct: float,
     slippage_pct: float,
+    funding_pct_per_day: float,
     exit_mode: str,
     trailing_atr_k: float,
     partial_size: float,
+    position_sizing_mode: str,
+    risk_per_trade_pct: float,
+    fixed_fraction_pct: float,
     cost_model_cfg: dict[str, Any] | None,
 ) -> BacktestResult:
     data = _validate_backtest_frame(frame, signal_col=signal_col, atr_col=atr_col)
@@ -146,7 +162,15 @@ def _run_backtest_pandas(
                 atr_col=atr_col,
             )
             entry_time = pd.to_datetime(data.iloc[entry_idx]["timestamp"], utc=True)
-            qty = equity / entry_price if entry_price > 0 else 0.0
+            qty = _resolve_position_qty(
+                equity=equity,
+                entry_price=float(entry_price),
+                atr_entry=float(atr),
+                stop_atr_multiple=float(stop_atr_multiple),
+                position_sizing_mode=position_sizing_mode,
+                risk_per_trade_pct=float(risk_per_trade_pct),
+                fixed_fraction_pct=float(fixed_fraction_pct),
+            )
             if qty <= 0:
                 equity_rows.append({"timestamp": timestamp, "equity": equity})
                 continue
@@ -316,10 +340,19 @@ def _run_backtest_pandas(
                 exit_net = gross_pnl - exit_fee
 
                 equity += exit_net
+                funding_cost = _funding_cost_for_trade(
+                    data=data,
+                    entry_idx=int(position["entry_idx"]),
+                    exit_idx=int(exit_idx),
+                    entry_notional=float(position["entry_notional"]),
+                    funding_pct_per_day=float(funding_pct_per_day),
+                )
+                equity -= funding_cost
                 net_trade_pnl = (
                     float(position["realized_partial_pnl"])
                     + exit_net
                     - float(position["entry_fee"])
+                    - float(funding_cost)
                 )
 
                 trade = Trade(
@@ -335,7 +368,9 @@ def _run_backtest_pandas(
                     bars_held=int(max(0, exit_idx - int(position["entry_idx"]))),
                     exit_reason=exit_reason,
                 )
-                trades.append(trade.to_dict())
+                trade_row = trade.to_dict()
+                trade_row["funding_cost"] = float(funding_cost)
+                trades.append(trade_row)
                 position = None
 
         equity_rows.append({"timestamp": timestamp, "equity": equity})
@@ -363,10 +398,19 @@ def _run_backtest_pandas(
         exit_net = gross_pnl - exit_fee
         equity += exit_net
 
+        funding_cost = _funding_cost_for_trade(
+            data=data,
+            entry_idx=int(position["entry_idx"]),
+            exit_idx=int(exit_idx),
+            entry_notional=float(position["entry_notional"]),
+            funding_pct_per_day=float(funding_pct_per_day),
+        )
+        equity -= funding_cost
         net_trade_pnl = (
             float(position["realized_partial_pnl"])
             + exit_net
             - float(position["entry_fee"])
+            - float(funding_cost)
         )
 
         trade = Trade(
@@ -382,7 +426,9 @@ def _run_backtest_pandas(
             bars_held=int(max(0, exit_idx - int(position["entry_idx"]))),
             exit_reason="end_of_data",
         )
-        trades.append(trade.to_dict())
+        trade_row = trade.to_dict()
+        trade_row["funding_cost"] = float(funding_cost)
+        trades.append(trade_row)
 
         if equity_rows:
             equity_rows[-1]["equity"] = equity
@@ -406,9 +452,13 @@ def _run_backtest_numpy(
     max_hold_bars: int,
     round_trip_cost_pct: float,
     slippage_pct: float,
+    funding_pct_per_day: float,
     exit_mode: str,
     trailing_atr_k: float,
     partial_size: float,
+    position_sizing_mode: str,
+    risk_per_trade_pct: float,
+    fixed_fraction_pct: float,
     cost_model_cfg: dict[str, Any] | None,
 ) -> BacktestResult:
     data = _validate_backtest_frame(frame, signal_col=signal_col, atr_col=atr_col)
@@ -454,7 +504,15 @@ def _run_backtest_numpy(
                 atr_col=atr_col,
             )
             entry_time = pd.to_datetime(ts.iloc[entry_idx], utc=True)
-            qty = equity / entry_price if entry_price > 0 else 0.0
+            qty = _resolve_position_qty(
+                equity=equity,
+                entry_price=float(entry_price),
+                atr_entry=float(atr_val),
+                stop_atr_multiple=float(stop_atr_multiple),
+                position_sizing_mode=position_sizing_mode,
+                risk_per_trade_pct=float(risk_per_trade_pct),
+                fixed_fraction_pct=float(fixed_fraction_pct),
+            )
             if qty <= 0:
                 equity_rows.append({"timestamp": timestamp, "equity": equity})
                 continue
@@ -610,7 +668,15 @@ def _run_backtest_numpy(
                 exit_net = gross_pnl - exit_fee
                 equity += exit_net
 
-                net_trade_pnl = float(position["realized_partial_pnl"]) + exit_net - float(position["entry_fee"])
+                funding_cost = _funding_cost_for_trade(
+                    data=data,
+                    entry_idx=int(position["entry_idx"]),
+                    exit_idx=int(exit_idx),
+                    entry_notional=float(position["entry_notional"]),
+                    funding_pct_per_day=float(funding_pct_per_day),
+                )
+                equity -= funding_cost
+                net_trade_pnl = float(position["realized_partial_pnl"]) + exit_net - float(position["entry_fee"]) - float(funding_cost)
                 trade = Trade(
                     strategy=strategy_name,
                     symbol=symbol,
@@ -624,7 +690,9 @@ def _run_backtest_numpy(
                     bars_held=int(max(0, int(exit_idx) - int(position["entry_idx"]))),
                     exit_reason=exit_reason,
                 )
-                trades.append(trade.to_dict())
+                trade_row = trade.to_dict()
+                trade_row["funding_cost"] = float(funding_cost)
+                trades.append(trade_row)
                 position = None
 
         equity_rows.append({"timestamp": timestamp, "equity": equity})
@@ -650,7 +718,15 @@ def _run_backtest_numpy(
         exit_net = gross_pnl - exit_fee
         equity += exit_net
 
-        net_trade_pnl = float(position["realized_partial_pnl"]) + exit_net - float(position["entry_fee"])
+        funding_cost = _funding_cost_for_trade(
+            data=data,
+            entry_idx=int(position["entry_idx"]),
+            exit_idx=int(exit_idx),
+            entry_notional=float(position["entry_notional"]),
+            funding_pct_per_day=float(funding_pct_per_day),
+        )
+        equity -= funding_cost
+        net_trade_pnl = float(position["realized_partial_pnl"]) + exit_net - float(position["entry_fee"]) - float(funding_cost)
         trade = Trade(
             strategy=strategy_name,
             symbol=symbol,
@@ -664,7 +740,9 @@ def _run_backtest_numpy(
             bars_held=int(max(0, int(exit_idx) - int(position["entry_idx"]))),
             exit_reason="end_of_data",
         )
-        trades.append(trade.to_dict())
+        trade_row = trade.to_dict()
+        trade_row["funding_cost"] = float(funding_cost)
+        trades.append(trade_row)
         if equity_rows:
             equity_rows[-1]["equity"] = equity
 
@@ -672,6 +750,52 @@ def _run_backtest_numpy(
     equity_curve = pd.DataFrame(equity_rows)
     metrics = calculate_metrics(trades_df, equity_curve)
     return BacktestResult(trades=trades_df, equity_curve=equity_curve, metrics=metrics)
+
+
+def _resolve_position_qty(
+    *,
+    equity: float,
+    entry_price: float,
+    atr_entry: float,
+    stop_atr_multiple: float,
+    position_sizing_mode: str,
+    risk_per_trade_pct: float,
+    fixed_fraction_pct: float,
+) -> float:
+    if float(equity) <= 0.0 or float(entry_price) <= 0.0:
+        return 0.0
+    mode = str(position_sizing_mode).strip().lower()
+    max_qty_by_equity = float(equity) / float(entry_price)
+    if mode == "risk_budget":
+        stop_distance = max(1e-9, float(atr_entry) * float(stop_atr_multiple))
+        risk_budget = max(0.0, float(equity) * float(risk_per_trade_pct))
+        qty = risk_budget / stop_distance
+        return float(max(0.0, min(qty, max_qty_by_equity)))
+    if mode == "fixed_fraction":
+        notional = max(0.0, float(equity) * float(fixed_fraction_pct))
+        return float(max(0.0, min(notional / float(entry_price), max_qty_by_equity)))
+    return float(max_qty_by_equity)
+
+
+def _funding_cost_for_trade(
+    *,
+    data: pd.DataFrame,
+    entry_idx: int,
+    exit_idx: int,
+    entry_notional: float,
+    funding_pct_per_day: float,
+) -> float:
+    if float(entry_notional) <= 0.0:
+        return 0.0
+    start = max(0, int(min(entry_idx, exit_idx)))
+    end = max(start, int(max(entry_idx, exit_idx)))
+    ts = pd.to_datetime(data["timestamp"], utc=True)
+    start_ts = pd.to_datetime(ts.iloc[start], utc=True)
+    end_ts = pd.to_datetime(ts.iloc[end], utc=True)
+    hours = max(0.0, float((end_ts - start_ts).total_seconds() / 3600.0))
+    daily_rate = float(max(-0.1, min(0.1, funding_pct_per_day)))
+    funding_cost = abs(float(entry_notional)) * daily_rate * (hours / 24.0)
+    return float(funding_cost)
 
 
 def _execution_fill_price(

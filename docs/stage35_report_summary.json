@@ -1,16 +1,16 @@
 {
-  "head_commit": "d4da962",
-  "run_id": "20260305_125344_2b45796557c7_stage35",
+  "head_commit": "cea6093",
+  "run_id": "20260306_002542_12d9e1dca8f2_stage35",
   "seed": 42,
   "coinapi_enabled": false,
-  "dry_run": true,
+  "dry_run": false,
   "download_attempted": false,
   "requested_endpoints": [
     "funding_rates",
     "open_interest",
     "liquidations"
   ],
-  "plan_id": "f3f587b96cb0",
+  "plan_id": "a2871e5ec458",
   "plan_counts": {
     "planned_count": 30,
     "selected_count": 30,
@@ -22,13 +22,69 @@
     "failures": []
   },
   "usage": {
-    "total_requests": 0,
-    "total_success": 0,
-    "total_fail": 0,
-    "total_bytes": 0,
+    "total_requests": 1682,
+    "total_success": 842,
+    "total_fail": 840,
+    "total_bytes": 95464,
     "total_retries": 0,
-    "per_endpoint": {},
-    "per_symbol": {},
+    "status_code_counts": {
+      "401": 3,
+      "400": 837,
+      "200": 842
+    },
+    "per_endpoint": {
+      "verify_auth": {
+        "requests": 3,
+        "success": 0,
+        "fail": 3,
+        "bytes": 873
+      },
+      "funding_rates": {
+        "requests": 840,
+        "success": 421,
+        "fail": 419,
+        "bytes": 47351
+      },
+      "open_interest": {
+        "requests": 839,
+        "success": 421,
+        "fail": 418,
+        "bytes": 47240
+      }
+    },
+    "per_symbol": {
+      "verify": {
+        "requests": 3,
+        "success": 0,
+        "fail": 3,
+        "bytes": 873
+      },
+      "BTC/USDT": {
+        "requests": 841,
+        "success": 422,
+        "fail": 419,
+        "bytes": 47353
+      },
+      "ETH/USDT": {
+        "requests": 838,
+        "success": 420,
+        "fail": 418,
+        "bytes": 47238
+      }
+    },
+    "endpoints_hit": [
+      "funding_rates",
+      "open_interest",
+      "verify_auth"
+    ],
+    "retry_count_by_endpoint": {
+      "verify_auth": 0,
+      "funding_rates": 0,
+      "open_interest": 0
+    },
+    "time_start_min": "2022-03-05T19:54:29+00:00",
+    "time_end_max": "2026-03-06T00:02:24+00:00",
+    "rate_limit_sleep_ms_total": 0,
     "quota_signals": {},
     "credits_used": null,
     "credits_remaining": null,
@@ -97,8 +153,8 @@
   },
   "storage": {
     "raw_mb": 0.0,
-    "canonical_mb": 0.0038051605224609375,
-    "meta_mb": 0.0012664794921875,
-    "total_mb": 0.0050716400146484375
+    "canonical_mb": 0.01207733154296875,
+    "meta_mb": 1.0426368713378906,
+    "total_mb": 1.0547142028808594
   }
 }

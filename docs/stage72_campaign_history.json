@@ -1,0 +1,87 @@
+[
+  {
+    "campaign_id": "52186f8acb87",
+    "verdict": "PARTIAL",
+    "summary_hash": "e8942c86139f7b0b"
+  },
+  {
+    "campaign_id": "2a96a18f5101",
+    "verdict": "PARTIAL",
+    "summary_hash": "e95d4be5b405fbc2"
+  },
+  {
+    "campaign_id": "536a2593fc1f",
+    "verdict": "PARTIAL",
+    "summary_hash": "ccb85625b7a50fb6"
+  },
+  {
+    "campaign_id": "8402787cc809",
+    "verdict": "NO_EDGE_IN_SCOPE",
+    "summary_hash": "a201d47bd89fd3de"
+  },
+  {
+    "campaign_id": "44a909c7de5b",
+    "verdict": "NO_EDGE_IN_SCOPE",
+    "summary_hash": "5743945b979a8f72"
+  },
+  {
+    "campaign_id": "eb02e2b47319",
+    "verdict": "NO_EDGE_IN_SCOPE",
+    "summary_hash": "4aa6ea708ba22876"
+  },
+  {
+    "campaign_id": "92176b19046a",
+    "verdict": "NO_EDGE_IN_SCOPE",
+    "summary_hash": "1841db9c3bb8b489"
+  },
+  {
+    "campaign_id": "dcfc87b64d33",
+    "verdict": "NO_EDGE_IN_SCOPE",
+    "summary_hash": "7af7999beb25c3f1"
+  },
+  {
+    "campaign_id": "1698fc7e9fb2",
+    "verdict": "NO_EDGE_IN_SCOPE",
+    "summary_hash": "228782797bfc292c"
+  },
+  {
+    "campaign_id": "e87418438b5b",
+    "verdict": "NO_EDGE_IN_SCOPE",
+    "summary_hash": "d09cc38f0da35d50"
+  },
+  {
+    "campaign_id": "a05881087bc5",
+    "verdict": "NO_EDGE_IN_SCOPE",
+    "summary_hash": "d544d45376c71ad4"
+  },
+  {
+    "campaign_id": "fc8803c0d9ff",
+    "verdict": "NO_EDGE_IN_SCOPE",
+    "summary_hash": "d0071a9d9cfc70ea"
+  },
+  {
+    "campaign_id": "cc7b926db53a",
+    "verdict": "NO_EDGE_IN_SCOPE",
+    "summary_hash": "dc4fad9d1c64cd36"
+  },
+  {
+    "campaign_id": "f4b580b9b6be",
+    "verdict": "NO_EDGE_IN_SCOPE",
+    "summary_hash": "d930f9d629b2d14d"
+  },
+  {
+    "campaign_id": "51ecd5c602a6",
+    "verdict": "NO_EDGE_IN_SCOPE",
+    "summary_hash": "cb91c7aa9c4a73f6"
+  },
+  {
+    "campaign_id": "6817c325c307",
+    "verdict": "PARTIAL",
+    "summary_hash": "c38a825257bf61aa"
+  },
+  {
+    "campaign_id": "bc8fa03eb10f",
+    "verdict": "PARTIAL",
+    "summary_hash": "aff20fbd68414867"
+  }
+]

@@ -14,6 +14,7 @@ from buffmini.config import load_config
 from buffmini.constants import DEFAULT_CONFIG_PATH, RUNS_DIR
 from buffmini.data.coinapi.client import CoinAPIClient
 from buffmini.data.coinapi.planner import build_backfill_plan, estimate_additional_days_required
+from buffmini.data.coinapi.secrets import resolve_coinapi_key
 from buffmini.data.coinapi.usage import CoinAPIUsageLedger, build_usage_summary
 from buffmini.utils.hashing import stable_hash
 from buffmini.utils.time import utc_now_compact
@@ -278,10 +279,10 @@ def run_stage35_pipeline(
     download_attempted = False
     result: dict[str, Any] = {"success_count": 0, "failure_count": 0, "failures": []}
     if bool(coinapi_cfg.get("enabled", False)) and not bool(dry_run):
-        key = str(os.environ.get("COINAPI_KEY", "")).strip()
+        key = str(resolve_coinapi_key(repo_root=Path.cwd()) or "").strip()
         if not key:
-            raise SystemExit("COINAPI_KEY is required when coinapi.enabled=true and not --dry-run")
-        base_url = str(os.environ.get("COINAPI_BASE_URL", "https://rest.coinapi.io")).strip()
+            raise SystemExit("COINAPI_KEY is required when coinapi.enabled=true and not --dry-run (.secrets supported)")
+        base_url = str(coinapi_cfg.get("base_url", "https://rest.coinapi.io")).strip()
         ledger = CoinAPIUsageLedger(Path("data") / "coinapi" / "meta" / "usage_ledger.jsonl")
         client = CoinAPIClient(
             key,

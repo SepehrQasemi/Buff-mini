@@ -95,7 +95,7 @@ def test_missing_key_raises_clean_error_without_trace(tmp_path: Path, monkeypatc
         "10",
     ]
     monkeypatch.setattr(sys, "argv", argv)
-    with pytest.raises(SystemExit, match="COINAPI_KEY missing; use secrets/coinapi_key.txt"):
+    with pytest.raises(SystemExit, match="COINAPI_KEY missing; use .secrets/coinapi_key.txt"):
         update_coinapi_extras.main()
 
 

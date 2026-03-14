@@ -8,6 +8,11 @@ ALLOWED_FAILURE_MOTIFS: tuple[str, ...] = (
     "NO_RAW_SIGNAL",
     "REJECT::NO_SIGNAL",
     "REJECT::BAD_RR",
+    "REJECT::BAD_GEOMETRY",
+    "REJECT::NO_CONFIRMATION",
+    "REJECT::WEAK_TRIGGER",
+    "REJECT::COST_MARGIN_TOO_LOW",
+    "REJECT::TIMEFRAME_MISMATCH",
     "REJECT::WEAK_FLOW_CONTEXT",
     "REJECT::FAILED_LIQUIDITY_CONFIRMATION",
     "REJECT::COST_DRAG",
@@ -262,4 +267,3 @@ def validate_stage44_summary(payload: dict[str, Any]) -> None:
         raise ValueError("modules_covered must be list")
     if not isinstance(payload.get("remaining_gaps"), list):
         raise ValueError("remaining_gaps must be list")
-
