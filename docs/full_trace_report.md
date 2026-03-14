@@ -1,19 +1,26 @@
 # Full Trace Report
 
-- generated_at_utc: `2026-03-14T13:36:21.705697+00:00`
+- generated_at_utc: `2026-03-14T15:51:16.996650+00:00`
 - stage28_run_id: `20260313_154858_044fff9053df_stage28`
-- chain_id: `87ce91606543db479790cd33`
+- chain_id: `e1207d92c07bf089ff40c4f2`
 - config_hash: `ecc9bcde3ad875fd`
-- summary_hash: `899c89717d9e5255`
+- summary_hash: `628b6a10f081bc04`
 
 ## Zero Reasons
-- stage57_status:PARTIAL
+- replay_gate_failed:trade_count=82,exp_lcb=-0.00304321,maxDD=0.16734271,failure_dom=1.0
+- walkforward_gate_failed:usable_windows=0,median_forward_exp_lcb=0.0
+- monte_carlo_gate_failed:conservative_downside_bound=-1.0
+- cross_seed_gate_failed:surviving_seeds=0
 
 ## Evidence Quality
 - decision_evidence_allowed: `False`
-- missing_real_sources: `['real_replay', 'real_walkforward', 'real_monte_carlo', 'real_cross_perturbation']`
-- blocked_decision_metrics: `[]`
+- missing_real_sources: `[]`
+- blocked_decision_metrics: `['conservative_downside_bound', 'median_forward_exp_lcb', 'usable_windows']`
 - source_types: `{'replay': 'real_replay', 'walkforward': 'real_walkforward', 'monte_carlo': 'real_monte_carlo', 'cross_seed': 'real_cross_perturbation'}`
+- stage61_chain_ready: `False`
+- walkforward_validation_state: `REAL_VALIDATION_FAILED`
+- transfer_validation_state: `TRANSFER_NOT_CONFIRMED`
+- transfer_evidence_quality: `artifact_backed_real`
 
 ## Stage Sequence
 - stage 10.6: status= hash=
@@ -88,24 +95,24 @@
 - stage 50: status=SUCCESS hash=1f65f53163ca34f7
 - stage 51: status=SUCCESS hash=48715d11b6373648
 - stage 52: status=SUCCESS hash=3d6ca9ff24be2a68
-- stage 53: status=PARTIAL hash=526f4a714343027f
+- stage 53: status=PARTIAL hash=7f3bf72dfad02169
 - stage 54: status=SUCCESS hash=bf97e44a2cc30faf
 - stage 55: status=PARTIAL hash=0a63af34115eeeb2
 - stage 56: status=PARTIAL hash=d42ee537a4c53758
-- stage 57: status=PARTIAL hash=69de1ab64a1b8203
-- stage 58: status=PARTIAL hash=84e1447b1f08bc68
+- stage 57: status=PARTIAL hash=a0df4e161ba9e158
+- stage 58: status=PARTIAL hash=37127a03fded1177
 - stage 59: status=PARTIAL hash=f3a1e747d55dea5c
-- stage 60: status=SUCCESS hash=70f6d250fe935965
-- stage 61: status=SUCCESS hash=77d6fc9951939213
+- stage 60: status=SUCCESS hash=1108f13c9c7583e4
+- stage 61: status=PARTIAL hash=229f5b4d975af252
 - stage 62: status=PARTIAL hash=33ce79fd23cad8f7
 - stage 63: status=SUCCESS hash=34f114791e56b118
 - stage 64: status=SUCCESS hash=74fe5cb07ad04192
 - stage 65: status=SUCCESS hash=978e12ddc020feb4
 - stage 66: status=SUCCESS hash=e6b60a7c31e1f42f
-- stage 67: status=PARTIAL hash=ee28da8c60a5a4fd
+- stage 67: status=PARTIAL hash=91bef8994685ea33
 - stage 68: status=PARTIAL hash=1d0205a36eb62004
 - stage 69: status=SUCCESS hash=264a17bc08e5a978
 - stage 70: status=SUCCESS hash=5d3c7cf0443fda53
-- stage 71: status=SUCCESS hash=dcbc4fefb6fa9162
-- stage 72: status=PARTIAL hash=fa4a3eeed8f6da1f
+- stage 71: status=SUCCESS hash=351e44d9bc208a5f
+- stage 72: status=PARTIAL hash=988a76d6ecbff860
 - stage 73: status=SUCCESS hash=763964aa5b3b4888

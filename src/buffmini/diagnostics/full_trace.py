@@ -22,6 +22,8 @@ def _load_json(path: Path) -> Any:
 def _collect_docs_summaries(docs_dir: Path) -> dict[str, Any]:
     summaries: dict[str, Any] = {}
     for path in docs_dir.glob("*_summary.json"):
+        if path.name == "full_trace_summary.json":
+            continue
         payload = _load_json(path)
         summaries[path.name] = payload
     extra = docs_dir / "stage57_chain_metrics.json"
@@ -93,9 +95,10 @@ def _extract_stage_sequence(docs_summaries: dict[str, Any]) -> list[dict[str, An
 def _derive_zero_reasons(stage57_summary: dict[str, Any] | None) -> list[str]:
     if not isinstance(stage57_summary, dict):
         return ["stage57_summary_missing"]
-    status = str(stage57_summary.get("status", "PARTIAL"))
-    if status != "SUCCESS":
-        return [f"stage57_status:{status}"]
+    execution_status = str(stage57_summary.get("execution_status", ""))
+    if execution_status.startswith("BLOCKED"):
+        blocker = str(stage57_summary.get("blocker_reason", "")).strip()
+        return [f"stage57_execution:{execution_status}", *( [f"stage57_blocker:{blocker}"] if blocker else [] )]
     reasons: list[str] = []
     replay = dict(stage57_summary.get("replay_gate", {}))
     walk = dict(stage57_summary.get("walkforward_gate", {}))
@@ -130,6 +133,9 @@ def _derive_zero_reasons(stage57_summary: dict[str, Any] | None) -> list[str]:
 
 def _extract_evidence_quality(docs_summaries: dict[str, Any]) -> dict[str, Any]:
     stage57 = docs_summaries.get("stage57_summary.json")
+    stage58 = docs_summaries.get("stage58_summary.json")
+    stage61 = docs_summaries.get("stage61_summary.json")
+    stage67 = docs_summaries.get("stage67_summary.json")
     chain = docs_summaries.get("stage57_chain_metrics.json")
     if not isinstance(stage57, dict):
         return {"decision_evidence_allowed": False, "missing_real_sources": ["stage57_summary_missing"]}
@@ -142,6 +148,10 @@ def _extract_evidence_quality(docs_summaries: dict[str, Any]) -> dict[str, Any]:
         "missing_real_sources": list(evidence.get("missing_real_sources", [])),
         "blocked_decision_metrics": list(evidence.get("blocked_decision_metrics", [])),
         "source_types": source_types,
+        "stage61_chain_ready": bool(isinstance(stage61, dict) and stage61.get("decision_evidence_allowed", False)),
+        "walkforward_validation_state": str(stage67.get("validation_state", "")) if isinstance(stage67, dict) else "",
+        "transfer_validation_state": str(stage58.get("validation_state", "")) if isinstance(stage58, dict) else "",
+        "transfer_evidence_quality": str(stage58.get("evidence_quality", "")) if isinstance(stage58, dict) else "",
     }
 
 
@@ -242,6 +252,10 @@ def write_full_trace_report(
     lines.append(f"- missing_real_sources: `{payload.get('evidence_quality', {}).get('missing_real_sources', [])}`")
     lines.append(f"- blocked_decision_metrics: `{payload.get('evidence_quality', {}).get('blocked_decision_metrics', [])}`")
     lines.append(f"- source_types: `{payload.get('evidence_quality', {}).get('source_types', {})}`")
+    lines.append(f"- stage61_chain_ready: `{payload.get('evidence_quality', {}).get('stage61_chain_ready')}`")
+    lines.append(f"- walkforward_validation_state: `{payload.get('evidence_quality', {}).get('walkforward_validation_state')}`")
+    lines.append(f"- transfer_validation_state: `{payload.get('evidence_quality', {}).get('transfer_validation_state')}`")
+    lines.append(f"- transfer_evidence_quality: `{payload.get('evidence_quality', {}).get('transfer_evidence_quality')}`")
     lines.append("")
     lines.append("## Stage Sequence")
     for item in payload["stage_sequence"]:

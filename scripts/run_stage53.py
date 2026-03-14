@@ -14,6 +14,7 @@ from buffmini.config import load_config
 from buffmini.constants import DEFAULT_CONFIG_PATH, RUNS_DIR
 from buffmini.stage53 import fit_tradability_model_v2, predict_tradability_model_v2, route_tradability_v2
 from buffmini.utils.hashing import stable_hash
+from buffmini.validation import hydrate_candidate_record, resolve_validation_candidate, run_candidate_replay
 
 
 def parse_args() -> argparse.Namespace:
@@ -173,6 +174,45 @@ def _load_candidate_id_set(path: Path) -> set[str]:
     if frame.empty or "candidate_id" not in frame.columns:
         return set()
     return {str(v) for v in frame["candidate_id"].astype(str).tolist() if str(v).strip()}
+
+
+def _primary_symbol(cfg: dict[str, Any]) -> str:
+    primary = [str(v).strip() for v in cfg.get("research_scope", {}).get("primary_symbols", []) if str(v).strip()]
+    if primary:
+        return primary[0]
+    universe = [str(v).strip() for v in cfg.get("universe", {}).get("symbols", []) if str(v).strip()]
+    return universe[0] if universe else "BTC/USDT"
+
+
+def _select_validated_candidate_id(
+    *,
+    candidates_for_pred: pd.DataFrame,
+    routed: dict[str, Any],
+    fallback_candidate: dict[str, Any],
+) -> str:
+    stage_b = pd.DataFrame(routed.get("stage_b_survivors", []))
+    if not stage_b.empty and "candidate_id" in stage_b.columns:
+        candidate_id = str(stage_b.iloc[0].get("candidate_id", "")).strip()
+        if candidate_id:
+            return candidate_id
+    if isinstance(candidates_for_pred, pd.DataFrame) and not candidates_for_pred.empty and "candidate_id" in candidates_for_pred.columns:
+        top = candidates_for_pred.sort_values(
+            ["exp_lcb_proxy", "beam_score", "candidate_id"],
+            ascending=[False, False, True],
+        )
+        candidate_id = str(top.iloc[0].get("candidate_id", "")).strip()
+        if candidate_id:
+            return candidate_id
+    return str(fallback_candidate.get("candidate_id", "")).strip()
+
+
+def _candidate_record_by_id(candidates: pd.DataFrame, candidate_id: str) -> dict[str, Any]:
+    if candidates.empty or "candidate_id" not in candidates.columns:
+        return {}
+    selected = candidates.loc[candidates["candidate_id"].astype(str) == str(candidate_id).strip()].copy()
+    if selected.empty:
+        return {}
+    return hydrate_candidate_record(dict(selected.iloc[0].to_dict()))
 
 
 def _build_candidate_aligned_training_dataset(
@@ -459,6 +499,13 @@ def main() -> None:
         "counts": {"input": int(len(candidates)), "stage_a": 0, "stage_b": 0},
     }
     fit_error = ""
+    validated_candidate: dict[str, Any] = {}
+    validated_symbol = _primary_symbol(cfg)
+    replay_metrics_artifact_path = ""
+    replay_execution_status = "NOT_ATTEMPTED"
+    replay_validation_state = "NOT_ATTEMPTED"
+    replay_decision_use_allowed = False
+    replay_evidence_quality = "not_attempted"
 
     try:
         model_bundle = fit_tradability_model_v2(
@@ -496,15 +543,32 @@ def main() -> None:
             min_cost_edge=float(cfg.get("promotion_gates", {}).get("stage_a", {}).get("min_cost_edge_proxy", 0.0)),
             hold_bar_ceiling=float(cfg.get("promotion_gates", {}).get("stage_a", {}).get("max_expected_hold_bars", 24.0)),
         )
+
     except Exception as exc:
         fit_error = str(exc)
         model_bundle = None
 
-    status = "SUCCESS" if bool(quality["passed"]) and not fit_error else "PARTIAL"
+    if stage28_run_id:
+        fallback_candidate = resolve_validation_candidate(
+            runs_dir=Path(args.runs_dir),
+            stage28_run_id=stage28_run_id,
+            docs_dir=docs_dir,
+        )
+        if not validated_candidate:
+            validated_candidate_id = _select_validated_candidate_id(
+                candidates_for_pred=candidates if isinstance(candidates, pd.DataFrame) else pd.DataFrame(),
+                routed=routed,
+                fallback_candidate=fallback_candidate,
+            )
+            validated_candidate = _candidate_record_by_id(candidates, validated_candidate_id) or fallback_candidate
+
     blocker_reason = str(fit_error or quality["reason"])
     summary = {
         "stage": "53",
-        "status": status,
+        "status": "PARTIAL",
+        "execution_status": "BLOCKED",
+        "stage_role": "heuristic_filter",
+        "validation_state": "HEURISTIC_FILTER_BLOCKED",
         "input_mode": input_mode,
         "stage28_run_id": stage28_run_id,
         "feature_columns": feature_columns,
@@ -517,27 +581,16 @@ def main() -> None:
         "candidate_count": int(len(candidates)),
         "stage_a_survivors": int(routed["counts"]["stage_a"]),
         "stage_b_survivors": int(routed["counts"]["stage_b"]),
-        "replay_metrics_artifact_path": "",
+        "validated_candidate_id": "",
+        "validated_symbol": validated_symbol,
+        "validated_timeframe": "",
+        "metric_source_type": "heuristic_filter",
+        "replay_execution_status": replay_execution_status,
+        "replay_validation_state": replay_validation_state,
+        "decision_use_allowed": replay_decision_use_allowed,
+        "evidence_quality": replay_evidence_quality,
+        "replay_metrics_artifact_path": replay_metrics_artifact_path,
         "blocker_reason": blocker_reason,
-        "summary_hash": stable_hash(
-            {
-                "status": status,
-                "input_mode": input_mode,
-                "stage28_run_id": stage28_run_id,
-                "feature_columns": feature_columns,
-                "effective_feature_count": int(quality["effective_feature_count"]),
-                "non_constant_feature_count": int(quality["non_constant_feature_count"]),
-                "label_coverage": float(quality["label_coverage"]),
-                "quality_gate_passed": bool(quality["passed"]),
-                "quality_gate_reason": str(quality["reason"]),
-                "model_names": sorted(model_bundle["base_models"].keys()) if model_bundle else [],
-                "candidate_count": int(len(candidates)),
-                "stage_a_survivors": int(routed["counts"]["stage_a"]),
-                "stage_b_survivors": int(routed["counts"]["stage_b"]),
-                "blocker_reason": blocker_reason,
-            },
-            length=16,
-        ),
     }
 
     if stage28_run_id:
@@ -567,17 +620,69 @@ def main() -> None:
             maxdd = 1.0
             failure_dom = 1.0
         replay_metrics_path = out_dir / "replay_metrics_real.json"
-        replay_payload = {
-            "metric_source_type": "real_replay",
-            "artifact_path": str(replay_metrics_path),
-            "trade_count": int(trade_count),
-            "exp_lcb": float(round(exp_lcb, 8)),
-            "maxDD": float(round(max(0.0, min(1.0, maxdd)), 8)),
-            "failure_reason_dominance": float(round(max(0.0, min(1.0, failure_dom)), 8)),
-        }
-        replay_metrics_path.write_text(json.dumps(replay_payload, indent=2, allow_nan=False), encoding="utf-8")
-        summary["replay_metrics_artifact_path"] = str(replay_metrics_path)
-        summary["summary_hash"] = stable_hash({k: v for k, v in summary.items() if k != "summary_hash"}, length=16)
+        if validated_candidate:
+            replay = run_candidate_replay(
+                candidate=validated_candidate,
+                config=cfg,
+                symbol=validated_symbol,
+            )
+            replay_execution_status = str(replay.get("execution_status", "BLOCKED"))
+            replay_validation_state = str(replay.get("validation_state", "REAL_REPLAY_BLOCKED"))
+            replay_decision_use_allowed = bool(replay.get("decision_use_allowed", False))
+            replay_evidence_quality = "artifact_backed_real" if replay_execution_status == "EXECUTED" else "real_but_blocked"
+            trades = replay.get("trades", pd.DataFrame())
+            equity_curve = replay.get("equity_curve", pd.DataFrame())
+            market_meta = dict(replay.get("market_meta", {}))
+            replay_payload = {
+                "metric_source_type": "real_replay",
+                "artifact_path": str(replay_metrics_path),
+                "candidate_id": str(validated_candidate.get("candidate_id", "")),
+                "symbol": validated_symbol,
+                "timeframe": str(validated_candidate.get("timeframe", "")),
+                "execution_status": replay_execution_status,
+                "validation_state": replay_validation_state,
+                "decision_use_allowed": replay_decision_use_allowed,
+                "evidence_quality": replay_evidence_quality,
+                "trade_count": int(replay.get("metrics", {}).get("trade_count", trade_count)),
+                "exp_lcb": float(replay.get("metrics", {}).get("exp_lcb", exp_lcb)),
+                "maxDD": float(replay.get("metrics", {}).get("maxDD", maxdd)),
+                "failure_reason_dominance": float(replay.get("metrics", {}).get("failure_reason_dominance", failure_dom)),
+                "expectancy": float(replay.get("metrics", {}).get("expectancy", 0.0)),
+                "profit_factor": float(replay.get("metrics", {}).get("profit_factor", 0.0)),
+                "market_meta": market_meta,
+                "backtest_params": dict(replay.get("backtest_params", {})),
+            }
+            replay_metrics_path.write_text(json.dumps(replay_payload, indent=2, allow_nan=False), encoding="utf-8")
+            if isinstance(trades, pd.DataFrame) and not trades.empty:
+                trades.to_csv(out_dir / "replay_trades_real.csv", index=False)
+            if isinstance(equity_curve, pd.DataFrame) and not equity_curve.empty:
+                equity_curve.to_csv(out_dir / "replay_equity_curve_real.csv", index=False)
+            (out_dir / "replay_market_meta.json").write_text(json.dumps(market_meta, indent=2, allow_nan=False), encoding="utf-8")
+            replay_metrics_artifact_path = str(replay_metrics_path)
+
+        summary.update(
+            {
+                "execution_status": "EXECUTED" if replay_metrics_artifact_path or (bool(quality["passed"]) and not fit_error) else "BLOCKED",
+                "validation_state": replay_validation_state if replay_metrics_artifact_path else ("HEURISTIC_FILTER_READY" if bool(quality["passed"]) and not fit_error else "HEURISTIC_FILTER_BLOCKED"),
+                "validated_candidate_id": str(validated_candidate.get("candidate_id", "")),
+                "validated_timeframe": str(validated_candidate.get("timeframe", "")),
+                "metric_source_type": "real_replay" if replay_metrics_artifact_path else "heuristic_filter",
+                "replay_execution_status": replay_execution_status,
+                "replay_validation_state": replay_validation_state,
+                "decision_use_allowed": replay_decision_use_allowed,
+                "evidence_quality": replay_evidence_quality,
+                "replay_metrics_artifact_path": replay_metrics_artifact_path,
+            }
+        )
+        blocker_parts = [part for part in [fit_error, str(quality["reason"]).strip()] if part]
+        if replay_metrics_artifact_path and not replay_decision_use_allowed:
+            blocker_parts.append(replay_validation_state.lower())
+        summary["blocker_reason"] = ",".join(blocker_parts)
+        summary["status"] = (
+            "SUCCESS"
+            if bool(quality["passed"]) and not fit_error and replay_decision_use_allowed
+            else "PARTIAL"
+        )
         (out_dir / "summary.json").write_text(json.dumps(summary, indent=2, allow_nan=False), encoding="utf-8")
 
     summary_path = docs_dir / "stage53_summary.json"
@@ -590,6 +695,9 @@ def main() -> None:
                 "# Stage-53 Report",
                 "",
                 f"- status: `{summary['status']}`",
+                f"- execution_status: `{summary['execution_status']}`",
+                f"- stage_role: `{summary['stage_role']}`",
+                f"- validation_state: `{summary['validation_state']}`",
                 f"- input_mode: `{summary['input_mode']}`",
                 f"- stage28_run_id: `{summary['stage28_run_id']}`",
                 f"- model_names: `{summary['model_names']}`",
@@ -602,6 +710,14 @@ def main() -> None:
                 f"- candidate_count: `{summary['candidate_count']}`",
                 f"- stage_a_survivors: `{summary['stage_a_survivors']}`",
                 f"- stage_b_survivors: `{summary['stage_b_survivors']}`",
+                f"- validated_candidate_id: `{summary['validated_candidate_id']}`",
+                f"- validated_symbol: `{summary['validated_symbol']}`",
+                f"- validated_timeframe: `{summary['validated_timeframe']}`",
+                f"- metric_source_type: `{summary['metric_source_type']}`",
+                f"- replay_execution_status: `{summary['replay_execution_status']}`",
+                f"- replay_validation_state: `{summary['replay_validation_state']}`",
+                f"- decision_use_allowed: `{summary['decision_use_allowed']}`",
+                f"- evidence_quality: `{summary['evidence_quality']}`",
                 f"- replay_metrics_artifact_path: `{summary['replay_metrics_artifact_path']}`",
                 f"- blocker_reason: `{summary['blocker_reason']}`",
                 f"- summary_hash: `{summary['summary_hash']}`",

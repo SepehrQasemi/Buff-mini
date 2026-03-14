@@ -22,6 +22,11 @@ def test_stage57_blocks_passing_verdict_when_decision_evidence_is_proxy_only() -
                 "artifact_path": "docs/stage53_summary.json",
                 "stage_origin": "stage53",
                 "used_for_decision": True,
+                "decision_use_allowed": False,
+                "evidence_quality": "proxy_only",
+                "execution_status": "EXECUTED",
+                "validation_state": "PROXY_ONLY",
+                "stage_role": "reporting_only",
             }
         ],
         gates=PromotionGates(required_real_sources=("real_replay",)),

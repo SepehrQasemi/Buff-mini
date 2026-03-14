@@ -66,9 +66,10 @@ def main() -> None:
         chain_path = docs_dir / "stage57_chain_metrics.json"
         chain_path.write_text(json.dumps(result["chain_metrics"], indent=2, allow_nan=False), encoding="utf-8")
     evidence_quality = dict(result.get("chain_metrics", {}).get("evidence_quality", {}))
+    summary_status = "SUCCESS" if bool(result["status"] == "SUCCESS") and bool(evidence_quality.get("allowed", False)) else "PARTIAL"
     summary = {
         "stage": "61",
-        "status": str(result["status"]),
+        "status": summary_status,
         "execution_status": "EXECUTED" if str(result["status"]) == "SUCCESS" else "BLOCKED",
         "stage_role": "orchestration_only",
         "stage28_run_id": str(stage60.get("stage28_run_id", "")),
@@ -81,7 +82,7 @@ def main() -> None:
         "blocked_decision_metrics": list(evidence_quality.get("blocked_decision_metrics", [])),
         "config_hash": config_hash,
         "data_hash": data_hash,
-        "blocker_reason": str(result.get("blocker_reason", "")),
+        "blocker_reason": str(result.get("blocker_reason", "")) or ("" if bool(evidence_quality.get("allowed", False)) else "decision_evidence_not_ready"),
     }
     summary["summary_hash"] = stable_hash(summary, length=16)
 

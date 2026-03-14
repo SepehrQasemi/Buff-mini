@@ -169,6 +169,23 @@ def build_setup_candidate_v2(
     return payload
 
 
+def default_geometry_for_family(
+    *,
+    family: str,
+    timeframe: str,
+    round_trip_cost_pct: float = 0.001,
+    entry_reference_price: float = 1.0,
+) -> dict[str, Any]:
+    """Return deterministic default geometry for one supported Stage-52 family/timeframe."""
+
+    return _build_geometry(
+        family=str(family),
+        timeframe=str(timeframe),
+        entry_reference_price=float(entry_reference_price),
+        round_trip_cost_pct=float(round_trip_cost_pct),
+    )
+
+
 def upgrade_candidates_to_v2(
     candidates: pd.DataFrame,
     *,

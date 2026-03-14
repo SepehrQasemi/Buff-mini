@@ -83,5 +83,15 @@
     "campaign_id": "bc8fa03eb10f",
     "verdict": "PARTIAL",
     "summary_hash": "aff20fbd68414867"
+  },
+  {
+    "campaign_id": "2b77450641ad",
+    "verdict": "NO_EDGE_IN_SCOPE",
+    "summary_hash": "8437eef81896803b"
+  },
+  {
+    "campaign_id": "5db1bb6907df",
+    "verdict": "PARTIAL",
+    "summary_hash": "1dc813d84e0873eb"
   }
 ]
