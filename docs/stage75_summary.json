@@ -17,7 +17,15 @@
     "pr_url": "https://github.com/SepehrQasemi/Buff-mini/pull/2",
     "pr_state": "OPEN",
     "merge_state_status": "BLOCKED",
-    "review_decision": "REVIEW_REQUIRED"
+    "review_decision": "REVIEW_REQUIRED",
+    "checks": [
+      {
+        "name": "test",
+        "status": "PASS",
+        "detail": "7m40s",
+        "url": "https://github.com/SepehrQasemi/Buff-mini/actions/runs/23093668259/job/67082434918"
+      }
+    ]
   },
   "remaining_issue_assessment": [
     {
