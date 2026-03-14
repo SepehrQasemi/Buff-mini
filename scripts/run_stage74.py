@@ -201,7 +201,7 @@ def main() -> None:
         "status": "SUCCESS",
         "repo_state_at_start": {
             "branch": branch,
-            "status_snapshot": _git("status", "--short", "--branch"),
+            "status_snapshot": _git("status", "--short", "--branch", "--untracked-files=no"),
             "ahead_behind_vs_main": _git("rev-list", "--left-right", "--count", "origin/main...HEAD"),
             "start_state_note": "The final completion step started from a clean feature branch. The active in-progress implementation already existed as committed work ahead of main and was treated as the repair baseline.",
             "changed_file_classification": {
@@ -252,7 +252,7 @@ def main() -> None:
                 "No source files were removed during final Stage-74 reporting work.",
             ],
             "files_removed_or_consolidated": [],
-            "final_git_status": _git("status", "--short", "--branch"),
+            "final_git_status": _git("status", "--short", "--branch", "--untracked-files=no"),
         },
         "github_results": {
             "branch_name": branch,
