@@ -5,11 +5,11 @@
 - stage_role: `reporting_only`
 - validation_state: `MEASURED_RUNTIME`
 - candidate_count_measured: `2500`
-- baseline_runtime_seconds: `0.0538605`
-- optimized_runtime_seconds: `0.0134158`
-- speedup_pct: `75.091579`
+- baseline_runtime_seconds: `0.0493987`
+- optimized_runtime_seconds: `0.012936`
+- speedup_pct: `73.813076`
 - meets_target_40pct: `True`
 - cache_key: `48fe3ebc2f693c3be5220a47`
 - consistency_delta: `0.0`
 - blocker_reason: ``
-- summary_hash: `351e44d9bc208a5f`
+- summary_hash: `1da71839850b7205`

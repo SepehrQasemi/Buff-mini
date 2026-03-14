@@ -4,7 +4,7 @@
 - execution_status: `EXECUTED`
 - stage_role: `orchestration_only`
 - stage28_run_id: `20260313_154858_044fff9053df_stage28`
-- chain_id: `e1207d92c07bf089ff40c4f2`
+- chain_id: `24723fa6c3f389bca7bc604d`
 - wrote_chain_metrics: `True`
 - chain_metrics_source: `stage61_chain_writer_v2`
 - decision_evidence_allowed: `False`
@@ -14,4 +14,4 @@
 - config_hash: `ecc9bcde3ad8`
 - data_hash: `unknown_data_hash`
 - blocker_reason: `decision_evidence_not_ready`
-- summary_hash: `229f5b4d975af252`
+- summary_hash: `afe9cb0f9098afd8`

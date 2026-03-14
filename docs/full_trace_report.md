@@ -1,10 +1,10 @@
 # Full Trace Report
 
-- generated_at_utc: `2026-03-14T15:51:16.996650+00:00`
+- generated_at_utc: `2026-03-14T16:26:36.281864+00:00`
 - stage28_run_id: `20260313_154858_044fff9053df_stage28`
-- chain_id: `e1207d92c07bf089ff40c4f2`
+- chain_id: `24723fa6c3f389bca7bc604d`
 - config_hash: `ecc9bcde3ad875fd`
-- summary_hash: `628b6a10f081bc04`
+- summary_hash: `bebaf60bd2dcd0b6`
 
 ## Zero Reasons
 - replay_gate_failed:trade_count=82,exp_lcb=-0.00304321,maxDD=0.16734271,failure_dom=1.0
@@ -99,11 +99,11 @@
 - stage 54: status=SUCCESS hash=bf97e44a2cc30faf
 - stage 55: status=PARTIAL hash=0a63af34115eeeb2
 - stage 56: status=PARTIAL hash=d42ee537a4c53758
-- stage 57: status=PARTIAL hash=a0df4e161ba9e158
+- stage 57: status=PARTIAL hash=7258cf6562444573
 - stage 58: status=PARTIAL hash=37127a03fded1177
 - stage 59: status=PARTIAL hash=f3a1e747d55dea5c
-- stage 60: status=SUCCESS hash=1108f13c9c7583e4
-- stage 61: status=PARTIAL hash=229f5b4d975af252
+- stage 60: status=SUCCESS hash=607089921776bf75
+- stage 61: status=PARTIAL hash=afe9cb0f9098afd8
 - stage 62: status=PARTIAL hash=33ce79fd23cad8f7
 - stage 63: status=SUCCESS hash=34f114791e56b118
 - stage 64: status=SUCCESS hash=74fe5cb07ad04192
@@ -113,6 +113,6 @@
 - stage 68: status=PARTIAL hash=1d0205a36eb62004
 - stage 69: status=SUCCESS hash=264a17bc08e5a978
 - stage 70: status=SUCCESS hash=5d3c7cf0443fda53
-- stage 71: status=SUCCESS hash=351e44d9bc208a5f
-- stage 72: status=PARTIAL hash=988a76d6ecbff860
+- stage 71: status=SUCCESS hash=1da71839850b7205
+- stage 72: status=PARTIAL hash=dfb0654a4717b913
 - stage 73: status=SUCCESS hash=763964aa5b3b4888
