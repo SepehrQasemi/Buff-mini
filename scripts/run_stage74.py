@@ -148,13 +148,18 @@ def _status_counts(rows: list[dict[str, Any]]) -> dict[str, int]:
     return counts
 
 
-def _final_verdict(args: argparse.Namespace) -> str:
+def _final_verdict(args: argparse.Namespace, status_counts: dict[str, int]) -> str:
     compile_ok = str(args.compileall_status).upper() == "PASS"
     pytest_ok = str(args.pytest_status).upper() == "PASS"
     integration_ok = str(args.integration_status).upper() == "PASS"
     pr_ok = str(args.pr_status).upper() == "OPEN"
     protection_ok = str(args.protection_status).upper() == "PASS"
-    if compile_ok and pytest_ok and integration_ok and pr_ok and protection_ok:
+    unresolved = (
+        status_counts.get("PARTIALLY_FIXED", 0)
+        + status_counts.get("NOT_FIXED", 0)
+        + status_counts.get("BLOCKED", 0)
+    )
+    if compile_ok and pytest_ok and integration_ok and pr_ok and protection_ok and unresolved == 0:
         return "FULL_REPAIR_SUBSTANTIAL"
     if compile_ok and pytest_ok and integration_ok and pr_ok:
         return "MAJOR_REPAIR_MOSTLY_COMPLETE"
@@ -194,7 +199,7 @@ def main() -> None:
             row["implementation_summary"] = "Main branch protection is now active with required pull requests and one approval."
             row["runtime_evidence"] = [f"protection_status={args.protection_status}", f"protection_detail={args.protection_detail}"]
             row["remaining_limitations"] = "The protection is intentionally minimal and does not add heavy status-check bureaucracy."
-    verdict = _final_verdict(args)
+    verdict = _final_verdict(args, _status_counts(problems))
 
     summary = {
         "stage": "74",

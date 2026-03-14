@@ -4,7 +4,7 @@
   "repo_state_at_start": {
     "branch": "codex/stage74-repair",
     "status_snapshot": "## codex/stage74-repair...origin/codex/stage74-repair\n M scripts/run_stage74.py",
-    "ahead_behind_vs_main": "0\t2",
+    "ahead_behind_vs_main": "0\t3",
     "start_state_note": "The final completion step started from a clean feature branch. The active in-progress implementation already existed as committed work ahead of main and was treated as the repair baseline.",
     "changed_file_classification": {
       "existing_in_progress_implementation": [
@@ -30,6 +30,8 @@
         "docs/stage72_campaign_history.json",
         "docs/stage72_report.md",
         "docs/stage72_summary.json",
+        "docs/stage74_report.md",
+        "docs/stage74_summary.json",
         "scripts/run_stage53.py",
         "scripts/run_stage57.py",
         "scripts/run_stage58.py",
@@ -126,7 +128,9 @@
       "docs/stage71_summary.json",
       "docs/stage72_campaign_history.json",
       "docs/stage72_report.md",
-      "docs/stage72_summary.json"
+      "docs/stage72_summary.json",
+      "docs/stage74_report.md",
+      "docs/stage74_summary.json"
     ],
     "workflow_and_misc": [
       ".gitignore"
@@ -665,7 +669,7 @@
   },
   "github_results": {
     "branch_name": "codex/stage74-repair",
-    "commit_hash": "01f768631a3573093c3f73308b6ca43f81598b49",
+    "commit_hash": "e35b2b1f9632ab6cbde55ac6e38ea71a682bc51b",
     "compare_url": "https://github.com/SepehrQasemi/Buff-mini/compare/main...codex/stage74-repair",
     "push_status": "PASS",
     "pr_number": "1",
@@ -701,6 +705,6 @@
     "Monte Carlo and cross-perturbation are real enough to block false promotion, but they are not yet exhaustive robustness science.",
     "The architecture is cleaner in the repaired chain, not globally unified across the entire historical repo."
   ],
-  "final_verdict": "FULL_REPAIR_SUBSTANTIAL",
-  "summary_hash": "e9f90e7347451f4a"
+  "final_verdict": "MAJOR_REPAIR_MOSTLY_COMPLETE",
+  "summary_hash": "23fef884f7f15ecc"
 }

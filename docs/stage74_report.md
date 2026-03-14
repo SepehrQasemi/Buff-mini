@@ -4,7 +4,7 @@
 - branch: `codex/stage74-repair`
 - status_snapshot: `## codex/stage74-repair...origin/codex/stage74-repair
  M scripts/run_stage74.py`
-- ahead_behind_vs_main: `0	2`
+- ahead_behind_vs_main: `0	3`
 - start_state_note: The final completion step started from a clean feature branch. The active in-progress implementation already existed as committed work ahead of main and was treated as the repair baseline.
 
 ## 2. Plan before coding
@@ -18,7 +18,7 @@
 - backtest_and_data_validity: `['src/buffmini/stage52/__init__.py', 'src/buffmini/stage52/setup_v2.py']`
 - reporting_and_ui: `['scripts/run_stage74.py', 'src/buffmini/diagnostics/full_trace.py', 'src/buffmini/ui/pages/21_run_monitor.py', 'src/buffmini/ui/pages/22_results_studio.py']`
 - tests: `['tests/test_stage51_59_semantic_runners.py', 'tests/test_stage53_replay_artifact.py', 'tests/test_stage57_evidence_semantics.py', 'tests/test_stage58_transfer_validation.py', 'tests/test_stage67_real_artifacts.py']`
-- docs_and_artifacts: `['docs/full_trace_report.md', 'docs/full_trace_summary.json', 'docs/stage53_report.md', 'docs/stage53_summary.json', 'docs/stage57_chain_metrics.json', 'docs/stage57_history.json', 'docs/stage57_report.md', 'docs/stage57_summary.json', 'docs/stage58_report.md', 'docs/stage58_summary.json', 'docs/stage60_report.md', 'docs/stage60_summary.json', 'docs/stage61_report.md', 'docs/stage61_summary.json', 'docs/stage67_report.md', 'docs/stage67_summary.json', 'docs/stage71_report.md', 'docs/stage71_summary.json', 'docs/stage72_campaign_history.json', 'docs/stage72_report.md', 'docs/stage72_summary.json']`
+- docs_and_artifacts: `['docs/full_trace_report.md', 'docs/full_trace_summary.json', 'docs/stage53_report.md', 'docs/stage53_summary.json', 'docs/stage57_chain_metrics.json', 'docs/stage57_history.json', 'docs/stage57_report.md', 'docs/stage57_summary.json', 'docs/stage58_report.md', 'docs/stage58_summary.json', 'docs/stage60_report.md', 'docs/stage60_summary.json', 'docs/stage61_report.md', 'docs/stage61_summary.json', 'docs/stage67_report.md', 'docs/stage67_summary.json', 'docs/stage71_report.md', 'docs/stage71_summary.json', 'docs/stage72_campaign_history.json', 'docs/stage72_report.md', 'docs/stage72_summary.json', 'docs/stage74_report.md', 'docs/stage74_summary.json']`
 - workflow_and_misc: `['.gitignore']`
 
 ## 4. Architecture integration summary
@@ -248,7 +248,7 @@
 
 ## 9. GitHub results
 - branch_name: `codex/stage74-repair`
-- commit_hash: `01f768631a3573093c3f73308b6ca43f81598b49`
+- commit_hash: `e35b2b1f9632ab6cbde55ac6e38ea71a682bc51b`
 - compare_url: `https://github.com/SepehrQasemi/Buff-mini/compare/main...codex/stage74-repair`
 - push_status: `PASS`
 - pr_number: `1`
@@ -277,6 +277,6 @@
 - The architecture is cleaner in the repaired chain, not globally unified across the entire historical repo.
 
 ## 13. Final verdict
-`FULL_REPAIR_SUBSTANTIAL`
+`MAJOR_REPAIR_MOSTLY_COMPLETE`
 
-- summary_hash: `e9f90e7347451f4a`
+- summary_hash: `23fef884f7f15ecc`
