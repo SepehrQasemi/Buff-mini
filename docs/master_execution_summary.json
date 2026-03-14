@@ -1,6 +1,6 @@
 {
   "execution_branch": "codex/stage76-84-execution",
-  "execution_head": "d056a9cf46a0cbda9180e6462b7d9ecaa475de1b",
+  "execution_head": "06e8b10432c6acb782a0c2e7080c33108f1e3f0e",
   "baseline_branch": "main",
   "baseline_commit": "d056a9cf46a0cbda9180e6462b7d9ecaa475de1b",
   "baseline_merged_to_main": true,
@@ -22,7 +22,7 @@
       "status": "SUCCESS",
       "execution_status": "EXECUTED",
       "validation_state": "MECHANISM_GENERATION_READY",
-      "summary_hash": "34b205ee95f534cf"
+      "summary_hash": "d6c9cef37bcccffd"
     },
     "79": {
       "status": "SUCCESS",
@@ -58,18 +58,29 @@
       "status": "PARTIAL",
       "execution_status": "EXECUTED",
       "validation_state": "SERIOUS_EDGE_CAMPAIGN_BLOCKED",
-      "summary_hash": "5320d0ed257b36fb"
+      "summary_hash": "1585d5d4e29a2b34"
     }
   },
   "stage_pr": {
-    "number": null,
-    "title": "",
-    "url": "",
-    "state": "",
-    "head": "",
-    "base": "",
-    "merge_state_status": "",
-    "checks": []
+    "number": 3,
+    "title": "Stage 76-84: improve detectability, evaluation rigor, and research ops",
+    "url": "https://github.com/SepehrQasemi/Buff-mini/pull/3",
+    "state": "OPEN",
+    "head": "codex/stage76-84-execution",
+    "base": "main",
+    "merge_state_status": "BLOCKED",
+    "checks": [
+      {
+        "name": "test",
+        "status": "COMPLETED",
+        "conclusion": "SUCCESS"
+      },
+      {
+        "name": "test",
+        "status": "COMPLETED",
+        "conclusion": "SUCCESS"
+      }
+    ]
   },
   "main_branch_protection": {
     "required_pull_request_reviews": true,
@@ -78,5 +89,5 @@
     "allow_deletions": false
   },
   "final_verdict": "MAJOR_REPAIR_MOSTLY_COMPLETE",
-  "summary_hash": "1f5aec52c2ef217a"
+  "summary_hash": "3a75f1ad33cbf333"
 }
