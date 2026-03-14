@@ -1,7 +1,13 @@
 from __future__ import annotations
 
+import json
+import subprocess
+import sys
+from pathlib import Path
+
 import numpy as np
 import pandas as pd
+import yaml
 
 from buffmini.stage65 import build_feature_frame_v3, compute_feature_attribution_v3
 
@@ -27,3 +33,25 @@ def test_stage65_builds_features_and_attribution() -> None:
     assert not importance.empty
     assert set(importance.columns) == {"feature", "importance", "method"}
 
+
+def test_stage65_runner_falls_back_without_repo_local_parquet(tmp_path: Path) -> None:
+    docs_dir = tmp_path / "docs"
+    config_path = tmp_path / "config.yaml"
+    config = yaml.safe_load((Path(__file__).resolve().parents[1] / "configs" / "default.yaml").read_text(encoding="utf-8"))
+    config.setdefault("universe", {})["symbols"] = ["ZZZ/USDT"]
+    config["universe"]["operational_timeframe"] = "1h"
+    config_path.write_text(yaml.safe_dump(config, sort_keys=False), encoding="utf-8")
+    cmd = [
+        sys.executable,
+        "scripts/run_stage65.py",
+        "--config",
+        str(config_path),
+        "--docs-dir",
+        str(docs_dir),
+    ]
+    result = subprocess.run(cmd, cwd=Path(__file__).resolve().parents[1], check=False, capture_output=True, text=True)
+    assert result.returncode == 0, result.stderr
+
+    summary = json.loads((docs_dir / "stage65_summary.json").read_text(encoding="utf-8"))
+    assert summary["execution_status"] == "EXECUTED"
+    assert summary["feature_count"] > 0

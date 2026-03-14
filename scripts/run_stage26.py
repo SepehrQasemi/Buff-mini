@@ -351,7 +351,10 @@ def main() -> None:
     if not coverage_gate.can_run:
         print(f"coverage_gate_status: {coverage_gate.status}")
         print(f"coverage_years_by_symbol: {coverage_gate.coverage_years_by_symbol}")
-        raise SystemExit(2)
+        if dry_run:
+            warnings.append(f"dry_run_coverage_gate_override:{coverage_gate.status}")
+        else:
+            raise SystemExit(2)
     symbols = list(coverage_gate.used_symbols)
     coverage_rows = list(coverage_gate.rows)
     if coverage_gate.disabled_symbols:
@@ -576,6 +579,8 @@ def main() -> None:
             str(row["symbol"]): float(row.get("coverage_years", 0.0)) for row in coverage_rows
         },
         "coverage_ok_all_symbols": bool(coverage_ok),
+        "coverage_gate_status": str(coverage_gate.status),
+        "coverage_gate_can_run": bool(coverage_gate.can_run),
         "required_years": float(required_years),
         "timeframes_tested": list(timeframes),
         "contexts": sorted({str(item["context"]) for item in context_distribution_rows}),
@@ -731,10 +736,10 @@ def _json_safe(value: Any) -> Any:
     if isinstance(value, (np.floating, float)):
         out = float(value)
         return out if np.isfinite(out) else 0.0
-    if isinstance(value, (np.integer, int)):
-        return int(value)
     if isinstance(value, (np.bool_, bool)):
         return bool(value)
+    if isinstance(value, (np.integer, int)):
+        return int(value)
     return value
 
 

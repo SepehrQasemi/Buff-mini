@@ -36,7 +36,10 @@ def _safe_ohlcv(config: dict) -> pd.DataFrame:
         derived_dir=Path("data") / "derived",
         partial_last_bucket=bool((config.get("data", {}) or {}).get("partial_last_bucket", False)),
     )
-    bars = store.load_ohlcv(symbol=symbol, timeframe=timeframe).tail(1500).reset_index(drop=True)
+    try:
+        bars = store.load_ohlcv(symbol=symbol, timeframe=timeframe).tail(1500).reset_index(drop=True)
+    except FileNotFoundError:
+        bars = pd.DataFrame()
     if not bars.empty:
         return bars.loc[:, ["timestamp", "open", "high", "low", "close", "volume"]].copy()
     idx = pd.date_range("2025-01-01T00:00:00Z", periods=1500, freq="1h", tz="UTC")

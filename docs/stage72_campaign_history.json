@@ -98,5 +98,10 @@
     "campaign_id": "edd577ac1d14",
     "verdict": "PARTIAL",
     "summary_hash": "cce5e3c10a3cf87f"
+  },
+  {
+    "campaign_id": "3e4e85fae867",
+    "verdict": "PARTIAL",
+    "summary_hash": "1916befbcf1748b9"
   }
 ]
