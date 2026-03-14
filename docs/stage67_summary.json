@@ -36,6 +36,8 @@
       }
     ]
   },
+  "runtime_truth_blocked": false,
+  "runtime_truth_reason": "",
   "used_config_keys": [
     "evaluation.stage8.walkforward_v2.train_days",
     "evaluation.stage8.walkforward_v2.holdout_days",
@@ -52,7 +54,9 @@
     "promotion_gates.cross_seed.min_passing_seeds",
     "data.continuity.strict_mode",
     "data.continuity.fail_on_gap",
-    "reproducibility.frozen_research_mode"
+    "reproducibility.frozen_research_mode",
+    "reproducibility.require_resolved_end_ts",
+    "universe.resolved_end_ts"
   ],
   "effective_values": {
     "train_days": 180,
@@ -67,10 +71,15 @@
     "monte_carlo_n_paths": 5000,
     "monte_carlo_block_size": 10,
     "cross_perturbation_min_survivors": 3,
-    "frozen_research_mode": false
+    "frozen_research_mode": false,
+    "require_resolved_end_ts": false,
+    "resolved_end_required_effective": false,
+    "resolved_end_ts": "",
+    "strict_continuity_effective": false,
+    "canonical_scope_active": false
   },
   "monte_carlo_execution_status": "BLOCKED",
   "cross_perturbation_execution_status": "EXECUTED",
   "blocker_reason": "walkforward_gate_not_met,insufficient_trades",
-  "summary_hash": "91bef8994685ea33"
+  "summary_hash": "3784835567bb7392"
 }

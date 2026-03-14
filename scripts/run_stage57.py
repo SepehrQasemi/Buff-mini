@@ -7,7 +7,7 @@ import json
 from pathlib import Path
 from typing import Any
 
-from buffmini.config import load_config
+from buffmini.config import compute_config_hash, load_config
 from buffmini.constants import DEFAULT_CONFIG_PATH
 from buffmini.stage57 import PromotionGates, derive_stage57_verdict, detect_stale_inputs
 from buffmini.validation import REAL_DECISION_SOURCE_TYPES, validate_metric_evidence_batch
@@ -121,6 +121,7 @@ def _derive_metrics_sufficiency(docs_dir: Path, *, runs_dir: Path) -> dict[str, 
 def main() -> None:
     args = parse_args()
     cfg = load_config(Path(args.config))
+    config_hash = compute_config_hash(cfg)
     docs_dir = Path(args.docs_dir)
     docs_dir.mkdir(parents=True, exist_ok=True)
     runs_dir = Path(cfg.get("paths", {}).get("runs_dir", "runs"))
@@ -225,7 +226,11 @@ def main() -> None:
             "decision_evidence": decision_evidence,
             "blocker_reason": str(verdict.get("blocker_reason", "")),
         }
-        history_entry = {"scope_frozen": True, "verdict": summary["verdict"]}
+        history_entry = {
+            "scope_frozen": bool(cfg.get("reproducibility", {}).get("frozen_research_mode", False)),
+            "config_hash": config_hash,
+            "verdict": summary["verdict"],
+        }
         history_path.write_text(json.dumps(prior_history + [history_entry], indent=2, allow_nan=False), encoding="utf-8")
 
     stale_hash_payload = {

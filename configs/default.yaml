@@ -74,6 +74,7 @@ research_scope:
     - squeeze_flow_breakout
   expansion_rules:
     transfer_symbol: "ETH/USDT"
+    require_transfer_confirmation: true
     require_stage57_pass: true
     oi_core_enabled: false
 

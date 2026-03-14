@@ -10,9 +10,9 @@
     "missing_paths": [],
     "stale_paths": [],
     "source_mtimes_utc": {
-      "docs\\stage52_summary.json": "2026-03-14T17:20:42.921178+00:00",
-      "docs\\stage61_summary.json": "2026-03-14T17:21:07.851251+00:00",
-      "docs\\stage57_chain_metrics.json": "2026-03-14T17:21:07.851251+00:00"
+      "docs\\stage52_summary.json": "2026-03-14T18:04:38.668869+00:00",
+      "docs\\stage61_summary.json": "2026-03-14T18:05:02.525693+00:00",
+      "docs\\stage57_chain_metrics.json": "2026-03-14T18:05:02.525693+00:00"
     },
     "max_age_hours": 72.0
   },
@@ -41,7 +41,7 @@
         {
           "candidate_id": "s52_8198eb4047124b78",
           "run_id": "20260313_154858_044fff9053df_stage28",
-          "config_hash": "ecc9bcde3ad8",
+          "config_hash": "aa6c65ec6168",
           "data_hash": "unknown_data_hash",
           "seed": 42,
           "metric_name": "exp_lcb",
@@ -60,7 +60,7 @@
         {
           "candidate_id": "s52_8198eb4047124b78",
           "run_id": "20260313_154858_044fff9053df_stage28",
-          "config_hash": "ecc9bcde3ad8",
+          "config_hash": "aa6c65ec6168",
           "data_hash": "unknown_data_hash",
           "seed": 42,
           "metric_name": "failure_reason_dominance",
@@ -79,7 +79,7 @@
         {
           "candidate_id": "s52_8198eb4047124b78",
           "run_id": "20260313_154858_044fff9053df_stage28",
-          "config_hash": "ecc9bcde3ad8",
+          "config_hash": "aa6c65ec6168",
           "data_hash": "unknown_data_hash",
           "seed": 42,
           "metric_name": "maxDD",
@@ -98,7 +98,7 @@
         {
           "candidate_id": "s52_8198eb4047124b78",
           "run_id": "20260313_154858_044fff9053df_stage28",
-          "config_hash": "ecc9bcde3ad8",
+          "config_hash": "aa6c65ec6168",
           "data_hash": "unknown_data_hash",
           "seed": 42,
           "metric_name": "trade_count",
@@ -117,7 +117,7 @@
         {
           "candidate_id": "s52_8198eb4047124b78",
           "run_id": "20260313_154858_044fff9053df_stage28",
-          "config_hash": "ecc9bcde3ad8",
+          "config_hash": "aa6c65ec6168",
           "data_hash": "unknown_data_hash",
           "seed": 42,
           "metric_name": "median_forward_exp_lcb",
@@ -136,7 +136,7 @@
         {
           "candidate_id": "s52_8198eb4047124b78",
           "run_id": "20260313_154858_044fff9053df_stage28",
-          "config_hash": "ecc9bcde3ad8",
+          "config_hash": "aa6c65ec6168",
           "data_hash": "unknown_data_hash",
           "seed": 42,
           "metric_name": "usable_windows",
@@ -155,7 +155,7 @@
         {
           "candidate_id": "s52_8198eb4047124b78",
           "run_id": "20260313_154858_044fff9053df_stage28",
-          "config_hash": "ecc9bcde3ad8",
+          "config_hash": "aa6c65ec6168",
           "data_hash": "unknown_data_hash",
           "seed": 42,
           "metric_name": "conservative_downside_bound",
@@ -174,7 +174,7 @@
         {
           "candidate_id": "s52_8198eb4047124b78",
           "run_id": "20260313_154858_044fff9053df_stage28",
-          "config_hash": "ecc9bcde3ad8",
+          "config_hash": "aa6c65ec6168",
           "data_hash": "unknown_data_hash",
           "seed": 42,
           "metric_name": "surviving_seeds",
@@ -218,9 +218,9 @@
       },
       "meta": {
         "source": "stage61_chain_writer_v2",
-        "chain_id": "0a4002c620ad4dd7f1d9430c",
+        "chain_id": "b3a19732e49f31306b65a5b9",
         "stage28_run_id": "20260313_154858_044fff9053df_stage28",
-        "config_hash": "ecc9bcde3ad8",
+        "config_hash": "aa6c65ec6168",
         "data_hash": "unknown_data_hash",
         "seed": 42,
         "source_types": {
@@ -230,7 +230,7 @@
           "cross_seed": "real_cross_perturbation"
         }
       },
-      "summary_hash": "b096fd1812c1e5aa"
+      "summary_hash": "30e846876d1de184"
     }
   },
   "replay_gate": {
@@ -279,5 +279,5 @@
     "decision_metric_count": 8
   },
   "blocker_reason": "decision_evidence_not_sufficient",
-  "summary_hash": "70256bc1a49d1a9b"
+  "summary_hash": "f6e804507940537d"
 }

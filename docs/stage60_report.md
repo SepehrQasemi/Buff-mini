@@ -4,7 +4,7 @@
 - execution_status: `EXECUTED`
 - stage_role: `orchestration_only`
 - stage28_run_id: `20260313_154858_044fff9053df_stage28`
-- chain_id: `0a4002c620ad4dd7f1d9430c`
+- chain_id: `b3a19732e49f31306b65a5b9`
 - budget_mode_selected: `search`
 - missing_summaries: `[]`
 - run_id_mismatch: `{}`
@@ -12,4 +12,4 @@
 - bootstrap_forbidden: `False`
 - bootstrap_stages: `[]`
 - blocker_reason: ``
-- summary_hash: `4b8cf191caa4ace1`
+- summary_hash: `3ed9683a5ee65b9a`

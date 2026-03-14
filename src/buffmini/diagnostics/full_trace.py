@@ -150,8 +150,14 @@ def _extract_evidence_quality(docs_summaries: dict[str, Any]) -> dict[str, Any]:
         "source_types": source_types,
         "stage61_chain_ready": bool(isinstance(stage61, dict) and stage61.get("decision_evidence_allowed", False)),
         "walkforward_validation_state": str(stage67.get("validation_state", "")) if isinstance(stage67, dict) else "",
+        "runtime_truth_blocked": bool(stage67.get("runtime_truth_blocked", False)) if isinstance(stage67, dict) else False,
+        "runtime_truth_reason": str(stage67.get("runtime_truth_reason", "")) if isinstance(stage67, dict) else "",
+        "canonical_scope_active": bool((stage67.get("effective_values", {}) or {}).get("canonical_scope_active", False)) if isinstance(stage67, dict) else False,
+        "resolved_end_required_effective": bool((stage67.get("effective_values", {}) or {}).get("resolved_end_required_effective", False)) if isinstance(stage67, dict) else False,
         "transfer_validation_state": str(stage58.get("validation_state", "")) if isinstance(stage58, dict) else "",
         "transfer_evidence_quality": str(stage58.get("evidence_quality", "")) if isinstance(stage58, dict) else "",
+        "transfer_required": bool(stage72.get("transfer_required", False)) if isinstance((stage72 := docs_summaries.get("stage72_summary.json")), dict) else False,
+        "final_decision_use_allowed": bool(stage72.get("final_decision_use_allowed", False)) if isinstance(stage72, dict) else False,
     }
 
 
@@ -254,8 +260,14 @@ def write_full_trace_report(
     lines.append(f"- source_types: `{payload.get('evidence_quality', {}).get('source_types', {})}`")
     lines.append(f"- stage61_chain_ready: `{payload.get('evidence_quality', {}).get('stage61_chain_ready')}`")
     lines.append(f"- walkforward_validation_state: `{payload.get('evidence_quality', {}).get('walkforward_validation_state')}`")
+    lines.append(f"- runtime_truth_blocked: `{payload.get('evidence_quality', {}).get('runtime_truth_blocked')}`")
+    lines.append(f"- runtime_truth_reason: `{payload.get('evidence_quality', {}).get('runtime_truth_reason')}`")
+    lines.append(f"- canonical_scope_active: `{payload.get('evidence_quality', {}).get('canonical_scope_active')}`")
+    lines.append(f"- resolved_end_required_effective: `{payload.get('evidence_quality', {}).get('resolved_end_required_effective')}`")
     lines.append(f"- transfer_validation_state: `{payload.get('evidence_quality', {}).get('transfer_validation_state')}`")
     lines.append(f"- transfer_evidence_quality: `{payload.get('evidence_quality', {}).get('transfer_evidence_quality')}`")
+    lines.append(f"- transfer_required: `{payload.get('evidence_quality', {}).get('transfer_required')}`")
+    lines.append(f"- final_decision_use_allowed: `{payload.get('evidence_quality', {}).get('final_decision_use_allowed')}`")
     lines.append("")
     lines.append("## Stage Sequence")
     for item in payload["stage_sequence"]:

@@ -38,5 +38,25 @@
   {
     "scope_frozen": true,
     "verdict": "PARTIAL"
+  },
+  {
+    "scope_frozen": false,
+    "config_hash": "ecc9bcde3ad8",
+    "verdict": "PARTIAL"
+  },
+  {
+    "scope_frozen": false,
+    "config_hash": "ecc9bcde3ad8",
+    "verdict": "PARTIAL"
+  },
+  {
+    "scope_frozen": false,
+    "config_hash": "aa6c65ec6168",
+    "verdict": "PARTIAL"
+  },
+  {
+    "scope_frozen": false,
+    "config_hash": "aa6c65ec6168",
+    "verdict": "PARTIAL"
   }
 ]

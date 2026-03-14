@@ -208,6 +208,8 @@ def main() -> None:
         "cross_perturbation_artifact_path": str(stage57_dir / "cross_perturbation_metrics_real.json"),
         "continuity_blocked": bool(market_meta.get("continuity_blocked", False)),
         "continuity_report": dict(market_meta.get("continuity_report", {})),
+        "runtime_truth_blocked": bool(market_meta.get("runtime_truth_blocked", False)),
+        "runtime_truth_reason": str(market_meta.get("runtime_truth_reason", "")),
         "used_config_keys": [
             "evaluation.stage8.walkforward_v2.train_days",
             "evaluation.stage8.walkforward_v2.holdout_days",
@@ -225,6 +227,8 @@ def main() -> None:
             "data.continuity.strict_mode",
             "data.continuity.fail_on_gap",
             "reproducibility.frozen_research_mode",
+            "reproducibility.require_resolved_end_ts",
+            "universe.resolved_end_ts",
         ],
         "effective_values": {
             "train_days": int(stage8_cfg.get("train_days", 180)),
@@ -240,11 +244,20 @@ def main() -> None:
             "monte_carlo_block_size": int(max(4, mc_cfg.get("block_size_trades", 10))),
             "cross_perturbation_min_survivors": int(cross_cfg.get("min_passing_seeds", 3)),
             "frozen_research_mode": bool(cfg.get("reproducibility", {}).get("frozen_research_mode", False)),
+            "require_resolved_end_ts": bool(cfg.get("reproducibility", {}).get("require_resolved_end_ts", False)),
+            "resolved_end_required_effective": bool(market_meta.get("resolved_end_required_effective", False)),
+            "resolved_end_ts": str(market_meta.get("resolved_end_ts", "")),
+            "strict_continuity_effective": bool((market_meta.get("continuity_policy_effective", {}) or {}).get("strict_mode", False)),
+            "canonical_scope_active": bool(market_meta.get("canonical_scope_active", False)),
         },
         "monte_carlo_execution_status": str(monte_carlo.get("execution_status", "")),
         "cross_perturbation_execution_status": str(perturbation.get("execution_status", "")),
         "blocker_reason": ",".join([part for part in blocker_parts if part]),
     }
+    if summary["runtime_truth_blocked"] and summary["runtime_truth_reason"]:
+        summary["blocker_reason"] = ",".join(
+            [part for part in [summary["runtime_truth_reason"].lower(), summary["blocker_reason"]] if part]
+        )
     summary["summary_hash"] = stable_hash(
         {
             "summary": summary,
@@ -281,6 +294,8 @@ def main() -> None:
                 f"- cross_perturbation_artifact_path: `{summary['cross_perturbation_artifact_path']}`",
                 f"- continuity_blocked: `{summary['continuity_blocked']}`",
                 f"- continuity_report: `{summary['continuity_report']}`",
+                f"- runtime_truth_blocked: `{summary['runtime_truth_blocked']}`",
+                f"- runtime_truth_reason: `{summary['runtime_truth_reason']}`",
                 f"- used_config_keys: `{summary['used_config_keys']}`",
                 f"- effective_values: `{summary['effective_values']}`",
                 f"- monte_carlo_execution_status: `{summary['monte_carlo_execution_status']}`",
