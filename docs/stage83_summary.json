@@ -1,0 +1,52 @@
+{
+  "stage": "83",
+  "status": "SUCCESS",
+  "execution_status": "EXECUTED",
+  "stage_role": "orchestration_only",
+  "validation_state": "RESEARCH_OPS_READY",
+  "run_registry_entry": {
+    "run_id": "20260313_154858_044fff9053df_stage28",
+    "run_purpose": "evaluation",
+    "mode": "evaluation",
+    "dataset_scope": {
+      "resolved_end_ts": "",
+      "data_scope_hash": "23256160a311e3d0"
+    },
+    "seed_set": [
+      11,
+      19,
+      23,
+      29,
+      31
+    ],
+    "gating_level": 0,
+    "outcome_class": "rejected",
+    "canonical_status": "EVALUATION_BLOCKED",
+    "interpretation_allowed": false,
+    "feedback_hash": "3f25e0c5c7041bc5"
+  },
+  "checklist": [
+    {
+      "item": "evaluation_mode_ready",
+      "passed": false,
+      "reason": "RESOLVED_END_TS_MISSING"
+    },
+    {
+      "item": "runtime_truth_clear",
+      "passed": true,
+      "reason": ""
+    },
+    {
+      "item": "robustness_level_documented",
+      "passed": false,
+      "reason": "mechanism_not_viable"
+    },
+    {
+      "item": "transfer_matrix_present",
+      "passed": true,
+      "reason": ""
+    }
+  ],
+  "registry_path": "docs/run_registry.json",
+  "summary_hash": "e23a2d79ec166c3e"
+}

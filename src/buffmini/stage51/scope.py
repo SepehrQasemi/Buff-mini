@@ -11,6 +11,11 @@ DEFAULT_SETUP_FAMILIES: tuple[str, ...] = (
     "structure_pullback_continuation",
     "liquidity_sweep_reversal",
     "squeeze_flow_breakout",
+    "failed_breakout_reversal",
+    "exhaustion_mean_reversion",
+    "funding_oi_imbalance_reversion",
+    "volatility_regime_transition",
+    "multi_tf_disagreement_repair",
 )
 DEFAULT_DISCOVERY_TIMEFRAMES: tuple[str, ...] = ("15m", "30m", "1h", "2h", "4h")
 ALLOWED_TIMEFRAMES: tuple[str, ...] = ("1m", "5m", "15m", "30m", "1h", "2h", "4h", "6h", "12h", "1d", "1w", "1M")

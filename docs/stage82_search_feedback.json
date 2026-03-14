@@ -1,0 +1,9 @@
+{
+  "family_priority_adjustments": {},
+  "threshold_guidance": [
+    "broaden_trade_density",
+    "diversify_mechanism_mix",
+    "favor_lower_transfer_risk"
+  ],
+  "feedback_hash": "3f25e0c5c7041bc5"
+}

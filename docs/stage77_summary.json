@@ -1,0 +1,40 @@
+{
+  "mode": "evaluation",
+  "run_type": "evaluation",
+  "evaluation_mode": true,
+  "interpretation_allowed": false,
+  "validation_state": "EVALUATION_BLOCKED",
+  "canonical_status": "EVALUATION_BLOCKED",
+  "resolved_end_ts": "",
+  "resolved_end_ts_status": "MISSING",
+  "resolved_end_ts_auto_pinned": false,
+  "continuity_status": "STRICT",
+  "data_hash_status": "PRESENT",
+  "data_scope_hash": "23256160a311e3d0",
+  "config_hash_effective": "f06cad011536",
+  "blocked_reasons": [
+    "RESOLVED_END_TS_MISSING"
+  ],
+  "seed_bundle": [
+    11,
+    19,
+    23,
+    29,
+    31
+  ],
+  "campaign_memory_cold_start": true,
+  "effective_values": {
+    "frozen_research_mode": true,
+    "require_resolved_end_ts": true,
+    "deterministic_sorting": true,
+    "strict_continuity": true,
+    "fail_on_gap": true,
+    "budget_mode_selected": "validate"
+  },
+  "coverage_rows": [],
+  "summary_hash": "1c9c08ab219c88f3",
+  "stage": "77",
+  "status": "PARTIAL",
+  "execution_status": "EXECUTED",
+  "stage_role": "real_validation"
+}

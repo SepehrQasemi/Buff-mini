@@ -1,0 +1,59 @@
+{
+  "stage": "84",
+  "status": "PARTIAL",
+  "execution_status": "EXECUTED",
+  "stage_role": "real_validation",
+  "validation_state": "SERIOUS_EDGE_CAMPAIGN_BLOCKED",
+  "mode": "evaluation",
+  "interpretation_allowed": true,
+  "baseline_resolved_end_ts": "2026-03-03T10:00:00+00:00",
+  "assets": [
+    "BTC/USDT",
+    "ETH/USDT"
+  ],
+  "mechanism_families": [
+    "structure_pullback_continuation",
+    "failed_breakout_reversal",
+    "volatility_regime_transition",
+    "exhaustion_mean_reversion"
+  ],
+  "evaluated_assets": 0,
+  "blocked_assets": 2,
+  "edge_inventory_count": 0,
+  "mechanism_map": [],
+  "regime_map": [],
+  "blocked_asset_details": [
+    {
+      "asset": "BTC/USDT",
+      "runtime_truth_blocked": false,
+      "runtime_truth_reason": "",
+      "continuity_blocked": true,
+      "continuity_reason": "gap_count=1,largest_gap_bars=2,max_gap_bars=0",
+      "resolved_end_ts": "2026-03-03T10:00:00+00:00",
+      "data_hash": "feec6f5fb1113f18",
+      "row_count": 27777
+    },
+    {
+      "asset": "ETH/USDT",
+      "runtime_truth_blocked": false,
+      "runtime_truth_reason": "",
+      "continuity_blocked": true,
+      "continuity_reason": "gap_count=1,largest_gap_bars=2,max_gap_bars=0",
+      "resolved_end_ts": "2026-03-03T10:00:00+00:00",
+      "data_hash": "6704f9d9d9c0b258",
+      "row_count": 27777
+    }
+  ],
+  "candidate_class_counts": {
+    "robust_candidate": 0,
+    "promising_but_unproven": 0,
+    "rejected": 0
+  },
+  "failure_analysis": {
+    "blocked_continuity::gap_count=1,largest_gap_bars=2,max_gap_bars=0": 2
+  },
+  "promising_candidates": [],
+  "robust_candidates": [],
+  "campaign_outcome": "system_blocked_uninterpretable",
+  "summary_hash": "1585d5d4e29a2b34"
+}

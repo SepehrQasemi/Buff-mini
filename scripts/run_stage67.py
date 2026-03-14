@@ -11,6 +11,7 @@ import pandas as pd
 
 from buffmini.config import load_config
 from buffmini.constants import DEFAULT_CONFIG_PATH, RUNS_DIR
+from buffmini.research.robustness import evaluate_split_perturbation, summarize_layered_robustness
 from buffmini.utils.hashing import stable_hash
 from buffmini.validation import (
     estimate_trade_monte_carlo,
@@ -18,6 +19,7 @@ from buffmini.validation import (
     evaluate_cross_perturbation,
     load_candidate_market_frame,
     resolve_validation_candidate,
+    run_candidate_replay,
 )
 
 
@@ -80,6 +82,13 @@ def main() -> None:
         symbol=symbol,
         timeframe=str(candidate.get("timeframe", "1h")),
     )
+    replay = run_candidate_replay(
+        candidate=candidate,
+        config=cfg,
+        symbol=symbol,
+        frame=frame,
+        market_meta=market_meta,
+    )
 
     walkforward = evaluate_candidate_walkforward(
         candidate=candidate,
@@ -103,6 +112,21 @@ def main() -> None:
         forward_trades.to_csv(out_dir / "walkforward_forward_trades_real.csv", index=False)
 
     walkforward_summary = dict(walkforward.get("summary", {}))
+    replay_metrics = dict(replay.get("metrics", {}))
+    replay_metrics_path = out_dir / "replay_metrics_real.json"
+    replay_payload = {
+        "metric_source_type": "real_replay",
+        "artifact_path": str(replay_metrics_path),
+        "candidate_id": str(candidate.get("candidate_id", "")),
+        "symbol": symbol,
+        "timeframe": str(candidate.get("timeframe", "")),
+        "execution_status": str(replay.get("execution_status", "BLOCKED")),
+        "validation_state": str(replay.get("validation_state", "")),
+        "decision_use_allowed": bool(replay.get("decision_use_allowed", False)),
+        "evidence_quality": "artifact_backed_real" if str(replay.get("execution_status", "")) == "EXECUTED" else "real_but_blocked",
+        **replay_metrics,
+    }
+    replay_metrics_path.write_text(json.dumps(replay_payload, indent=2, allow_nan=False), encoding="utf-8")
     walkforward_metrics_path = out_dir / "walkforward_metrics_real.json"
     walkforward_metrics_payload = {
         "metric_source_type": "real_walkforward",
@@ -166,25 +190,58 @@ def main() -> None:
     }
     (stage57_dir / "cross_perturbation_metrics_real.json").write_text(json.dumps(perturb_payload, indent=2, allow_nan=False), encoding="utf-8")
 
+    split_perturbation = evaluate_split_perturbation(
+        candidate=candidate,
+        config=cfg,
+        symbol=symbol,
+        frame=frame,
+        market_meta=market_meta,
+    )
+    split_windows = pd.DataFrame(split_perturbation.get("window_metrics", []))
+    split_csv = out_dir / "split_perturbation_windows_real.csv"
+    if not split_windows.empty:
+        split_windows.to_csv(split_csv, index=False)
+    split_summary = dict(split_perturbation.get("summary", {}))
+    split_payload = {
+        "metric_source_type": "real_cross_perturbation",
+        "artifact_path": str(split_csv) if split_csv.exists() else "",
+        "candidate_id": str(candidate.get("candidate_id", "")),
+        "symbol": symbol,
+        "timeframe": str(candidate.get("timeframe", "")),
+        "execution_status": str(split_perturbation.get("execution_status", "BLOCKED")),
+        "validation_state": str(split_perturbation.get("validation_state", "")),
+        "decision_use_allowed": bool(split_perturbation.get("decision_use_allowed", False)),
+        "evidence_quality": "artifact_backed_real" if str(split_perturbation.get("execution_status", "")) == "EXECUTED" else "real_but_blocked",
+        "effective_split": dict(split_perturbation.get("effective_split", {})),
+        "summary": split_summary,
+    }
+    split_path = out_dir / "split_perturbation_metrics_real.json"
+    split_path.write_text(json.dumps(split_payload, indent=2, allow_nan=False), encoding="utf-8")
+
     stage8_cfg = dict(cfg.get("evaluation", {}).get("stage8", {}).get("walkforward_v2", {}))
     promotion_walkforward = dict(cfg.get("promotion_gates", {}).get("walkforward", {}))
     portfolio_walkforward = dict(cfg.get("portfolio", {}).get("walkforward", {}))
     cross_cfg = dict(cfg.get("promotion_gates", {}).get("cross_seed", {}))
-    status = (
-        "SUCCESS"
-        if str(walkforward_summary.get("status", "PARTIAL")) == "SUCCESS"
-        and str(monte_carlo.get("execution_status", "")) == "EXECUTED"
-        and str(perturbation.get("execution_status", "")) == "EXECUTED"
-        else "PARTIAL"
-    )
-    validation_state = "REAL_VALIDATION_PASSED" if status == "SUCCESS" else "REAL_VALIDATION_FAILED"
     blocker_parts = []
     if str(walkforward_summary.get("status", "PARTIAL")) != "SUCCESS":
         blocker_parts.append(str(walkforward_summary.get("blocker_reason", "walkforward_gate_not_met")))
-    if str(monte_carlo.get("execution_status", "")) != "EXECUTED":
+    if str(monte_carlo.get("execution_status", "")) != "EXECUTED" or not bool(monte_carlo.get("decision_use_allowed", False)):
         blocker_parts.append(str(monte_carlo.get("validation_state", "monte_carlo_blocked")).lower())
-    if str(perturbation.get("execution_status", "")) != "EXECUTED":
+    if str(perturbation.get("execution_status", "")) != "EXECUTED" or not bool(perturbation.get("decision_use_allowed", False)):
         blocker_parts.append(str(perturbation.get("validation_state", "cross_perturbation_blocked")).lower())
+    if str(split_perturbation.get("execution_status", "")) != "EXECUTED" or not bool(split_perturbation.get("decision_use_allowed", False)):
+        blocker_parts.append(str(split_perturbation.get("validation_state", "split_perturbation_blocked")).lower())
+
+    layered = summarize_layered_robustness(
+        replay_metrics=replay_metrics,
+        walkforward_summary=walkforward_summary,
+        monte_carlo=monte_carlo,
+        perturbation=perturbation,
+        split_perturbation=split_perturbation,
+        config=cfg,
+    )
+    status = "SUCCESS" if int(layered.get("level_reached", 0)) >= 3 else "PARTIAL"
+    validation_state = "REAL_VALIDATION_PASSED" if status == "SUCCESS" else "REAL_VALIDATION_FAILED"
 
     summary = {
         "stage": "67",
@@ -201,11 +258,18 @@ def main() -> None:
         "mean_score": float(walkforward_metrics_payload.get("mean_forward_exp_lcb", 0.0)),
         "mean_label": float(walkforward_summary.get("forward_expectancy", {}).get("mean", 0.0)),
         "median_forward_exp_lcb": float(walkforward_metrics_payload.get("median_forward_exp_lcb", 0.0)),
+        "worst_window_expectancy": float(walkforward_summary.get("worst_window_expectancy", 0.0)),
+        "p10_forward_expectancy": float(walkforward_summary.get("p10_forward_expectancy", 0.0)),
+        "p10_forward_profit_factor": float(walkforward_summary.get("p10_forward_profit_factor", 0.0)),
+        "positive_window_fraction": float(walkforward_summary.get("positive_window_fraction", 0.0)),
+        "degradation_vs_holdout": float(walkforward_summary.get("degradation_vs_holdout", 0.0)),
         "gates_effective": bool(walkforward.get("decision_use_allowed", False)),
         "metric_source_type": "real_walkforward",
+        "replay_artifact_path": str(replay_metrics_path),
         "walkforward_artifact_path": str(walkforward_metrics_path),
         "monte_carlo_artifact_path": str(stage57_dir / "monte_carlo_metrics_real.json"),
         "cross_perturbation_artifact_path": str(stage57_dir / "cross_perturbation_metrics_real.json"),
+        "split_perturbation_artifact_path": str(split_path),
         "continuity_blocked": bool(market_meta.get("continuity_blocked", False)),
         "continuity_report": dict(market_meta.get("continuity_report", {})),
         "runtime_truth_blocked": bool(market_meta.get("runtime_truth_blocked", False)),
@@ -252,6 +316,11 @@ def main() -> None:
         },
         "monte_carlo_execution_status": str(monte_carlo.get("execution_status", "")),
         "cross_perturbation_execution_status": str(perturbation.get("execution_status", "")),
+        "split_perturbation_execution_status": str(split_perturbation.get("execution_status", "")),
+        "robustness_level": int(layered.get("level_reached", 0)),
+        "robustness_level_name": str(layered.get("level_name", "rejected")),
+        "robustness_stop_reason": str(layered.get("stop_reason", "")),
+        "robustness_levels": dict(layered.get("levels", {})),
         "blocker_reason": ",".join([part for part in blocker_parts if part]),
     }
     if summary["runtime_truth_blocked"] and summary["runtime_truth_reason"]:
@@ -289,9 +358,11 @@ def main() -> None:
                 f"- median_forward_exp_lcb: `{summary['median_forward_exp_lcb']}`",
                 f"- gates_effective: `{summary['gates_effective']}`",
                 f"- metric_source_type: `{summary['metric_source_type']}`",
+                f"- replay_artifact_path: `{summary['replay_artifact_path']}`",
                 f"- walkforward_artifact_path: `{summary['walkforward_artifact_path']}`",
                 f"- monte_carlo_artifact_path: `{summary['monte_carlo_artifact_path']}`",
                 f"- cross_perturbation_artifact_path: `{summary['cross_perturbation_artifact_path']}`",
+                f"- split_perturbation_artifact_path: `{summary['split_perturbation_artifact_path']}`",
                 f"- continuity_blocked: `{summary['continuity_blocked']}`",
                 f"- continuity_report: `{summary['continuity_report']}`",
                 f"- runtime_truth_blocked: `{summary['runtime_truth_blocked']}`",
@@ -300,6 +371,11 @@ def main() -> None:
                 f"- effective_values: `{summary['effective_values']}`",
                 f"- monte_carlo_execution_status: `{summary['monte_carlo_execution_status']}`",
                 f"- cross_perturbation_execution_status: `{summary['cross_perturbation_execution_status']}`",
+                f"- split_perturbation_execution_status: `{summary['split_perturbation_execution_status']}`",
+                f"- robustness_level: `{summary['robustness_level']}`",
+                f"- robustness_level_name: `{summary['robustness_level_name']}`",
+                f"- robustness_stop_reason: `{summary['robustness_stop_reason']}`",
+                f"- robustness_levels: `{summary['robustness_levels']}`",
                 f"- blocker_reason: `{summary['blocker_reason']}`",
                 f"- summary_hash: `{summary['summary_hash']}`",
             ]

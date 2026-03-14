@@ -201,6 +201,8 @@ def aggregate_windows(metrics_per_window: list[dict[str, Any]], cfg: dict[str, A
     forward_profit_factor = _series(usable_rows, "forward_profit_factor")
     forward_return = _series(usable_rows, "forward_return_pct")
     forward_max_dd = _series(usable_rows, "forward_max_drawdown")
+    holdout_expectancy = _series(usable_rows, "holdout_expectancy")
+    holdout_profit_factor = _series(usable_rows, "holdout_profit_factor")
 
     summary = {
         "total_windows": int(len(rows)),
@@ -211,6 +213,21 @@ def aggregate_windows(metrics_per_window: list[dict[str, Any]], cfg: dict[str, A
         "forward_profit_factor": _robust_stats(forward_profit_factor),
         "forward_return_pct": _robust_stats(forward_return),
         "forward_max_drawdown": _robust_stats(forward_max_dd),
+        "holdout_expectancy": _robust_stats(holdout_expectancy),
+        "holdout_profit_factor": _robust_stats(holdout_profit_factor),
+        "worst_window_expectancy": float(forward_expectancy.min()) if not forward_expectancy.empty else 0.0,
+        "p10_forward_expectancy": _quantile(forward_expectancy, 0.10),
+        "p10_forward_profit_factor": _quantile(forward_profit_factor, 0.10),
+        "positive_window_fraction": float((forward_expectancy > 0.0).mean()) if not forward_expectancy.empty else 0.0,
+        "dispersion": {
+            "forward_expectancy_iqr": _robust_stats(forward_expectancy)["iqr"],
+            "forward_expectancy_std": float(forward_expectancy.std(ddof=0)) if not forward_expectancy.empty else 0.0,
+            "forward_profit_factor_iqr": _robust_stats(forward_profit_factor)["iqr"],
+            "forward_return_std": float(forward_return.std(ddof=0)) if not forward_return.empty else 0.0,
+        },
+        "degradation_vs_holdout": float(
+            _robust_stats(forward_expectancy)["median"] - _robust_stats(holdout_expectancy)["median"]
+        ),
     }
 
     min_usable_windows = int(settings["min_usable_windows"])
@@ -414,6 +431,13 @@ def _robust_stats(values: pd.Series) -> dict[str, float]:
         "p05": float(clean.quantile(0.05)),
         "worst": float(clean.min()),
     }
+
+
+def _quantile(values: pd.Series, q: float) -> float:
+    clean = pd.to_numeric(values, errors="coerce").replace([np.inf, -np.inf], np.nan).dropna()
+    if clean.empty:
+        return 0.0
+    return float(clean.quantile(float(q)))
 
 
 def _finite_metrics(metrics: dict[str, float]) -> bool:

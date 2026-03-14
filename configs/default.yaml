@@ -72,6 +72,11 @@ research_scope:
     - structure_pullback_continuation
     - liquidity_sweep_reversal
     - squeeze_flow_breakout
+    - failed_breakout_reversal
+    - exhaustion_mean_reversion
+    - funding_oi_imbalance_reversion
+    - volatility_regime_transition
+    - multi_tf_disagreement_repair
   expansion_rules:
     transfer_symbol: "ETH/USDT"
     require_transfer_confirmation: true

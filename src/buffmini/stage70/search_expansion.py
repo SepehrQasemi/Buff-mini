@@ -1,4 +1,4 @@
-"""Stage-70 deterministic search space expansion with structured hypotheses."""
+"""Stage-70 deterministic search space expansion with structured mechanisms."""
 
 from __future__ import annotations
 
@@ -6,48 +6,11 @@ from typing import Any
 
 import pandas as pd
 
+from buffmini.research.mechanisms import generate_mechanism_source_candidates, mechanism_families
 from buffmini.utils.hashing import stable_hash
 
 
-EXPANDED_FAMILIES: tuple[str, ...] = (
-    "structure_pullback_continuation",
-    "liquidity_sweep_reversal",
-    "squeeze_flow_breakout",
-    "crowded_side_squeeze",
-    "flow_exhaustion_reversal",
-    "regime_shift_entry",
-    "volatility_reclaim_break",
-    "trend_flush_recovery",
-    "funding_imbalance_revert",
-    "open_interest_divergence_break",
-    "multi_tf_bias_alignment",
-    "session_liquidity_rotation",
-)
-
-HYPOTHESIS_CONTEXTS: tuple[str, ...] = ("trend", "range", "transition", "vol_shock", "liquidity_rotation")
-HYPOTHESIS_TRIGGERS: tuple[str, ...] = (
-    "pullback_reclaim",
-    "liquidity_sweep_reclaim",
-    "compression_breakout",
-    "funding_flush_reversion",
-    "oi_divergence_break",
-    "session_rotation_break",
-)
-HYPOTHESIS_CONFIRMATIONS: tuple[str, ...] = (
-    "volume_expansion_confirm",
-    "oi_expansion_confirm",
-    "multi_tf_alignment_confirm",
-    "momentum_slope_confirm",
-    "none",
-)
-HYPOTHESIS_INVALIDATIONS: tuple[str, ...] = (
-    "structure_break",
-    "failed_reclaim",
-    "flow_reversal",
-    "volatility_recompression",
-)
-EXIT_FAMILIES: tuple[str, ...] = ("fixed_rr", "trailing_atr", "scale_out_then_trail", "time_exit")
-TIME_STOP_BARS: tuple[int, ...] = (8, 12, 16, 24, 36, 48, 72)
+EXPANDED_FAMILIES: tuple[str, ...] = mechanism_families()
 
 
 def economic_fingerprint(record: dict[str, Any]) -> str:
@@ -57,9 +20,12 @@ def economic_fingerprint(record: dict[str, Any]) -> str:
         "context": str(record.get("context", "")),
         "trigger": str(record.get("trigger", "")),
         "confirmation": str(record.get("confirmation", "")),
+        "participation_style": str(record.get("participation_style", record.get("participation", ""))),
         "invalidation": str(record.get("invalidation", "")),
+        "risk_model": str(record.get("risk_model", "")),
         "exit_family": str(record.get("exit_family", "")),
         "time_stop_bars": int(record.get("time_stop_bars", 0)),
+        "session_filter": str(record.get("session_filter", "")),
     }
     return str(stable_hash(material, length=20))
 
@@ -79,83 +45,64 @@ def deduplicate_economic_candidates(candidates: pd.DataFrame) -> pd.DataFrame:
     return ranked.reset_index(drop=True)
 
 
-def _build_hypothesis_row(*, idx: int, timeframes: list[str]) -> dict[str, Any]:
-    family = EXPANDED_FAMILIES[idx % len(EXPANDED_FAMILIES)]
-    timeframe = timeframes[idx % len(timeframes)]
-    context = HYPOTHESIS_CONTEXTS[(idx // 2) % len(HYPOTHESIS_CONTEXTS)]
-    trigger = HYPOTHESIS_TRIGGERS[(idx // 3) % len(HYPOTHESIS_TRIGGERS)]
-    confirmation = HYPOTHESIS_CONFIRMATIONS[(idx // 5) % len(HYPOTHESIS_CONFIRMATIONS)]
-    invalidation = HYPOTHESIS_INVALIDATIONS[(idx // 7) % len(HYPOTHESIS_INVALIDATIONS)]
-    exit_family = EXIT_FAMILIES[(idx // 11) % len(EXIT_FAMILIES)]
-    time_stop_bars = int(TIME_STOP_BARS[(idx // 13) % len(TIME_STOP_BARS)])
-    hypothesis = {
-        "context": context,
-        "trigger": trigger,
-        "participation": confirmation,
-        "invalidation": invalidation,
-        "exit_family": exit_family,
-        "time_stop_bars": time_stop_bars,
-    }
-    fingerprint = economic_fingerprint(
-        {
-            "family": family,
-            "timeframe": timeframe,
-            "context": context,
-            "trigger": trigger,
-            "confirmation": confirmation,
-            "invalidation": invalidation,
-            "exit_family": exit_family,
-            "time_stop_bars": time_stop_bars,
-        }
-    )
-    priority_seed = float(round(0.25 + ((idx % 31) / 50.0), 8))
-    novelty_score = float(round(0.20 + (((idx * 7) % 29) / 60.0), 8))
-    candidate_id = f"s70_{stable_hash({'i': idx, 'fp': fingerprint}, length=16)}"
-    return {
-        "candidate_id": candidate_id,
-        "family": family,
-        "timeframe": timeframe,
-        "context": context,
-        "trigger": trigger,
-        "confirmation": confirmation,
-        "invalidation": invalidation,
-        "exit_family": exit_family,
-        "time_stop_bars": int(time_stop_bars),
-        "hypothesis": hypothesis,
-        "economic_fingerprint": fingerprint,
-        "priority_seed": priority_seed,
-        "novelty_score": novelty_score,
-    }
-
-
 def generate_expanded_candidates(
     *,
     discovery_timeframes: list[str],
     budget_mode_selected: str,
+    active_families: list[str] | None = None,
+    failure_feedback: dict[str, Any] | None = None,
     min_search_candidates: int = 2500,
     min_full_audit_candidates: int = 10000,
 ) -> pd.DataFrame:
     mode = str(budget_mode_selected).lower().strip()
     target = int(min_full_audit_candidates if mode == "full_audit" else min_search_candidates)
     timeframes = [str(v) for v in discovery_timeframes if str(v).strip()] or ["1h"]
-
-    # Oversample then deduplicate by economic behavior.
-    pool_size = int(max(target * 2, target + 128))
-    pool_rows = [_build_hypothesis_row(idx=idx, timeframes=timeframes) for idx in range(pool_size)]
-    deduped = deduplicate_economic_candidates(pd.DataFrame(pool_rows))
-
-    # Guarantee target cardinality with deterministic suffix perturbations if needed.
-    if len(deduped) < target:
-        extra_rows: list[dict[str, Any]] = []
-        idx = pool_size
-        while len(deduped) + len(extra_rows) < target:
-            row = _build_hypothesis_row(idx=idx, timeframes=timeframes)
-            row["time_stop_bars"] = int(TIME_STOP_BARS[(idx + 3) % len(TIME_STOP_BARS)])
-            row["economic_fingerprint"] = economic_fingerprint(row)
-            row["candidate_id"] = f"s70_{stable_hash({'i': idx, 'fp': row['economic_fingerprint'], 'extra': 1}, length=16)}"
-            extra_rows.append(row)
-            idx += 1
-        deduped = deduplicate_economic_candidates(pd.concat([deduped, pd.DataFrame(extra_rows)], ignore_index=True))
-
+    raw = generate_mechanism_source_candidates(
+        discovery_timeframes=timeframes,
+        budget_mode_selected=mode,
+        active_families=active_families,
+        target_min_candidates=int(target),
+    )
+    raw = raw.copy()
+    raw["hypothesis"] = [
+        {
+            "context": row.get("context"),
+            "trigger": row.get("trigger"),
+            "participation": row.get("participation_style", row.get("participation")),
+            "invalidation": row.get("invalidation"),
+            "risk_model": row.get("risk_model"),
+            "exit_family": row.get("exit_family"),
+            "time_stop_bars": int(row.get("time_stop_bars", 0)),
+            "session_filter": row.get("session_filter"),
+        }
+        for row in raw.to_dict(orient="records")
+    ]
+    raw["economic_fingerprint"] = [economic_fingerprint(dict(row)) for row in raw.to_dict(orient="records")]
+    raw = _apply_failure_feedback(raw, failure_feedback or {})
+    deduped = deduplicate_economic_candidates(raw)
     out = deduped.sort_values(["priority_seed", "novelty_score", "candidate_id"], ascending=[False, False, True]).head(target).reset_index(drop=True)
     return out
+
+
+def _apply_failure_feedback(frame: pd.DataFrame, feedback: dict[str, Any]) -> pd.DataFrame:
+    work = frame.copy()
+    family_adjustments = {str(key): float(value) for key, value in dict(feedback.get("family_priority_adjustments", {})).items()}
+    guidance = [str(item) for item in list(feedback.get("threshold_guidance", []))]
+    if not work.empty:
+        work["priority_seed"] = pd.to_numeric(work.get("priority_seed", 0.0), errors="coerce").fillna(0.0)
+        work["novelty_score"] = pd.to_numeric(work.get("novelty_score", 0.0), errors="coerce").fillna(0.0)
+        work["transfer_risk_prior"] = pd.to_numeric(work.get("transfer_risk_prior", 0.0), errors="coerce").fillna(0.0)
+        work["priority_seed"] = work["priority_seed"] + work.get("family", "").astype(str).map(lambda family: family_adjustments.get(str(family), 0.0)).fillna(0.0)
+        if "favor_lower_transfer_risk" in guidance:
+            work["priority_seed"] = work["priority_seed"] + (0.04 * (1.0 - work["transfer_risk_prior"].clip(lower=0.0, upper=1.0)))
+        if "diversify_mechanism_mix" in guidance:
+            work["novelty_score"] = work["novelty_score"] + 0.03
+        if "raise_cost_edge_floor" in guidance:
+            work["priority_seed"] = work["priority_seed"] + work.get("risk_model", "").astype(str).map(lambda _: 0.01).fillna(0.0)
+        if "broaden_trade_density" in guidance:
+            work["novelty_score"] = work["novelty_score"] + work.get("session_filter", "").astype(str).map(
+                lambda value: 0.02 if value == "any_session" else 0.0
+            ).fillna(0.0)
+        work["priority_seed"] = work["priority_seed"].clip(lower=0.0, upper=2.0)
+        work["novelty_score"] = work["novelty_score"].clip(lower=0.0, upper=2.0)
+    return work

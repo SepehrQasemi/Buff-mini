@@ -15,9 +15,11 @@
 - median_forward_exp_lcb: `0.0`
 - gates_effective: `False`
 - metric_source_type: `real_walkforward`
+- replay_artifact_path: `runs\20260313_154858_044fff9053df_stage28\stage67\replay_metrics_real.json`
 - walkforward_artifact_path: `runs\20260313_154858_044fff9053df_stage28\stage67\walkforward_metrics_real.json`
 - monte_carlo_artifact_path: `runs\20260313_154858_044fff9053df_stage28\stage57\monte_carlo_metrics_real.json`
 - cross_perturbation_artifact_path: `runs\20260313_154858_044fff9053df_stage28\stage57\cross_perturbation_metrics_real.json`
+- split_perturbation_artifact_path: `runs\20260313_154858_044fff9053df_stage28\stage67\split_perturbation_metrics_real.json`
 - continuity_blocked: `False`
 - continuity_report: `{'rows': 6943, 'gap_count': 1, 'max_gap_bars': 0, 'largest_gap_bars': 1, 'total_missing_bars': 1, 'missing_ratio': 0.000144009217, 'passed': False, 'passes_strict': False, 'gaps': [{'start_ts': '2023-03-24T08:00:00+00:00', 'end_ts': '2023-03-24T16:00:00+00:00', 'bars_missing': 1}]}`
 - runtime_truth_blocked: `False`
@@ -26,5 +28,10 @@
 - effective_values: `{'train_days': 180, 'holdout_days': 30, 'forward_days': 30, 'step_days': 30, 'reserve_tail_days': 0, 'min_forward_trades': 10, 'min_forward_exposure': 0.01, 'min_median_forward_exp_lcb': 0.0, 'min_usable_windows': 5, 'monte_carlo_n_paths': 5000, 'monte_carlo_block_size': 10, 'cross_perturbation_min_survivors': 3, 'frozen_research_mode': False, 'require_resolved_end_ts': False, 'resolved_end_required_effective': False, 'resolved_end_ts': '', 'strict_continuity_effective': False, 'canonical_scope_active': False}`
 - monte_carlo_execution_status: `BLOCKED`
 - cross_perturbation_execution_status: `EXECUTED`
-- blocker_reason: `walkforward_gate_not_met,insufficient_trades`
-- summary_hash: `3784835567bb7392`
+- split_perturbation_execution_status: `EXECUTED`
+- robustness_level: `0`
+- robustness_level_name: `rejected`
+- robustness_stop_reason: `mechanism_not_viable`
+- robustness_levels: `{'level_1_mechanism_viability': False, 'level_2_forward_plausibility': False, 'level_3_full_robustness': False}`
+- blocker_reason: `walkforward_gate_not_met,insufficient_trades,real_validation_failed`
+- summary_hash: `04c3572f1b4da98e`

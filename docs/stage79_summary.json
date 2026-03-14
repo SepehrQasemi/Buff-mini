@@ -1,0 +1,28 @@
+{
+  "stage": "79",
+  "status": "SUCCESS",
+  "execution_status": "EXECUTED",
+  "stage_role": "heuristic_filter",
+  "validation_state": "PROMISING_CANDIDATES_SURFACED",
+  "candidate_count": 91,
+  "candidate_class_counts": {
+    "promising_but_unproven": 91
+  },
+  "promising_count": 91,
+  "validated_count": 0,
+  "fingerprint_diversity": 1.0,
+  "mean_aggregate_risk": 0.404168,
+  "mean_risk_card": {
+    "trade_density_risk": 0.220269,
+    "cost_fragility_risk": 0.5,
+    "regime_concentration_risk": 0.289171,
+    "hold_sanity_risk": 0.125,
+    "overlap_duplication_risk": 1.0,
+    "clustering_risk": 1.0,
+    "thin_evidence_risk": 0.098901,
+    "transfer_risk_prior": 0.0,
+    "aggregate_risk": 0.404168
+  },
+  "artifact_path": "docs/stage79_ranking_cards.csv",
+  "summary_hash": "8a25cfdeade66a9f"
+}

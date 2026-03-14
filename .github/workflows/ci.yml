@@ -2,6 +2,7 @@
 
 on:
   push:
+  pull_request:
 
 jobs:
   test:
@@ -25,6 +26,14 @@ jobs:
         run: |
           python -m compileall src scripts tests launch_app.py
           pytest -q
+
+      - name: Detectability smoke
+        run: |
+          python scripts/run_stage76.py --config configs/default.yaml --docs-dir docs
+
+      - name: Evaluation-mode smoke
+        run: |
+          python scripts/run_stage77.py --config configs/default.yaml --docs-dir docs --mode evaluation
 
       - name: Stage28 dry-run smoke
         run: |

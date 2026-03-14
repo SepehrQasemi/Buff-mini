@@ -60,7 +60,9 @@ def test_stage67_writes_real_validation_artifacts(tmp_path: Path) -> None:
     result = subprocess.run(cmd, cwd=REPO_ROOT, check=False, capture_output=True, text=True)
     if result.returncode != 0:
         raise AssertionError(f"run_stage67.py failed:\nSTDOUT:\n{result.stdout}\nSTDERR:\n{result.stderr}")
+    assert (runs / run_id / "stage67" / "replay_metrics_real.json").exists()
     assert (runs / run_id / "stage67" / "walkforward_metrics_real.json").exists()
+    assert (runs / run_id / "stage67" / "split_perturbation_metrics_real.json").exists()
     assert (runs / run_id / "stage57" / "monte_carlo_metrics_real.json").exists()
     assert (runs / run_id / "stage57" / "cross_perturbation_metrics_real.json").exists()
 

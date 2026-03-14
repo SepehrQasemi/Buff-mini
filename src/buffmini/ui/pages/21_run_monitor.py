@@ -89,6 +89,7 @@ stage58_summary = _read_json(Path("docs") / "stage58_summary.json")
 stage61_summary = _read_json(Path("docs") / "stage61_summary.json")
 stage67_summary = _read_json(Path("docs") / "stage67_summary.json")
 stage72_summary = _read_json(Path("docs") / "stage72_summary.json")
+stage77_summary = _read_json(Path("docs") / "stage77_summary.json")
 full_trace_summary = _read_json(Path("docs") / "full_trace_summary.json")
 
 stage = str(progress.get("stage", pipeline_summary.get("status", "unknown")))
@@ -137,6 +138,11 @@ if stage57_summary:
             "runtime_truth_reason": (full_trace_summary.get("evidence_quality", {}) or {}).get("runtime_truth_reason"),
             "transfer_required": (full_trace_summary.get("evidence_quality", {}) or {}).get("transfer_required"),
             "final_decision_use_allowed": (full_trace_summary.get("evidence_quality", {}) or {}).get("final_decision_use_allowed"),
+            "run_mode": stage77_summary.get("mode"),
+            "interpretation_allowed": stage77_summary.get("interpretation_allowed"),
+            "canonical_status": stage77_summary.get("canonical_status"),
+            "resolved_end_ts_status": stage77_summary.get("resolved_end_ts_status"),
+            "stage77_blocked_reasons": stage77_summary.get("blocked_reasons", []),
         }
     )
 else:
@@ -146,6 +152,12 @@ if stage72_summary:
         f"final_verdict={stage72_summary.get('verdict')} | "
         f"decision_evidence_allowed={stage72_summary.get('decision_evidence_allowed')} | "
         f"final_decision_use_allowed={stage72_summary.get('final_decision_use_allowed')}"
+    )
+if stage77_summary:
+    st.caption(
+        f"run_mode={stage77_summary.get('mode')} | "
+        f"interpretation_allowed={stage77_summary.get('interpretation_allowed')} | "
+        f"canonical_status={stage77_summary.get('canonical_status')}"
     )
 
 cpu, mem = _cpu_mem()

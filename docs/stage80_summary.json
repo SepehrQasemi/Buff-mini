@@ -1,0 +1,93 @@
+{
+  "stage": "80",
+  "status": "PARTIAL",
+  "execution_status": "EXECUTED",
+  "stage_role": "real_validation",
+  "validation_state": "ROBUSTNESS_NOT_ESTABLISHED",
+  "level_reached": 0,
+  "level_name": "rejected",
+  "stop_reason": "mechanism_not_viable",
+  "levels": {
+    "level_1_mechanism_viability": false,
+    "level_2_forward_plausibility": false,
+    "level_3_full_robustness": false
+  },
+  "forward_metrics": {
+    "worst_window_expectancy": 0.0,
+    "p10_forward_expectancy": 0.0,
+    "p10_forward_profit_factor": 0.0,
+    "positive_window_fraction": 0.0,
+    "dispersion": {},
+    "degradation_vs_holdout": 0.0
+  },
+  "stress_results": {
+    "monte_carlo_passed": false,
+    "cross_perturbation_passed": false,
+    "split_perturbation_passed": false,
+    "monte_carlo_scenarios": [],
+    "cross_perturbation_rows": [],
+    "split_perturbation_summary": {
+      "total_windows": 16,
+      "usable_windows": 0,
+      "excluded_windows": 16,
+      "excluded_reasons": {
+        "min_exposure": 8,
+        "min_trades": 16
+      },
+      "forward_expectancy": {
+        "median": 0.0,
+        "iqr": 0.0,
+        "p05": 0.0,
+        "worst": 0.0
+      },
+      "forward_profit_factor": {
+        "median": 0.0,
+        "iqr": 0.0,
+        "p05": 0.0,
+        "worst": 0.0
+      },
+      "forward_return_pct": {
+        "median": 0.0,
+        "iqr": 0.0,
+        "p05": 0.0,
+        "worst": 0.0
+      },
+      "forward_max_drawdown": {
+        "median": 0.0,
+        "iqr": 0.0,
+        "p05": 0.0,
+        "worst": 0.0
+      },
+      "holdout_expectancy": {
+        "median": 0.0,
+        "iqr": 0.0,
+        "p05": 0.0,
+        "worst": 0.0
+      },
+      "holdout_profit_factor": {
+        "median": 0.0,
+        "iqr": 0.0,
+        "p05": 0.0,
+        "worst": 0.0
+      },
+      "worst_window_expectancy": 0.0,
+      "p10_forward_expectancy": 0.0,
+      "p10_forward_profit_factor": 0.0,
+      "positive_window_fraction": 0.0,
+      "dispersion": {
+        "forward_expectancy_iqr": 0.0,
+        "forward_expectancy_std": 0.0,
+        "forward_profit_factor_iqr": 0.0,
+        "forward_return_std": 0.0
+      },
+      "degradation_vs_holdout": 0.0,
+      "classification": "INSUFFICIENT_DATA",
+      "classification_explanation": "usable_windows=0 < min_usable_windows=3",
+      "status": "PARTIAL",
+      "median_forward_exp_lcb": 0.0,
+      "blocker_reason": "walkforward_gate_not_met",
+      "summary_hash": "ebb1dad86eee518c"
+    }
+  },
+  "summary_hash": "53f1652e10e941ac"
+}

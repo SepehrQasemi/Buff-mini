@@ -6,17 +6,86 @@
   "validation_state": "TRANSFER_NOT_CONFIRMED",
   "stage28_run_id": "20260313_154858_044fff9053df_stage28",
   "candidate_id": "s52_8198eb4047124b78",
+  "primary_symbol": "BTC/USDT",
   "transfer_symbol": "ETH/USDT",
+  "available_transfer_symbols": [
+    "BTC/USDT",
+    "ETH/USDT"
+  ],
   "stage57_verdict": "PARTIAL",
   "transfer_result": {
     "verdict": "PARTIAL",
     "transfer_acceptable": false,
     "reason": "stage57_partial_insufficient_evidence"
   },
+  "transfer_matrix": [
+    {
+      "metric_source_type": "real_transfer",
+      "artifact_path": "runs\\20260313_154858_044fff9053df_stage28\\stage58\\transfer_ETH-USDT_metrics_real.json",
+      "candidate_id": "s52_8198eb4047124b78",
+      "primary_symbol": "BTC/USDT",
+      "transfer_symbol": "ETH/USDT",
+      "timeframe": "4h",
+      "execution_status": "EXECUTED",
+      "validation_state": "REAL_TRANSFER_READY",
+      "decision_use_allowed": true,
+      "evidence_quality": "artifact_backed_real",
+      "metrics": {
+        "trade_count": 80,
+        "exp_lcb": -0.00506159,
+        "maxDD": 0.27865508
+      },
+      "market_meta": {
+        "symbol": "ETH/USDT",
+        "timeframe": "4h",
+        "rows": 6943,
+        "load_mode": "configured_store",
+        "resolved_end_ts": "",
+        "resolved_end_required_effective": false,
+        "resolved_end_missing": false,
+        "canonical_scope_active": false,
+        "continuity_report": {
+          "rows": 6943,
+          "gap_count": 1,
+          "max_gap_bars": 0,
+          "largest_gap_bars": 1,
+          "total_missing_bars": 1,
+          "missing_ratio": 0.000144009217,
+          "passed": false,
+          "passes_strict": false,
+          "gaps": [
+            {
+              "start_ts": "2023-03-24T08:00:00+00:00",
+              "end_ts": "2023-03-24T16:00:00+00:00",
+              "bars_missing": 1
+            }
+          ]
+        },
+        "continuity_blocked": false,
+        "runtime_truth_blocked": false,
+        "runtime_truth_reason": "",
+        "continuity_policy_effective": {
+          "strict_mode": false,
+          "fail_on_gap": false,
+          "frozen_research_mode": false,
+          "require_resolved_end_ts": false
+        },
+        "load_errors": []
+      },
+      "classification": "not_transferable",
+      "diagnostics": [
+        "regime_mismatch"
+      ]
+    }
+  ],
+  "transfer_class_counts": {
+    "not_transferable": 1
+  },
   "transfer_execution_status": "EXECUTED",
   "transfer_validation_state": "REAL_TRANSFER_READY",
   "decision_use_allowed": true,
   "evidence_quality": "artifact_backed_real",
   "transfer_artifact_exists": true,
-  "summary_hash": "37127a03fded1177"
+  "transfer_matrix_artifact_exists": true,
+  "summary_hash": "99b0e6767044421a"
 }

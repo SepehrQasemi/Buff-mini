@@ -45,12 +45,14 @@ stage58_summary_path = PROJECT_ROOT / "docs" / "stage58_summary.json"
 stage61_summary_path = PROJECT_ROOT / "docs" / "stage61_summary.json"
 stage67_summary_path = PROJECT_ROOT / "docs" / "stage67_summary.json"
 stage72_summary_path = PROJECT_ROOT / "docs" / "stage72_summary.json"
+stage77_summary_path = PROJECT_ROOT / "docs" / "stage77_summary.json"
 full_trace_summary_path = PROJECT_ROOT / "docs" / "full_trace_summary.json"
 stage57_summary = json.loads(stage57_summary_path.read_text(encoding="utf-8")) if stage57_summary_path.exists() else {}
 stage58_summary = json.loads(stage58_summary_path.read_text(encoding="utf-8")) if stage58_summary_path.exists() else {}
 stage61_summary = json.loads(stage61_summary_path.read_text(encoding="utf-8")) if stage61_summary_path.exists() else {}
 stage67_summary = json.loads(stage67_summary_path.read_text(encoding="utf-8")) if stage67_summary_path.exists() else {}
 stage72_summary = json.loads(stage72_summary_path.read_text(encoding="utf-8")) if stage72_summary_path.exists() else {}
+stage77_summary = json.loads(stage77_summary_path.read_text(encoding="utf-8")) if stage77_summary_path.exists() else {}
 full_trace_summary = json.loads(full_trace_summary_path.read_text(encoding="utf-8")) if full_trace_summary_path.exists() else {}
 
 stage3_2_run_id = pipeline_summary.get("stage3_2_run_id")
@@ -128,6 +130,11 @@ with summary_tab:
                 "runtime_truth_reason": (full_trace_summary.get("evidence_quality", {}) or {}).get("runtime_truth_reason"),
                 "transfer_required": (full_trace_summary.get("evidence_quality", {}) or {}).get("transfer_required"),
                 "final_decision_use_allowed": (full_trace_summary.get("evidence_quality", {}) or {}).get("final_decision_use_allowed"),
+                "run_mode": stage77_summary.get("mode"),
+                "interpretation_allowed": stage77_summary.get("interpretation_allowed"),
+                "canonical_status": stage77_summary.get("canonical_status"),
+                "resolved_end_ts_status": stage77_summary.get("resolved_end_ts_status"),
+                "stage77_blocked_reasons": stage77_summary.get("blocked_reasons", []),
             }
         )
     if stage58_summary:
@@ -141,6 +148,12 @@ with summary_tab:
             f"final_verdict={stage72_summary.get('verdict')} | "
             f"decision_evidence_allowed={stage72_summary.get('decision_evidence_allowed')} | "
             f"final_decision_use_allowed={stage72_summary.get('final_decision_use_allowed')}"
+        )
+    if stage77_summary:
+        st.caption(
+            f"run_mode={stage77_summary.get('mode')} | "
+            f"interpretation_allowed={stage77_summary.get('interpretation_allowed')} | "
+            f"canonical_status={stage77_summary.get('canonical_status')}"
         )
 
     st.subheader("Save To Library")

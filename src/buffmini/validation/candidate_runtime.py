@@ -21,6 +21,7 @@ from buffmini.stage45 import (
     compute_volatility_regime_engine,
 )
 from buffmini.stage46 import (
+    compute_crowding_layer,
     compute_flow_regime_engine,
     compute_mtf_bias_completion,
     compute_trade_geometry_layer,
@@ -79,7 +80,10 @@ def hydrate_candidate_record(record: dict[str, Any]) -> dict[str, Any]:
     timeframe = str(row.get("timeframe", "1h")).strip() or "1h"
     geometry = _safe_mapping(row.get("geometry"))
     if not geometry and family:
-        geometry = default_geometry_for_family(family=family, timeframe=timeframe)
+        try:
+            geometry = default_geometry_for_family(family=family, timeframe=timeframe)
+        except Exception:
+            geometry = _generic_runtime_geometry(family=family, timeframe=timeframe)
     rr_model = _safe_mapping(row.get("rr_model"))
     if not rr_model and geometry:
         stop_distance_pct = _safe_float(geometry.get("stop_distance_pct", 0.0))
@@ -161,10 +165,25 @@ def load_candidate_market_frame(
     continuity_blocked = bool((fail_on_gap or strict_mode) and not continuity.get("passes_strict", True))
     runtime_truth_reason = "MISSING_RESOLVED_END_TS" if resolved_end_missing else ""
     runtime_truth_blocked = bool(runtime_truth_reason)
+    start_ts = ""
+    end_ts = ""
+    if not frame.empty and "timestamp" in frame.columns:
+        ts = pd.to_datetime(frame["timestamp"], utc=True, errors="coerce").dropna()
+        if not ts.empty:
+            start_ts = str(ts.min().isoformat())
+            end_ts = str(ts.max().isoformat())
+    continuity_reason = ""
+    if continuity_blocked:
+        continuity_reason = (
+            f"gap_count={int(continuity.get('gap_count', 0))},"
+            f"largest_gap_bars={int(continuity.get('largest_gap_bars', 0))},"
+            f"max_gap_bars={int(continuity.get('max_gap_bars', 0))}"
+        )
     meta = {
         "symbol": str(symbol),
         "timeframe": str(timeframe),
         "rows": int(len(frame)),
+        "row_count": int(len(frame)),
         "load_mode": load_mode,
         "resolved_end_ts": str(resolved_end_ts),
         "resolved_end_required_effective": bool(resolved_end_required_effective),
@@ -172,8 +191,20 @@ def load_candidate_market_frame(
         "canonical_scope_active": bool(frozen_mode),
         "continuity_report": continuity,
         "continuity_blocked": continuity_blocked,
+        "continuity_reason": continuity_reason,
         "runtime_truth_blocked": runtime_truth_blocked,
         "runtime_truth_reason": runtime_truth_reason,
+        "data_hash": stable_hash(
+            {
+                "symbol": str(symbol),
+                "timeframe": str(timeframe),
+                "rows": int(len(frame)),
+                "start_ts": start_ts,
+                "end_ts": end_ts,
+                "resolved_end_ts": str(resolved_end_ts),
+            },
+            length=16,
+        ),
         "continuity_policy_effective": {
             "strict_mode": strict_mode,
             "fail_on_gap": fail_on_gap,
@@ -197,6 +228,8 @@ def run_candidate_replay(
     slippage_multiplier: float = 1.0,
     funding_multiplier: float = 1.0,
     hold_bars_multiplier: float = 1.0,
+    signal_delay_bars: int = 0,
+    signal_keep_ratio: float = 1.0,
 ) -> dict[str, Any]:
     """Run one actual replay/backtest for a Stage-52 candidate on real candles."""
 
@@ -244,7 +277,12 @@ def run_candidate_replay(
             "backtest_params": {},
         }
 
-    enriched = _prepare_runtime_frame(frame=frame, candidate=runtime_candidate)
+    enriched = _prepare_runtime_frame(
+        frame=frame,
+        candidate=runtime_candidate,
+        signal_delay_bars=int(max(0, signal_delay_bars)),
+        signal_keep_ratio=float(max(0.05, min(signal_keep_ratio, 1.0))),
+    )
     backtest_params = _candidate_backtest_params(
         frame=enriched,
         candidate=runtime_candidate,
@@ -458,7 +496,7 @@ def estimate_trade_monte_carlo(
     n_paths: int,
     block_size: int,
 ) -> dict[str, Any]:
-    """Estimate a conservative downside bound from actual trade returns."""
+    """Estimate multi-scenario downside and drawdown stress from actual trade returns."""
 
     if trades.empty or "return_pct" not in trades.columns:
         return {
@@ -466,9 +504,11 @@ def estimate_trade_monte_carlo(
             "validation_state": "INSUFFICIENT_TRADES",
             "decision_use_allowed": False,
             "conservative_downside_bound": -1.0,
+            "worst_case_drawdown_p95": 1.0,
             "n_paths": 0,
             "sample_size": 0,
             "block_size": int(block_size),
+            "scenario_rows": [],
         }
     returns = pd.to_numeric(trades["return_pct"], errors="coerce").replace([np.inf, -np.inf], np.nan).dropna().to_numpy(dtype=float)
     if int(len(returns)) < 8:
@@ -477,29 +517,61 @@ def estimate_trade_monte_carlo(
             "validation_state": "INSUFFICIENT_TRADES",
             "decision_use_allowed": False,
             "conservative_downside_bound": -1.0,
+            "worst_case_drawdown_p95": 1.0,
             "n_paths": 0,
             "sample_size": int(len(returns)),
             "block_size": int(block_size),
+            "scenario_rows": [],
         }
     rng = np.random.default_rng(int(seed))
     block = int(max(4, min(int(block_size), len(returns))))
     horizon = int(len(returns))
-    path_means: list[float] = []
-    for _ in range(int(max(100, n_paths))):
-        idx = int(rng.integers(0, max(1, len(returns) - block + 1)))
-        segment = returns[idx : idx + block]
-        reps = int(max(1, np.ceil(horizon / max(1, len(segment)))))
-        path = np.tile(segment, reps)[:horizon]
-        path_means.append(float(np.mean(path)))
-    downside = float(np.quantile(np.asarray(path_means, dtype=float), 0.05))
+    scenarios = [
+        {"label": "block_bootstrap", "mode": "block_bootstrap"},
+        {"label": "trade_order_shuffle", "mode": "trade_order_shuffle"},
+        {"label": "missed_trade_stress", "mode": "missed_trade_stress"},
+        {"label": "cost_stress", "mode": "cost_stress"},
+        {"label": "delay_stress", "mode": "delay_stress"},
+    ]
+    scenario_rows: list[dict[str, Any]] = []
+    for scenario in scenarios:
+        path_terminal_returns: list[float] = []
+        path_drawdowns: list[float] = []
+        for _ in range(int(max(100, n_paths))):
+            sampled = _sample_trade_path(
+                returns=returns,
+                rng=rng,
+                block_size=block,
+                horizon=horizon,
+                mode=str(scenario["mode"]),
+            )
+            equity = np.cumprod(1.0 + sampled)
+            running_peak = np.maximum.accumulate(equity)
+            drawdown = 1.0 - (equity / np.maximum(running_peak, 1e-9))
+            path_terminal_returns.append(float(equity[-1] - 1.0))
+            path_drawdowns.append(float(np.nanmax(drawdown)))
+        terminal_p05 = float(np.quantile(np.asarray(path_terminal_returns, dtype=float), 0.05))
+        drawdown_p95 = float(np.quantile(np.asarray(path_drawdowns, dtype=float), 0.95))
+        scenario_rows.append(
+            {
+                "scenario": str(scenario["label"]),
+                "terminal_return_p05": float(round(terminal_p05, 8)),
+                "max_drawdown_p95": float(round(drawdown_p95, 8)),
+                "passed": bool(terminal_p05 >= -0.02 and drawdown_p95 <= 0.35),
+            }
+        )
+    downside = float(min(row["terminal_return_p05"] for row in scenario_rows))
+    worst_drawdown = float(max(row["max_drawdown_p95"] for row in scenario_rows))
     return {
         "execution_status": "EXECUTED",
         "validation_state": "REAL_MONTE_CARLO_READY",
-        "decision_use_allowed": True,
+        "decision_use_allowed": bool(all(bool(row["passed"]) for row in scenario_rows)),
         "conservative_downside_bound": float(round(downside, 8)),
-        "n_paths": int(len(path_means)),
+        "worst_case_drawdown_p95": float(round(worst_drawdown, 8)),
+        "n_paths": int(max(100, n_paths)),
         "sample_size": int(len(returns)),
         "block_size": int(block),
+        "scenario_rows": scenario_rows,
     }
 
 
@@ -529,11 +601,11 @@ def evaluate_cross_perturbation(
         }
 
     perturbations = [
-        {"label": "base", "cost_multiplier": 1.0, "slippage_multiplier": 1.0, "funding_multiplier": 1.0, "hold_bars_multiplier": 1.0},
-        {"label": "cost_up", "cost_multiplier": 1.5, "slippage_multiplier": 1.0, "funding_multiplier": 1.0, "hold_bars_multiplier": 1.0},
-        {"label": "slippage_up", "cost_multiplier": 1.0, "slippage_multiplier": 1.5, "funding_multiplier": 1.0, "hold_bars_multiplier": 1.0},
-        {"label": "funding_up", "cost_multiplier": 1.0, "slippage_multiplier": 1.0, "funding_multiplier": 2.0, "hold_bars_multiplier": 1.0},
-        {"label": "faster_time_stop", "cost_multiplier": 1.0, "slippage_multiplier": 1.0, "funding_multiplier": 1.0, "hold_bars_multiplier": 0.75},
+        {"label": "base", "cost_multiplier": 1.0, "slippage_multiplier": 1.0, "funding_multiplier": 1.0, "hold_bars_multiplier": 1.0, "signal_delay_bars": 0, "signal_keep_ratio": 1.0},
+        {"label": "threshold_perturbation", "cost_multiplier": 1.0, "slippage_multiplier": 1.0, "funding_multiplier": 1.0, "hold_bars_multiplier": 1.0, "signal_delay_bars": 0, "signal_keep_ratio": 0.80},
+        {"label": "cost_perturbation", "cost_multiplier": 1.5, "slippage_multiplier": 1.2, "funding_multiplier": 1.0, "hold_bars_multiplier": 1.0, "signal_delay_bars": 0, "signal_keep_ratio": 1.0},
+        {"label": "timing_perturbation", "cost_multiplier": 1.0, "slippage_multiplier": 1.0, "funding_multiplier": 1.0, "hold_bars_multiplier": 1.0, "signal_delay_bars": 1, "signal_keep_ratio": 1.0},
+        {"label": "feature_perturbation", "cost_multiplier": 1.0, "slippage_multiplier": 1.0, "funding_multiplier": 1.0, "hold_bars_multiplier": 0.85, "signal_delay_bars": 0, "signal_keep_ratio": 0.90},
     ]
     replay_gate = dict(config.get("promotion_gates", {}).get("replay", {}))
     max_drawdown_gate = float(replay_gate.get("max_drawdown", 0.20))
@@ -548,10 +620,12 @@ def evaluate_cross_perturbation(
             market_meta=market_meta,
             perturbation_label=str(perturb["label"]),
             cost_multiplier=float(perturb["cost_multiplier"]),
-            slippage_multiplier=float(perturb["slippage_multiplier"]),
-            funding_multiplier=float(perturb["funding_multiplier"]),
-            hold_bars_multiplier=float(perturb["hold_bars_multiplier"]),
-        )
+              slippage_multiplier=float(perturb["slippage_multiplier"]),
+              funding_multiplier=float(perturb["funding_multiplier"]),
+              hold_bars_multiplier=float(perturb["hold_bars_multiplier"]),
+              signal_delay_bars=int(perturb["signal_delay_bars"]),
+              signal_keep_ratio=float(perturb["signal_keep_ratio"]),
+          )
         metrics = dict(replay.get("metrics", {}))
         passed = bool(
             replay.get("execution_status") == "EXECUTED"
@@ -566,12 +640,13 @@ def evaluate_cross_perturbation(
                 "perturbation_label": str(perturb["label"]),
                 "trade_count": int(metrics.get("trade_count", 0)),
                 "exp_lcb": float(metrics.get("exp_lcb", 0.0)),
-                "maxDD": float(metrics.get("maxDD", 0.0)),
-                "passed": bool(passed),
-                "execution_status": str(replay.get("execution_status", "BLOCKED")),
-                "validation_state": str(replay.get("validation_state", "")),
-            }
-        )
+                  "maxDD": float(metrics.get("maxDD", 0.0)),
+                  "passed": bool(passed),
+                  "category": str(perturb["label"]).split("_")[0],
+                  "execution_status": str(replay.get("execution_status", "BLOCKED")),
+                  "validation_state": str(replay.get("validation_state", "")),
+              }
+          )
     return {
         "execution_status": "EXECUTED",
         "validation_state": "REAL_CROSS_PERTURBATION_READY",
@@ -606,18 +681,49 @@ def compute_transfer_metrics(
     }
 
 
-def _prepare_runtime_frame(*, frame: pd.DataFrame, candidate: dict[str, Any]) -> pd.DataFrame:
+def _prepare_runtime_frame(
+    *,
+    frame: pd.DataFrame,
+    candidate: dict[str, Any],
+    signal_delay_bars: int = 0,
+    signal_keep_ratio: float = 1.0,
+) -> pd.DataFrame:
     bars = frame.copy().sort_values("timestamp").reset_index(drop=True)
     bars["timestamp"] = pd.to_datetime(bars.get("timestamp"), utc=True, errors="coerce")
     for col in ("open", "high", "low", "close", "volume"):
         bars[col] = pd.to_numeric(bars.get(col), errors="coerce").astype(float)
     bars["atr_14"] = _atr14(bars)
-    bars["signal"] = build_candidate_signal_series(bars, candidate)
+    signal = build_candidate_signal_series(bars, candidate)
+    extra_delay = int(max(0, signal_delay_bars))
+    if extra_delay > 0:
+        signal = signal.shift(extra_delay).fillna(0).astype(int)
+    keep_ratio = float(max(0.05, min(signal_keep_ratio, 1.0)))
+    if keep_ratio < 0.999:
+        active_mask = signal.ne(0)
+        if bool(active_mask.any()):
+            active_positions = np.flatnonzero(active_mask.to_numpy())
+            keep_count = max(1, int(np.floor(len(active_positions) * keep_ratio)))
+            keep_positions = set(active_positions[:keep_count].tolist())
+            values = signal.to_numpy(copy=True)
+            for pos in active_positions:
+                if int(pos) not in keep_positions:
+                    values[int(pos)] = 0
+            signal = pd.Series(values, index=signal.index, dtype=int)
+    bars["signal"] = signal
     return bars
 
 
 def build_candidate_signal_series(frame: pd.DataFrame, candidate: dict[str, Any]) -> pd.Series:
     """Convert one Stage-52 candidate family into an executable causal signal series."""
+
+    signal_spec = _safe_mapping(candidate.get("signal_spec"))
+    if str(signal_spec.get("type", "")).strip().lower() == "frame_columns":
+        long_col = str(signal_spec.get("long_col", "")).strip()
+        short_col = str(signal_spec.get("short_col", "")).strip()
+        long_cond = _bool_series(frame[long_col]) if long_col and long_col in frame.columns else pd.Series(False, index=frame.index, dtype=bool)
+        short_cond = _bool_series(frame[short_col]) if short_col and short_col in frame.columns else pd.Series(False, index=frame.index, dtype=bool)
+        raw_signal = np.where(long_cond, 1, np.where(short_cond, -1, 0))
+        return pd.Series(raw_signal, index=frame.index, dtype=int).shift(1).fillna(0).astype(int)
 
     family = str(candidate.get("family", "")).strip()
     structure = compute_market_structure_engine(frame)
@@ -672,6 +778,35 @@ def build_candidate_signal_series(frame: pd.DataFrame, candidate: dict[str, Any]
             & (flow["flow_imbalance"] < 0.0)
             & mtf["ltf_trigger_eligibility"]
         )
+    elif family == "failed_breakout_reversal":
+        long_cond = (
+            liquidity["fake_breakout"]
+            & liquidity["liquidity_sweep_low"]
+            & flow["flow_exhaustion"]
+            & geometry["invalidation_quality"]
+        )
+        short_cond = (
+            liquidity["fake_breakout"]
+            & liquidity["liquidity_sweep_high"]
+            & flow["flow_exhaustion"]
+            & geometry["invalidation_quality"]
+        )
+    elif family == "exhaustion_mean_reversion":
+        mid = close.rolling(24, min_periods=1).mean().fillna(close)
+        atr = pd.to_numeric(frame.get("atr_14"), errors="coerce").fillna(0.0)
+        distance = (close - mid) / atr.replace(0.0, np.nan)
+        long_cond = (distance <= -1.25).fillna(False) & flow["flow_exhaustion"]
+        short_cond = (distance >= 1.25).fillna(False) & flow["flow_exhaustion"]
+    elif family == "funding_oi_imbalance_reversion":
+        crowding, _ = compute_crowding_layer(frame, timeframe=str(candidate.get("timeframe", "1h")))
+        long_cond = crowding["sentiment_reversal_hint"] & (crowding["crowded_side_bias"] == "overshort")
+        short_cond = crowding["sentiment_reversal_hint"] & (crowding["crowded_side_bias"] == "overlong")
+    elif family == "volatility_regime_transition":
+        long_cond = volatility["breakout_readiness"] & volatility["volatility_compression"].shift(1).fillna(False) & (flow["flow_imbalance"] > 0.0)
+        short_cond = volatility["breakout_readiness"] & volatility["volatility_compression"].shift(1).fillna(False) & (flow["flow_imbalance"] < 0.0)
+    elif family == "multi_tf_disagreement_repair":
+        long_cond = mtf["structural_misalignment"] & structure["choch"] & (flow["flow_imbalance"] > 0.0)
+        short_cond = mtf["structural_misalignment"] & structure["choch"] & (flow["flow_imbalance"] < 0.0)
     else:
         long_cond = structure["bos"] & (structure["structural_bias"] == "bull") & mtf["ltf_trigger_eligibility"]
         short_cond = structure["bos"] & (structure["structural_bias"] == "bear") & mtf["ltf_trigger_eligibility"]
@@ -857,6 +992,33 @@ def _atr14(frame: pd.DataFrame) -> pd.Series:
     return tr.rolling(14, min_periods=3).mean().fillna(tr.expanding().mean()).replace(0.0, 1e-6)
 
 
+def _sample_trade_path(
+    *,
+    returns: np.ndarray,
+    rng: np.random.Generator,
+    block_size: int,
+    horizon: int,
+    mode: str,
+) -> np.ndarray:
+    clean = np.asarray(returns, dtype=float)
+    if str(mode) == "trade_order_shuffle":
+        sample = rng.permutation(clean.copy())
+    else:
+        idx = int(rng.integers(0, max(1, len(clean) - block_size + 1)))
+        segment = clean[idx : idx + block_size]
+        reps = int(max(1, np.ceil(horizon / max(1, len(segment)))))
+        sample = np.tile(segment, reps)[:horizon]
+    if str(mode) == "missed_trade_stress":
+        miss_mask = np.arange(len(sample)) % 5 == 0
+        sample = sample.copy()
+        sample[miss_mask] = 0.0
+    elif str(mode) == "cost_stress":
+        sample = sample.copy() - 0.00075
+    elif str(mode) == "delay_stress":
+        sample = np.where(sample > 0.0, sample * 0.80, sample * 1.10)
+    return sample.astype(float)
+
+
 def _safe_mapping(raw: Any) -> dict[str, Any]:
     if isinstance(raw, dict):
         return dict(raw)
@@ -870,6 +1032,27 @@ def _safe_mapping(raw: Any) -> dict[str, Any]:
     return dict(payload) if isinstance(payload, dict) else {}
 
 
+def _generic_runtime_geometry(*, family: str, timeframe: str) -> dict[str, Any]:
+    scale_map = {"15m": 0.75, "30m": 0.85, "1h": 1.0, "2h": 1.15, "4h": 1.35}
+    scale = float(scale_map.get(str(timeframe), 1.0))
+    stop_pct = 0.0055 * scale
+    first_target_pct = 0.0105 * scale
+    stretch_target_pct = 0.0160 * scale
+    return {
+        "entry_zone": {"low": 0.99, "high": 1.01},
+        "invalidation_event": f"generic_invalidation::{family or 'unknown'}",
+        "stop_distance_pct": float(round(stop_pct, 8)),
+        "first_target_pct": float(round(first_target_pct, 8)),
+        "stretch_target_pct": float(round(stretch_target_pct, 8)),
+        "expected_hold_bars": int(max(4, round(12 * scale))),
+        "estimated_round_trip_cost_pct": 0.001,
+        "entry_logic": "generic_context_trigger_entry",
+        "stop_logic": "generic_structure_invalidation",
+        "target_logic": "generic_two_stage_exit",
+        "hold_logic": "generic_time_or_invalidation_exit",
+    }
+
+
 def _safe_float(value: Any, *, default: float = 0.0) -> float:
     try:
         numeric = float(value)
@@ -878,6 +1061,19 @@ def _safe_float(value: Any, *, default: float = 0.0) -> float:
     if not np.isfinite(numeric):
         return float(default)
     return float(numeric)
+
+
+def _bool_series(raw: Any) -> pd.Series:
+    series = pd.Series(raw) if not isinstance(raw, pd.Series) else raw.copy()
+    if series.empty:
+        return pd.Series(dtype=bool)
+    if series.dtype == bool:
+        return series.fillna(False).astype(bool)
+    numeric = pd.to_numeric(series, errors="coerce")
+    if numeric.notna().any():
+        return numeric.fillna(0.0).astype(float) > 0.0
+    text = series.astype(str).str.strip().str.lower()
+    return text.isin({"1", "true", "t", "yes", "y", "long", "short"})
 
 
 def _safe_int(value: Any, *, default: int = 0) -> int:
