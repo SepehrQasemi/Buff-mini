@@ -2,7 +2,7 @@
   "stage": "60",
   "status": "SUCCESS",
   "stage28_run_id": "20260313_154858_044fff9053df_stage28",
-  "chain_id": "87ce91606543db479790cd33",
+  "chain_id": "0a4002c620ad4dd7f1d9430c",
   "budget_mode_selected": "search",
   "missing_summaries": [],
   "run_id_mismatch": {},
@@ -10,7 +10,7 @@
   "bootstrap_forbidden": false,
   "bootstrap_stages": [],
   "blocker_reason": "",
-  "summary_hash": "70f6d250fe935965",
+  "summary_hash": "4b8cf191caa4ace1",
   "execution_status": "EXECUTED",
   "stage_role": "orchestration_only"
 }

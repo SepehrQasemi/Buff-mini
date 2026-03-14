@@ -84,10 +84,7 @@ def _validate_chain_metrics(payload: dict[str, Any]) -> tuple[bool, str]:
 
 def _derive_metrics_sufficiency(docs_dir: Path, *, runs_dir: Path) -> dict[str, Any]:
     stage52 = _load_json(docs_dir / "stage52_summary.json")
-    stage53 = _load_json(docs_dir / "stage53_summary.json")
-    stage54 = _load_json(docs_dir / "stage54_summary.json")
-    stage55 = _load_json(docs_dir / "stage55_summary.json")
-    stage56 = _load_json(docs_dir / "stage56_summary.json")
+    stage61 = _load_json(docs_dir / "stage61_summary.json")
     chain_metrics_path = docs_dir / "stage57_chain_metrics.json"
     chain_metrics = _materialize_chain_metrics(docs_dir, runs_dir=runs_dir)
 
@@ -95,10 +92,7 @@ def _derive_metrics_sufficiency(docs_dir: Path, *, runs_dir: Path) -> dict[str, 
         name
         for name, payload in [
             ("stage52_summary", stage52),
-            ("stage53_summary", stage53),
-            ("stage54_summary", stage54),
-            ("stage55_summary", stage55),
-            ("stage56_summary", stage56),
+            ("stage61_summary", stage61),
         ]
         if not payload
     ]
@@ -106,25 +100,6 @@ def _derive_metrics_sufficiency(docs_dir: Path, *, runs_dir: Path) -> dict[str, 
         return {
             "valid": False,
             "reason": f"missing_chain_summaries:{','.join(missing_summaries)}",
-            "chain_metrics_path": str(chain_metrics_path),
-        }
-
-    if not bool(stage53.get("quality_gate_passed", False)):
-        return {
-            "valid": False,
-            "reason": "stage53_quality_gate_not_passed",
-            "chain_metrics_path": str(chain_metrics_path),
-        }
-    if str(stage54.get("status", "PARTIAL")) != "SUCCESS":
-        return {
-            "valid": False,
-            "reason": "stage54_not_success",
-            "chain_metrics_path": str(chain_metrics_path),
-        }
-    if str(stage56.get("status", "PARTIAL")) != "SUCCESS":
-        return {
-            "valid": False,
-            "reason": "stage56_not_success",
             "chain_metrics_path": str(chain_metrics_path),
         }
 
@@ -152,10 +127,7 @@ def main() -> None:
 
     source_paths = [
         docs_dir / "stage52_summary.json",
-        docs_dir / "stage53_summary.json",
-        docs_dir / "stage54_summary.json",
-        docs_dir / "stage55_summary.json",
-        docs_dir / "stage56_summary.json",
+        docs_dir / "stage61_summary.json",
     ]
     chain_metrics_path = docs_dir / "stage57_chain_metrics.json"
     if chain_metrics_path.exists():
@@ -236,7 +208,7 @@ def main() -> None:
         validation_state = "VALIDATED_EDGE" if verdict["verdict"] == "PASSING_EDGE" else ("NO_EDGE_IN_SCOPE" if verdict["verdict"] == "NO_EDGE_IN_SCOPE" else "NO_VALID_EDGE")
         if not bool(decision_evidence.get("allowed", True)):
             validation_state = "EVIDENCE_INSUFFICIENT"
-        status = "SUCCESS" if bool(decision_evidence.get("allowed", True)) else "PARTIAL"
+        status = "SUCCESS" if bool(decision_evidence.get("allowed", True)) and verdict["verdict"] == "PASSING_EDGE" else "PARTIAL"
         summary = {
             "stage": "57",
             "status": status,

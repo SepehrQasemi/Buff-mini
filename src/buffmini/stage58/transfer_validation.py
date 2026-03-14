@@ -68,8 +68,9 @@ def assess_transfer_validation(
         }
     transfer_lcb = float(transfer.get("exp_lcb", 0.0))
     transfer_dd = float(transfer.get("maxDD", transfer.get("max_drawdown", 0.0)))
+    transfer_trade_count = int(max(0, float(transfer.get("trade_count", 0.0))))
     primary_lcb = float(primary_metrics.get("exp_lcb", 0.0))
-    transfer_acceptable = bool(transfer_lcb > 0.0 and transfer_dd <= 0.25)
+    transfer_acceptable = bool(transfer_trade_count > 0 and transfer_lcb > 0.0 and transfer_dd <= 0.25)
     if not transfer_acceptable:
         verdict = "PARTIAL"
         reason = "transfer_not_acceptable"
@@ -84,6 +85,7 @@ def assess_transfer_validation(
         "transfer_acceptable": transfer_acceptable,
         "reason": reason,
         "primary_exp_lcb": primary_lcb,
+        "transfer_trade_count": transfer_trade_count,
         "transfer_exp_lcb": transfer_lcb,
         "transfer_maxDD": transfer_dd,
         "transfer_source_type": source_type,

@@ -16,6 +16,7 @@ ALLOWED_METRIC_SOURCE_TYPES: tuple[str, ...] = (
     "heuristic_filter",
     "proxy_only",
     "synthetic",
+    "reporting_only",
 )
 
 ALLOWED_STAGE_ROLES: tuple[str, ...] = (
@@ -25,7 +26,7 @@ ALLOWED_STAGE_ROLES: tuple[str, ...] = (
     "orchestration_only",
 )
 
-DECISION_BLOCKED_SOURCE_TYPES: tuple[str, ...] = ("proxy_only", "synthetic")
+DECISION_BLOCKED_SOURCE_TYPES: tuple[str, ...] = ("proxy_only", "synthetic", "reporting_only")
 
 REAL_DECISION_SOURCE_TYPES: tuple[str, ...] = (
     "real_replay",
@@ -45,6 +46,10 @@ REQUIRED_EVIDENCE_FIELDS: tuple[str, ...] = (
     "metric_source_type",
     "artifact_path",
     "stage_origin",
+    "decision_use_allowed",
+    "evidence_quality",
+    "execution_status",
+    "validation_state",
 )
 
 
@@ -61,6 +66,10 @@ def build_metric_evidence(
     artifact_path: str,
     stage_origin: str,
     used_for_decision: bool = True,
+    decision_use_allowed: bool | None = None,
+    evidence_quality: str = "",
+    execution_status: str = "EXECUTED",
+    validation_state: str = "REAL_VALIDATION_READY",
     stage_role: str = "real_validation",
     notes: str = "",
 ) -> dict[str, Any]:
@@ -78,6 +87,10 @@ def build_metric_evidence(
         "artifact_path": str(artifact_path).strip(),
         "stage_origin": str(stage_origin).strip(),
         "used_for_decision": bool(used_for_decision),
+        "decision_use_allowed": bool(_default_decision_use_allowed(metric_source_type) if decision_use_allowed is None else decision_use_allowed),
+        "evidence_quality": str(evidence_quality or _default_evidence_quality(metric_source_type)).strip(),
+        "execution_status": str(execution_status).strip(),
+        "validation_state": str(validation_state).strip(),
         "stage_role": str(stage_role).strip(),
         "notes": str(notes),
     }
@@ -123,7 +136,18 @@ def _validate_metric_evidence_errors(record: dict[str, Any]) -> list[str]:
         errors.append(f"missing_fields:{','.join(missing)}")
         return errors
 
-    for key in ("candidate_id", "run_id", "config_hash", "data_hash", "metric_name", "artifact_path", "stage_origin"):
+    for key in (
+        "candidate_id",
+        "run_id",
+        "config_hash",
+        "data_hash",
+        "metric_name",
+        "artifact_path",
+        "stage_origin",
+        "evidence_quality",
+        "execution_status",
+        "validation_state",
+    ):
         if not str(record.get(key, "")).strip():
             errors.append(f"empty_{key}")
 
@@ -134,6 +158,10 @@ def _validate_metric_evidence_errors(record: dict[str, Any]) -> list[str]:
     stage_role = str(record.get("stage_role", "real_validation")).strip()
     if stage_role not in set(ALLOWED_STAGE_ROLES):
         errors.append(f"invalid_stage_role:{stage_role}")
+
+    decision_use_allowed = record.get("decision_use_allowed", None)
+    if not isinstance(decision_use_allowed, bool):
+        errors.append("invalid_decision_use_allowed")
 
     try:
         _ = int(record.get("seed", 0))
@@ -207,6 +235,9 @@ def decision_evidence_guard(
         if source in set(DECISION_BLOCKED_SOURCE_TYPES):
             blocked_decision_metrics.append(metric_name)
             blocked_decision_metric_details.append(f"{metric_name}:{source}")
+        if not bool(row.get("decision_use_allowed", False)):
+            blocked_decision_metrics.append(metric_name)
+            blocked_decision_metric_details.append(f"{metric_name}:decision_use_disallowed")
         if source in set(required_sources):
             present_real_sources.add(source)
         if not bool(row.get("artifact_exists", False)):
@@ -238,9 +269,29 @@ def stage_role_from_source(metric_source_type: str) -> str:
         return "real_validation"
     if source in {"heuristic_filter"}:
         return "heuristic_filter"
-    if source in {"proxy_only", "synthetic"}:
+    if source in {"proxy_only", "synthetic", "reporting_only"}:
         return "reporting_only"
     return "orchestration_only"
+
+
+def _default_evidence_quality(metric_source_type: str) -> str:
+    source = str(metric_source_type).strip()
+    if source.startswith("real_"):
+        return "artifact_backed_real"
+    if source == "heuristic_filter":
+        return "heuristic_only"
+    if source == "proxy_only":
+        return "proxy_only"
+    if source == "synthetic":
+        return "synthetic"
+    if source == "reporting_only":
+        return "reporting_only"
+    return "unknown"
+
+
+def _default_decision_use_allowed(metric_source_type: str) -> bool:
+    source = str(metric_source_type).strip()
+    return source.startswith("real_")
 
 
 def _finite(value: Any, *, default: float) -> float:

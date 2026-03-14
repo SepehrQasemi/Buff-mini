@@ -117,6 +117,53 @@ def _cross_perturbation_metrics_from_artifacts(*, docs_dir: Path, runs_dir: Path
     return metrics, source, docs_dir / "stage50_5seed_summary.json"
 
 
+def _candidate_id_for_chain(*, docs_dir: Path) -> str:
+    stage53 = _load_json(docs_dir / "stage53_summary.json")
+    candidate_id = str(stage53.get("validated_candidate_id", "")).strip()
+    if candidate_id:
+        return candidate_id
+    stage52 = _load_json(docs_dir / "stage52_summary.json")
+    return str(stage52.get("representative_candidate_id", "__chain__")).strip() or "__chain__"
+
+
+def _evidence_semantics(metric_source_type: str) -> dict[str, Any]:
+    source = str(metric_source_type).strip()
+    if source.startswith("real_"):
+        return {
+            "decision_use_allowed": True,
+            "evidence_quality": "artifact_backed_real",
+            "execution_status": "EXECUTED",
+            "validation_state": "REAL_VALIDATION_READY",
+        }
+    if source == "heuristic_filter":
+        return {
+            "decision_use_allowed": False,
+            "evidence_quality": "heuristic_only",
+            "execution_status": "EXECUTED",
+            "validation_state": "HEURISTIC_ONLY",
+        }
+    if source == "proxy_only":
+        return {
+            "decision_use_allowed": False,
+            "evidence_quality": "proxy_only",
+            "execution_status": "EXECUTED",
+            "validation_state": "PROXY_ONLY",
+        }
+    if source == "synthetic":
+        return {
+            "decision_use_allowed": False,
+            "evidence_quality": "synthetic",
+            "execution_status": "BLOCKED",
+            "validation_state": "SYNTHETIC_ONLY",
+        }
+    return {
+        "decision_use_allowed": False,
+        "evidence_quality": "reporting_only",
+        "execution_status": "EXECUTED",
+        "validation_state": "REPORTING_ONLY",
+    }
+
+
 def _evidence_records_for_gate(
     *,
     metric_payload: dict[str, Any],
@@ -129,6 +176,31 @@ def _evidence_records_for_gate(
     seed: int,
 ) -> list[dict[str, Any]]:
     records: list[dict[str, Any]] = []
+    semantics = _evidence_semantics(metric_source_type)
+    artifact_payload = _load_json(artifact_path) if str(artifact_path).lower().endswith(".json") else {}
+    decision_use_allowed = bool(artifact_payload.get("decision_use_allowed", semantics["decision_use_allowed"]))
+    evidence_quality = str(artifact_payload.get("evidence_quality", semantics["evidence_quality"]))
+    execution_status = str(artifact_payload.get("execution_status", semantics["execution_status"]))
+    validation_state = str(artifact_payload.get("validation_state", semantics["validation_state"]))
+    stage_origin = "stage61"
+    if metric_source_type == "real_replay":
+        stage_origin = "stage53"
+    elif metric_source_type == "real_walkforward":
+        stage_origin = "stage67"
+    elif metric_source_type in {"real_monte_carlo", "real_cross_perturbation"}:
+        stage_origin = "stage67"
+    elif metric_source_type == "heuristic_filter":
+        stage_origin = "stage48"
+    elif metric_source_type == "proxy_only":
+        artifact_text = str(artifact_path)
+        if "stage67" in artifact_text:
+            stage_origin = "stage67"
+        elif "stage55" in artifact_text:
+            stage_origin = "stage55"
+        elif "stage50" in artifact_text:
+            stage_origin = "stage50_5seed"
+    elif metric_source_type == "synthetic":
+        stage_origin = "synthetic"
     for metric_name, metric_value in sorted(metric_payload.items(), key=lambda kv: str(kv[0])):
         records.append(
             build_metric_evidence(
@@ -141,8 +213,12 @@ def _evidence_records_for_gate(
                 metric_value=_safe(metric_value, default=0.0),
                 metric_source_type=str(metric_source_type),
                 artifact_path=str(artifact_path),
-                stage_origin="stage61",
+                stage_origin=stage_origin,
                 used_for_decision=True,
+                decision_use_allowed=decision_use_allowed,
+                evidence_quality=evidence_quality,
+                execution_status=execution_status,
+                validation_state=validation_state,
                 stage_role=stage_role_from_source(metric_source_type),
                 notes="stage61_chain_metrics",
             )
@@ -197,7 +273,7 @@ def materialize_stage57_chain_metrics(
         stage28_run_id=stage28_run_id,
     )
 
-    candidate_id = str(_load_json(docs_dir / "stage52_summary.json").get("representative_candidate_id", "__chain__"))
+    candidate_id = _candidate_id_for_chain(docs_dir=docs_dir)
     evidence_records = (
         _evidence_records_for_gate(
             metric_payload=replay,

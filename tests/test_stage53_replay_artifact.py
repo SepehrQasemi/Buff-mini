@@ -65,3 +65,6 @@ def test_stage53_writes_replay_metrics_real(tmp_path: Path) -> None:
     if result.returncode != 0:
         raise AssertionError(f"run_stage53.py failed:\nSTDOUT:\n{result.stdout}\nSTDERR:\n{result.stderr}")
     assert (runs / run_id / "stage53" / "replay_metrics_real.json").exists()
+    summary = json.loads((docs / "stage53_summary.json").read_text(encoding="utf-8"))
+    assert summary["metric_source_type"] == "real_replay"
+    assert summary["validated_candidate_id"] == "s52_1"

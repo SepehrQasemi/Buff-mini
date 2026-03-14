@@ -85,7 +85,11 @@ run_dir = Path(RUNS_DIR) / run_id
 progress = _read_json(run_dir / "progress.json")
 pipeline_summary = _read_json(run_dir / "pipeline_summary.json")
 stage57_summary = _read_json(Path("docs") / "stage57_summary.json")
+stage58_summary = _read_json(Path("docs") / "stage58_summary.json")
+stage61_summary = _read_json(Path("docs") / "stage61_summary.json")
+stage67_summary = _read_json(Path("docs") / "stage67_summary.json")
 stage72_summary = _read_json(Path("docs") / "stage72_summary.json")
+full_trace_summary = _read_json(Path("docs") / "full_trace_summary.json")
 
 stage = str(progress.get("stage", pipeline_summary.get("status", "unknown")))
 stage_idx = int(progress.get("stage_idx", 0) or 0)
@@ -117,9 +121,17 @@ if stage57_summary:
         {
             "stage57_status": stage57_summary.get("status"),
             "stage57_validation_state": stage57_summary.get("validation_state"),
+            "stage61_chain_ready": stage61_summary.get("decision_evidence_allowed"),
+            "stage67_status": stage67_summary.get("status"),
+            "stage67_validation_state": stage67_summary.get("validation_state"),
+            "stage58_status": stage58_summary.get("status"),
+            "stage58_transfer_validation_state": stage58_summary.get("validation_state"),
+            "transfer_evidence_quality": stage58_summary.get("evidence_quality"),
             "decision_evidence_allowed": (stage57_summary.get("decision_evidence", {}) or {}).get("allowed"),
             "missing_real_sources": (stage57_summary.get("decision_evidence", {}) or {}).get("missing_real_sources", []),
             "blocked_decision_metrics": (stage57_summary.get("decision_evidence", {}) or {}).get("blocked_decision_metrics", []),
+            "source_types": (full_trace_summary.get("evidence_quality", {}) or {}).get("source_types", {}),
+            "frozen_research_mode": ((full_trace_summary.get("parameters", {}) or {}).get("reproducibility", {}) or {}).get("frozen_research_mode"),
         }
     )
 else:

@@ -1,19 +1,19 @@
 {
   "replay_metrics": {
-    "trade_count": 9,
-    "exp_lcb": 0.01157,
-    "maxDD": 1.0,
-    "failure_reason_dominance": 0.83055556
+    "trade_count": 82,
+    "exp_lcb": -0.00304321,
+    "maxDD": 0.16734271,
+    "failure_reason_dominance": 1.0
   },
   "walkforward_metrics": {
     "usable_windows": 0,
-    "median_forward_exp_lcb": 0.01
+    "median_forward_exp_lcb": 0.0
   },
   "monte_carlo_metrics": {
-    "conservative_downside_bound": 0.00893
+    "conservative_downside_bound": -1.0
   },
   "cross_seed_metrics": {
-    "surviving_seeds": 5
+    "surviving_seeds": 0
   },
   "evidence_records": [
     {
@@ -23,11 +23,15 @@
       "data_hash": "unknown_data_hash",
       "seed": 42,
       "metric_name": "exp_lcb",
-      "metric_value": 0.01157,
+      "metric_value": -0.00304321,
       "metric_source_type": "real_replay",
       "artifact_path": "runs\\20260313_154858_044fff9053df_stage28\\stage53\\replay_metrics_real.json",
-      "stage_origin": "stage61",
+      "stage_origin": "stage53",
       "used_for_decision": true,
+      "decision_use_allowed": true,
+      "evidence_quality": "artifact_backed_real",
+      "execution_status": "EXECUTED",
+      "validation_state": "REAL_REPLAY_READY",
       "stage_role": "real_validation",
       "notes": "stage61_chain_metrics"
     },
@@ -38,11 +42,15 @@
       "data_hash": "unknown_data_hash",
       "seed": 42,
       "metric_name": "failure_reason_dominance",
-      "metric_value": 0.83055556,
+      "metric_value": 1.0,
       "metric_source_type": "real_replay",
       "artifact_path": "runs\\20260313_154858_044fff9053df_stage28\\stage53\\replay_metrics_real.json",
-      "stage_origin": "stage61",
+      "stage_origin": "stage53",
       "used_for_decision": true,
+      "decision_use_allowed": true,
+      "evidence_quality": "artifact_backed_real",
+      "execution_status": "EXECUTED",
+      "validation_state": "REAL_REPLAY_READY",
       "stage_role": "real_validation",
       "notes": "stage61_chain_metrics"
     },
@@ -53,11 +61,15 @@
       "data_hash": "unknown_data_hash",
       "seed": 42,
       "metric_name": "maxDD",
-      "metric_value": 1.0,
+      "metric_value": 0.16734271,
       "metric_source_type": "real_replay",
       "artifact_path": "runs\\20260313_154858_044fff9053df_stage28\\stage53\\replay_metrics_real.json",
-      "stage_origin": "stage61",
+      "stage_origin": "stage53",
       "used_for_decision": true,
+      "decision_use_allowed": true,
+      "evidence_quality": "artifact_backed_real",
+      "execution_status": "EXECUTED",
+      "validation_state": "REAL_REPLAY_READY",
       "stage_role": "real_validation",
       "notes": "stage61_chain_metrics"
     },
@@ -68,11 +80,15 @@
       "data_hash": "unknown_data_hash",
       "seed": 42,
       "metric_name": "trade_count",
-      "metric_value": 9.0,
+      "metric_value": 82.0,
       "metric_source_type": "real_replay",
       "artifact_path": "runs\\20260313_154858_044fff9053df_stage28\\stage53\\replay_metrics_real.json",
-      "stage_origin": "stage61",
+      "stage_origin": "stage53",
       "used_for_decision": true,
+      "decision_use_allowed": true,
+      "evidence_quality": "artifact_backed_real",
+      "execution_status": "EXECUTED",
+      "validation_state": "REAL_REPLAY_READY",
       "stage_role": "real_validation",
       "notes": "stage61_chain_metrics"
     },
@@ -83,11 +99,15 @@
       "data_hash": "unknown_data_hash",
       "seed": 42,
       "metric_name": "median_forward_exp_lcb",
-      "metric_value": 0.01,
+      "metric_value": 0.0,
       "metric_source_type": "real_walkforward",
       "artifact_path": "runs\\20260313_154858_044fff9053df_stage28\\stage67\\walkforward_metrics_real.json",
-      "stage_origin": "stage61",
+      "stage_origin": "stage67",
       "used_for_decision": true,
+      "decision_use_allowed": false,
+      "evidence_quality": "artifact_backed_real",
+      "execution_status": "EXECUTED",
+      "validation_state": "REAL_VALIDATION_FAILED",
       "stage_role": "real_validation",
       "notes": "stage61_chain_metrics"
     },
@@ -101,8 +121,12 @@
       "metric_value": 0.0,
       "metric_source_type": "real_walkforward",
       "artifact_path": "runs\\20260313_154858_044fff9053df_stage28\\stage67\\walkforward_metrics_real.json",
-      "stage_origin": "stage61",
+      "stage_origin": "stage67",
       "used_for_decision": true,
+      "decision_use_allowed": false,
+      "evidence_quality": "artifact_backed_real",
+      "execution_status": "EXECUTED",
+      "validation_state": "REAL_VALIDATION_FAILED",
       "stage_role": "real_validation",
       "notes": "stage61_chain_metrics"
     },
@@ -113,11 +137,15 @@
       "data_hash": "unknown_data_hash",
       "seed": 42,
       "metric_name": "conservative_downside_bound",
-      "metric_value": 0.00893,
+      "metric_value": -1.0,
       "metric_source_type": "real_monte_carlo",
       "artifact_path": "runs\\20260313_154858_044fff9053df_stage28\\stage57\\monte_carlo_metrics_real.json",
-      "stage_origin": "stage61",
+      "stage_origin": "stage67",
       "used_for_decision": true,
+      "decision_use_allowed": false,
+      "evidence_quality": "real_but_blocked",
+      "execution_status": "BLOCKED",
+      "validation_state": "INSUFFICIENT_TRADES",
       "stage_role": "real_validation",
       "notes": "stage61_chain_metrics"
     },
@@ -128,22 +156,36 @@
       "data_hash": "unknown_data_hash",
       "seed": 42,
       "metric_name": "surviving_seeds",
-      "metric_value": 5.0,
+      "metric_value": 0.0,
       "metric_source_type": "real_cross_perturbation",
       "artifact_path": "runs\\20260313_154858_044fff9053df_stage28\\stage57\\cross_perturbation_metrics_real.json",
-      "stage_origin": "stage61",
+      "stage_origin": "stage67",
       "used_for_decision": true,
+      "decision_use_allowed": true,
+      "evidence_quality": "artifact_backed_real",
+      "execution_status": "EXECUTED",
+      "validation_state": "REAL_CROSS_PERTURBATION_READY",
       "stage_role": "real_validation",
       "notes": "stage61_chain_metrics"
     }
   ],
   "evidence_quality": {
-    "allowed": true,
-    "reason": "",
-    "errors": [],
+    "allowed": false,
+    "reason": "decision_evidence_not_sufficient",
+    "errors": [
+      "blocked_decision_sources:conservative_downside_bound:decision_use_disallowed,median_forward_exp_lcb:decision_use_disallowed,usable_windows:decision_use_disallowed"
+    ],
     "missing_real_sources": [],
-    "blocked_decision_metrics": [],
-    "blocked_decision_metric_details": [],
+    "blocked_decision_metrics": [
+      "conservative_downside_bound",
+      "median_forward_exp_lcb",
+      "usable_windows"
+    ],
+    "blocked_decision_metric_details": [
+      "conservative_downside_bound:decision_use_disallowed",
+      "median_forward_exp_lcb:decision_use_disallowed",
+      "usable_windows:decision_use_disallowed"
+    ],
     "present_real_sources": [
       "real_cross_perturbation",
       "real_monte_carlo",
@@ -154,7 +196,7 @@
   },
   "meta": {
     "source": "stage61_chain_writer_v2",
-    "chain_id": "87ce91606543db479790cd33",
+    "chain_id": "0a4002c620ad4dd7f1d9430c",
     "stage28_run_id": "20260313_154858_044fff9053df_stage28",
     "config_hash": "ecc9bcde3ad8",
     "data_hash": "unknown_data_hash",
@@ -166,5 +208,5 @@
       "cross_seed": "real_cross_perturbation"
     }
   },
-  "summary_hash": "c7bc73668a63263f"
+  "summary_hash": "b096fd1812c1e5aa"
 }

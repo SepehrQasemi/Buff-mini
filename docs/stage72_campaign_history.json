@@ -83,5 +83,25 @@
     "campaign_id": "bc8fa03eb10f",
     "verdict": "PARTIAL",
     "summary_hash": "aff20fbd68414867"
+  },
+  {
+    "campaign_id": "2b77450641ad",
+    "verdict": "NO_EDGE_IN_SCOPE",
+    "summary_hash": "8437eef81896803b"
+  },
+  {
+    "campaign_id": "5db1bb6907df",
+    "verdict": "PARTIAL",
+    "summary_hash": "1dc813d84e0873eb"
+  },
+  {
+    "campaign_id": "edd577ac1d14",
+    "verdict": "PARTIAL",
+    "summary_hash": "cce5e3c10a3cf87f"
+  },
+  {
+    "campaign_id": "3e4e85fae867",
+    "verdict": "PARTIAL",
+    "summary_hash": "1916befbcf1748b9"
   }
 ]

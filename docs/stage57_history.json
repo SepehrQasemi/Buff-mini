@@ -10,5 +10,33 @@
   {
     "scope_frozen": true,
     "verdict": "PARTIAL"
+  },
+  {
+    "scope_frozen": true,
+    "verdict": "NO_EDGE_IN_SCOPE"
+  },
+  {
+    "scope_frozen": true,
+    "verdict": "NO_EDGE_IN_SCOPE"
+  },
+  {
+    "scope_frozen": true,
+    "verdict": "PARTIAL"
+  },
+  {
+    "scope_frozen": true,
+    "verdict": "PARTIAL"
+  },
+  {
+    "scope_frozen": true,
+    "verdict": "PARTIAL"
+  },
+  {
+    "scope_frozen": true,
+    "verdict": "PARTIAL"
+  },
+  {
+    "scope_frozen": true,
+    "verdict": "PARTIAL"
   }
 ]

@@ -11,6 +11,7 @@ from buffmini.constants import DEFAULT_CONFIG_PATH
 from buffmini.config import load_config
 from buffmini.stage58 import assess_transfer_validation
 from buffmini.utils.hashing import stable_hash
+from buffmini.validation import compute_transfer_metrics, resolve_validation_candidate
 
 
 def parse_args() -> argparse.Namespace:
@@ -22,7 +23,7 @@ def parse_args() -> argparse.Namespace:
 
 
 def _load_json(path: Path) -> dict[str, Any]:
-    if not path.exists():
+    if not path.exists() or not path.is_file():
         return {}
     payload = json.loads(path.read_text(encoding="utf-8"))
     return payload if isinstance(payload, dict) else {}
@@ -31,28 +32,65 @@ def _load_json(path: Path) -> dict[str, Any]:
 def _resolve_stage28_run_id(docs_dir: Path) -> str:
     stage57 = _load_json(docs_dir / "stage57_summary.json")
     suff = dict(stage57.get("metrics_sufficiency", {}))
-    chain = _load_json(Path(str(suff.get("chain_metrics_path", ""))))
+    chain_path_raw = str(suff.get("chain_metrics_path", "")).strip()
+    chain = _load_json(Path(chain_path_raw)) if chain_path_raw else {}
     run_id = str(dict(chain.get("meta", {})).get("stage28_run_id", "")).strip()
     if run_id:
         return run_id
     stage60 = _load_json(docs_dir / "stage60_summary.json")
-    return str(stage60.get("stage28_run_id", "")).strip()
+    if str(stage60.get("stage28_run_id", "")).strip():
+        return str(stage60.get("stage28_run_id", "")).strip()
+    stage52 = _load_json(docs_dir / "stage52_summary.json")
+    return str(stage52.get("stage28_run_id", "")).strip()
 
 
 def main() -> None:
     args = parse_args()
-    _cfg = load_config(Path(args.config))
+    cfg = load_config(Path(args.config))
     docs_dir = Path(args.docs_dir)
     docs_dir.mkdir(parents=True, exist_ok=True)
     stage57_path = docs_dir / "stage57_summary.json"
     stage57 = json.loads(stage57_path.read_text(encoding="utf-8")) if stage57_path.exists() else {"verdict": "PARTIAL"}
     stage28_run_id = _resolve_stage28_run_id(docs_dir)
     transfer_artifact_path: Path | None = (Path(args.runs_dir) / stage28_run_id / "stage58" / "transfer_metrics_real.json") if stage28_run_id else None
-    transfer_payload = (
-        _load_json(transfer_artifact_path)
-        if transfer_artifact_path is not None and transfer_artifact_path.exists() and transfer_artifact_path.is_file()
-        else {}
+    transfer_payload: dict[str, Any] = {}
+    candidate = resolve_validation_candidate(
+        runs_dir=Path(args.runs_dir),
+        stage28_run_id=stage28_run_id,
+        docs_dir=docs_dir,
     )
+    primary_symbol = str(candidate.get("symbol", "")).strip()
+    transfer_symbol = str(cfg.get("research_scope", {}).get("expansion_rules", {}).get("transfer_symbol", "")).strip()
+    if not transfer_symbol:
+        universe = [str(v).strip() for v in cfg.get("universe", {}).get("symbols", []) if str(v).strip()]
+        if primary_symbol and universe:
+            alternatives = [symbol for symbol in universe if symbol != primary_symbol]
+            transfer_symbol = alternatives[0] if alternatives else universe[0]
+        elif universe:
+            transfer_symbol = universe[-1]
+    if transfer_artifact_path is not None and candidate and transfer_symbol:
+        transfer_artifact_path.parent.mkdir(parents=True, exist_ok=True)
+        transfer = compute_transfer_metrics(candidate=candidate, config=cfg, symbol=transfer_symbol)
+        transfer_payload = {
+            "metric_source_type": "real_transfer",
+            "artifact_path": str(transfer_artifact_path),
+            "candidate_id": str(candidate.get("candidate_id", "")),
+            "transfer_symbol": transfer_symbol,
+            "timeframe": str(candidate.get("timeframe", "")),
+            "execution_status": str(transfer.get("execution_status", "BLOCKED")),
+            "validation_state": str(transfer.get("validation_state", "TRANSFER_BLOCKED")),
+            "decision_use_allowed": bool(transfer.get("decision_use_allowed", False)),
+            "evidence_quality": "artifact_backed_real" if str(transfer.get("execution_status", "")) == "EXECUTED" else "real_but_blocked",
+            "metrics": {
+                "trade_count": int(transfer.get("trade_count", 0)),
+                "exp_lcb": float(transfer.get("exp_lcb", 0.0)),
+                "maxDD": float(transfer.get("maxDD", 1.0)),
+            },
+            "market_meta": dict(transfer.get("market_meta", {})),
+        }
+        transfer_artifact_path.write_text(json.dumps(transfer_payload, indent=2, allow_nan=False), encoding="utf-8")
+    elif transfer_artifact_path is not None and transfer_artifact_path.exists() and transfer_artifact_path.is_file():
+        transfer_payload = _load_json(transfer_artifact_path)
     transfer_metrics = dict(transfer_payload.get("metrics", {})) if transfer_payload else None
     transfer_source_type = str(transfer_payload.get("metric_source_type", "")).strip() if transfer_payload else ""
     result = assess_transfer_validation(
@@ -70,8 +108,14 @@ def main() -> None:
         "stage_role": "real_validation",
         "validation_state": "TRANSFER_CONFIRMED" if status == "SUCCESS" else "TRANSFER_NOT_CONFIRMED",
         "stage28_run_id": stage28_run_id,
+        "candidate_id": str(candidate.get("candidate_id", "")),
+        "transfer_symbol": transfer_symbol,
         "stage57_verdict": str(stage57.get("verdict", "PARTIAL")),
         "transfer_result": result,
+        "transfer_execution_status": str(transfer_payload.get("execution_status", "NOT_ATTEMPTED")),
+        "transfer_validation_state": str(transfer_payload.get("validation_state", "NOT_ATTEMPTED")),
+        "decision_use_allowed": bool(transfer_payload.get("decision_use_allowed", False)),
+        "evidence_quality": str(transfer_payload.get("evidence_quality", "missing")),
         "transfer_artifact_exists": bool(transfer_artifact_path is not None and transfer_artifact_path.exists() and transfer_artifact_path.is_file()),
         "summary_hash": stable_hash(
             {
@@ -79,8 +123,14 @@ def main() -> None:
                 "execution_status": "EXECUTED" if stage57_path.exists() else "BLOCKED",
                 "validation_state": "TRANSFER_CONFIRMED" if status == "SUCCESS" else "TRANSFER_NOT_CONFIRMED",
                 "stage28_run_id": stage28_run_id,
+                "candidate_id": str(candidate.get("candidate_id", "")),
+                "transfer_symbol": transfer_symbol,
                 "stage57_verdict": str(stage57.get("verdict", "PARTIAL")),
                 "transfer_result": result,
+                "transfer_execution_status": str(transfer_payload.get("execution_status", "NOT_ATTEMPTED")),
+                "transfer_validation_state": str(transfer_payload.get("validation_state", "NOT_ATTEMPTED")),
+                "decision_use_allowed": bool(transfer_payload.get("decision_use_allowed", False)),
+                "evidence_quality": str(transfer_payload.get("evidence_quality", "missing")),
                 "transfer_artifact_exists": bool(transfer_artifact_path is not None and transfer_artifact_path.exists() and transfer_artifact_path.is_file()),
             },
             length=16,
@@ -99,7 +149,13 @@ def main() -> None:
                 f"- stage_role: `{summary['stage_role']}`",
                 f"- validation_state: `{summary['validation_state']}`",
                 f"- stage28_run_id: `{summary['stage28_run_id']}`",
+                f"- candidate_id: `{summary['candidate_id']}`",
+                f"- transfer_symbol: `{summary['transfer_symbol']}`",
                 f"- stage57_verdict: `{summary['stage57_verdict']}`",
+                f"- transfer_execution_status: `{summary['transfer_execution_status']}`",
+                f"- transfer_validation_state: `{summary['transfer_validation_state']}`",
+                f"- decision_use_allowed: `{summary['decision_use_allowed']}`",
+                f"- evidence_quality: `{summary['evidence_quality']}`",
                 f"- transfer_artifact_exists: `{summary['transfer_artifact_exists']}`",
                 f"- transfer_result: `{summary['transfer_result']}`",
                 f"- summary_hash: `{summary['summary_hash']}`",

@@ -193,6 +193,7 @@ def test_stage57_stays_partial_without_chain_metrics_and_ignores_historical_docs
     _write_json(docs_dir / "stage54_summary.json", {"status": "SUCCESS"})
     _write_json(docs_dir / "stage55_summary.json", {"status": "SUCCESS", "projection_only": True})
     _write_json(docs_dir / "stage56_summary.json", {"status": "SUCCESS"})
+    _write_json(docs_dir / "stage61_summary.json", {"status": "PARTIAL", "decision_evidence_allowed": False})
 
     _write_json(
         docs_dir / "stage43_performance_summary.json",
@@ -234,6 +235,7 @@ def test_stage57_rejects_synthetic_chain_metrics_source(tmp_path: Path) -> None:
     _write_json(docs_dir / "stage54_summary.json", {"status": "SUCCESS"})
     _write_json(docs_dir / "stage55_summary.json", {"status": "SUCCESS"})
     _write_json(docs_dir / "stage56_summary.json", {"status": "SUCCESS"})
+    _write_json(docs_dir / "stage61_summary.json", {"status": "PARTIAL", "decision_evidence_allowed": False})
     _write_json(
         docs_dir / "stage57_chain_metrics.json",
         {

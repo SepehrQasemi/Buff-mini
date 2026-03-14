@@ -1,6 +1,9 @@
 # Stage-53 Report
 
 - status: `PARTIAL`
+- execution_status: `EXECUTED`
+- stage_role: `heuristic_filter`
+- validation_state: `REAL_REPLAY_READY`
 - input_mode: `stage52_stage48_artifacts`
 - stage28_run_id: `20260313_154858_044fff9053df_stage28`
 - model_names: `['hgbt', 'logreg', 'rf']`
@@ -13,6 +16,14 @@
 - candidate_count: `15`
 - stage_a_survivors: `9`
 - stage_b_survivors: `9`
+- validated_candidate_id: `s52_8198eb4047124b78`
+- validated_symbol: `BTC/USDT`
+- validated_timeframe: `4h`
+- metric_source_type: `real_replay`
+- replay_execution_status: `EXECUTED`
+- replay_validation_state: `REAL_REPLAY_READY`
+- decision_use_allowed: `True`
+- evidence_quality: `artifact_backed_real`
 - replay_metrics_artifact_path: `runs\20260313_154858_044fff9053df_stage28\stage53\replay_metrics_real.json`
 - blocker_reason: `label_variance_missing`
-- summary_hash: `526f4a714343027f`
+- summary_hash: `7f3bf72dfad02169`
