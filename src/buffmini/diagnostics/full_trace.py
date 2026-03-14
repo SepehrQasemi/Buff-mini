@@ -136,6 +136,7 @@ def _extract_evidence_quality(docs_summaries: dict[str, Any]) -> dict[str, Any]:
     stage58 = docs_summaries.get("stage58_summary.json")
     stage61 = docs_summaries.get("stage61_summary.json")
     stage67 = docs_summaries.get("stage67_summary.json")
+    stage77 = docs_summaries.get("stage77_summary.json")
     chain = docs_summaries.get("stage57_chain_metrics.json")
     if not isinstance(stage57, dict):
         return {"decision_evidence_allowed": False, "missing_real_sources": ["stage57_summary_missing"]}
@@ -158,6 +159,11 @@ def _extract_evidence_quality(docs_summaries: dict[str, Any]) -> dict[str, Any]:
         "transfer_evidence_quality": str(stage58.get("evidence_quality", "")) if isinstance(stage58, dict) else "",
         "transfer_required": bool(stage72.get("transfer_required", False)) if isinstance((stage72 := docs_summaries.get("stage72_summary.json")), dict) else False,
         "final_decision_use_allowed": bool(stage72.get("final_decision_use_allowed", False)) if isinstance(stage72, dict) else False,
+        "run_mode": str(stage77.get("mode", "")) if isinstance(stage77, dict) else "",
+        "interpretation_allowed": bool(stage77.get("interpretation_allowed", False)) if isinstance(stage77, dict) else False,
+        "canonical_status": str(stage77.get("canonical_status", "")) if isinstance(stage77, dict) else "",
+        "resolved_end_ts_status": str(stage77.get("resolved_end_ts_status", "")) if isinstance(stage77, dict) else "",
+        "stage77_blocked_reasons": list(stage77.get("blocked_reasons", [])) if isinstance(stage77, dict) else [],
     }
 
 
@@ -268,6 +274,11 @@ def write_full_trace_report(
     lines.append(f"- transfer_evidence_quality: `{payload.get('evidence_quality', {}).get('transfer_evidence_quality')}`")
     lines.append(f"- transfer_required: `{payload.get('evidence_quality', {}).get('transfer_required')}`")
     lines.append(f"- final_decision_use_allowed: `{payload.get('evidence_quality', {}).get('final_decision_use_allowed')}`")
+    lines.append(f"- run_mode: `{payload.get('evidence_quality', {}).get('run_mode')}`")
+    lines.append(f"- interpretation_allowed: `{payload.get('evidence_quality', {}).get('interpretation_allowed')}`")
+    lines.append(f"- canonical_status: `{payload.get('evidence_quality', {}).get('canonical_status')}`")
+    lines.append(f"- resolved_end_ts_status: `{payload.get('evidence_quality', {}).get('resolved_end_ts_status')}`")
+    lines.append(f"- stage77_blocked_reasons: `{payload.get('evidence_quality', {}).get('stage77_blocked_reasons', [])}`")
     lines.append("")
     lines.append("## Stage Sequence")
     for item in payload["stage_sequence"]:

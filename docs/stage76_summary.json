@@ -1,0 +1,135 @@
+{
+  "candidate_count": 9,
+  "signal_detection_rate": 0.857143,
+  "bad_control_rejection_rate": 1.0,
+  "synthetic_winner_recall": 1.0,
+  "false_negative_rate_on_known_good": 0.142857,
+  "promotion_rate_by_regime": {
+    "compression_breakout": 0.5,
+    "failed_breakout_reversal": 1.0,
+    "flow_imbalance": 1.0,
+    "mean_reversion": 0.5,
+    "trend_persistence": 0.666667
+  },
+  "candidate_classes": {
+    "promising_but_unproven": 6,
+    "rejected": 3
+  },
+  "evaluations": [
+    {
+      "candidate_id": "lab_910e7a6cf028",
+      "regime": "trend_persistence",
+      "expected_class": "strong_winner",
+      "strength": "strong",
+      "rank_score": 0.7207275760374842,
+      "replay_trade_count": 6,
+      "replay_exp_lcb": 0.01335558,
+      "walkforward_usable_windows": 0,
+      "candidate_class": "promising_but_unproven",
+      "aggregate_risk": 0.22135416666666663
+    },
+    {
+      "candidate_id": "lab_9367482dd2a4",
+      "regime": "trend_persistence",
+      "expected_class": "weak_detectable",
+      "strength": "weak",
+      "rank_score": 0.5593942427041508,
+      "replay_trade_count": 6,
+      "replay_exp_lcb": 0.00802307,
+      "walkforward_usable_windows": 0,
+      "candidate_class": "promising_but_unproven",
+      "aggregate_risk": 0.3154166666666667
+    },
+    {
+      "candidate_id": "lab_f765a05ff79f",
+      "regime": "trend_persistence",
+      "expected_class": "bad_control",
+      "strength": "bad",
+      "rank_score": 0.3311275760374841,
+      "replay_trade_count": 6,
+      "replay_exp_lcb": -0.0086696,
+      "walkforward_usable_windows": 0,
+      "candidate_class": "rejected",
+      "aggregate_risk": 0.5754166666666667
+    },
+    {
+      "candidate_id": "lab_b97ed39fa2f0",
+      "regime": "mean_reversion",
+      "expected_class": "strong_winner",
+      "strength": "strong",
+      "rank_score": 0.6993942427041507,
+      "replay_trade_count": 8,
+      "replay_exp_lcb": -1.718e-05,
+      "walkforward_usable_windows": 0,
+      "candidate_class": "promising_but_unproven",
+      "aggregate_risk": 0.24545138888888887
+    },
+    {
+      "candidate_id": "lab_b364b3130a1f",
+      "regime": "mean_reversion",
+      "expected_class": "weak_detectable",
+      "strength": "weak",
+      "rank_score": 0.5420609093708175,
+      "replay_trade_count": 0,
+      "replay_exp_lcb": -1.0,
+      "walkforward_usable_windows": 0,
+      "candidate_class": "rejected",
+      "aggregate_risk": 0.34437500000000004
+    },
+    {
+      "candidate_id": "lab_1917874d4918",
+      "regime": "compression_breakout",
+      "expected_class": "strong_winner",
+      "strength": "strong",
+      "rank_score": 0.6807275760374841,
+      "replay_trade_count": 6,
+      "replay_exp_lcb": -0.00438277,
+      "walkforward_usable_windows": 0,
+      "candidate_class": "promising_but_unproven",
+      "aggregate_risk": 0.24541666666666664
+    },
+    {
+      "candidate_id": "lab_815d59312e8e",
+      "regime": "compression_breakout",
+      "expected_class": "bad_control",
+      "strength": "bad",
+      "rank_score": 0.28179424270415077,
+      "replay_trade_count": 28,
+      "replay_exp_lcb": -0.00135068,
+      "walkforward_usable_windows": 0,
+      "candidate_class": "rejected",
+      "aggregate_risk": 0.5706249999999999
+    },
+    {
+      "candidate_id": "lab_876dc79eb4b8",
+      "regime": "failed_breakout_reversal",
+      "expected_class": "strong_winner",
+      "strength": "strong",
+      "rank_score": 0.6633942427041509,
+      "replay_trade_count": 5,
+      "replay_exp_lcb": -0.00493368,
+      "walkforward_usable_windows": 0,
+      "candidate_class": "promising_but_unproven",
+      "aggregate_risk": 0.2596180555555555
+    },
+    {
+      "candidate_id": "lab_175b9346ec15",
+      "regime": "flow_imbalance",
+      "expected_class": "weak_detectable",
+      "strength": "weak",
+      "rank_score": 0.5233942427041509,
+      "replay_trade_count": 7,
+      "replay_exp_lcb": 0.00147586,
+      "walkforward_usable_windows": 0,
+      "candidate_class": "promising_but_unproven",
+      "aggregate_risk": 0.3396527777777778
+    }
+  ],
+  "status": "SUCCESS",
+  "summary_hash": "94ea7435b2dc942f",
+  "stage": "76",
+  "execution_status": "EXECUTED",
+  "stage_role": "real_validation",
+  "validation_state": "SIGNAL_DETECTABILITY_PROVEN",
+  "seed": 42
+}

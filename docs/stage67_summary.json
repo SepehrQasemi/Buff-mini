@@ -13,11 +13,18 @@
   "mean_score": 0.0,
   "mean_label": 0.0,
   "median_forward_exp_lcb": 0.0,
+  "worst_window_expectancy": 0.0,
+  "p10_forward_expectancy": 0.0,
+  "p10_forward_profit_factor": 0.0,
+  "positive_window_fraction": 0.0,
+  "degradation_vs_holdout": 0.0,
   "gates_effective": false,
   "metric_source_type": "real_walkforward",
+  "replay_artifact_path": "runs\\20260313_154858_044fff9053df_stage28\\stage67\\replay_metrics_real.json",
   "walkforward_artifact_path": "runs\\20260313_154858_044fff9053df_stage28\\stage67\\walkforward_metrics_real.json",
   "monte_carlo_artifact_path": "runs\\20260313_154858_044fff9053df_stage28\\stage57\\monte_carlo_metrics_real.json",
   "cross_perturbation_artifact_path": "runs\\20260313_154858_044fff9053df_stage28\\stage57\\cross_perturbation_metrics_real.json",
+  "split_perturbation_artifact_path": "runs\\20260313_154858_044fff9053df_stage28\\stage67\\split_perturbation_metrics_real.json",
   "continuity_blocked": false,
   "continuity_report": {
     "rows": 6943,
@@ -80,6 +87,15 @@
   },
   "monte_carlo_execution_status": "BLOCKED",
   "cross_perturbation_execution_status": "EXECUTED",
-  "blocker_reason": "walkforward_gate_not_met,insufficient_trades",
-  "summary_hash": "3784835567bb7392"
+  "split_perturbation_execution_status": "EXECUTED",
+  "robustness_level": 0,
+  "robustness_level_name": "rejected",
+  "robustness_stop_reason": "mechanism_not_viable",
+  "robustness_levels": {
+    "level_1_mechanism_viability": false,
+    "level_2_forward_plausibility": false,
+    "level_3_full_robustness": false
+  },
+  "blocker_reason": "walkforward_gate_not_met,insufficient_trades,real_validation_failed",
+  "summary_hash": "04c3572f1b4da98e"
 }

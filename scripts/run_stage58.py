@@ -9,6 +9,7 @@ from typing import Any
 
 from buffmini.constants import DEFAULT_CONFIG_PATH
 from buffmini.config import load_config
+from buffmini.research.transfer import classify_transfer_outcome, discover_transfer_symbols
 from buffmini.stage58 import assess_transfer_validation
 from buffmini.utils.hashing import stable_hash
 from buffmini.validation import compute_transfer_metrics, resolve_validation_candidate
@@ -60,37 +61,55 @@ def main() -> None:
         docs_dir=docs_dir,
     )
     primary_symbol = str(candidate.get("symbol", "")).strip()
-    transfer_symbol = str(cfg.get("research_scope", {}).get("expansion_rules", {}).get("transfer_symbol", "")).strip()
-    if not transfer_symbol:
+    if not primary_symbol:
         universe = [str(v).strip() for v in cfg.get("universe", {}).get("symbols", []) if str(v).strip()]
-        if primary_symbol and universe:
-            alternatives = [symbol for symbol in universe if symbol != primary_symbol]
-            transfer_symbol = alternatives[0] if alternatives else universe[0]
-        elif universe:
-            transfer_symbol = universe[-1]
+        primary_symbol = universe[0] if universe else ""
+    available_symbols = discover_transfer_symbols(cfg, primary_symbol=primary_symbol)
+    preferred_transfer_symbol = str(cfg.get("research_scope", {}).get("expansion_rules", {}).get("transfer_symbol", "")).strip()
+    alternative_symbols = [symbol for symbol in available_symbols if symbol != primary_symbol]
+    transfer_symbol = preferred_transfer_symbol or (alternative_symbols[0] if alternative_symbols else "")
+    transfer_matrix_path = (Path(args.runs_dir) / stage28_run_id / "stage58" / "transfer_matrix_real.json") if stage28_run_id else None
+    transfer_matrix_rows: list[dict[str, Any]] = []
     if transfer_artifact_path is not None and candidate and transfer_symbol:
         transfer_artifact_path.parent.mkdir(parents=True, exist_ok=True)
-        transfer = compute_transfer_metrics(candidate=candidate, config=cfg, symbol=transfer_symbol)
-        transfer_payload = {
-            "metric_source_type": "real_transfer",
-            "artifact_path": str(transfer_artifact_path),
-            "candidate_id": str(candidate.get("candidate_id", "")),
-            "transfer_symbol": transfer_symbol,
-            "timeframe": str(candidate.get("timeframe", "")),
-            "execution_status": str(transfer.get("execution_status", "BLOCKED")),
-            "validation_state": str(transfer.get("validation_state", "TRANSFER_BLOCKED")),
-            "decision_use_allowed": bool(transfer.get("decision_use_allowed", False)),
-            "evidence_quality": "artifact_backed_real" if str(transfer.get("execution_status", "")) == "EXECUTED" else "real_but_blocked",
-            "metrics": {
-                "trade_count": int(transfer.get("trade_count", 0)),
-                "exp_lcb": float(transfer.get("exp_lcb", 0.0)),
-                "maxDD": float(transfer.get("maxDD", 1.0)),
-            },
-            "market_meta": dict(transfer.get("market_meta", {})),
+        primary_metrics = {
+            "exp_lcb": float(stage57.get("replay_gate", {}).get("exp_lcb", 0.0)),
+            "trade_count": int(stage57.get("replay_gate", {}).get("trade_count", 0)),
         }
+        for symbol in alternative_symbols:
+            transfer = compute_transfer_metrics(candidate=candidate, config=cfg, symbol=symbol)
+            row = {
+                "metric_source_type": "real_transfer",
+                "artifact_path": str((Path(args.runs_dir) / stage28_run_id / "stage58" / f"transfer_{symbol.replace('/', '-')}_metrics_real.json")),
+                "candidate_id": str(candidate.get("candidate_id", "")),
+                "primary_symbol": primary_symbol,
+                "transfer_symbol": symbol,
+                "timeframe": str(candidate.get("timeframe", "")),
+                "execution_status": str(transfer.get("execution_status", "BLOCKED")),
+                "validation_state": str(transfer.get("validation_state", "TRANSFER_BLOCKED")),
+                "decision_use_allowed": bool(transfer.get("decision_use_allowed", False)),
+                "evidence_quality": "artifact_backed_real" if str(transfer.get("execution_status", "")) == "EXECUTED" else "real_but_blocked",
+                "metrics": {
+                    "trade_count": int(transfer.get("trade_count", 0)),
+                    "exp_lcb": float(transfer.get("exp_lcb", 0.0)),
+                    "maxDD": float(transfer.get("maxDD", 1.0)),
+                },
+                "market_meta": dict(transfer.get("market_meta", {})),
+            }
+            outcome = classify_transfer_outcome(primary_metrics=primary_metrics, transfer_metrics=row["metrics"])
+            row["classification"] = str(outcome["classification"])
+            row["diagnostics"] = list(outcome["diagnostics"])
+            Path(row["artifact_path"]).write_text(json.dumps(row, indent=2, allow_nan=False), encoding="utf-8")
+            transfer_matrix_rows.append(row)
+        selected = next((row for row in transfer_matrix_rows if str(row["transfer_symbol"]) == transfer_symbol), transfer_matrix_rows[0] if transfer_matrix_rows else {})
+        transfer_payload = dict(selected)
+        if transfer_matrix_path is not None:
+            transfer_matrix_path.write_text(json.dumps({"rows": transfer_matrix_rows}, indent=2, allow_nan=False), encoding="utf-8")
         transfer_artifact_path.write_text(json.dumps(transfer_payload, indent=2, allow_nan=False), encoding="utf-8")
     elif transfer_artifact_path is not None and transfer_artifact_path.exists() and transfer_artifact_path.is_file():
         transfer_payload = _load_json(transfer_artifact_path)
+        if transfer_matrix_path is not None and transfer_matrix_path.exists():
+            transfer_matrix_rows = list(_load_json(transfer_matrix_path).get("rows", []))
     transfer_metrics = dict(transfer_payload.get("metrics", {})) if transfer_payload else None
     transfer_source_type = str(transfer_payload.get("metric_source_type", "")).strip() if transfer_payload else ""
     result = assess_transfer_validation(
@@ -109,14 +128,22 @@ def main() -> None:
         "validation_state": "TRANSFER_CONFIRMED" if status == "SUCCESS" else "TRANSFER_NOT_CONFIRMED",
         "stage28_run_id": stage28_run_id,
         "candidate_id": str(candidate.get("candidate_id", "")),
+        "primary_symbol": primary_symbol,
         "transfer_symbol": transfer_symbol,
+        "available_transfer_symbols": available_symbols,
         "stage57_verdict": str(stage57.get("verdict", "PARTIAL")),
         "transfer_result": result,
+        "transfer_matrix": transfer_matrix_rows,
+        "transfer_class_counts": {
+            str(key): sum(1 for row in transfer_matrix_rows if str(row.get("classification", "")) == str(key))
+            for key in sorted({str(row.get("classification", "")) for row in transfer_matrix_rows})
+        },
         "transfer_execution_status": str(transfer_payload.get("execution_status", "NOT_ATTEMPTED")),
         "transfer_validation_state": str(transfer_payload.get("validation_state", "NOT_ATTEMPTED")),
         "decision_use_allowed": bool(transfer_payload.get("decision_use_allowed", False)),
         "evidence_quality": str(transfer_payload.get("evidence_quality", "missing")),
         "transfer_artifact_exists": bool(transfer_artifact_path is not None and transfer_artifact_path.exists() and transfer_artifact_path.is_file()),
+        "transfer_matrix_artifact_exists": bool(transfer_matrix_path is not None and transfer_matrix_path.exists() and transfer_matrix_path.is_file()),
         "summary_hash": stable_hash(
             {
                 "status": status,
@@ -124,14 +151,22 @@ def main() -> None:
                 "validation_state": "TRANSFER_CONFIRMED" if status == "SUCCESS" else "TRANSFER_NOT_CONFIRMED",
                 "stage28_run_id": stage28_run_id,
                 "candidate_id": str(candidate.get("candidate_id", "")),
+                "primary_symbol": primary_symbol,
                 "transfer_symbol": transfer_symbol,
+                "available_transfer_symbols": available_symbols,
                 "stage57_verdict": str(stage57.get("verdict", "PARTIAL")),
                 "transfer_result": result,
+                "transfer_matrix": transfer_matrix_rows,
+                "transfer_class_counts": {
+                    str(key): sum(1 for row in transfer_matrix_rows if str(row.get("classification", "")) == str(key))
+                    for key in sorted({str(row.get("classification", "")) for row in transfer_matrix_rows})
+                },
                 "transfer_execution_status": str(transfer_payload.get("execution_status", "NOT_ATTEMPTED")),
                 "transfer_validation_state": str(transfer_payload.get("validation_state", "NOT_ATTEMPTED")),
                 "decision_use_allowed": bool(transfer_payload.get("decision_use_allowed", False)),
                 "evidence_quality": str(transfer_payload.get("evidence_quality", "missing")),
                 "transfer_artifact_exists": bool(transfer_artifact_path is not None and transfer_artifact_path.exists() and transfer_artifact_path.is_file()),
+                "transfer_matrix_artifact_exists": bool(transfer_matrix_path is not None and transfer_matrix_path.exists() and transfer_matrix_path.is_file()),
             },
             length=16,
         ),
@@ -150,13 +185,17 @@ def main() -> None:
                 f"- validation_state: `{summary['validation_state']}`",
                 f"- stage28_run_id: `{summary['stage28_run_id']}`",
                 f"- candidate_id: `{summary['candidate_id']}`",
+                f"- primary_symbol: `{summary['primary_symbol']}`",
                 f"- transfer_symbol: `{summary['transfer_symbol']}`",
+                f"- available_transfer_symbols: `{summary['available_transfer_symbols']}`",
                 f"- stage57_verdict: `{summary['stage57_verdict']}`",
+                f"- transfer_class_counts: `{summary['transfer_class_counts']}`",
                 f"- transfer_execution_status: `{summary['transfer_execution_status']}`",
                 f"- transfer_validation_state: `{summary['transfer_validation_state']}`",
                 f"- decision_use_allowed: `{summary['decision_use_allowed']}`",
                 f"- evidence_quality: `{summary['evidence_quality']}`",
                 f"- transfer_artifact_exists: `{summary['transfer_artifact_exists']}`",
+                f"- transfer_matrix_artifact_exists: `{summary['transfer_matrix_artifact_exists']}`",
                 f"- transfer_result: `{summary['transfer_result']}`",
                 f"- summary_hash: `{summary['summary_hash']}`",
             ]

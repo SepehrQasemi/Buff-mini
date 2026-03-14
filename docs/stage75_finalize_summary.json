@@ -1,0 +1,33 @@
+{
+  "stage": "75_finalize",
+  "status": "SUCCESS",
+  "execution_status": "EXECUTED",
+  "validation_state": "STAGE75_FINALIZED_AND_MERGED",
+  "starting_branch": "codex/stage75-repair",
+  "starting_pr_number": 2,
+  "starting_pr_title": "Stage 75: tighten runtime truth and validation authority",
+  "starting_pr_state": "MERGED",
+  "starting_checks": [
+    {
+      "name": "test",
+      "status": "COMPLETED",
+      "conclusion": "SUCCESS",
+      "workflow_name": "CI"
+    }
+  ],
+  "merge_commit": "d056a9cf46a0cbda9180e6462b7d9ecaa475de1b",
+  "merged_at": "2026-03-14T19:11:16Z",
+  "merged_to_main": true,
+  "effective_baseline_branch": "main",
+  "effective_baseline_commit": "d056a9cf46a0cbda9180e6462b7d9ecaa475de1b",
+  "effective_baseline_mode": "merged_main_baseline",
+  "current_execution_branch": "codex/stage76-84-execution",
+  "current_execution_head": "06e8b10432c6acb782a0c2e7080c33108f1e3f0e",
+  "main_branch_protection": {
+    "required_pull_request_reviews": true,
+    "required_approving_review_count": 1,
+    "allow_force_pushes": false,
+    "allow_deletions": false
+  },
+  "summary_hash": "319f04c0a4458fe2"
+}

@@ -92,8 +92,15 @@ def _render(payload: dict[str, Any], *, notes: list[str]) -> str:
         f"- ranker_enabled: `{bool(payload.get('ranker_enabled', False))}`",
         f"- ranking_semantics: `{payload.get('ranking_semantics', '')}`",
         f"- strongest_bottleneck: `{payload.get('strongest_bottleneck', '')}`",
+        f"- mean_aggregate_risk: `{float(payload.get('mean_aggregate_risk', 0.0)):.6f}`",
         "",
     ]
+    class_counts = payload.get("candidate_class_counts", {}) or {}
+    if class_counts:
+        lines.append("## Candidate Classes")
+        for label, count in sorted(class_counts.items()):
+            lines.append(f"- {label}: `{int(count)}`")
+        lines.append("")
     if notes:
         lines.append("## Partial Notes")
         lines.extend([f"- {note}" for note in notes])
@@ -135,12 +142,13 @@ def main() -> None:
         stage_b_threshold=0.0,
     )
     labels = compute_stage48_labels(bars, cfg=cfg)
-    ranked = score_candidates_with_ranker(shortlist, labels)
-    work = shortlist.merge(ranked[["candidate_id", "rank_score", "replay_worthiness"]], on="candidate_id", how="left")
+    ranked = score_candidates_with_ranker(shortlist, labels, market_frame=bars)
+    merge_cols = [column for column in ranked.columns if column != "candidate_id"]
+    work = shortlist.merge(ranked[["candidate_id", *merge_cols]], on="candidate_id", how="left")
     work["beam_score"] = pd.to_numeric(work.get("beam_score", 0.0), errors="coerce").fillna(0.0)
     work["beam_score"] = work["beam_score"] + pd.to_numeric(work.get("rank_score", 0.0), errors="coerce").fillna(0.0) * 0.5
 
-    routed = route_stage_a_stage_b(work, labels=labels, cfg=cfg)
+    routed = route_stage_a_stage_b(work, labels=labels, market_frame=bars, cfg=cfg)
     strict_before = int(routed.get("strict_direct_survivors_before", 0))
     stage_a = pd.DataFrame(routed.get("stage_a_survivors", pd.DataFrame()))
     stage_b = pd.DataFrame(routed.get("stage_b_survivors", pd.DataFrame()))
@@ -173,6 +181,11 @@ def main() -> None:
         "ranker_enabled": True,
         "ranking_semantics": "candidate_specific_weighted_score",
         "strongest_bottleneck": str(routed.get("strongest_bottleneck", "stage_a_tradability")),
+        "candidate_class_counts": {
+            str(key): int(value)
+            for key, value in ranked.get("candidate_class", pd.Series(dtype=str)).astype(str).value_counts(dropna=False).to_dict().items()
+        },
+        "mean_aggregate_risk": float(pd.to_numeric(ranked.get("aggregate_risk", 0.0), errors="coerce").fillna(0.0).mean()) if not ranked.empty else 0.0,
     }
     payload["summary_hash"] = stable_hash(
         {
@@ -187,6 +200,8 @@ def main() -> None:
             "ranker_enabled": payload["ranker_enabled"],
             "ranking_semantics": payload["ranking_semantics"],
             "strongest_bottleneck": payload["strongest_bottleneck"],
+            "candidate_class_counts": payload["candidate_class_counts"],
+            "mean_aggregate_risk": payload["mean_aggregate_risk"],
         },
         length=16,
     )

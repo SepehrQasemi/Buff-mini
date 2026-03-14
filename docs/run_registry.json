@@ -1,0 +1,23 @@
+[
+  {
+    "run_id": "20260313_154858_044fff9053df_stage28",
+    "run_purpose": "evaluation",
+    "mode": "evaluation",
+    "dataset_scope": {
+      "resolved_end_ts": "",
+      "data_scope_hash": "23256160a311e3d0"
+    },
+    "seed_set": [
+      11,
+      19,
+      23,
+      29,
+      31
+    ],
+    "gating_level": 0,
+    "outcome_class": "rejected",
+    "canonical_status": "EVALUATION_BLOCKED",
+    "interpretation_allowed": false,
+    "feedback_hash": "3f25e0c5c7041bc5"
+  }
+]

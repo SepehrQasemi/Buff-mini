@@ -119,6 +119,8 @@ def test_stage58_writes_real_transfer_artifact(tmp_path: Path) -> None:
     if result.returncode != 0:
         raise AssertionError(f"run_stage58.py failed:\nSTDOUT:\n{result.stdout}\nSTDERR:\n{result.stderr}")
     assert (runs / run_id / "stage58" / "transfer_metrics_real.json").exists()
+    assert (runs / run_id / "stage58" / "transfer_matrix_real.json").exists()
     summary = json.loads((docs / "stage58_summary.json").read_text(encoding="utf-8"))
     assert summary["transfer_artifact_exists"] is True
+    assert summary["transfer_matrix_artifact_exists"] is True
     assert summary["evidence_quality"] in {"artifact_backed_real", "real_but_blocked"}
