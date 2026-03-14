@@ -153,21 +153,32 @@ def load_candidate_market_frame(
         max_gap_bars=int(max(0, continuity_cfg.get("max_gap_bars", 0))),
     )
     frozen_mode = bool(config.get("reproducibility", {}).get("frozen_research_mode", False))
-    strict_mode = bool(continuity_cfg.get("strict_mode", False))
+    require_resolved_end_ts = bool(config.get("reproducibility", {}).get("require_resolved_end_ts", False))
+    strict_mode = bool(continuity_cfg.get("strict_mode", False)) or frozen_mode
     fail_on_gap = bool(continuity_cfg.get("fail_on_gap", False))
-    continuity_blocked = bool((fail_on_gap or (frozen_mode and strict_mode)) and not continuity.get("passes_strict", True))
+    resolved_end_required_effective = bool(require_resolved_end_ts or frozen_mode)
+    resolved_end_missing = bool(resolved_end_required_effective and not str(resolved_end_ts).strip())
+    continuity_blocked = bool((fail_on_gap or strict_mode) and not continuity.get("passes_strict", True))
+    runtime_truth_reason = "MISSING_RESOLVED_END_TS" if resolved_end_missing else ""
+    runtime_truth_blocked = bool(runtime_truth_reason)
     meta = {
         "symbol": str(symbol),
         "timeframe": str(timeframe),
         "rows": int(len(frame)),
         "load_mode": load_mode,
         "resolved_end_ts": str(resolved_end_ts),
+        "resolved_end_required_effective": bool(resolved_end_required_effective),
+        "resolved_end_missing": bool(resolved_end_missing),
+        "canonical_scope_active": bool(frozen_mode),
         "continuity_report": continuity,
         "continuity_blocked": continuity_blocked,
+        "runtime_truth_blocked": runtime_truth_blocked,
+        "runtime_truth_reason": runtime_truth_reason,
         "continuity_policy_effective": {
             "strict_mode": strict_mode,
             "fail_on_gap": fail_on_gap,
             "frozen_research_mode": frozen_mode,
+            "require_resolved_end_ts": require_resolved_end_ts,
         },
         "load_errors": load_errors,
     }
@@ -200,6 +211,18 @@ def run_candidate_replay(
         return {
             "execution_status": "BLOCKED",
             "validation_state": "MISSING_MARKET_FRAME",
+            "decision_use_allowed": False,
+            "candidate": runtime_candidate,
+            "market_meta": market_meta,
+            "metrics": _empty_replay_metrics(),
+            "trades": pd.DataFrame(),
+            "equity_curve": pd.DataFrame(),
+            "backtest_params": {},
+        }
+    if bool(market_meta.get("runtime_truth_blocked", False)):
+        return {
+            "execution_status": "BLOCKED",
+            "validation_state": str(market_meta.get("runtime_truth_reason", "RUNTIME_TRUTH_BLOCKED")),
             "decision_use_allowed": False,
             "candidate": runtime_candidate,
             "market_meta": market_meta,
@@ -297,6 +320,23 @@ def evaluate_candidate_walkforward(
                 "status": "PARTIAL",
                 "classification": "INSUFFICIENT_DATA",
                 "classification_explanation": "missing_market_frame",
+                "usable_windows": 0,
+                "total_windows": 0,
+            },
+            "forward_trades": pd.DataFrame(),
+            "market_meta": market_meta,
+            "candidate": runtime_candidate,
+        }
+    if bool(market_meta.get("runtime_truth_blocked", False)):
+        return {
+            "execution_status": "BLOCKED",
+            "validation_state": str(market_meta.get("runtime_truth_reason", "RUNTIME_TRUTH_BLOCKED")),
+            "decision_use_allowed": False,
+            "window_metrics": [],
+            "summary": {
+                "status": "PARTIAL",
+                "classification": "INSUFFICIENT_DATA",
+                "classification_explanation": str(market_meta.get("runtime_truth_reason", "runtime_truth_blocked")).lower(),
                 "usable_windows": 0,
                 "total_windows": 0,
             },
@@ -478,10 +518,10 @@ def evaluate_cross_perturbation(
     if frame is None or market_meta is None:
         frame, market_meta = load_candidate_market_frame(config, symbol=symbol, timeframe=timeframe)
     market_meta = dict(market_meta or {})
-    if frame.empty or bool(market_meta.get("continuity_blocked", False)):
+    if frame.empty or bool(market_meta.get("continuity_blocked", False)) or bool(market_meta.get("runtime_truth_blocked", False)):
         return {
             "execution_status": "BLOCKED",
-            "validation_state": "INSUFFICIENT_RUNTIME_FRAME",
+            "validation_state": str(market_meta.get("runtime_truth_reason", "INSUFFICIENT_RUNTIME_FRAME")) if bool(market_meta.get("runtime_truth_blocked", False)) else "INSUFFICIENT_RUNTIME_FRAME",
             "decision_use_allowed": False,
             "surviving_seeds": 0,
             "total_perturbations": 0,

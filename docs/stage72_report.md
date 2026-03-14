@@ -5,9 +5,12 @@
 - stage_role: `real_validation`
 - validation_state: `FINAL_VERDICT_BLOCKED_EVIDENCE_INSUFFICIENT`
 - campaign_runs: `5`
-- frozen_scope_fail_streak: `20`
+- frozen_scope_fail_streak: `0`
+- scope_frozen: `False`
+- transfer_required: `True`
+- final_decision_use_allowed: `False`
 - verdict: `PARTIAL`
 - decision_evidence_allowed: `False`
 - transfer_acceptable: `False`
 - all_pass: `False`
-- summary_hash: `cb9c09b2188cffc9`
+- summary_hash: `63ddc7a28e5642a1`

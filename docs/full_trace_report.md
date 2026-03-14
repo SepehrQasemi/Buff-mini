@@ -1,10 +1,10 @@
 # Full Trace Report
 
-- generated_at_utc: `2026-03-14T17:21:13.317793+00:00`
+- generated_at_utc: `2026-03-14T18:05:08.275990+00:00`
 - stage28_run_id: `20260313_154858_044fff9053df_stage28`
-- chain_id: `0a4002c620ad4dd7f1d9430c`
-- config_hash: `ecc9bcde3ad875fd`
-- summary_hash: `a0ac5355af5d989e`
+- chain_id: `b3a19732e49f31306b65a5b9`
+- config_hash: `aa6c65ec6168f93c`
+- summary_hash: `180ff5f7433a6b61`
 
 ## Zero Reasons
 - replay_gate_failed:trade_count=82,exp_lcb=-0.00304321,maxDD=0.16734271,failure_dom=1.0
@@ -19,8 +19,14 @@
 - source_types: `{'replay': 'real_replay', 'walkforward': 'real_walkforward', 'monte_carlo': 'real_monte_carlo', 'cross_seed': 'real_cross_perturbation'}`
 - stage61_chain_ready: `False`
 - walkforward_validation_state: `REAL_VALIDATION_FAILED`
+- runtime_truth_blocked: `False`
+- runtime_truth_reason: ``
+- canonical_scope_active: `False`
+- resolved_end_required_effective: `False`
 - transfer_validation_state: `TRANSFER_NOT_CONFIRMED`
 - transfer_evidence_quality: `artifact_backed_real`
+- transfer_required: `True`
+- final_decision_use_allowed: `False`
 
 ## Stage Sequence
 - stage 10.6: status= hash=
@@ -99,21 +105,21 @@
 - stage 54: status=SUCCESS hash=bf97e44a2cc30faf
 - stage 55: status=PARTIAL hash=0a63af34115eeeb2
 - stage 56: status=PARTIAL hash=d42ee537a4c53758
-- stage 57: status=PARTIAL hash=70256bc1a49d1a9b
+- stage 57: status=PARTIAL hash=f6e804507940537d
 - stage 58: status=PARTIAL hash=37127a03fded1177
 - stage 59: status=PARTIAL hash=f3a1e747d55dea5c
-- stage 60: status=SUCCESS hash=4b8cf191caa4ace1
-- stage 61: status=PARTIAL hash=7c010334d523c408
+- stage 60: status=SUCCESS hash=3ed9683a5ee65b9a
+- stage 61: status=PARTIAL hash=53a1a7f4553d20c6
 - stage 62: status=PARTIAL hash=33ce79fd23cad8f7
 - stage 63: status=SUCCESS hash=34f114791e56b118
 - stage 64: status=SUCCESS hash=74fe5cb07ad04192
 - stage 65: status=SUCCESS hash=978e12ddc020feb4
 - stage 66: status=SUCCESS hash=e6b60a7c31e1f42f
-- stage 67: status=PARTIAL hash=91bef8994685ea33
+- stage 67: status=PARTIAL hash=3784835567bb7392
 - stage 68: status=PARTIAL hash=1d0205a36eb62004
 - stage 69: status=SUCCESS hash=264a17bc08e5a978
 - stage 70: status=SUCCESS hash=5d3c7cf0443fda53
-- stage 71: status=SUCCESS hash=e68387dc0955b084
-- stage 72: status=PARTIAL hash=cb9c09b2188cffc9
+- stage 71: status=SUCCESS hash=d3c0abfb181e9603
+- stage 72: status=PARTIAL hash=63ddc7a28e5642a1
 - stage 73: status=SUCCESS hash=763964aa5b3b4888
 - stage 74: status=SUCCESS hash=23fef884f7f15ecc

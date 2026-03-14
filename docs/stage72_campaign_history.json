@@ -103,5 +103,19 @@
     "campaign_id": "3e4e85fae867",
     "verdict": "PARTIAL",
     "summary_hash": "1916befbcf1748b9"
+  },
+  {
+    "campaign_id": "973c3a417bf1",
+    "verdict": "PARTIAL",
+    "summary_hash": "6a311eaf40d54a9d",
+    "scope_frozen": false,
+    "config_hash": "ecc9bcde3ad8"
+  },
+  {
+    "campaign_id": "15ee2ef87832",
+    "verdict": "PARTIAL",
+    "summary_hash": "6a311eaf40d54a9d",
+    "scope_frozen": false,
+    "config_hash": "aa6c65ec6168"
   }
 ]

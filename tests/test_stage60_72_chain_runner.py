@@ -6,6 +6,7 @@ import sys
 from pathlib import Path
 
 import pandas as pd
+import yaml
 
 
 REPO_ROOT = Path(__file__).resolve().parents[1]
@@ -106,3 +107,53 @@ def test_stage60_72_runner_smoke(tmp_path: Path) -> None:
     if result.returncode != 0:
         raise AssertionError(f"run_stage60_72.py failed:\nSTDOUT:\n{result.stdout}\nSTDERR:\n{result.stderr}")
     assert (docs / "stage72_summary.json").exists()
+
+
+def test_stage72_honors_transfer_confirmation_config(tmp_path: Path) -> None:
+    docs = tmp_path / "docs"
+    config_path = tmp_path / "config.yaml"
+    cfg = yaml.safe_load(CONFIG_PATH.read_text(encoding="utf-8"))
+    cfg["research_scope"]["expansion_rules"]["require_transfer_confirmation"] = False
+    config_path.write_text(yaml.safe_dump(cfg, sort_keys=False), encoding="utf-8")
+
+    _write_json(
+        docs / "stage57_summary.json",
+        {
+            "stage": "57",
+            "decision_evidence": {"allowed": True},
+            "replay_gate": {"passed": True},
+            "walkforward_gate": {"passed": True},
+            "monte_carlo_gate": {"passed": True},
+            "cross_seed_gate": {"passed": True},
+        },
+    )
+    _write_json(
+        docs / "stage58_summary.json",
+        {
+            "stage": "58",
+            "transfer_result": {
+                "transfer_acceptable": False,
+                "verdict": "PARTIAL",
+            },
+        },
+    )
+
+    cmd = [
+        PYTHON_EXE,
+        str(REPO_ROOT / "scripts" / "run_stage72.py"),
+        "--config",
+        str(config_path),
+        "--docs-dir",
+        str(docs),
+        "--campaign-runs",
+        "5",
+    ]
+    result = subprocess.run(cmd, cwd=REPO_ROOT, check=False, capture_output=True, text=True)
+    if result.returncode != 0:
+        raise AssertionError(f"run_stage72.py failed:\nSTDOUT:\n{result.stdout}\nSTDERR:\n{result.stderr}")
+
+    summary = json.loads((docs / "stage72_summary.json").read_text(encoding="utf-8"))
+    assert summary["transfer_required"] is False
+    assert summary["verdict"] == "WEAK_EDGE"
+    assert summary["final_decision_use_allowed"] is True
+    assert summary["status"] == "SUCCESS"

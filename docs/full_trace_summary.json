@@ -1,12 +1,12 @@
 {
   "trace_version": "v1",
-  "generated_at_utc": "2026-03-14T17:21:13.317793+00:00",
+  "generated_at_utc": "2026-03-14T18:05:08.275990+00:00",
   "python_version": "3.11.9",
   "platform": "Windows-10-10.0.26200-SP0",
   "config_path": "configs\\default.yaml",
-  "config_hash": "ecc9bcde3ad875fd",
+  "config_hash": "aa6c65ec6168f93c",
   "stage28_run_id": "20260313_154858_044fff9053df_stage28",
-  "chain_id": "0a4002c620ad4dd7f1d9430c",
+  "chain_id": "b3a19732e49f31306b65a5b9",
   "parameters": {
     "research_scope": {
       "primary_symbols": [
@@ -28,6 +28,7 @@
       ],
       "expansion_rules": {
         "transfer_symbol": "ETH/USDT",
+        "require_transfer_confirmation": true,
         "require_stage57_pass": true,
         "oi_core_enabled": false
       }
@@ -16905,9 +16906,9 @@
         "missing_paths": [],
         "stale_paths": [],
         "source_mtimes_utc": {
-          "docs\\stage52_summary.json": "2026-03-14T17:20:42.921178+00:00",
-          "docs\\stage61_summary.json": "2026-03-14T17:21:07.851251+00:00",
-          "docs\\stage57_chain_metrics.json": "2026-03-14T17:21:07.851251+00:00"
+          "docs\\stage52_summary.json": "2026-03-14T18:04:38.668869+00:00",
+          "docs\\stage61_summary.json": "2026-03-14T18:05:02.525693+00:00",
+          "docs\\stage57_chain_metrics.json": "2026-03-14T18:05:02.525693+00:00"
         },
         "max_age_hours": 72.0
       },
@@ -16936,7 +16937,7 @@
             {
               "candidate_id": "s52_8198eb4047124b78",
               "run_id": "20260313_154858_044fff9053df_stage28",
-              "config_hash": "ecc9bcde3ad8",
+              "config_hash": "aa6c65ec6168",
               "data_hash": "unknown_data_hash",
               "seed": 42,
               "metric_name": "exp_lcb",
@@ -16955,7 +16956,7 @@
             {
               "candidate_id": "s52_8198eb4047124b78",
               "run_id": "20260313_154858_044fff9053df_stage28",
-              "config_hash": "ecc9bcde3ad8",
+              "config_hash": "aa6c65ec6168",
               "data_hash": "unknown_data_hash",
               "seed": 42,
               "metric_name": "failure_reason_dominance",
@@ -16974,7 +16975,7 @@
             {
               "candidate_id": "s52_8198eb4047124b78",
               "run_id": "20260313_154858_044fff9053df_stage28",
-              "config_hash": "ecc9bcde3ad8",
+              "config_hash": "aa6c65ec6168",
               "data_hash": "unknown_data_hash",
               "seed": 42,
               "metric_name": "maxDD",
@@ -16993,7 +16994,7 @@
             {
               "candidate_id": "s52_8198eb4047124b78",
               "run_id": "20260313_154858_044fff9053df_stage28",
-              "config_hash": "ecc9bcde3ad8",
+              "config_hash": "aa6c65ec6168",
               "data_hash": "unknown_data_hash",
               "seed": 42,
               "metric_name": "trade_count",
@@ -17012,7 +17013,7 @@
             {
               "candidate_id": "s52_8198eb4047124b78",
               "run_id": "20260313_154858_044fff9053df_stage28",
-              "config_hash": "ecc9bcde3ad8",
+              "config_hash": "aa6c65ec6168",
               "data_hash": "unknown_data_hash",
               "seed": 42,
               "metric_name": "median_forward_exp_lcb",
@@ -17031,7 +17032,7 @@
             {
               "candidate_id": "s52_8198eb4047124b78",
               "run_id": "20260313_154858_044fff9053df_stage28",
-              "config_hash": "ecc9bcde3ad8",
+              "config_hash": "aa6c65ec6168",
               "data_hash": "unknown_data_hash",
               "seed": 42,
               "metric_name": "usable_windows",
@@ -17050,7 +17051,7 @@
             {
               "candidate_id": "s52_8198eb4047124b78",
               "run_id": "20260313_154858_044fff9053df_stage28",
-              "config_hash": "ecc9bcde3ad8",
+              "config_hash": "aa6c65ec6168",
               "data_hash": "unknown_data_hash",
               "seed": 42,
               "metric_name": "conservative_downside_bound",
@@ -17069,7 +17070,7 @@
             {
               "candidate_id": "s52_8198eb4047124b78",
               "run_id": "20260313_154858_044fff9053df_stage28",
-              "config_hash": "ecc9bcde3ad8",
+              "config_hash": "aa6c65ec6168",
               "data_hash": "unknown_data_hash",
               "seed": 42,
               "metric_name": "surviving_seeds",
@@ -17113,9 +17114,9 @@
           },
           "meta": {
             "source": "stage61_chain_writer_v2",
-            "chain_id": "0a4002c620ad4dd7f1d9430c",
+            "chain_id": "b3a19732e49f31306b65a5b9",
             "stage28_run_id": "20260313_154858_044fff9053df_stage28",
-            "config_hash": "ecc9bcde3ad8",
+            "config_hash": "aa6c65ec6168",
             "data_hash": "unknown_data_hash",
             "seed": 42,
             "source_types": {
@@ -17125,7 +17126,7 @@
               "cross_seed": "real_cross_perturbation"
             }
           },
-          "summary_hash": "b096fd1812c1e5aa"
+          "summary_hash": "30e846876d1de184"
         }
       },
       "replay_gate": {
@@ -17174,7 +17175,7 @@
         "decision_metric_count": 8
       },
       "blocker_reason": "decision_evidence_not_sufficient",
-      "summary_hash": "70256bc1a49d1a9b"
+      "summary_hash": "f6e804507940537d"
     },
     "stage58_summary.json": {
       "stage": "58",
@@ -17219,7 +17220,7 @@
       "stage": "60",
       "status": "SUCCESS",
       "stage28_run_id": "20260313_154858_044fff9053df_stage28",
-      "chain_id": "0a4002c620ad4dd7f1d9430c",
+      "chain_id": "b3a19732e49f31306b65a5b9",
       "budget_mode_selected": "search",
       "missing_summaries": [],
       "run_id_mismatch": {},
@@ -17227,7 +17228,7 @@
       "bootstrap_forbidden": false,
       "bootstrap_stages": [],
       "blocker_reason": "",
-      "summary_hash": "4b8cf191caa4ace1",
+      "summary_hash": "3ed9683a5ee65b9a",
       "execution_status": "EXECUTED",
       "stage_role": "orchestration_only"
     },
@@ -17237,7 +17238,7 @@
       "execution_status": "EXECUTED",
       "stage_role": "orchestration_only",
       "stage28_run_id": "20260313_154858_044fff9053df_stage28",
-      "chain_id": "0a4002c620ad4dd7f1d9430c",
+      "chain_id": "b3a19732e49f31306b65a5b9",
       "wrote_chain_metrics": true,
       "chain_metrics_source": "stage61_chain_writer_v2",
       "decision_evidence_allowed": false,
@@ -17248,10 +17249,10 @@
         "median_forward_exp_lcb",
         "usable_windows"
       ],
-      "config_hash": "ecc9bcde3ad8",
+      "config_hash": "aa6c65ec6168",
       "data_hash": "unknown_data_hash",
       "blocker_reason": "decision_evidence_not_ready",
-      "summary_hash": "7c010334d523c408"
+      "summary_hash": "53a1a7f4553d20c6"
     },
     "stage62_summary.json": {
       "stage": "62",
@@ -17474,6 +17475,8 @@
           }
         ]
       },
+      "runtime_truth_blocked": false,
+      "runtime_truth_reason": "",
       "used_config_keys": [
         "evaluation.stage8.walkforward_v2.train_days",
         "evaluation.stage8.walkforward_v2.holdout_days",
@@ -17490,7 +17493,9 @@
         "promotion_gates.cross_seed.min_passing_seeds",
         "data.continuity.strict_mode",
         "data.continuity.fail_on_gap",
-        "reproducibility.frozen_research_mode"
+        "reproducibility.frozen_research_mode",
+        "reproducibility.require_resolved_end_ts",
+        "universe.resolved_end_ts"
       ],
       "effective_values": {
         "train_days": 180,
@@ -17505,12 +17510,17 @@
         "monte_carlo_n_paths": 5000,
         "monte_carlo_block_size": 10,
         "cross_perturbation_min_survivors": 3,
-        "frozen_research_mode": false
+        "frozen_research_mode": false,
+        "require_resolved_end_ts": false,
+        "resolved_end_required_effective": false,
+        "resolved_end_ts": "",
+        "strict_continuity_effective": false,
+        "canonical_scope_active": false
       },
       "monte_carlo_execution_status": "BLOCKED",
       "cross_perturbation_execution_status": "EXECUTED",
       "blocker_reason": "walkforward_gate_not_met,insufficient_trades",
-      "summary_hash": "91bef8994685ea33"
+      "summary_hash": "3784835567bb7392"
     },
     "stage68_summary.json": {
       "stage": "68",
@@ -17594,9 +17604,9 @@
       "stage_role": "reporting_only",
       "validation_state": "MEASURED_RUNTIME",
       "candidate_count_measured": 2500,
-      "baseline_runtime_seconds": 0.0550133,
-      "optimized_runtime_seconds": 0.0141168,
-      "speedup_pct": 74.339296,
+      "baseline_runtime_seconds": 0.051149,
+      "optimized_runtime_seconds": 0.0126469,
+      "speedup_pct": 75.274394,
       "meets_target_40pct": true,
       "measurement_type": "measured_runtime_probe",
       "projected_only": false,
@@ -17608,7 +17618,7 @@
       "cache_key": "48fe3ebc2f693c3be5220a47",
       "consistency_delta": 0.0,
       "blocker_reason": "",
-      "summary_hash": "e68387dc0955b084"
+      "summary_hash": "d3c0abfb181e9603"
     },
     "stage72_summary.json": {
       "stage": "72",
@@ -17617,12 +17627,16 @@
       "stage_role": "real_validation",
       "validation_state": "FINAL_VERDICT_BLOCKED_EVIDENCE_INSUFFICIENT",
       "campaign_runs": 5,
-      "frozen_scope_fail_streak": 20,
+      "frozen_scope_fail_streak": 0,
+      "scope_frozen": false,
+      "transfer_required": true,
+      "config_hash": "aa6c65ec6168",
       "verdict": "PARTIAL",
       "decision_evidence_allowed": false,
+      "final_decision_use_allowed": false,
       "transfer_acceptable": false,
       "all_pass": false,
-      "summary_hash": "cb9c09b2188cffc9"
+      "summary_hash": "63ddc7a28e5642a1"
     },
     "stage73_summary.json": {
       "stage": "73",
@@ -19226,7 +19240,7 @@
         {
           "candidate_id": "s52_8198eb4047124b78",
           "run_id": "20260313_154858_044fff9053df_stage28",
-          "config_hash": "ecc9bcde3ad8",
+          "config_hash": "aa6c65ec6168",
           "data_hash": "unknown_data_hash",
           "seed": 42,
           "metric_name": "exp_lcb",
@@ -19245,7 +19259,7 @@
         {
           "candidate_id": "s52_8198eb4047124b78",
           "run_id": "20260313_154858_044fff9053df_stage28",
-          "config_hash": "ecc9bcde3ad8",
+          "config_hash": "aa6c65ec6168",
           "data_hash": "unknown_data_hash",
           "seed": 42,
           "metric_name": "failure_reason_dominance",
@@ -19264,7 +19278,7 @@
         {
           "candidate_id": "s52_8198eb4047124b78",
           "run_id": "20260313_154858_044fff9053df_stage28",
-          "config_hash": "ecc9bcde3ad8",
+          "config_hash": "aa6c65ec6168",
           "data_hash": "unknown_data_hash",
           "seed": 42,
           "metric_name": "maxDD",
@@ -19283,7 +19297,7 @@
         {
           "candidate_id": "s52_8198eb4047124b78",
           "run_id": "20260313_154858_044fff9053df_stage28",
-          "config_hash": "ecc9bcde3ad8",
+          "config_hash": "aa6c65ec6168",
           "data_hash": "unknown_data_hash",
           "seed": 42,
           "metric_name": "trade_count",
@@ -19302,7 +19316,7 @@
         {
           "candidate_id": "s52_8198eb4047124b78",
           "run_id": "20260313_154858_044fff9053df_stage28",
-          "config_hash": "ecc9bcde3ad8",
+          "config_hash": "aa6c65ec6168",
           "data_hash": "unknown_data_hash",
           "seed": 42,
           "metric_name": "median_forward_exp_lcb",
@@ -19321,7 +19335,7 @@
         {
           "candidate_id": "s52_8198eb4047124b78",
           "run_id": "20260313_154858_044fff9053df_stage28",
-          "config_hash": "ecc9bcde3ad8",
+          "config_hash": "aa6c65ec6168",
           "data_hash": "unknown_data_hash",
           "seed": 42,
           "metric_name": "usable_windows",
@@ -19340,7 +19354,7 @@
         {
           "candidate_id": "s52_8198eb4047124b78",
           "run_id": "20260313_154858_044fff9053df_stage28",
-          "config_hash": "ecc9bcde3ad8",
+          "config_hash": "aa6c65ec6168",
           "data_hash": "unknown_data_hash",
           "seed": 42,
           "metric_name": "conservative_downside_bound",
@@ -19359,7 +19373,7 @@
         {
           "candidate_id": "s52_8198eb4047124b78",
           "run_id": "20260313_154858_044fff9053df_stage28",
-          "config_hash": "ecc9bcde3ad8",
+          "config_hash": "aa6c65ec6168",
           "data_hash": "unknown_data_hash",
           "seed": 42,
           "metric_name": "surviving_seeds",
@@ -19403,9 +19417,9 @@
       },
       "meta": {
         "source": "stage61_chain_writer_v2",
-        "chain_id": "0a4002c620ad4dd7f1d9430c",
+        "chain_id": "b3a19732e49f31306b65a5b9",
         "stage28_run_id": "20260313_154858_044fff9053df_stage28",
-        "config_hash": "ecc9bcde3ad8",
+        "config_hash": "aa6c65ec6168",
         "data_hash": "unknown_data_hash",
         "seed": 42,
         "source_types": {
@@ -19415,7 +19429,7 @@
           "cross_seed": "real_cross_perturbation"
         }
       },
-      "summary_hash": "b096fd1812c1e5aa"
+      "summary_hash": "30e846876d1de184"
     }
   },
   "run_summaries": {
@@ -20052,6 +20066,8 @@
           }
         ]
       },
+      "runtime_truth_blocked": false,
+      "runtime_truth_reason": "",
       "used_config_keys": [
         "evaluation.stage8.walkforward_v2.train_days",
         "evaluation.stage8.walkforward_v2.holdout_days",
@@ -20068,7 +20084,9 @@
         "promotion_gates.cross_seed.min_passing_seeds",
         "data.continuity.strict_mode",
         "data.continuity.fail_on_gap",
-        "reproducibility.frozen_research_mode"
+        "reproducibility.frozen_research_mode",
+        "reproducibility.require_resolved_end_ts",
+        "universe.resolved_end_ts"
       ],
       "effective_values": {
         "train_days": 180,
@@ -20083,12 +20101,17 @@
         "monte_carlo_n_paths": 5000,
         "monte_carlo_block_size": 10,
         "cross_perturbation_min_survivors": 3,
-        "frozen_research_mode": false
+        "frozen_research_mode": false,
+        "require_resolved_end_ts": false,
+        "resolved_end_required_effective": false,
+        "resolved_end_ts": "",
+        "strict_continuity_effective": false,
+        "canonical_scope_active": false
       },
       "monte_carlo_execution_status": "BLOCKED",
       "cross_perturbation_execution_status": "EXECUTED",
       "blocker_reason": "walkforward_gate_not_met,insufficient_trades",
-      "summary_hash": "91bef8994685ea33"
+      "summary_hash": "3784835567bb7392"
     },
     "stage68": {
       "stage": "68",
@@ -21467,7 +21490,7 @@
     {
       "stage": "57",
       "status": "PARTIAL",
-      "summary_hash": "70256bc1a49d1a9b"
+      "summary_hash": "f6e804507940537d"
     },
     {
       "stage": "58",
@@ -21482,12 +21505,12 @@
     {
       "stage": "60",
       "status": "SUCCESS",
-      "summary_hash": "4b8cf191caa4ace1"
+      "summary_hash": "3ed9683a5ee65b9a"
     },
     {
       "stage": "61",
       "status": "PARTIAL",
-      "summary_hash": "7c010334d523c408"
+      "summary_hash": "53a1a7f4553d20c6"
     },
     {
       "stage": "62",
@@ -21517,7 +21540,7 @@
     {
       "stage": "67",
       "status": "PARTIAL",
-      "summary_hash": "91bef8994685ea33"
+      "summary_hash": "3784835567bb7392"
     },
     {
       "stage": "68",
@@ -21537,12 +21560,12 @@
     {
       "stage": "71",
       "status": "SUCCESS",
-      "summary_hash": "e68387dc0955b084"
+      "summary_hash": "d3c0abfb181e9603"
     },
     {
       "stage": "72",
       "status": "PARTIAL",
-      "summary_hash": "cb9c09b2188cffc9"
+      "summary_hash": "63ddc7a28e5642a1"
     },
     {
       "stage": "73",
@@ -21577,8 +21600,14 @@
     },
     "stage61_chain_ready": false,
     "walkforward_validation_state": "REAL_VALIDATION_FAILED",
+    "runtime_truth_blocked": false,
+    "runtime_truth_reason": "",
+    "canonical_scope_active": false,
+    "resolved_end_required_effective": false,
     "transfer_validation_state": "TRANSFER_NOT_CONFIRMED",
-    "transfer_evidence_quality": "artifact_backed_real"
+    "transfer_evidence_quality": "artifact_backed_real",
+    "transfer_required": true,
+    "final_decision_use_allowed": false
   },
-  "summary_hash": "a0ac5355af5d989e"
+  "summary_hash": "180ff5f7433a6b61"
 }

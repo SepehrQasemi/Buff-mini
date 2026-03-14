@@ -1,0 +1,280 @@
+{
+  "phase": "stage75_full_repair",
+  "post_merge_baseline": {
+    "main_baseline_commit": "324201e3f9e2b4dcec59cc50302bd56c2c88b81f",
+    "starting_branch": "codex/stage75-repair",
+    "stage74_merge_pr": "https://github.com/SepehrQasemi/Buff-mini/pull/1",
+    "main_protection": {
+      "require_pr": true,
+      "required_approvals": 1,
+      "force_pushes_blocked": true
+    }
+  },
+  "stage75_branch": {
+    "branch_name": "codex/stage75-repair",
+    "code_commit": "4806b07ea82a908d17d93be179b2de65d615ac83",
+    "pr_number": 2,
+    "pr_url": "https://github.com/SepehrQasemi/Buff-mini/pull/2",
+    "pr_state": "OPEN",
+    "merge_state_status": "BLOCKED",
+    "review_decision": "REVIEW_REQUIRED",
+    "checks": [
+      {
+        "name": "test",
+        "status": "PASS",
+        "detail": "7m40s",
+        "url": "https://github.com/SepehrQasemi/Buff-mini/actions/runs/23093668259/job/67082434918"
+      }
+    ]
+  },
+  "remaining_issue_assessment": [
+    {
+      "title": "Final verdict transfer semantics must be decision-enforced and config-driven",
+      "severity": "CRITICAL",
+      "status": "FULLY_FIXED",
+      "files_changed": [
+        "scripts/run_stage72.py",
+        "src/buffmini/stage72/campaign_verdict.py",
+        "configs/default.yaml",
+        "tests/test_stage72_campaign_verdict.py",
+        "tests/test_stage60_72_chain_runner.py"
+      ],
+      "implementation_summary": "Stage72 now blocks positive final verdicts when transfer confirmation is required but absent, wires the rule into config, and exposes final_decision_use_allowed.",
+      "tests_added_or_updated": [
+        "tests/test_stage72_campaign_verdict.py",
+        "tests/test_stage60_72_chain_runner.py"
+      ],
+      "runtime_evidence": [
+        "docs/stage72_summary.json transfer_required=True",
+        "docs/stage72_summary.json final_decision_use_allowed=False",
+        "docs/stage72_summary.json validation_state=FINAL_VERDICT_BLOCKED_EVIDENCE_INSUFFICIENT"
+      ],
+      "remaining_limitations": "The current candidate still fails transfer acceptance; the fix prevents false promotion rather than creating a pass."
+    },
+    {
+      "title": "Frozen-scope campaign history semantics were misleading",
+      "severity": "HIGH",
+      "status": "FULLY_FIXED",
+      "files_changed": [
+        "scripts/run_stage57.py",
+        "scripts/run_stage72.py",
+        "src/buffmini/stage72/campaign_verdict.py",
+        "tests/test_stage72_campaign_verdict.py"
+      ],
+      "implementation_summary": "Campaign history now records real frozen-scope state and config hash; fail streaks only count matching frozen-scope runs.",
+      "tests_added_or_updated": [
+        "tests/test_stage72_campaign_verdict.py"
+      ],
+      "runtime_evidence": [
+        "docs/stage72_summary.json scope_frozen=False",
+        "docs/stage72_summary.json frozen_scope_fail_streak=0",
+        "docs/stage72_summary.json config_hash=aa6c65ec6168"
+      ],
+      "remaining_limitations": "Historical records created before this repair are less informative because they do not all carry the new semantics."
+    },
+    {
+      "title": "Runtime truth and canonical-scope blocking were too weak",
+      "severity": "CRITICAL",
+      "status": "PARTIALLY_FIXED",
+      "files_changed": [
+        "src/buffmini/validation/candidate_runtime.py",
+        "scripts/run_stage67.py",
+        "tests/test_stage67_real_artifacts.py"
+      ],
+      "implementation_summary": "Replay and walk-forward now block on missing resolved_end_ts under frozen scope, and stage67 surfaces runtime_truth_blocked/runtime_truth_reason/effective canonical controls.",
+      "tests_added_or_updated": [
+        "tests/test_stage67_real_artifacts.py"
+      ],
+      "runtime_evidence": [
+        "docs/stage67_summary.json runtime_truth_blocked=False",
+        "docs/stage67_summary.json runtime_truth_reason=",
+        "docs/stage67_summary.json effective_values.canonical_scope_active=False"
+      ],
+      "remaining_limitations": "Default config still runs in exploratory mode with frozen_research_mode=false and require_resolved_end_ts=false."
+    },
+    {
+      "title": "Cross-perturbation could still run on invalid runtime truth paths",
+      "severity": "HIGH",
+      "status": "PARTIALLY_FIXED",
+      "files_changed": [
+        "src/buffmini/validation/candidate_runtime.py",
+        "tests/test_stage67_real_artifacts.py"
+      ],
+      "implementation_summary": "Cross-perturbation now checks runtime truth blocking before executing.",
+      "tests_added_or_updated": [
+        "tests/test_stage67_real_artifacts.py"
+      ],
+      "runtime_evidence": [
+        "docs/stage67_summary.json cross_perturbation_execution_status=EXECUTED",
+        "docs/stage67_summary.json blocker_reason=walkforward_gate_not_met,insufficient_trades"
+      ],
+      "remaining_limitations": "The default run does not exercise a runtime-truth-blocked cross-perturbation path, so the offline evidence is test-backed rather than from the default integration artifact."
+    },
+    {
+      "title": "Diagnostics and UI did not expose runtime-truth and final-decision semantics",
+      "severity": "HIGH",
+      "status": "PARTIALLY_FIXED",
+      "files_changed": [
+        "src/buffmini/diagnostics/full_trace.py",
+        "src/buffmini/ui/pages/21_run_monitor.py",
+        "src/buffmini/ui/pages/22_results_studio.py"
+      ],
+      "implementation_summary": "Full trace and the Streamlit pages now show canonical scope, runtime truth blocking, transfer requirement, and final decision authority fields.",
+      "tests_added_or_updated": [
+        "tests/test_full_trace_report.py"
+      ],
+      "runtime_evidence": [
+        "docs/full_trace_summary.json evidence_quality.runtime_truth_blocked=False",
+        "docs/full_trace_summary.json evidence_quality.transfer_required=True",
+        "docs/full_trace_summary.json evidence_quality.final_decision_use_allowed=False"
+      ],
+      "remaining_limitations": "UI exposure is code-verified and artifact-visible, but there is no browser automation test for the Streamlit views."
+    },
+    {
+      "title": "Config wiring for transfer confirmation and runtime truth remained incomplete",
+      "severity": "HIGH",
+      "status": "FULLY_FIXED",
+      "files_changed": [
+        "configs/default.yaml",
+        "scripts/run_stage67.py",
+        "scripts/run_stage72.py",
+        "tests/test_stage60_72_chain_runner.py"
+      ],
+      "implementation_summary": "The transfer-confirmation rule is now explicit in config, Stage67 records resolved_end_ts truth controls, and Stage72 consumes the config directly.",
+      "tests_added_or_updated": [
+        "tests/test_stage60_72_chain_runner.py",
+        "tests/test_stage67_real_artifacts.py"
+      ],
+      "runtime_evidence": [
+        "docs/full_trace_summary.json parameters.research_scope.expansion_rules.require_transfer_confirmation=true",
+        "docs/stage67_summary.json used_config_keys includes reproducibility.require_resolved_end_ts=True",
+        "docs/stage72_summary.json transfer_required=True"
+      ],
+      "remaining_limitations": "Other legacy config blocks in older stages remain only partially wired."
+    },
+    {
+      "title": "Future runs are still exploratory by default",
+      "severity": "MEDIUM",
+      "status": "PARTIALLY_FIXED",
+      "files_changed": [
+        "src/buffmini/validation/candidate_runtime.py",
+        "scripts/run_stage67.py",
+        "src/buffmini/diagnostics/full_trace.py"
+      ],
+      "implementation_summary": "Exploratory-vs-canonical semantics are now explicit in artifacts instead of implicit.",
+      "tests_added_or_updated": [
+        "tests/test_stage67_real_artifacts.py",
+        "tests/test_full_trace_report.py"
+      ],
+      "runtime_evidence": [
+        "docs/stage67_summary.json effective_values.frozen_research_mode=False",
+        "docs/stage67_summary.json effective_values.resolved_end_required_effective=False",
+        "docs/full_trace_summary.json parameters.reproducibility.frozen_research_mode=False"
+      ],
+      "remaining_limitations": "Canonical mode is still opt-in, so future runs are more interpretable than before but not fully frozen by default."
+    }
+  ],
+  "status_counts": {
+    "FULLY_FIXED": 3,
+    "PARTIALLY_FIXED": 4,
+    "NOT_FIXED": 0,
+    "BLOCKED": 0
+  },
+  "verification": {
+    "commands": [
+      {
+        "command": "python -m pytest -q tests/test_stage60_72_chain_runner.py tests/test_stage72_campaign_verdict.py tests/test_stage67_real_artifacts.py",
+        "status": "PASS",
+        "detail": "9 passed in 182.90s"
+      },
+      {
+        "command": "python -m compileall src",
+        "status": "PASS"
+      },
+      {
+        "command": "python -m pytest -q",
+        "status": "PASS",
+        "detail": "606 passed, 192 warnings in 707.82s"
+      },
+      {
+        "command": "python scripts/run_stage60_72.py --config configs/default.yaml --runs-dir runs --docs-dir docs --campaign-runs 5",
+        "status": "PASS"
+      }
+    ]
+  },
+  "runtime_evidence": {
+    "stage57": {
+      "status": "PARTIAL",
+      "validation_state": "EVIDENCE_INSUFFICIENT",
+      "decision_evidence_allowed": false,
+      "blocked_decision_metrics": [
+        "conservative_downside_bound",
+        "median_forward_exp_lcb",
+        "usable_windows"
+      ]
+    },
+    "stage67": {
+      "status": "PARTIAL",
+      "validation_state": "REAL_VALIDATION_FAILED",
+      "runtime_truth_blocked": false,
+      "runtime_truth_reason": "",
+      "blocker_reason": "walkforward_gate_not_met,insufficient_trades"
+    },
+    "stage72": {
+      "stage": "72",
+      "status": "PARTIAL",
+      "execution_status": "EXECUTED",
+      "stage_role": "real_validation",
+      "validation_state": "FINAL_VERDICT_BLOCKED_EVIDENCE_INSUFFICIENT",
+      "campaign_runs": 5,
+      "frozen_scope_fail_streak": 0,
+      "scope_frozen": false,
+      "transfer_required": true,
+      "config_hash": "aa6c65ec6168",
+      "verdict": "PARTIAL",
+      "decision_evidence_allowed": false,
+      "final_decision_use_allowed": false,
+      "transfer_acceptable": false,
+      "all_pass": false,
+      "summary_hash": "63ddc7a28e5642a1"
+    },
+    "full_trace_evidence_quality": {
+      "decision_evidence_allowed": false,
+      "missing_real_sources": [],
+      "blocked_decision_metrics": [
+        "conservative_downside_bound",
+        "median_forward_exp_lcb",
+        "usable_windows"
+      ],
+      "source_types": {
+        "replay": "real_replay",
+        "walkforward": "real_walkforward",
+        "monte_carlo": "real_monte_carlo",
+        "cross_seed": "real_cross_perturbation"
+      },
+      "stage61_chain_ready": false,
+      "walkforward_validation_state": "REAL_VALIDATION_FAILED",
+      "runtime_truth_blocked": false,
+      "runtime_truth_reason": "",
+      "canonical_scope_active": false,
+      "resolved_end_required_effective": false,
+      "transfer_validation_state": "TRANSFER_NOT_CONFIRMED",
+      "transfer_evidence_quality": "artifact_backed_real",
+      "transfer_required": true,
+      "final_decision_use_allowed": false
+    },
+    "zero_reasons": [
+      "replay_gate_failed:trade_count=82,exp_lcb=-0.00304321,maxDD=0.16734271,failure_dom=1.0",
+      "walkforward_gate_failed:usable_windows=0,median_forward_exp_lcb=0.0",
+      "monte_carlo_gate_failed:conservative_downside_bound=-1.0",
+      "cross_seed_gate_failed:surviving_seeds=0"
+    ]
+  },
+  "new_invariants": [
+    "Stage72 cannot authorize a positive final verdict when transfer confirmation is required but absent.",
+    "Frozen-scope campaign fail streaks only count matching frozen-scope runs under the same config hash.",
+    "Replay, walk-forward, and cross-perturbation are blocked when runtime truth is invalid under effective canonical controls.",
+    "Diagnostics and UI now expose runtime truth, transfer requirement, and final decision authority explicitly."
+  ],
+  "final_verdict": "MAJOR_REPAIR_MOSTLY_COMPLETE"
+}

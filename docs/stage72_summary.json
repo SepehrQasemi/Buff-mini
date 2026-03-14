@@ -5,10 +5,14 @@
   "stage_role": "real_validation",
   "validation_state": "FINAL_VERDICT_BLOCKED_EVIDENCE_INSUFFICIENT",
   "campaign_runs": 5,
-  "frozen_scope_fail_streak": 20,
+  "frozen_scope_fail_streak": 0,
+  "scope_frozen": false,
+  "transfer_required": true,
+  "config_hash": "aa6c65ec6168",
   "verdict": "PARTIAL",
   "decision_evidence_allowed": false,
+  "final_decision_use_allowed": false,
   "transfer_acceptable": false,
   "all_pass": false,
-  "summary_hash": "cb9c09b2188cffc9"
+  "summary_hash": "63ddc7a28e5642a1"
 }

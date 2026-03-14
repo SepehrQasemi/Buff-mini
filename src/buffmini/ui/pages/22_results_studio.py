@@ -123,17 +123,24 @@ with summary_tab:
                 "blocked_decision_metrics": (stage57_summary.get("decision_evidence", {}) or {}).get("blocked_decision_metrics", []),
                 "source_types": (full_trace_summary.get("evidence_quality", {}) or {}).get("source_types", {}),
                 "frozen_research_mode": ((full_trace_summary.get("parameters", {}) or {}).get("reproducibility", {}) or {}).get("frozen_research_mode"),
+                "canonical_scope_active": (full_trace_summary.get("evidence_quality", {}) or {}).get("canonical_scope_active"),
+                "runtime_truth_blocked": (full_trace_summary.get("evidence_quality", {}) or {}).get("runtime_truth_blocked"),
+                "runtime_truth_reason": (full_trace_summary.get("evidence_quality", {}) or {}).get("runtime_truth_reason"),
+                "transfer_required": (full_trace_summary.get("evidence_quality", {}) or {}).get("transfer_required"),
+                "final_decision_use_allowed": (full_trace_summary.get("evidence_quality", {}) or {}).get("final_decision_use_allowed"),
             }
         )
     if stage58_summary:
         st.caption(
             f"transfer_verdict={stage58_summary.get('transfer_result', {}).get('verdict')} | "
-            f"transfer_acceptable={stage58_summary.get('transfer_result', {}).get('transfer_acceptable')}"
+            f"transfer_acceptable={stage58_summary.get('transfer_result', {}).get('transfer_acceptable')} | "
+            f"transfer_required={stage72_summary.get('transfer_required')}"
         )
     if stage72_summary:
         st.caption(
             f"final_verdict={stage72_summary.get('verdict')} | "
-            f"decision_evidence_allowed={stage72_summary.get('decision_evidence_allowed')}"
+            f"decision_evidence_allowed={stage72_summary.get('decision_evidence_allowed')} | "
+            f"final_decision_use_allowed={stage72_summary.get('final_decision_use_allowed')}"
         )
 
     st.subheader("Save To Library")
