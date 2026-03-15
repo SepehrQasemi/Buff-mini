@@ -22,7 +22,8 @@ def evaluate_data_fitness(
     symbols: list[str],
     timeframes: list[str],
 ) -> dict[str, Any]:
-    snapshot_payload = _load_snapshot_payload(config)
+    live_snapshot_payload = _load_snapshot_payload(config, use_evaluation=False)
+    evaluation_snapshot_payload = _load_snapshot_payload(config, use_evaluation=True)
     rows: list[dict[str, Any]] = []
     for symbol in symbols:
         for timeframe in timeframes:
@@ -32,12 +33,12 @@ def evaluate_data_fitness(
                 auto_pin_resolved_end=False,
             )
             live_strict_cfg, live_strict_mode = build_mode_context(
-                config,
+                _live_strict_config(config),
                 requested_mode="evaluation",
                 auto_pin_resolved_end=True,
             )
             canonical_cfg, canonical_mode = build_mode_context(
-                _canonical_config(config, snapshot_payload, symbol=symbol, timeframe=timeframe),
+                _canonical_config(config, evaluation_snapshot_payload, symbol=symbol, timeframe=timeframe),
                 requested_mode="evaluation",
                 auto_pin_resolved_end=False,
             )
@@ -45,7 +46,8 @@ def evaluate_data_fitness(
             _, live_relaxed_meta = load_candidate_market_frame(live_exploration_cfg, symbol=symbol, timeframe=timeframe)
             live_eval_frame, live_strict_meta = load_candidate_market_frame(live_strict_cfg, symbol=symbol, timeframe=timeframe)
             canonical_frame, canonical_meta = load_candidate_market_frame(canonical_cfg, symbol=symbol, timeframe=timeframe)
-            snapshot_row = _snapshot_row(snapshot_payload, symbol=symbol, timeframe=timeframe)
+            live_snapshot_row = _snapshot_row(live_snapshot_payload, symbol=symbol, timeframe=timeframe)
+            evaluation_snapshot_row = _snapshot_row(evaluation_snapshot_payload, symbol=symbol, timeframe=timeframe)
 
             rows.append(
                 {
@@ -64,15 +66,18 @@ def evaluate_data_fitness(
                     "canonical_reason": str(canonical_meta.get("continuity_reason", "") or canonical_meta.get("runtime_truth_reason", "")),
                     "live_evaluation_windows": int(_possible_window_count(live_eval_frame, config)),
                     "canonical_evaluation_windows": int(_possible_window_count(canonical_frame, config)),
-                    "snapshot_available": bool(snapshot_row),
-                    "snapshot_end_ts": str(snapshot_row.get("end_ts", "")),
-                    "snapshot_candle_count": int(snapshot_row.get("candle_count", 0)),
+                    "live_snapshot_available": bool(live_snapshot_row),
+                    "live_snapshot_end_ts": str(live_snapshot_row.get("end_ts", "")),
+                    "live_snapshot_candle_count": int(live_snapshot_row.get("candle_count", 0)),
+                    "snapshot_available": bool(evaluation_snapshot_row),
+                    "snapshot_end_ts": str(evaluation_snapshot_row.get("end_ts", "")),
+                    "snapshot_candle_count": int(evaluation_snapshot_row.get("candle_count", 0)),
                     "canonical_row_count": int(canonical_meta.get("row_count", 0)),
                     "canonical_end_ts": _frame_end_iso(canonical_frame),
                     "canonical_snapshot_match": bool(
-                        snapshot_row
-                        and int(snapshot_row.get("candle_count", 0)) == int(canonical_meta.get("row_count", 0))
-                        and str(snapshot_row.get("end_ts", "")) == _frame_end_iso(canonical_frame)
+                        evaluation_snapshot_row
+                        and int(evaluation_snapshot_row.get("candle_count", 0)) == int(canonical_meta.get("row_count", 0))
+                        and str(evaluation_snapshot_row.get("end_ts", "")) == _frame_end_iso(canonical_frame)
                     ),
                     "evaluation_usable_class": _evaluation_usable_class(
                         live_strict_meta=live_strict_meta,
@@ -88,6 +93,7 @@ def evaluate_data_fitness(
     return {
         "rows": rows,
         "snapshot_meta": snapshot_metadata_from_config(config),
+        "evaluation_snapshot_meta": _snapshot_metadata_from_evaluation_path(config),
         "summary_hash": _stable_summary_hash(rows),
     }
 
@@ -142,10 +148,26 @@ def _canonical_config(
     timeframe: str,
 ) -> dict[str, Any]:
     cfg = deepcopy(config)
-    cfg.setdefault("research_run", {})["data_source"] = "canonical"
+    research_run = cfg.setdefault("research_run", {})
+    evaluation_data_source = str(research_run.get("evaluation_data_source", "canonical")).strip() or "canonical"
+    research_run["data_source"] = evaluation_data_source
+    snapshot_cfg = cfg.setdefault("data", {}).setdefault("snapshot", {})
+    evaluation_path = str(snapshot_cfg.get("evaluation_path", "")).strip()
+    if evaluation_path:
+        snapshot_cfg["path"] = evaluation_path
     snapshot_row = _snapshot_row(snapshot_payload, symbol=symbol, timeframe=timeframe)
     if snapshot_row:
         cfg.setdefault("universe", {})["resolved_end_ts"] = str(snapshot_row.get("end_ts", ""))
+    return cfg
+
+
+def _live_strict_config(config: dict[str, Any]) -> dict[str, Any]:
+    cfg = deepcopy(config)
+    research_run = cfg.setdefault("research_run", {})
+    research_run["evaluation_data_source"] = "live"
+    snapshot_cfg = cfg.setdefault("data", {}).setdefault("snapshot", {})
+    if "path" in snapshot_cfg:
+        snapshot_cfg["evaluation_path"] = snapshot_cfg["path"]
     return cfg
 
 
@@ -156,15 +178,26 @@ def _snapshot_row(payload: dict[str, Any], *, symbol: str, timeframe: str) -> di
     return row
 
 
-def _load_snapshot_payload(config: dict[str, Any]) -> dict[str, Any]:
+def _load_snapshot_payload(config: dict[str, Any], *, use_evaluation: bool) -> dict[str, Any]:
     snapshot_cfg = dict((config.get("data", {}) or {}).get("snapshot", {}))
-    path = Path(snapshot_cfg.get("path", PROJECT_ROOT / "data" / "snapshots" / "DATA_FROZEN_v1.json"))
+    key = "evaluation_path" if use_evaluation else "path"
+    default_name = "DATA_FROZEN_EVAL_v2.json" if use_evaluation else "DATA_FROZEN_v1.json"
+    path = Path(snapshot_cfg.get(key, PROJECT_ROOT / "data" / "snapshots" / default_name))
     if not path.is_absolute():
         path = PROJECT_ROOT / path
     if not path.exists():
         return {}
     payload = json.loads(path.read_text(encoding="utf-8"))
     return payload if isinstance(payload, dict) else {}
+
+
+def _snapshot_metadata_from_evaluation_path(config: dict[str, Any]) -> dict[str, Any]:
+    patched = deepcopy(config)
+    snapshot_cfg = patched.setdefault("data", {}).setdefault("snapshot", {})
+    evaluation_path = str(snapshot_cfg.get("evaluation_path", "")).strip()
+    if evaluation_path:
+        snapshot_cfg["path"] = evaluation_path
+    return snapshot_metadata_from_config(patched)
 
 
 def _possible_window_count(frame: pd.DataFrame, config: dict[str, Any]) -> int:

@@ -12,7 +12,7 @@ import pandas as pd
 
 from buffmini.backtest.engine import run_backtest
 from buffmini.config import get_universe_end
-from buffmini.constants import CANONICAL_DATA_DIR, DERIVED_DATA_DIR, RAW_DATA_DIR
+from buffmini.constants import CANONICAL_DATA_DIR, CANONICAL_EVAL_DATA_DIR, DERIVED_DATA_DIR, RAW_DATA_DIR
 from buffmini.data.continuity import continuity_report
 from buffmini.data.derived_tf import get_timeframe
 from buffmini.data.store import build_data_store
@@ -125,18 +125,18 @@ def load_candidate_market_frame(
     data_source = str(run_cfg.get("data_source", "live")).strip().lower() or "live"
     load_mode = "configured_store"
     load_errors: list[str] = []
-    if data_source == "canonical":
+    if data_source in {"canonical", "canonical_eval"}:
         try:
             canonical = get_timeframe(
                 symbol=symbol,
                 timeframe=timeframe,
-                canonical_dir=CANONICAL_DATA_DIR,
+                canonical_dir=CANONICAL_EVAL_DATA_DIR if data_source == "canonical_eval" else CANONICAL_DATA_DIR,
                 derived_dir=DERIVED_DATA_DIR,
             )
             frame = canonical.frame.copy()
-            load_mode = "canonical_snapshot"
+            load_mode = "canonical_eval_snapshot" if data_source == "canonical_eval" else "canonical_snapshot"
         except Exception as exc:
-            load_errors.append(f"canonical_snapshot:{exc}")
+            load_errors.append(f"{load_mode}:{exc}")
     else:
         try:
             store = build_data_store(
@@ -344,6 +344,121 @@ def run_candidate_replay(
 
     metrics = _replay_metrics_from_result(result)
     metrics["perturbation_label"] = str(perturbation_label)
+    execution_status = "EXECUTED"
+    validation_state = "REAL_REPLAY_READY" if int(metrics["trade_count"]) > 0 else "REAL_REPLAY_ZERO_TRADES"
+    decision_use_allowed = bool(int(metrics["trade_count"]) > 0)
+    return {
+        "execution_status": execution_status,
+        "validation_state": validation_state,
+        "decision_use_allowed": decision_use_allowed,
+        "candidate": runtime_candidate,
+        "market_meta": market_meta,
+        "metrics": metrics,
+        "trades": result.trades.copy(),
+        "equity_curve": result.equity_curve.copy(),
+        "backtest_params": backtest_params,
+    }
+
+
+def run_custom_signal_replay(
+    *,
+    candidate: dict[str, Any],
+    config: dict[str, Any],
+    symbol: str,
+    signal: pd.Series,
+    frame: pd.DataFrame | None = None,
+    market_meta: dict[str, Any] | None = None,
+    variant_label: str = "custom_signal",
+    cost_multiplier: float = 1.0,
+    slippage_multiplier: float = 1.0,
+    funding_multiplier: float = 1.0,
+    hold_bars_multiplier: float = 1.0,
+) -> dict[str, Any]:
+    runtime_candidate = hydrate_candidate_record(candidate)
+    timeframe = str(runtime_candidate.get("timeframe", "1h"))
+    if frame is None or market_meta is None:
+        frame, market_meta = load_candidate_market_frame(config, symbol=symbol, timeframe=timeframe)
+    frame = frame.copy()
+    market_meta = dict(market_meta or {})
+
+    if frame.empty:
+        return {
+            "execution_status": "BLOCKED",
+            "validation_state": "MISSING_MARKET_FRAME",
+            "decision_use_allowed": False,
+            "candidate": runtime_candidate,
+            "market_meta": market_meta,
+            "metrics": _empty_replay_metrics(),
+            "trades": pd.DataFrame(),
+            "equity_curve": pd.DataFrame(),
+            "backtest_params": {},
+        }
+    if bool(market_meta.get("runtime_truth_blocked", False)):
+        return {
+            "execution_status": "BLOCKED",
+            "validation_state": str(market_meta.get("runtime_truth_reason", "RUNTIME_TRUTH_BLOCKED")),
+            "decision_use_allowed": False,
+            "candidate": runtime_candidate,
+            "market_meta": market_meta,
+            "metrics": _empty_replay_metrics(),
+            "trades": pd.DataFrame(),
+            "equity_curve": pd.DataFrame(),
+            "backtest_params": {},
+        }
+    if bool(market_meta.get("continuity_blocked", False)):
+        return {
+            "execution_status": "BLOCKED",
+            "validation_state": "CONTINUITY_BLOCKED",
+            "decision_use_allowed": False,
+            "candidate": runtime_candidate,
+            "market_meta": market_meta,
+            "metrics": _empty_replay_metrics(),
+            "trades": pd.DataFrame(),
+            "equity_curve": pd.DataFrame(),
+            "backtest_params": {},
+        }
+
+    enriched = frame.copy().sort_values("timestamp").reset_index(drop=True)
+    enriched["timestamp"] = pd.to_datetime(enriched.get("timestamp"), utc=True, errors="coerce")
+    for col in ("open", "high", "low", "close", "volume"):
+        enriched[col] = pd.to_numeric(enriched.get(col), errors="coerce").astype(float)
+    enriched["atr_14"] = _atr14(enriched)
+    runtime_signal = pd.Series(signal, index=enriched.index).fillna(0).astype(int)
+    enriched["signal"] = runtime_signal
+
+    backtest_params = _candidate_backtest_params(
+        frame=enriched,
+        candidate=runtime_candidate,
+        config=config,
+        cost_multiplier=float(cost_multiplier),
+        slippage_multiplier=float(slippage_multiplier),
+        funding_multiplier=float(funding_multiplier),
+        hold_bars_multiplier=float(hold_bars_multiplier),
+    )
+    result = run_backtest(
+        frame=enriched,
+        strategy_name=str(runtime_candidate.get("candidate_id", runtime_candidate.get("family", "candidate_runtime"))) + f"::{variant_label}",
+        symbol=str(symbol),
+        signal_col="signal",
+        atr_col="atr_14",
+        initial_capital=float(backtest_params["initial_capital"]),
+        stop_atr_multiple=float(backtest_params["stop_atr_multiple"]),
+        take_profit_atr_multiple=float(backtest_params["take_profit_atr_multiple"]),
+        max_hold_bars=int(backtest_params["max_hold_bars"]),
+        round_trip_cost_pct=float(backtest_params["round_trip_cost_pct"]),
+        slippage_pct=float(backtest_params["slippage_pct"]),
+        funding_pct_per_day=float(backtest_params["funding_pct_per_day"]),
+        exit_mode=str(backtest_params["exit_mode"]),
+        trailing_atr_k=float(backtest_params["trailing_atr_k"]),
+        partial_size=float(backtest_params["partial_size"]),
+        position_sizing_mode=str(backtest_params["position_sizing_mode"]),
+        risk_per_trade_pct=float(backtest_params["risk_per_trade_pct"]),
+        fixed_fraction_pct=float(backtest_params["fixed_fraction_pct"]),
+        cost_model_cfg=dict(config.get("cost_model", {})),
+    )
+
+    metrics = _replay_metrics_from_result(result)
+    metrics["perturbation_label"] = str(variant_label)
     execution_status = "EXECUTED"
     validation_state = "REAL_REPLAY_READY" if int(metrics["trade_count"]) > 0 else "REAL_REPLAY_ZERO_TRADES"
     decision_use_allowed = bool(int(metrics["trade_count"]) > 0)

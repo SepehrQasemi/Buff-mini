@@ -1,0 +1,43 @@
+{
+  "symbol": "ETH/USDT",
+  "timeframe": "30m",
+  "exchange": "binance",
+  "source_hash": "bc2ef76268cba5ad8bf8681d",
+  "target_hash": "6cf2355684d3f547b0e45007",
+  "sha256": "6cf2355684d3f547b0e45007c8ac31862ea098ec0cd100d83f91e09fbaa669e2",
+  "repair_mode": "contiguous_suffix_after_last_gap",
+  "trim_start_ts": "2023-03-24T14:00:00+00:00",
+  "source_rows": 70124,
+  "rows": 51595,
+  "candle_count": 51595,
+  "start_ts": "2023-03-24T14:00:00+00:00",
+  "end_ts": "2026-03-03T11:00:00+00:00",
+  "before_continuity": {
+    "rows": 70124,
+    "gap_count": 1,
+    "max_gap_bars": 0,
+    "largest_gap_bars": 3,
+    "total_missing_bars": 3,
+    "missing_ratio": 4.2779529e-05,
+    "passed": false,
+    "passes_strict": false,
+    "gaps": [
+      {
+        "start_ts": "2023-03-24T12:00:00+00:00",
+        "end_ts": "2023-03-24T14:00:00+00:00",
+        "bars_missing": 3
+      }
+    ]
+  },
+  "after_continuity": {
+    "rows": 51595,
+    "gap_count": 0,
+    "max_gap_bars": 0,
+    "largest_gap_bars": 0,
+    "total_missing_bars": 0,
+    "missing_ratio": 0.0,
+    "passed": true,
+    "passes_strict": true,
+    "gaps": []
+  }
+}

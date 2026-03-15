@@ -1,0 +1,67 @@
+{
+  "final_edge_verdict": "GENERATOR_OR_SEARCH_FORMALISM_STILL_INSUFFICIENT",
+  "evidence_table": [
+    {
+      "stage": "95",
+      "metric": "dead_weight_family_count",
+      "value": 1
+    },
+    {
+      "stage": "96",
+      "metric": "canonical_usable_rows",
+      "value": 6
+    },
+    {
+      "stage": "100",
+      "metric": "replay_fragile_signal_rows",
+      "value": 12
+    },
+    {
+      "stage": "100",
+      "metric": "data_block_rows",
+      "value": 6
+    },
+    {
+      "stage": "101",
+      "metric": "candidates_beating_all_controls",
+      "value": 0
+    },
+    {
+      "stage": "101",
+      "metric": "candidates_beating_majority_controls",
+      "value": 0
+    },
+    {
+      "stage": "102",
+      "metric": "rescueable_count",
+      "value": 0
+    },
+    {
+      "stage": "102",
+      "metric": "transfer_blocked_count",
+      "value": 0
+    },
+    {
+      "stage": "102",
+      "metric": "still_generator_weak_count",
+      "value": 1
+    }
+  ],
+  "supporting_counts": {
+    "truth_counts": {
+      "replay_fragile_signal_only": 12,
+      "data_blocks_interpretation": 6
+    },
+    "rescue_counts": {
+      "still_generator_weak": 1
+    },
+    "beats_all_controls": 0,
+    "beats_majority_controls": 0
+  },
+  "summary_hash": "984f60aa2aa00934",
+  "stage": "103",
+  "status": "SUCCESS",
+  "execution_status": "EXECUTED",
+  "stage_role": "reporting_only",
+  "validation_state": "FINAL_EDGE_VERDICT_READY"
+}

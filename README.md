@@ -30,8 +30,11 @@ Buff-mini is materially stronger than the original MVP-era repo:
 Current blunt status:
 - controlled detectability is proven in synthetic environments
 - exploratory discovery and ranking are stronger and more informative than before
-- evaluation-mode live campaigns are still blocked by local data continuity issues on the available BTC/ETH datasets
+- live-strict BTC/ETH campaigns are still blocked by local continuity gaps
+- repaired `canonical_eval` BTC/ETH 30m/1h/4h datasets now make strict canonical evaluation possible
+- current canonical candidates are still replay-fragile, fail simple baseline attacks, and were not rescued by bounded robustness repairs
 - no robust live edge candidate has been established yet
+- the current strongest evidence-based verdict in scope is that generator/search formalism is still insufficient for a trustworthy live-edge conclusion
 
 ## Core Principles
 
@@ -112,8 +115,10 @@ Validation layers include:
 Key areas:
 - `src/buffmini/data/`
 - `src/buffmini/research/data_fitness.py`
+- `src/buffmini/research/canonical_repair.py`
 - `data/snapshots/`
 - `data/canonical/`
+- `data/canonical_eval/`
 
 Responsibilities:
 - raw and derived OHLCV loading
@@ -198,6 +203,17 @@ This repository contains many historical stage scripts. The current repaired sto
 - transfer and regime intelligence
 - traceable failure-learning loop
 - first interpretable edge inventory campaign
+
+### Stages 95-103: Live Truth Push, Canonical Repair, Baseline Attack, Rescue, and Final Verdict
+- live usefulness and family brutality pass
+- canonical BTC/ETH evaluation data repair
+- relaxed-to-strict bridge
+- mechanism saturation plus deterministic compression
+- candidate-quality acceleration and top-K truth review
+- multi-scope truth campaign
+- null-hypothesis / baseline attack
+- bounded rescue attempts
+- final edge-existence verdict aggregation
 
 ## Run Modes
 
@@ -287,6 +303,7 @@ A green status on an orchestration or reporting stage is not enough.
 - live data is useful for exploration and operational diagnostics
 - canonical snapshot-backed data is preferred for evaluation-grade reruns
 - the repo records snapshot metadata and data hashes where possible
+- current strict-evaluation comparisons should prefer `canonical_eval` over raw live BTC/ETH data because the repaired canonical suffix is continuity-clean while live strict remains gap-blocked
 
 ### Continuity
 Continuity is a first-class research constraint.
@@ -302,11 +319,17 @@ A run can be blocked because of:
 
 That is not a bug by itself. It is part of the honesty contract.
 
+Current practical rule:
+- `live_strict` can still block on BTC/ETH gaps
+- `canonical_strict` is the repaired interpretation path for the same rows
+
 ## Current Known Limitations
 
 - No robust live edge candidate has been established yet.
-- The current local BTC/ETH evaluation datasets are still blocked by strict continuity gaps under evaluation mode.
-- Canonical snapshot metadata exists, but the current canonical data rows do not yet match the snapshot candle counts cleanly.
+- The current local BTC/ETH live-strict datasets are still blocked by strict continuity gaps.
+- The repaired `canonical_eval` datasets are usable, but the current top candidates still die at replay under strict canonical evaluation.
+- The current top candidates do not beat simple momentum / mean-reversion reference baselines in the Stage-101 null-hypothesis attack.
+- The bounded Stage-102 rescue pass did not rescue the top canonical candidate; it remained replay-fragile.
 - Transfer scope is still constrained by locally available assets.
 - Generator/search quality is materially better than before, but still bounded and rule-based.
 - Ranking is far more candidate-specific than earlier versions, but it is still heuristic and not a proof stage.
@@ -375,6 +398,20 @@ python scripts/run_stage93.py --config configs/default.yaml --docs-dir docs
 python scripts/run_stage94.py --config configs/default.yaml --docs-dir docs --max-candidates-per-scope 3
 ```
 
+### Stage-95 Through Stage-103 Truth Push
+```bash
+python scripts/run_baseline_status_post_merge.py --docs-dir docs
+python scripts/run_stage95.py --config configs/default.yaml --docs-dir docs
+python scripts/run_stage96.py --config configs/default.yaml --docs-dir docs
+python scripts/run_stage97.py --config configs/default.yaml --docs-dir docs
+python scripts/run_stage98.py --config configs/default.yaml --docs-dir docs
+python scripts/run_stage99.py --config configs/default.yaml --docs-dir docs
+python scripts/run_stage100.py --config configs/default.yaml --docs-dir docs --candidate-limit-per-scope 1
+python scripts/run_stage101.py --config configs/default.yaml --docs-dir docs --symbol BTC/USDT --timeframe 1h --candidate-limit 3
+python scripts/run_stage102.py --config configs/default.yaml --docs-dir docs --symbol BTC/USDT --timeframe 1h --candidate-limit 1
+python scripts/run_stage103.py --docs-dir docs
+```
+
 ### Master Reporting
 ```bash
 python scripts/run_master_execution.py --docs-dir docs
@@ -421,10 +458,11 @@ Buff-mini can now make three honest claims:
 - it can prove controlled signal detectability in synthetic environments
 - it can separate exploratory from evaluation-grade runs much more clearly than before
 - it can explain why a live campaign is blocked or weak instead of hiding behind a shallow success label
+- it can repair canonical BTC/ETH evaluation datasets enough to run strict canonical campaigns, then show that the current top candidates are still replay-fragile and baseline-weak
 
 Buff-mini cannot currently claim:
 - that a robust live edge has been found
-- that the available BTC/ETH evaluation data is continuity-clean
+- that live BTC/ETH strict data is continuity-clean
 - that transfer robustness is strong across a broad liquid universe
 - that every historical stage in the repo is equally trustworthy
 
@@ -432,4 +470,5 @@ If you are reviewing the project today, the correct reading is:
 - the engine is much more scientifically honest
 - the discovery, ranking, and diagnostic layers are materially stronger
 - controlled detectability is demonstrated
-- live interpretation is still constrained by data fitness and the absence of a surviving robust candidate
+- canonical strict interpretation is now possible on repaired BTC/ETH evaluation data
+- the current search formalism still looks too weak because the best candidates remain replay-fragile, fail cheap baselines, and do not survive bounded rescue attempts

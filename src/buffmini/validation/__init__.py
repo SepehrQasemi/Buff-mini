@@ -38,6 +38,12 @@ def run_candidate_replay(*args, **kwargs):
     return _impl(*args, **kwargs)
 
 
+def run_custom_signal_replay(*args, **kwargs):
+    from buffmini.validation.candidate_runtime import run_custom_signal_replay as _impl
+
+    return _impl(*args, **kwargs)
+
+
 def evaluate_candidate_walkforward(*args, **kwargs):
     from buffmini.validation.candidate_runtime import evaluate_candidate_walkforward as _impl
 
@@ -77,6 +83,7 @@ __all__ = [
     "resolve_validation_candidate",
     "run_registered_features_harness",
     "run_candidate_replay",
+    "run_custom_signal_replay",
     "stage_role_from_source",
     "validate_metric_evidence",
     "validate_metric_evidence_batch",

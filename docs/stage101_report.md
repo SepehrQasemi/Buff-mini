@@ -1,0 +1,38 @@
+# Stage-101 Report
+
+- status: `SUCCESS`
+- validation_state: `NULL_HYPOTHESIS_ATTACK_READY`
+- symbol: `BTC/USDT`
+- timeframe: `1h`
+- candidate_count_reviewed: `3`
+- blocked: `False`
+- blocked_reason: ``
+
+## Control Win Counts
+- delayed_fake_signal: `3`
+- mean_reversion_baseline: `3`
+- momentum_baseline: `3`
+
+## Candidate Rows
+- `{"base_exp_lcb": -0.00230935, "base_expectancy": -5.50547202, "base_profit_factor": 0.38870574, "beats_all_controls": false, "beats_majority_controls": false, "candidate_id": "s70_1f4f067819f2535d", "controls_beaten": 2, "controls_total": 5, "expected_regime": "range", "family": "liquidity_sweep_reversal"}`
+- `{"base_exp_lcb": -0.00230935, "base_expectancy": -5.50547202, "base_profit_factor": 0.38870574, "beats_all_controls": false, "beats_majority_controls": false, "candidate_id": "s70_36fd31b49fe76519", "controls_beaten": 2, "controls_total": 5, "expected_regime": "transition", "family": "liquidity_sweep_reversal"}`
+- `{"base_exp_lcb": -0.00230935, "base_expectancy": -5.50547202, "base_profit_factor": 0.38870574, "beats_all_controls": false, "beats_majority_controls": false, "candidate_id": "s70_fbd94d0d24f8a180", "controls_beaten": 2, "controls_total": 5, "expected_regime": "range", "family": "liquidity_sweep_reversal"}`
+
+## Comparison Rows
+- `{"candidate_beats_control": true, "candidate_exp_lcb": -0.00230935, "candidate_expectancy": -5.50547202, "candidate_id": "s70_1f4f067819f2535d", "candidate_profit_factor": 0.38870574, "candidate_trade_count": 1777, "control": "inverted_signal", "control_exp_lcb": -0.00260037, "control_expectancy": -5.78796884, "control_profit_factor": 0.31306102, "control_trade_count": 1701, "family": "liquidity_sweep_reversal"}`
+- `{"candidate_beats_control": true, "candidate_exp_lcb": -0.00230935, "candidate_expectancy": -5.50547202, "candidate_id": "s70_1f4f067819f2535d", "candidate_profit_factor": 0.38870574, "candidate_trade_count": 1777, "control": "randomized_signal", "control_exp_lcb": -0.00255104, "control_expectancy": -6.26404713, "control_profit_factor": 0.28762111, "control_trade_count": 1558, "family": "liquidity_sweep_reversal"}`
+- `{"candidate_beats_control": false, "candidate_exp_lcb": -0.00230935, "candidate_expectancy": -5.50547202, "candidate_id": "s70_1f4f067819f2535d", "candidate_profit_factor": 0.38870574, "candidate_trade_count": 1777, "control": "delayed_fake_signal", "control_exp_lcb": -0.00226764, "control_expectancy": -5.93611881, "control_profit_factor": 0.3667637, "control_trade_count": 1630, "family": "liquidity_sweep_reversal"}`
+- `{"candidate_beats_control": false, "candidate_exp_lcb": -0.00230935, "candidate_expectancy": -5.50547202, "candidate_id": "s70_1f4f067819f2535d", "candidate_profit_factor": 0.38870574, "candidate_trade_count": 1777, "control": "momentum_baseline", "control_exp_lcb": -0.00233319, "control_expectancy": -1.74855317, "control_profit_factor": 0.32911502, "control_trade_count": 5719, "family": "liquidity_sweep_reversal"}`
+- `{"candidate_beats_control": false, "candidate_exp_lcb": -0.00230935, "candidate_expectancy": -5.50547202, "candidate_id": "s70_1f4f067819f2535d", "candidate_profit_factor": 0.38870574, "candidate_trade_count": 1777, "control": "mean_reversion_baseline", "control_exp_lcb": -0.00217521, "control_expectancy": -2.38624714, "control_profit_factor": 0.3703742, "control_trade_count": 4190, "family": "liquidity_sweep_reversal"}`
+- `{"candidate_beats_control": true, "candidate_exp_lcb": -0.00230935, "candidate_expectancy": -5.50547202, "candidate_id": "s70_36fd31b49fe76519", "candidate_profit_factor": 0.38870574, "candidate_trade_count": 1777, "control": "inverted_signal", "control_exp_lcb": -0.00260037, "control_expectancy": -5.78796884, "control_profit_factor": 0.31306102, "control_trade_count": 1701, "family": "liquidity_sweep_reversal"}`
+- `{"candidate_beats_control": true, "candidate_exp_lcb": -0.00230935, "candidate_expectancy": -5.50547202, "candidate_id": "s70_36fd31b49fe76519", "candidate_profit_factor": 0.38870574, "candidate_trade_count": 1777, "control": "randomized_signal", "control_exp_lcb": -0.00253201, "control_expectancy": -6.20547064, "control_profit_factor": 0.30399231, "control_trade_count": 1573, "family": "liquidity_sweep_reversal"}`
+- `{"candidate_beats_control": false, "candidate_exp_lcb": -0.00230935, "candidate_expectancy": -5.50547202, "candidate_id": "s70_36fd31b49fe76519", "candidate_profit_factor": 0.38870574, "candidate_trade_count": 1777, "control": "delayed_fake_signal", "control_exp_lcb": -0.00226764, "control_expectancy": -5.93611881, "control_profit_factor": 0.3667637, "control_trade_count": 1630, "family": "liquidity_sweep_reversal"}`
+- `{"candidate_beats_control": false, "candidate_exp_lcb": -0.00230935, "candidate_expectancy": -5.50547202, "candidate_id": "s70_36fd31b49fe76519", "candidate_profit_factor": 0.38870574, "candidate_trade_count": 1777, "control": "momentum_baseline", "control_exp_lcb": -0.00233319, "control_expectancy": -1.74855317, "control_profit_factor": 0.32911502, "control_trade_count": 5719, "family": "liquidity_sweep_reversal"}`
+- `{"candidate_beats_control": false, "candidate_exp_lcb": -0.00230935, "candidate_expectancy": -5.50547202, "candidate_id": "s70_36fd31b49fe76519", "candidate_profit_factor": 0.38870574, "candidate_trade_count": 1777, "control": "mean_reversion_baseline", "control_exp_lcb": -0.00217521, "control_expectancy": -2.38624714, "control_profit_factor": 0.3703742, "control_trade_count": 4190, "family": "liquidity_sweep_reversal"}`
+- `{"candidate_beats_control": true, "candidate_exp_lcb": -0.00230935, "candidate_expectancy": -5.50547202, "candidate_id": "s70_fbd94d0d24f8a180", "candidate_profit_factor": 0.38870574, "candidate_trade_count": 1777, "control": "inverted_signal", "control_exp_lcb": -0.00260037, "control_expectancy": -5.78796884, "control_profit_factor": 0.31306102, "control_trade_count": 1701, "family": "liquidity_sweep_reversal"}`
+- `{"candidate_beats_control": true, "candidate_exp_lcb": -0.00230935, "candidate_expectancy": -5.50547202, "candidate_id": "s70_fbd94d0d24f8a180", "candidate_profit_factor": 0.38870574, "candidate_trade_count": 1777, "control": "randomized_signal", "control_exp_lcb": -0.0027292, "control_expectancy": -6.18494588, "control_profit_factor": 0.30203832, "control_trade_count": 1590, "family": "liquidity_sweep_reversal"}`
+- `{"candidate_beats_control": false, "candidate_exp_lcb": -0.00230935, "candidate_expectancy": -5.50547202, "candidate_id": "s70_fbd94d0d24f8a180", "candidate_profit_factor": 0.38870574, "candidate_trade_count": 1777, "control": "delayed_fake_signal", "control_exp_lcb": -0.00226764, "control_expectancy": -5.93611881, "control_profit_factor": 0.3667637, "control_trade_count": 1630, "family": "liquidity_sweep_reversal"}`
+- `{"candidate_beats_control": false, "candidate_exp_lcb": -0.00230935, "candidate_expectancy": -5.50547202, "candidate_id": "s70_fbd94d0d24f8a180", "candidate_profit_factor": 0.38870574, "candidate_trade_count": 1777, "control": "momentum_baseline", "control_exp_lcb": -0.00233319, "control_expectancy": -1.74855317, "control_profit_factor": 0.32911502, "control_trade_count": 5719, "family": "liquidity_sweep_reversal"}`
+- `{"candidate_beats_control": false, "candidate_exp_lcb": -0.00230935, "candidate_expectancy": -5.50547202, "candidate_id": "s70_fbd94d0d24f8a180", "candidate_profit_factor": 0.38870574, "candidate_trade_count": 1777, "control": "mean_reversion_baseline", "control_exp_lcb": -0.00217521, "control_expectancy": -2.38624714, "control_profit_factor": 0.3703742, "control_trade_count": 4190, "family": "liquidity_sweep_reversal"}`
+
+- summary_hash: `16c3ee3d07489205`

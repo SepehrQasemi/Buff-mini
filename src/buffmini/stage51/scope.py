@@ -45,7 +45,10 @@ def resolve_research_scope(config: dict[str, Any]) -> dict[str, Any]:
     promotion_timeframes = max(1, min(promotion_timeframes, len(discovery_timeframes)))
     final_validation_timeframes = max(1, min(final_validation_timeframes, promotion_timeframes))
 
-    families = _dedupe([str(v) for v in scope_cfg.get("active_setup_families", list(DEFAULT_SETUP_FAMILIES))]) or list(DEFAULT_SETUP_FAMILIES)
+    available_families = _dedupe([str(v) for v in scope_cfg.get("active_setup_families", list(DEFAULT_SETUP_FAMILIES))]) or list(DEFAULT_SETUP_FAMILIES)
+    frozen_families = _dedupe([str(v) for v in scope_cfg.get("frozen_setup_families", [])])
+    non_default_families = _dedupe([str(v) for v in scope_cfg.get("non_default_setup_families", [])])
+    families = [family for family in available_families if family not in set(frozen_families)] or [family for family in list(DEFAULT_SETUP_FAMILIES) if family not in set(frozen_families)]
     expansion_rules = dict(scope_cfg.get("expansion_rules", {}))
     transfer_symbol = str(expansion_rules.get("transfer_symbol", "ETH/USDT")).strip() or "ETH/USDT"
     require_stage57_pass = bool(expansion_rules.get("require_stage57_pass", True))
@@ -65,6 +68,9 @@ def resolve_research_scope(config: dict[str, Any]) -> dict[str, Any]:
         "promotion_timeframes": promotion_timeframes,
         "final_validation_timeframes": final_validation_timeframes,
         "active_setup_families": families,
+        "available_setup_families": available_families,
+        "frozen_setup_families": frozen_families,
+        "non_default_setup_families": non_default_families,
         "expansion_rules": {
             "transfer_symbol": transfer_symbol,
             "require_stage57_pass": require_stage57_pass,
@@ -109,6 +115,9 @@ def build_stage51_summary(config: dict[str, Any]) -> dict[str, Any]:
         "promotion_timeframes": int(scope["promotion_timeframes"]),
         "final_validation_timeframes": int(scope["final_validation_timeframes"]),
         "active_setup_families": list(scope["active_setup_families"]),
+        "available_setup_families": list(scope["available_setup_families"]),
+        "frozen_setup_families": list(scope["frozen_setup_families"]),
+        "non_default_setup_families": list(scope["non_default_setup_families"]),
         "expansion_rules": dict(scope["expansion_rules"]),
         "budget_mode_selected": str(budget["selected"]),
         "budget_active": dict(budget["active"]),
@@ -128,6 +137,8 @@ def render_stage51_report(summary: dict[str, Any]) -> str:
         f"- promotion_timeframes: `{summary.get('promotion_timeframes', 0)}`",
         f"- final_validation_timeframes: `{summary.get('final_validation_timeframes', 0)}`",
         f"- active_setup_families: `{summary.get('active_setup_families', [])}`",
+        f"- frozen_setup_families: `{summary.get('frozen_setup_families', [])}`",
+        f"- non_default_setup_families: `{summary.get('non_default_setup_families', [])}`",
         f"- budget_mode_selected: `{summary.get('budget_mode_selected', '')}`",
         "",
         "## Expansion Rules",

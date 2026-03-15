@@ -1,0 +1,43 @@
+{
+  "symbol": "BTC/USDT",
+  "timeframe": "1h",
+  "exchange": "binance",
+  "source_hash": "8c054717cee5195329a4a0be",
+  "target_hash": "c3ef54916068a61ec91d8f28",
+  "sha256": "c3ef54916068a61ec91d8f282ab23cb1096a5df077a2c3a6e6afedd3458dcc72",
+  "repair_mode": "contiguous_suffix_after_last_gap",
+  "trim_start_ts": "2023-03-24T14:00:00+00:00",
+  "source_rows": 35061,
+  "rows": 25797,
+  "candle_count": 25797,
+  "start_ts": "2023-03-24T14:00:00+00:00",
+  "end_ts": "2026-03-03T10:00:00+00:00",
+  "before_continuity": {
+    "rows": 35061,
+    "gap_count": 1,
+    "max_gap_bars": 0,
+    "largest_gap_bars": 2,
+    "total_missing_bars": 2,
+    "missing_ratio": 5.7040185e-05,
+    "passed": false,
+    "passes_strict": false,
+    "gaps": [
+      {
+        "start_ts": "2023-03-24T11:00:00+00:00",
+        "end_ts": "2023-03-24T14:00:00+00:00",
+        "bars_missing": 2
+      }
+    ]
+  },
+  "after_continuity": {
+    "rows": 25797,
+    "gap_count": 0,
+    "max_gap_bars": 0,
+    "largest_gap_bars": 0,
+    "total_missing_bars": 0,
+    "missing_ratio": 0.0,
+    "passed": true,
+    "passes_strict": true,
+    "gaps": []
+  }
+}

@@ -24,6 +24,71 @@ class Stage48Config:
     stage_b_threshold: float = 0.0
 
 
+RANKING_PROFILES: dict[str, dict[str, float]] = {
+    "stage94_baseline": {
+        "layer_score": 0.22,
+        "exp_lcb_proxy": 0.18,
+        "cost_edge_proxy": 0.12,
+        "rr_first_target": 0.08,
+        "no_reject_penalty": 0.05,
+        "cost_fragility": 0.10,
+        "trade_density": 0.07,
+        "regime_concentration": 0.05,
+        "overlap_duplication": 0.08,
+        "clustering": 0.06,
+        "thin_evidence": 0.05,
+        "transfer_prior": 0.04,
+        "tradable_rate": 0.04,
+        "net_mean": 0.03,
+        "rr_ok": 0.01,
+        "usefulness_prior": 0.0,
+        "quality_bonus": 0.0,
+    },
+    "stage95_usefulness_push": {
+        "layer_score": 0.18,
+        "exp_lcb_proxy": 0.16,
+        "cost_edge_proxy": 0.10,
+        "rr_first_target": 0.06,
+        "no_reject_penalty": 0.03,
+        "cost_fragility": 0.12,
+        "trade_density": 0.11,
+        "regime_concentration": 0.06,
+        "overlap_duplication": 0.11,
+        "clustering": 0.09,
+        "thin_evidence": 0.08,
+        "transfer_prior": 0.07,
+        "tradable_rate": 0.02,
+        "net_mean": 0.02,
+        "rr_ok": 0.01,
+        "usefulness_prior": 0.08,
+        "quality_bonus": 0.0,
+    },
+    "stage99_quality_acceleration": {
+        "layer_score": 0.16,
+        "exp_lcb_proxy": 0.18,
+        "cost_edge_proxy": 0.12,
+        "rr_first_target": 0.06,
+        "no_reject_penalty": 0.03,
+        "cost_fragility": 0.12,
+        "trade_density": 0.10,
+        "regime_concentration": 0.05,
+        "overlap_duplication": 0.10,
+        "clustering": 0.09,
+        "thin_evidence": 0.08,
+        "transfer_prior": 0.06,
+        "tradable_rate": 0.02,
+        "net_mean": 0.02,
+        "rr_ok": 0.01,
+        "usefulness_prior": 0.06,
+        "quality_bonus": 0.12,
+    },
+}
+
+
+def available_ranking_profiles() -> tuple[str, ...]:
+    return tuple(RANKING_PROFILES)
+
+
 def compute_stage48_labels(frame: pd.DataFrame, *, cfg: Stage48Config | None = None) -> pd.DataFrame:
     """Compute leakage-safe Stage-48 tradability labels."""
 
@@ -84,33 +149,42 @@ def compute_stage48_labels(frame: pd.DataFrame, *, cfg: Stage48Config | None = N
     return pd.DataFrame(out_rows)
 
 
-def score_candidates_with_ranker(candidates: pd.DataFrame, labels: pd.DataFrame, market_frame: pd.DataFrame | None = None) -> pd.DataFrame:
+def score_candidates_with_ranker(
+    candidates: pd.DataFrame,
+    labels: pd.DataFrame,
+    market_frame: pd.DataFrame | None = None,
+    *,
+    profile: str = "stage99_quality_acceleration",
+) -> pd.DataFrame:
     """Deterministic pre-replay ranker using tradability-aware scores."""
 
     work = candidates.copy() if isinstance(candidates, pd.DataFrame) else pd.DataFrame()
     if work.empty:
         return pd.DataFrame(columns=["candidate_id", "rank_score", "predicted_tradability", "replay_worthiness"])
     work = _augment_candidate_specific_fields(work, market_frame=market_frame)
+    weights = dict(RANKING_PROFILES.get(str(profile), RANKING_PROFILES["stage99_quality_acceleration"]))
     tradable_rate = float(pd.to_numeric(labels.get("tradable", 0), errors="coerce").fillna(0).astype(int).mean()) if not labels.empty else 0.0
     net_mean = float(pd.to_numeric(labels.get("net_return_after_cost", 0.0), errors="coerce").fillna(0.0).mean()) if not labels.empty else 0.0
     rr_ok = float(pd.to_numeric(labels.get("rr_adequacy", 0), errors="coerce").fillna(0).astype(int).mean()) if not labels.empty else 0.0
 
     rank_score = (
-        (work["layer_score"] * 0.22)
-        + (work["exp_lcb_proxy"].clip(lower=-0.01) * 40.0 * 0.18)
-        + (work["cost_edge_proxy"].clip(lower=-0.01) * 100.0 * 0.12)
-        + (work["rr_first_target"].clip(lower=0.0, upper=3.0) / 3.0 * 0.08)
-        + (work["no_reject_penalty"] * 0.05)
-        + ((1.0 - work["cost_fragility_risk"]) * 0.10)
-        + ((1.0 - work["trade_density_risk"]) * 0.07)
-        + ((1.0 - work["regime_concentration_risk"]) * 0.05)
-        + ((1.0 - work["overlap_duplication_risk"]) * 0.08)
-        + ((1.0 - work["clustering_risk"]) * 0.06)
-        + ((1.0 - work["thin_evidence_risk"]) * 0.05)
-        + ((1.0 - work["transfer_risk_prior"]) * 0.04)
-        + (tradable_rate * 0.04)
-        + (max(0.0, net_mean) * 25.0 * 0.03)
-        + (rr_ok * 0.01)
+        (work["layer_score"] * weights["layer_score"])
+        + (work["exp_lcb_proxy"].clip(lower=-0.01) * 40.0 * weights["exp_lcb_proxy"])
+        + (work["cost_edge_proxy"].clip(lower=-0.01) * 100.0 * weights["cost_edge_proxy"])
+        + (work["rr_first_target"].clip(lower=0.0, upper=3.0) / 3.0 * weights["rr_first_target"])
+        + (work["no_reject_penalty"] * weights["no_reject_penalty"])
+        + ((1.0 - work["cost_fragility_risk"]) * weights["cost_fragility"])
+        + ((1.0 - work["trade_density_risk"]) * weights["trade_density"])
+        + ((1.0 - work["regime_concentration_risk"]) * weights["regime_concentration"])
+        + ((1.0 - work["overlap_duplication_risk"]) * weights["overlap_duplication"])
+        + ((1.0 - work["clustering_risk"]) * weights["clustering"])
+        + ((1.0 - work["thin_evidence_risk"]) * weights["thin_evidence"])
+        + ((1.0 - work["transfer_risk_prior"]) * weights["transfer_prior"])
+        + (work["usefulness_prior"] * weights["usefulness_prior"])
+        + (work["trade_quality_bonus"] * weights["quality_bonus"])
+        + (tradable_rate * weights["tradable_rate"])
+        + (max(0.0, net_mean) * 25.0 * weights["net_mean"])
+        + (rr_ok * weights["rr_ok"])
     )
     work["rank_score"] = rank_score.astype(float).clip(lower=-2.0, upper=2.0)
     work["predicted_tradability"] = (
@@ -170,6 +244,8 @@ def score_candidates_with_ranker(candidates: pd.DataFrame, labels: pd.DataFrame,
             "clustering_risk",
             "thin_evidence_risk",
             "transfer_risk_prior",
+            "usefulness_prior",
+            "trade_quality_bonus",
             "aggregate_risk",
             "activation_density",
             "entry_overlap_score",
@@ -317,6 +393,14 @@ def _augment_candidate_specific_fields(frame: pd.DataFrame, *, market_frame: pd.
     risk_frame = pd.DataFrame(risk_rows, index=work.index)
     for column in risk_frame.columns:
         work[column] = pd.to_numeric(risk_frame[column], errors="coerce").fillna(0.0)
+    work["usefulness_prior"] = [
+        _usefulness_prior(dict(row))
+        for row in work.to_dict(orient="records")
+    ]
+    work["trade_quality_bonus"] = [
+        _trade_quality_bonus(dict(row))
+        for row in work.to_dict(orient="records")
+    ]
     return work
 
 
@@ -324,3 +408,39 @@ def _series_or_default(frame: pd.DataFrame, column: str, default: float) -> pd.S
     if column in frame.columns:
         return frame[column]
     return pd.Series([default] * len(frame), index=frame.index, dtype=float)
+
+
+def _usefulness_prior(candidate: dict[str, Any]) -> float:
+    trade_density = str(candidate.get("trade_density_expectation", "")).strip().lower()
+    transfer_expectation = str(candidate.get("transfer_expectation", "")).strip().lower()
+    expected_failures = {str(v).strip().lower() for v in list(candidate.get("expected_failure_modes", []) or [])}
+    prior = 0.0
+    if trade_density == "medium":
+        prior += 0.08
+    elif trade_density == "high":
+        prior += 0.10
+    else:
+        prior -= 0.03
+    if transfer_expectation in {"moderate", "high"}:
+        prior += 0.04
+    else:
+        prior -= 0.02
+    if "transfer_decay" in expected_failures:
+        prior -= 0.02
+    if "opportunity_sparsity" in expected_failures:
+        prior -= 0.03
+    return float(max(-0.15, min(0.20, prior)))
+
+
+def _trade_quality_bonus(candidate: dict[str, Any]) -> float:
+    rr = float(candidate.get("rr_first_target", 0.0) or 0.0)
+    cost_edge = float(candidate.get("cost_edge_proxy", 0.0) or 0.0)
+    hold_risk = float(candidate.get("hold_sanity_risk", 1.0) or 1.0)
+    thin_risk = float(candidate.get("thin_evidence_risk", 1.0) or 1.0)
+    value = (
+        (min(3.0, max(0.0, rr)) / 3.0) * 0.45
+        + (max(-0.01, min(0.02, cost_edge)) * 25.0) * 0.35
+        + ((1.0 - max(0.0, min(1.0, hold_risk))) * 0.10)
+        + ((1.0 - max(0.0, min(1.0, thin_risk))) * 0.10)
+    )
+    return float(max(0.0, min(1.0, value)))
