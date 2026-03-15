@@ -6,6 +6,7 @@ from pathlib import Path
 from typing import Any
 
 from buffmini.constants import RAW_DATA_DIR
+from buffmini.utils.hashing import stable_hash
 
 
 def discover_transfer_symbols(config: dict[str, Any], *, primary_symbol: str = "") -> list[str]:
@@ -71,4 +72,45 @@ def classify_transfer_outcome(
         "maxDD": max_dd,
         "primary_exp_lcb": primary_lcb,
         "primary_trade_count": primary_trades,
+    }
+
+
+def build_transfer_intelligence(rows: list[dict[str, Any]]) -> dict[str, Any]:
+    """Aggregate transfer outcomes into diagnostic intelligence instead of a single kill switch."""
+
+    class_counts: dict[str, int] = {}
+    diagnostic_counts: dict[str, int] = {}
+    regime_portability: dict[str, dict[str, int]] = {}
+    for row in rows:
+        classification = str(row.get("classification", "not_transferable"))
+        class_counts[classification] = class_counts.get(classification, 0) + 1
+        regime = str(row.get("expected_regime", row.get("regime", "unknown")))
+        regime_bucket = regime_portability.setdefault(regime, {})
+        regime_bucket[classification] = regime_bucket.get(classification, 0) + 1
+        for diag in row.get("diagnostics", []) or []:
+            key = str(diag)
+            diagnostic_counts[key] = diagnostic_counts.get(key, 0) + 1
+    portability_map = []
+    for regime, counts in sorted(regime_portability.items()):
+        total = max(1, sum(int(v) for v in counts.values()))
+        portable = int(counts.get("transferable", 0)) + int(counts.get("partially_transferable", 0))
+        portability_map.append(
+            {
+                "regime": regime,
+                "portable_fraction": float(round(portable / total, 6)),
+                "class_counts": counts,
+            }
+        )
+    return {
+        "transfer_class_counts": class_counts,
+        "failure_diagnostics": diagnostic_counts,
+        "regime_portability_map": portability_map,
+        "summary_hash": stable_hash(
+            {
+                "class_counts": class_counts,
+                "diagnostic_counts": diagnostic_counts,
+                "portability_map": portability_map,
+            },
+            length=16,
+        ),
     }

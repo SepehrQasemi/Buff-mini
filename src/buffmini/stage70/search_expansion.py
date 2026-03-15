@@ -16,6 +16,7 @@ EXPANDED_FAMILIES: tuple[str, ...] = mechanism_families()
 def economic_fingerprint(record: dict[str, Any]) -> str:
     material = {
         "family": str(record.get("family", "")),
+        "subfamily": str(record.get("subfamily", "")),
         "timeframe": str(record.get("timeframe", "")),
         "context": str(record.get("context", "")),
         "trigger": str(record.get("trigger", "")),
@@ -26,8 +27,23 @@ def economic_fingerprint(record: dict[str, Any]) -> str:
         "exit_family": str(record.get("exit_family", "")),
         "time_stop_bars": int(record.get("time_stop_bars", 0)),
         "session_filter": str(record.get("session_filter", "")),
+        "expected_regime": str(record.get("expected_regime", "")),
     }
     return str(stable_hash(material, length=20))
+
+
+def similarity_bucket(record: dict[str, Any]) -> str:
+    material = {
+        "family": str(record.get("family", "")),
+        "subfamily": str(record.get("subfamily", "")),
+        "timeframe": str(record.get("timeframe", "")),
+        "context": str(record.get("context", "")),
+        "trigger": str(record.get("trigger", "")),
+        "expected_regime": str(record.get("expected_regime", "")),
+        "risk_model": str(record.get("risk_model", "")),
+        "exit_family": str(record.get("exit_family", "")),
+    }
+    return str(stable_hash(material, length=18))
 
 
 def deduplicate_economic_candidates(candidates: pd.DataFrame) -> pd.DataFrame:
@@ -43,6 +59,21 @@ def deduplicate_economic_candidates(candidates: pd.DataFrame) -> pd.DataFrame:
         keep="first",
     )
     return ranked.reset_index(drop=True)
+
+
+def collapse_similarity_candidates(candidates: pd.DataFrame, *, max_per_bucket: int = 3) -> pd.DataFrame:
+    frame = candidates.copy() if isinstance(candidates, pd.DataFrame) else pd.DataFrame()
+    if frame.empty:
+        return frame
+    frame["similarity_bucket"] = [similarity_bucket(dict(row)) for row in frame.to_dict(orient="records")]
+    frame["priority_seed"] = pd.to_numeric(frame.get("priority_seed", 0.0), errors="coerce").fillna(0.0)
+    frame["novelty_score"] = pd.to_numeric(frame.get("novelty_score", 0.0), errors="coerce").fillna(0.0)
+    frame = frame.sort_values(["priority_seed", "novelty_score", "candidate_id"], ascending=[False, False, True]).reset_index(drop=True)
+    frame["_bucket_rank"] = frame.groupby("similarity_bucket", dropna=False).cumcount()
+    frame["similarity_penalty"] = frame["_bucket_rank"].astype(float) / max(1.0, float(max_per_bucket))
+    frame["duplication_score"] = frame["similarity_penalty"].clip(lower=0.0, upper=1.0)
+    collapsed = frame.loc[frame["_bucket_rank"] < int(max_per_bucket), :].drop(columns=["_bucket_rank"])
+    return collapsed.reset_index(drop=True)
 
 
 def generate_expanded_candidates(
@@ -78,8 +109,14 @@ def generate_expanded_candidates(
         for row in raw.to_dict(orient="records")
     ]
     raw["economic_fingerprint"] = [economic_fingerprint(dict(row)) for row in raw.to_dict(orient="records")]
-    raw = _apply_failure_feedback(raw, failure_feedback or {})
-    deduped = deduplicate_economic_candidates(raw)
+    seeded = _apply_failure_feedback(raw, failure_feedback or {})
+    max_per_bucket = 4 if mode == "full_audit" else 3
+    collapsed = collapse_similarity_candidates(seeded, max_per_bucket=max_per_bucket)
+    deduped = deduplicate_economic_candidates(collapsed)
+    while len(deduped) < int(target) and max_per_bucket < 8:
+        max_per_bucket += 1
+        collapsed = collapse_similarity_candidates(seeded, max_per_bucket=max_per_bucket)
+        deduped = deduplicate_economic_candidates(collapsed)
     out = deduped.sort_values(["priority_seed", "novelty_score", "candidate_id"], ascending=[False, False, True]).head(target).reset_index(drop=True)
     return out
 

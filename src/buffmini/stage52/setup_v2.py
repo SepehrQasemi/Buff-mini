@@ -16,11 +16,20 @@ ALLOWED_DISCOVERY_TIMEFRAMES: tuple[str, ...] = tuple(DEFAULT_DISCOVERY_TIMEFRAM
 _REQUIRED_KEYS: tuple[str, ...] = (
     "candidate_id",
     "family",
+    "subfamily",
     "timeframe",
     "context",
     "trigger",
     "confirmation",
+    "participation",
     "invalidation",
+    "risk_model",
+    "exit_family",
+    "time_stop_bars",
+    "expected_regime",
+    "expected_failure_modes",
+    "trade_density_expectation",
+    "transfer_expectation",
     "entry_logic",
     "stop_logic",
     "target_logic",
@@ -130,7 +139,23 @@ def validate_setup_candidate_v2(candidate: dict[str, Any]) -> None:
     missing = [key for key in _REQUIRED_KEYS if key not in candidate]
     if missing:
         raise ValueError(f"Missing Stage-52 keys: {missing}")
-    for key in ("candidate_id", "family", "timeframe", "invalidation", "entry_logic", "stop_logic", "target_logic", "hold_logic"):
+    for key in (
+        "candidate_id",
+        "family",
+        "subfamily",
+        "timeframe",
+        "participation",
+        "risk_model",
+        "exit_family",
+        "expected_regime",
+        "trade_density_expectation",
+        "transfer_expectation",
+        "invalidation",
+        "entry_logic",
+        "stop_logic",
+        "target_logic",
+        "hold_logic",
+    ):
         if not str(candidate.get(key, "")).strip():
             raise ValueError(f"{key} must be non-empty")
     if str(candidate.get("family")) not in set(ALLOWED_SETUP_FAMILIES):
@@ -143,6 +168,10 @@ def validate_setup_candidate_v2(candidate: dict[str, Any]) -> None:
         raise ValueError("geometry must be object")
     if not isinstance(candidate.get("lineage"), dict):
         raise ValueError("lineage must be object")
+    if not isinstance(candidate.get("expected_failure_modes"), list):
+        raise ValueError("expected_failure_modes must be list")
+    if int(candidate.get("time_stop_bars", 0)) < 1:
+        raise ValueError("time_stop_bars must be >= 1")
     _ = float(candidate.get("cost_edge_proxy", 0.0))
     if not isinstance(candidate.get("eligible_for_replay"), bool):
         raise ValueError("eligible_for_replay must be bool")
@@ -158,10 +187,19 @@ def build_setup_candidate_v2(
     entry_reference_price: float = 1.0,
 ) -> dict[str, Any]:
     family = str(source_candidate.get("family", "")).strip()
+    subfamily = str(source_candidate.get("subfamily", source_candidate.get("family", ""))).strip()
     context = str(source_candidate.get("context", "unknown")).strip()
     trigger = str(source_candidate.get("trigger", "")).strip()
     confirmation = str(source_candidate.get("confirmation", "")).strip()
+    participation = str(source_candidate.get("participation_style", source_candidate.get("participation", "default_participation"))).strip()
     invalidation = str(source_candidate.get("invalidation", "")).strip()
+    risk_model = str(source_candidate.get("risk_model", family or "generic_risk_model")).strip()
+    exit_family = str(source_candidate.get("exit_family", "fixed_rr")).strip()
+    time_stop_bars = int(pd.to_numeric(pd.Series([source_candidate.get("time_stop_bars", 0)]), errors="coerce").fillna(0).iloc[0])
+    expected_regime = str(source_candidate.get("expected_regime", context or "unknown")).strip()
+    expected_failure_modes = [str(value) for value in source_candidate.get("expected_failure_modes", []) if str(value).strip()] if isinstance(source_candidate.get("expected_failure_modes"), list) else []
+    trade_density_expectation = str(source_candidate.get("trade_density_expectation", "medium")).strip()
+    transfer_expectation = str(source_candidate.get("transfer_expectation", "moderate")).strip()
     source_candidate_id = str(source_candidate.get("candidate_id", source_candidate.get("source_candidate_id", ""))).strip()
     beam_score = float(pd.to_numeric(pd.Series([source_candidate.get("beam_score", 0.0)]), errors="coerce").fillna(0.0).iloc[0])
     geometry = _build_geometry(
@@ -187,6 +225,7 @@ def build_setup_candidate_v2(
     payload = {
         "candidate_id": f"s52_{stable_hash({'source_candidate_id': source_candidate_id, 'family': family, 'timeframe': timeframe}, length=16)}",
         "family": family,
+        "subfamily": subfamily,
         "timeframe": str(timeframe),
         "context": {
             "primary": context,
@@ -195,7 +234,15 @@ def build_setup_candidate_v2(
         },
         "trigger": {"type": trigger, "strength": float(round(max(0.0, min(1.0, beam_score)), 6))},
         "confirmation": {"type": confirmation, "required": True},
+        "participation": participation,
         "invalidation": invalidation,
+        "risk_model": risk_model,
+        "exit_family": exit_family,
+        "time_stop_bars": int(max(1, time_stop_bars or int(geometry["expected_hold_bars"]))),
+        "expected_regime": expected_regime,
+        "expected_failure_modes": expected_failure_modes,
+        "trade_density_expectation": trade_density_expectation,
+        "transfer_expectation": transfer_expectation,
         "entry_logic": str(geometry["entry_logic"]),
         "stop_logic": str(geometry["stop_logic"]),
         "target_logic": str(geometry["target_logic"]),
@@ -208,6 +255,7 @@ def build_setup_candidate_v2(
             "source_branch": str(source_candidate.get("source_branch", source_candidate.get("branch", "unknown"))),
             "stage": "52",
             "family": family,
+            "subfamily": subfamily,
         },
         "source_candidate_id": source_candidate_id,
         "beam_score": float(round(beam_score, 6)),
@@ -314,13 +362,17 @@ def build_economic_fingerprint(candidate: dict[str, Any]) -> str:
     geometry = candidate.get("geometry", {})
     material = {
         "family": str(candidate.get("family", "")),
+        "subfamily": str(candidate.get("subfamily", "")),
         "timeframe": str(candidate.get("timeframe", "")),
+        "expected_regime": str(candidate.get("expected_regime", "")),
+        "risk_model": str(candidate.get("risk_model", "")),
+        "exit_family": str(candidate.get("exit_family", "")),
         "entry_logic": str(candidate.get("entry_logic", "")),
         "stop_logic": str(candidate.get("stop_logic", "")),
         "target_logic": str(candidate.get("target_logic", "")),
         "hold_logic": str(candidate.get("hold_logic", "")),
         "first_target_rr": round(float((rr_model or {}).get("first_target_rr", 0.0)), 6),
-        "expected_hold_bars": int((geometry or {}).get("expected_hold_bars", 0)),
+        "expected_hold_bars": int(candidate.get("time_stop_bars", (geometry or {}).get("expected_hold_bars", 0))),
         "cost_edge_bucket": round(float(candidate.get("cost_edge_proxy", 0.0)), 4),
     }
     return str(stable_hash(material, length=20))

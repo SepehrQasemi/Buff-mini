@@ -1,0 +1,62 @@
+{
+  "stage": "93",
+  "status": "SUCCESS",
+  "execution_status": "EXECUTED",
+  "stage_role": "reporting_only",
+  "validation_state": "FAILURE_LEARNING_READY",
+  "failure_taxonomy": {
+    "low_trade_count": 8,
+    "cost_fragile": 0,
+    "transfer_fail": 8,
+    "walkforward_fail": 1,
+    "perturbation_fail": 0,
+    "clustering_fail": 5,
+    "regime_overfit": 0,
+    "evidence_thin": 7
+  },
+  "search_feedback": {
+    "family_priority_adjustments": {
+      "liquidity_sweep_reversal": 0.137304,
+      "structure_pullback_continuation": 0.090619
+    },
+    "threshold_guidance": [
+      "broaden_trade_density",
+      "diversify_mechanism_mix",
+      "favor_lower_transfer_risk"
+    ],
+    "feedback_hash": "b8e58ffe4fe82463"
+  },
+  "transfer_signal": {
+    "not_transferable": 8
+  },
+  "success_inventory_count": 12,
+  "adaptation_steps": [
+    {
+      "action": "broaden_trade_density_constraints",
+      "reason": "low_trade_count",
+      "magnitude": 0.16
+    },
+    {
+      "action": "increase_similarity_penalty",
+      "reason": "clustering_fail",
+      "magnitude": 0.05
+    },
+    {
+      "action": "downweight_transfer_fragile_families",
+      "reason": "transfer_fail",
+      "magnitude": 0.64
+    },
+    {
+      "action": "favor_forward_stable_regimes",
+      "reason": "walkforward_fail",
+      "magnitude": 0.1
+    },
+    {
+      "action": "success_weighted_mechanism_retention",
+      "reason": "promising_inventory_present",
+      "magnitude": 1.0
+    }
+  ],
+  "learning_trace_hash": "899ae4a2aa8a7c8e",
+  "summary_hash": "5668ef9867fd0590"
+}

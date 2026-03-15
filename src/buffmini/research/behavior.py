@@ -12,18 +12,27 @@ from buffmini.utils.hashing import stable_hash
 from buffmini.validation.candidate_runtime import build_candidate_signal_series, hydrate_candidate_record
 
 
-def build_behavioral_fingerprints(candidates: pd.DataFrame, market_frame: pd.DataFrame) -> pd.DataFrame:
+def build_behavioral_fingerprints(
+    candidates: pd.DataFrame,
+    market_frame: pd.DataFrame,
+    *,
+    max_candidates: int = 96,
+    max_bars: int = 4096,
+) -> pd.DataFrame:
     """Profile candidate behavior from actual executable signal series on one market frame."""
 
     frame = candidates.copy() if isinstance(candidates, pd.DataFrame) else pd.DataFrame()
     if frame.empty or market_frame is None or market_frame.empty:
         return pd.DataFrame(columns=["candidate_id"])
+    frame = _select_behavior_candidates(frame, max_candidates=max_candidates)
 
     bars = market_frame.copy()
     bars["timestamp"] = pd.to_datetime(bars.get("timestamp"), utc=True, errors="coerce")
     for col in ("open", "high", "low", "close", "volume"):
         bars[col] = pd.to_numeric(bars.get(col), errors="coerce").astype(float)
     bars = bars.sort_values("timestamp").reset_index(drop=True)
+    if int(max_bars) > 0 and len(bars) > int(max_bars):
+        bars = bars.tail(int(max_bars)).reset_index(drop=True)
     next_return = pd.to_numeric(bars["close"], errors="coerce").pct_change().shift(-1).fillna(0.0)
     regime_labels = _derive_regime_labels(bars)
 
@@ -125,6 +134,41 @@ def build_behavioral_fingerprints(candidates: pd.DataFrame, market_frame: pd.Dat
         out.loc[idx, "failure_pattern_similarity"] = float(round(failure_pattern_similarity, 8))
         out.loc[idx, "behavioral_fingerprint"] = str(behavioral_fingerprint)
     return out.drop(columns=["exit_key"]).reset_index(drop=True)
+
+
+def _select_behavior_candidates(frame: pd.DataFrame, *, max_candidates: int) -> pd.DataFrame:
+    if frame.empty or len(frame) <= int(max_candidates):
+        return frame.copy()
+
+    work = frame.copy()
+    layer = pd.to_numeric(work.get("beam_score", work.get("layer_score", 0.0)), errors="coerce").fillna(0.0)
+    exp_lcb = pd.to_numeric(work.get("exp_lcb_proxy", 0.0), errors="coerce").fillna(0.0)
+    cost_edge = pd.to_numeric(work.get("cost_edge_proxy", 0.0), errors="coerce").fillna(0.0)
+    rr_values = []
+    for raw_rr in work.get("rr_model", pd.Series([{}] * len(work), index=work.index)).tolist():
+        rr_model = raw_rr if isinstance(raw_rr, dict) else {}
+        rr_values.append(float(rr_model.get("first_target_rr", 0.0)))
+    rr = pd.to_numeric(pd.Series(rr_values, index=work.index), errors="coerce").fillna(0.0)
+    work["_behavior_priority"] = (layer * 0.45) + (exp_lcb * 40.0 * 0.25) + (cost_edge * 100.0 * 0.20) + ((rr.clip(lower=0.0, upper=3.0) / 3.0) * 0.10)
+    work["_family"] = work.get("family", "").astype(str)
+    family_count = max(1, int(work["_family"].nunique()))
+    per_family_quota = max(2, int(max_candidates) // family_count)
+    chosen_idx: list[int] = []
+    for family, group in work.groupby("_family", sort=True):
+        del family
+        ordered = group.sort_values(["_behavior_priority", "candidate_id"], ascending=[False, True]).head(per_family_quota)
+        chosen_idx.extend(int(idx) for idx in ordered.index.tolist())
+    remaining = max(0, int(max_candidates) - len(set(chosen_idx)))
+    if remaining > 0:
+        already = set(chosen_idx)
+        extras = (
+            work.loc[~work.index.isin(already)]
+            .sort_values(["_behavior_priority", "candidate_id"], ascending=[False, True])
+            .head(remaining)
+        )
+        chosen_idx.extend(int(idx) for idx in extras.index.tolist())
+    out = work.loc[sorted(set(chosen_idx))].copy()
+    return out.drop(columns=["_behavior_priority", "_family"], errors="ignore").reset_index(drop=True)
 
 
 def _derive_regime_labels(bars: pd.DataFrame) -> pd.Series:

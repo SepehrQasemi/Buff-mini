@@ -13,6 +13,7 @@ from buffmini.utils.hashing import stable_hash
 @dataclass(frozen=True)
 class MechanismSpec:
     family: str
+    subfamilies: tuple[str, ...]
     contexts: tuple[str, ...]
     triggers: tuple[str, ...]
     confirmations: tuple[str, ...]
@@ -23,12 +24,17 @@ class MechanismSpec:
     time_stops: tuple[int, ...]
     session_filters: tuple[str, ...]
     modules: tuple[str, ...]
+    expected_regimes: tuple[str, ...]
+    expected_failure_modes: tuple[str, ...]
+    trade_density_expectation: str
+    transfer_expectation: str
     transfer_risk_prior: float
 
 
 MECHANISM_SPECS: tuple[MechanismSpec, ...] = (
     MechanismSpec(
         family="structure_pullback_continuation",
+        subfamilies=("shallow_pullback", "deep_pullback", "micro_break_rejoin"),
         contexts=("trend", "transition"),
         triggers=("pullback_reclaim", "micro_break_reclaim"),
         confirmations=("volume_expansion_confirm", "flow_continuation_confirm"),
@@ -39,10 +45,15 @@ MECHANISM_SPECS: tuple[MechanismSpec, ...] = (
         time_stops=(8, 12, 16),
         session_filters=("any_session", "ldn_ny_overlap"),
         modules=("structure_engine", "flow_regime_engine", "mtf_bias_completion"),
+        expected_regimes=("trend", "transition"),
+        expected_failure_modes=("late_trend", "shallow_follow_through", "transfer_decay"),
+        trade_density_expectation="medium",
+        transfer_expectation="moderate",
         transfer_risk_prior=0.22,
     ),
     MechanismSpec(
         family="liquidity_sweep_reversal",
+        subfamilies=("session_sweep", "range_sweep", "pool_reclaim"),
         contexts=("range", "transition", "liquidity_rotation"),
         triggers=("liquidity_sweep_reclaim", "pool_violation_reclaim"),
         confirmations=("rejection_close_confirm", "flow_exhaustion_confirm"),
@@ -53,10 +64,15 @@ MECHANISM_SPECS: tuple[MechanismSpec, ...] = (
         time_stops=(4, 6, 8),
         session_filters=("any_session", "session_extremes"),
         modules=("liquidity_map", "flow_regime_engine", "trade_geometry_layer"),
+        expected_regimes=("range", "transition"),
+        expected_failure_modes=("trend_resume", "wick_only_reversal", "late_reclaim"),
+        trade_density_expectation="medium",
+        transfer_expectation="moderate",
         transfer_risk_prior=0.28,
     ),
     MechanismSpec(
         family="squeeze_flow_breakout",
+        subfamilies=("opening_squeeze", "midrange_compression", "retest_breakout"),
         contexts=("vol_shock", "transition"),
         triggers=("compression_breakout", "range_expansion_break"),
         confirmations=("volume_expansion_confirm", "flow_burst_confirm"),
@@ -67,10 +83,15 @@ MECHANISM_SPECS: tuple[MechanismSpec, ...] = (
         time_stops=(10, 16, 24),
         session_filters=("any_session", "high_liquidity_hours"),
         modules=("volatility_regime_engine", "flow_regime_engine", "mtf_bias_completion"),
+        expected_regimes=("compression", "high_vol"),
+        expected_failure_modes=("false_break", "late_expansion", "cost_fragility"),
+        trade_density_expectation="low",
+        transfer_expectation="moderate",
         transfer_risk_prior=0.24,
     ),
     MechanismSpec(
         family="failed_breakout_reversal",
+        subfamilies=("inside_fake_break", "session_extreme_fail", "trend_exhaust_fail"),
         contexts=("transition", "vol_shock"),
         triggers=("failed_breakout_snapback", "fake_breakout_reversal"),
         confirmations=("exhaustion_confirm", "reclaim_confirm"),
@@ -81,10 +102,15 @@ MECHANISM_SPECS: tuple[MechanismSpec, ...] = (
         time_stops=(4, 6, 10),
         session_filters=("any_session", "session_extremes"),
         modules=("liquidity_map", "volatility_regime_engine", "flow_regime_engine"),
+        expected_regimes=("transition", "high_vol"),
+        expected_failure_modes=("trend_resume", "double_fake_break", "thin_follow_through"),
+        trade_density_expectation="low",
+        transfer_expectation="low",
         transfer_risk_prior=0.35,
     ),
     MechanismSpec(
         family="exhaustion_mean_reversion",
+        subfamilies=("atr_stretch_fade", "band_snapback", "panic_mean_revert"),
         contexts=("range", "vol_shock"),
         triggers=("stretch_extreme_revert", "exhaustion_reversal"),
         confirmations=("flow_exhaustion_confirm", "volatility_fade_confirm"),
@@ -95,10 +121,15 @@ MECHANISM_SPECS: tuple[MechanismSpec, ...] = (
         time_stops=(4, 8, 12),
         session_filters=("any_session", "late_session"),
         modules=("flow_regime_engine", "trade_geometry_layer"),
+        expected_regimes=("range", "high_vol"),
+        expected_failure_modes=("one_way_trend", "late_mean_revert", "cost_decay"),
+        trade_density_expectation="medium",
+        transfer_expectation="low",
         transfer_risk_prior=0.40,
     ),
     MechanismSpec(
         family="funding_oi_imbalance_reversion",
+        subfamilies=("funding_flush", "oi_divergence", "crowding_release"),
         contexts=("crowding", "transition"),
         triggers=("funding_flush_reversion", "oi_divergence_revert"),
         confirmations=("crowding_extreme_confirm", "sentiment_reversal_confirm"),
@@ -109,10 +140,15 @@ MECHANISM_SPECS: tuple[MechanismSpec, ...] = (
         time_stops=(6, 12, 18),
         session_filters=("any_session", "high_liquidity_hours"),
         modules=("crowding_layer", "flow_regime_engine"),
+        expected_regimes=("funding_extreme", "crowding"),
+        expected_failure_modes=("crowding_persistence", "opportunity_sparsity", "transfer_decay"),
+        trade_density_expectation="low",
+        transfer_expectation="low",
         transfer_risk_prior=0.48,
     ),
     MechanismSpec(
         family="volatility_regime_transition",
+        subfamilies=("compression_release", "vol_reclaim", "atr_regime_shift"),
         contexts=("transition", "vol_shock"),
         triggers=("compression_to_expansion", "vol_regime_reclaim"),
         confirmations=("breakout_readiness_confirm", "momentum_slope_confirm"),
@@ -123,10 +159,15 @@ MECHANISM_SPECS: tuple[MechanismSpec, ...] = (
         time_stops=(8, 14, 20),
         session_filters=("any_session", "high_liquidity_hours"),
         modules=("volatility_regime_engine", "structure_engine"),
+        expected_regimes=("compression", "transition"),
+        expected_failure_modes=("recompression", "late_breakout", "timing_instability"),
+        trade_density_expectation="medium",
+        transfer_expectation="moderate",
         transfer_risk_prior=0.30,
     ),
     MechanismSpec(
         family="multi_tf_disagreement_repair",
+        subfamilies=("htf_lag_repair", "ltf_flip_realign", "bias_reclaim"),
         contexts=("transition", "trend"),
         triggers=("htf_ltf_disagreement_repair", "bias_realignment_break"),
         confirmations=("structure_realign_confirm", "flow_continuation_confirm"),
@@ -137,6 +178,10 @@ MECHANISM_SPECS: tuple[MechanismSpec, ...] = (
         time_stops=(8, 12, 18),
         session_filters=("any_session", "ldn_ny_overlap"),
         modules=("mtf_bias_completion", "structure_engine", "flow_regime_engine"),
+        expected_regimes=("trend", "transition"),
+        expected_failure_modes=("misalignment_persists", "late_confirmation", "transfer_decay"),
+        trade_density_expectation="medium",
+        transfer_expectation="moderate",
         transfer_risk_prior=0.26,
     ),
 )
@@ -144,6 +189,34 @@ MECHANISM_SPECS: tuple[MechanismSpec, ...] = (
 
 def mechanism_families() -> tuple[str, ...]:
     return tuple(spec.family for spec in MECHANISM_SPECS)
+
+
+def mechanism_registry() -> list[dict[str, object]]:
+    rows: list[dict[str, object]] = []
+    for spec in MECHANISM_SPECS:
+        rows.append(
+            {
+                "family": spec.family,
+                "subfamily_count": len(spec.subfamilies),
+                "subfamilies": list(spec.subfamilies),
+                "contexts": list(spec.contexts),
+                "triggers": list(spec.triggers),
+                "confirmations": list(spec.confirmations),
+                "participation_styles": list(spec.participation_styles),
+                "invalidations": list(spec.invalidations),
+                "risk_models": list(spec.risk_models),
+                "exit_families": list(spec.exit_families),
+                "time_stops": list(spec.time_stops),
+                "session_filters": list(spec.session_filters),
+                "modules": list(spec.modules),
+                "expected_regimes": list(spec.expected_regimes),
+                "expected_failure_modes": list(spec.expected_failure_modes),
+                "trade_density_expectation": spec.trade_density_expectation,
+                "transfer_expectation": spec.transfer_expectation,
+                "transfer_risk_prior": float(spec.transfer_risk_prior),
+            }
+        )
+    return rows
 
 
 def generate_mechanism_source_candidates(
@@ -176,9 +249,12 @@ def generate_mechanism_source_candidates(
             spec.time_stops,
             spec.session_filters,
         ):
+            subfamily = spec.subfamilies[idx % max(1, len(spec.subfamilies))]
+            expected_regime = spec.expected_regimes[idx % max(1, len(spec.expected_regimes))]
             mechanism_signature = stable_hash(
                 {
                     "family": spec.family,
+                    "subfamily": subfamily,
                     "timeframe": timeframe,
                     "context": context,
                     "trigger": trigger,
@@ -189,6 +265,7 @@ def generate_mechanism_source_candidates(
                     "exit_family": exit_family,
                     "time_stop_bars": int(time_stop_bars),
                     "session_filter": session_filter,
+                    "expected_regime": expected_regime,
                 },
                 length=20,
             )
@@ -196,6 +273,7 @@ def generate_mechanism_source_candidates(
                 {
                     "candidate_id": f"s70_{stable_hash({'i': idx, 'fp': mechanism_signature}, length=16)}",
                     "family": spec.family,
+                    "subfamily": subfamily,
                     "mechanism_family": spec.family,
                     "timeframe": timeframe,
                     "context": context,
@@ -209,6 +287,10 @@ def generate_mechanism_source_candidates(
                     "time_stop_bars": int(time_stop_bars),
                     "session_filter": session_filter,
                     "modules": list(spec.modules),
+                    "expected_regime": expected_regime,
+                    "expected_failure_modes": list(spec.expected_failure_modes),
+                    "trade_density_expectation": spec.trade_density_expectation,
+                    "transfer_expectation": spec.transfer_expectation,
                     "transfer_risk_prior": float(spec.transfer_risk_prior),
                     "mechanism_signature": mechanism_signature,
                     "priority_seed": float(round(0.28 + ((idx % 23) / 40.0), 6)),

@@ -5,7 +5,7 @@ build-backend = "setuptools.build_meta"
 [project]
 name = "buff-mini"
 version = "0.1.0"
-description = "Auto Crypto Strategy Discovery Engine - MVP Phase 1"
+description = "Evidence-disciplined crypto research and validation engine"
 readme = "README.md"
 requires-python = ">=3.11,<3.12"
 license = { text = "MIT" }

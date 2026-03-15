@@ -1,0 +1,38 @@
+{
+  "status": "SUCCESS",
+  "execution_status": "EXECUTED",
+  "validation_state": "PREREQUISITES_FINALIZED",
+  "pending_prior_work": {
+    "pr_number": 3,
+    "title": "Stage 76-84: improve detectability, evaluation rigor, and research ops",
+    "state": "MERGED",
+    "head": "codex/stage76-84-execution",
+    "base": "main",
+    "merged_at": "2026-03-14T22:02:31Z",
+    "merge_commit": "3515ae8a0dfb92439c7593ff0639aebd7a9858c1"
+  },
+  "verified_before_merge": {
+    "checks": [
+      {
+        "name": "test",
+        "status": "COMPLETED",
+        "conclusion": "SUCCESS"
+      },
+      {
+        "name": "test",
+        "status": "COMPLETED",
+        "conclusion": "SUCCESS"
+      }
+    ],
+    "branch_clean_after_merge": false
+  },
+  "merged": true,
+  "external_blockers_remaining": [],
+  "effective_baseline": {
+    "branch": "main",
+    "commit": "3515ae8a0dfb92439c7593ff0639aebd7a9858c1",
+    "baseline_type": "merged_main",
+    "valid_for_stage85": true
+  },
+  "summary_hash": "876940f0a3489db6"
+}

@@ -15,8 +15,8 @@ FAILURE_TAXONOMY = (
     "transfer_fail",
     "walkforward_fail",
     "perturbation_fail",
-    "regime_overfit",
     "clustering_fail",
+    "regime_overfit",
     "evidence_thin",
 )
 
@@ -99,4 +99,84 @@ def derive_search_feedback(
         "threshold_guidance": threshold_guidance,
     }
     payload["feedback_hash"] = stable_hash(payload, length=16)
+    return payload
+
+
+def build_traceable_learning_loop(
+    *,
+    failure_taxonomy: dict[str, int],
+    ranking_cards: pd.DataFrame,
+    stage92_summary: dict[str, Any] | None = None,
+    success_inventory: list[dict[str, Any]] | None = None,
+) -> dict[str, Any]:
+    """Produce deterministic, traceable search refinement guidance."""
+
+    feedback = derive_search_feedback(
+        ranking_cards=ranking_cards,
+        failure_taxonomy=failure_taxonomy,
+    )
+    transfer_signal = dict((stage92_summary or {}).get("transfer_class_counts", {}))
+    success_inventory = list(success_inventory or [])
+    success_weight = float(min(1.0, len(success_inventory) / 10.0))
+    adaptation_steps: list[dict[str, Any]] = []
+    if int(failure_taxonomy.get("low_trade_count", 0)) > 0:
+        adaptation_steps.append(
+            {
+                "action": "broaden_trade_density_constraints",
+                "reason": "low_trade_count",
+                "magnitude": float(round(min(1.0, failure_taxonomy["low_trade_count"] / 50.0), 6)),
+            }
+        )
+    if int(failure_taxonomy.get("clustering_fail", 0)) > 0:
+        adaptation_steps.append(
+            {
+                "action": "increase_similarity_penalty",
+                "reason": "clustering_fail",
+                "magnitude": float(round(min(1.0, failure_taxonomy["clustering_fail"] / 100.0), 6)),
+            }
+        )
+    if int(failure_taxonomy.get("transfer_fail", 0)) > 0 or int(transfer_signal.get("not_transferable", 0)) > 0:
+        adaptation_steps.append(
+            {
+                "action": "downweight_transfer_fragile_families",
+                "reason": "transfer_fail",
+                "magnitude": float(
+                    round(
+                        min(
+                            1.0,
+                            (
+                                int(failure_taxonomy.get("transfer_fail", 0))
+                                + int(transfer_signal.get("not_transferable", 0))
+                            )
+                            / 25.0,
+                        ),
+                        6,
+                    )
+                ),
+            }
+        )
+    if int(failure_taxonomy.get("walkforward_fail", 0)) > 0:
+        adaptation_steps.append(
+            {
+                "action": "favor_forward_stable_regimes",
+                "reason": "walkforward_fail",
+                "magnitude": float(round(min(1.0, failure_taxonomy["walkforward_fail"] / 10.0), 6)),
+            }
+        )
+    if success_weight > 0.0:
+        adaptation_steps.append(
+            {
+                "action": "success_weighted_mechanism_retention",
+                "reason": "promising_inventory_present",
+                "magnitude": float(round(success_weight, 6)),
+            }
+        )
+    payload = {
+        "failure_taxonomy": dict(failure_taxonomy),
+        "search_feedback": feedback,
+        "transfer_signal": transfer_signal,
+        "success_inventory_count": int(len(success_inventory)),
+        "adaptation_steps": adaptation_steps,
+    }
+    payload["learning_trace_hash"] = stable_hash(payload, length=16)
     return payload

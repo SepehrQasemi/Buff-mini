@@ -1,0 +1,59 @@
+{
+  "stage": "90",
+  "status": "SUCCESS",
+  "execution_status": "EXECUTED",
+  "stage_role": "real_validation",
+  "validation_state": "CAMPAIGN_COMPARISON_READY",
+  "symbol": "BTC/USDT",
+  "timeframe": "1h",
+  "families": [
+    "structure_pullback_continuation",
+    "failed_breakout_reversal",
+    "volatility_regime_transition",
+    "exhaustion_mean_reversion",
+    "liquidity_sweep_reversal"
+  ],
+  "comparison_matrix": [
+    {
+      "environment": "live_relaxed",
+      "candidate_count": 400,
+      "promising_count": 10,
+      "validated_count": 0,
+      "robust_count": 0,
+      "blocked_count": 0,
+      "blocked_reason": "",
+      "dominant_failure_reasons": {
+        "exp_lcb": 10
+      },
+      "campaign_outcome": "promising"
+    },
+    {
+      "environment": "live_strict",
+      "candidate_count": 0,
+      "promising_count": 0,
+      "validated_count": 0,
+      "robust_count": 0,
+      "blocked_count": 1,
+      "blocked_reason": "gap_count=1,largest_gap_bars=2,max_gap_bars=0",
+      "dominant_failure_reasons": {
+        "gap_count=1,largest_gap_bars=2,max_gap_bars=0": 1
+      },
+      "campaign_outcome": "blocked"
+    },
+    {
+      "environment": "canonical_snapshot",
+      "candidate_count": 0,
+      "promising_count": 0,
+      "validated_count": 0,
+      "robust_count": 0,
+      "blocked_count": 1,
+      "blocked_reason": "gap_count=1,largest_gap_bars=2,max_gap_bars=0",
+      "dominant_failure_reasons": {
+        "gap_count=1,largest_gap_bars=2,max_gap_bars=0": 1
+      },
+      "campaign_outcome": "blocked"
+    }
+  ],
+  "dominant_culprit": "evaluation_strictness_or_search_weakness",
+  "summary_hash": "e44ae97d177855d4"
+}

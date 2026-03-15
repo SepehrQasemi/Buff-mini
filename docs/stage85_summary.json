@@ -1,0 +1,894 @@
+{
+  "environments": {
+    "synthetic_clean_easy": {
+      "candidate_count": 9,
+      "promising_count": 6,
+      "validated_count": 0,
+      "robust_count": 0,
+      "blocked_count": 0,
+      "dominant_failure_reasons": {
+        "replay_exp_lcb": 3
+      },
+      "first_death_stage_counts": {
+        "ranking_filter": 3
+      },
+      "near_miss_inventory": [
+        {
+          "candidate_id": "lab_910e7a6cf028",
+          "near_miss_distance": 0.0,
+          "death_stage": "survived",
+          "death_reason": ""
+        },
+        {
+          "candidate_id": "lab_9367482dd2a4",
+          "near_miss_distance": 0.0,
+          "death_stage": "survived",
+          "death_reason": ""
+        },
+        {
+          "candidate_id": "lab_f765a05ff79f",
+          "near_miss_distance": 0.0086696,
+          "death_stage": "ranking_filter",
+          "death_reason": "replay_exp_lcb"
+        },
+        {
+          "candidate_id": "lab_b97ed39fa2f0",
+          "near_miss_distance": 1.718e-05,
+          "death_stage": "survived",
+          "death_reason": "replay_exp_lcb"
+        },
+        {
+          "candidate_id": "lab_b364b3130a1f",
+          "near_miss_distance": 1.0,
+          "death_stage": "ranking_filter",
+          "death_reason": "replay_exp_lcb"
+        },
+        {
+          "candidate_id": "lab_1917874d4918",
+          "near_miss_distance": 0.00438277,
+          "death_stage": "survived",
+          "death_reason": "replay_exp_lcb"
+        },
+        {
+          "candidate_id": "lab_815d59312e8e",
+          "near_miss_distance": 0.00135068,
+          "death_stage": "ranking_filter",
+          "death_reason": "replay_exp_lcb"
+        },
+        {
+          "candidate_id": "lab_876dc79eb4b8",
+          "near_miss_distance": 0.00493368,
+          "death_stage": "survived",
+          "death_reason": "replay_exp_lcb"
+        },
+        {
+          "candidate_id": "lab_175b9346ec15",
+          "near_miss_distance": 0.0,
+          "death_stage": "survived",
+          "death_reason": ""
+        }
+      ],
+      "evaluations": [
+        {
+          "candidate_id": "lab_910e7a6cf028",
+          "regime": "trend_persistence",
+          "expected_class": "strong_winner",
+          "strength": "strong",
+          "rank_score": 0.7207275760374842,
+          "replay_trade_count": 6,
+          "replay_exp_lcb": 0.01335558,
+          "walkforward_usable_windows": 0,
+          "candidate_class": "promising_but_unproven",
+          "aggregate_risk": 0.22135416666666663
+        },
+        {
+          "candidate_id": "lab_9367482dd2a4",
+          "regime": "trend_persistence",
+          "expected_class": "weak_detectable",
+          "strength": "weak",
+          "rank_score": 0.5593942427041508,
+          "replay_trade_count": 6,
+          "replay_exp_lcb": 0.00802307,
+          "walkforward_usable_windows": 0,
+          "candidate_class": "promising_but_unproven",
+          "aggregate_risk": 0.3154166666666667
+        },
+        {
+          "candidate_id": "lab_f765a05ff79f",
+          "regime": "trend_persistence",
+          "expected_class": "bad_control",
+          "strength": "bad",
+          "rank_score": 0.3311275760374841,
+          "replay_trade_count": 6,
+          "replay_exp_lcb": -0.0086696,
+          "walkforward_usable_windows": 0,
+          "candidate_class": "rejected",
+          "aggregate_risk": 0.5754166666666667
+        },
+        {
+          "candidate_id": "lab_b97ed39fa2f0",
+          "regime": "mean_reversion",
+          "expected_class": "strong_winner",
+          "strength": "strong",
+          "rank_score": 0.6993942427041507,
+          "replay_trade_count": 8,
+          "replay_exp_lcb": -1.718e-05,
+          "walkforward_usable_windows": 0,
+          "candidate_class": "promising_but_unproven",
+          "aggregate_risk": 0.24545138888888887
+        },
+        {
+          "candidate_id": "lab_b364b3130a1f",
+          "regime": "mean_reversion",
+          "expected_class": "weak_detectable",
+          "strength": "weak",
+          "rank_score": 0.5420609093708175,
+          "replay_trade_count": 0,
+          "replay_exp_lcb": -1.0,
+          "walkforward_usable_windows": 0,
+          "candidate_class": "rejected",
+          "aggregate_risk": 0.34437500000000004
+        },
+        {
+          "candidate_id": "lab_1917874d4918",
+          "regime": "compression_breakout",
+          "expected_class": "strong_winner",
+          "strength": "strong",
+          "rank_score": 0.6807275760374841,
+          "replay_trade_count": 6,
+          "replay_exp_lcb": -0.00438277,
+          "walkforward_usable_windows": 0,
+          "candidate_class": "promising_but_unproven",
+          "aggregate_risk": 0.24541666666666664
+        },
+        {
+          "candidate_id": "lab_815d59312e8e",
+          "regime": "compression_breakout",
+          "expected_class": "bad_control",
+          "strength": "bad",
+          "rank_score": 0.28179424270415077,
+          "replay_trade_count": 28,
+          "replay_exp_lcb": -0.00135068,
+          "walkforward_usable_windows": 0,
+          "candidate_class": "rejected",
+          "aggregate_risk": 0.5706249999999999
+        },
+        {
+          "candidate_id": "lab_876dc79eb4b8",
+          "regime": "failed_breakout_reversal",
+          "expected_class": "strong_winner",
+          "strength": "strong",
+          "rank_score": 0.6633942427041509,
+          "replay_trade_count": 5,
+          "replay_exp_lcb": -0.00493368,
+          "walkforward_usable_windows": 0,
+          "candidate_class": "promising_but_unproven",
+          "aggregate_risk": 0.2596180555555555
+        },
+        {
+          "candidate_id": "lab_175b9346ec15",
+          "regime": "flow_imbalance",
+          "expected_class": "weak_detectable",
+          "strength": "weak",
+          "rank_score": 0.5233942427041509,
+          "replay_trade_count": 7,
+          "replay_exp_lcb": 0.00147586,
+          "walkforward_usable_windows": 0,
+          "candidate_class": "promising_but_unproven",
+          "aggregate_risk": 0.3396527777777778
+        }
+      ],
+      "summary_hash": "94ea7435b2dc942f"
+    },
+    "synthetic_clean_hard": {
+      "candidate_count": 9,
+      "promising_count": 4,
+      "validated_count": 0,
+      "robust_count": 0,
+      "blocked_count": 0,
+      "dominant_failure_reasons": {
+        "replay_exp_lcb": 5
+      },
+      "first_death_stage_counts": {
+        "ranking_filter": 5
+      },
+      "near_miss_inventory": [
+        {
+          "candidate_id": "lab_910e7a6cf028",
+          "near_miss_distance": 0.0,
+          "death_stage": "survived",
+          "death_reason": ""
+        },
+        {
+          "candidate_id": "lab_9367482dd2a4",
+          "near_miss_distance": 0.0,
+          "death_stage": "survived",
+          "death_reason": ""
+        },
+        {
+          "candidate_id": "lab_f765a05ff79f",
+          "near_miss_distance": 0.00843592,
+          "death_stage": "ranking_filter",
+          "death_reason": "replay_exp_lcb"
+        },
+        {
+          "candidate_id": "lab_b97ed39fa2f0",
+          "near_miss_distance": 0.0,
+          "death_stage": "survived",
+          "death_reason": ""
+        },
+        {
+          "candidate_id": "lab_b364b3130a1f",
+          "near_miss_distance": 1.0,
+          "death_stage": "ranking_filter",
+          "death_reason": "replay_exp_lcb"
+        },
+        {
+          "candidate_id": "lab_1917874d4918",
+          "near_miss_distance": 0.00505779,
+          "death_stage": "ranking_filter",
+          "death_reason": "replay_exp_lcb"
+        },
+        {
+          "candidate_id": "lab_815d59312e8e",
+          "near_miss_distance": 0.00135392,
+          "death_stage": "ranking_filter",
+          "death_reason": "replay_exp_lcb"
+        },
+        {
+          "candidate_id": "lab_876dc79eb4b8",
+          "near_miss_distance": 0.00538618,
+          "death_stage": "ranking_filter",
+          "death_reason": "replay_exp_lcb"
+        },
+        {
+          "candidate_id": "lab_175b9346ec15",
+          "near_miss_distance": 0.0,
+          "death_stage": "survived",
+          "death_reason": ""
+        }
+      ],
+      "evaluations": [
+        {
+          "candidate_id": "lab_910e7a6cf028",
+          "regime": "trend_persistence",
+          "expected_class": "strong_winner",
+          "strength": "strong",
+          "rank_score": 0.7201519662144533,
+          "replay_trade_count": 6,
+          "replay_exp_lcb": 0.01292682,
+          "walkforward_usable_windows": 0,
+          "candidate_class": "promising_but_unproven",
+          "aggregate_risk": 0.22135416666666663
+        },
+        {
+          "candidate_id": "lab_9367482dd2a4",
+          "regime": "trend_persistence",
+          "expected_class": "weak_detectable",
+          "strength": "weak",
+          "rank_score": 0.55881863288112,
+          "replay_trade_count": 6,
+          "replay_exp_lcb": 0.00776497,
+          "walkforward_usable_windows": 0,
+          "candidate_class": "promising_but_unproven",
+          "aggregate_risk": 0.3154166666666667
+        },
+        {
+          "candidate_id": "lab_f765a05ff79f",
+          "regime": "trend_persistence",
+          "expected_class": "bad_control",
+          "strength": "bad",
+          "rank_score": 0.33055196621445326,
+          "replay_trade_count": 6,
+          "replay_exp_lcb": -0.00843592,
+          "walkforward_usable_windows": 0,
+          "candidate_class": "rejected",
+          "aggregate_risk": 0.5754166666666667
+        },
+        {
+          "candidate_id": "lab_b97ed39fa2f0",
+          "regime": "mean_reversion",
+          "expected_class": "strong_winner",
+          "strength": "strong",
+          "rank_score": 0.6988186328811199,
+          "replay_trade_count": 8,
+          "replay_exp_lcb": 0.00042179,
+          "walkforward_usable_windows": 0,
+          "candidate_class": "promising_but_unproven",
+          "aggregate_risk": 0.24545138888888887
+        },
+        {
+          "candidate_id": "lab_b364b3130a1f",
+          "regime": "mean_reversion",
+          "expected_class": "weak_detectable",
+          "strength": "weak",
+          "rank_score": 0.5414852995477867,
+          "replay_trade_count": 0,
+          "replay_exp_lcb": -1.0,
+          "walkforward_usable_windows": 0,
+          "candidate_class": "rejected",
+          "aggregate_risk": 0.34437500000000004
+        },
+        {
+          "candidate_id": "lab_1917874d4918",
+          "regime": "compression_breakout",
+          "expected_class": "strong_winner",
+          "strength": "strong",
+          "rank_score": 0.6801519662144533,
+          "replay_trade_count": 6,
+          "replay_exp_lcb": -0.00505779,
+          "walkforward_usable_windows": 0,
+          "candidate_class": "rejected",
+          "aggregate_risk": 0.24541666666666664
+        },
+        {
+          "candidate_id": "lab_815d59312e8e",
+          "regime": "compression_breakout",
+          "expected_class": "bad_control",
+          "strength": "bad",
+          "rank_score": 0.2812186328811199,
+          "replay_trade_count": 27,
+          "replay_exp_lcb": -0.00135392,
+          "walkforward_usable_windows": 0,
+          "candidate_class": "rejected",
+          "aggregate_risk": 0.5706249999999999
+        },
+        {
+          "candidate_id": "lab_876dc79eb4b8",
+          "regime": "failed_breakout_reversal",
+          "expected_class": "strong_winner",
+          "strength": "strong",
+          "rank_score": 0.6628186328811201,
+          "replay_trade_count": 5,
+          "replay_exp_lcb": -0.00538618,
+          "walkforward_usable_windows": 0,
+          "candidate_class": "rejected",
+          "aggregate_risk": 0.2596180555555555
+        },
+        {
+          "candidate_id": "lab_175b9346ec15",
+          "regime": "flow_imbalance",
+          "expected_class": "weak_detectable",
+          "strength": "weak",
+          "rank_score": 0.5228186328811201,
+          "replay_trade_count": 7,
+          "replay_exp_lcb": 0.00188305,
+          "walkforward_usable_windows": 0,
+          "candidate_class": "promising_but_unproven",
+          "aggregate_risk": 0.3396527777777778
+        }
+      ],
+      "summary_hash": "cbebbef0078257d6"
+    },
+    "live_relaxed": {
+      "candidate_count": 400,
+      "promising_count": 0,
+      "validated_count": 0,
+      "robust_count": 0,
+      "blocked_count": 0,
+      "dominant_failure_reasons": {
+        "replay_blocked": 8
+      },
+      "first_death_stage_counts": {
+        "replay": 8
+      },
+      "near_miss_inventory": [
+        {
+          "candidate_id": "s70_01b49d2055f861c1",
+          "near_miss_distance": 4.2,
+          "death_stage": "replay",
+          "death_reason": "replay_blocked"
+        },
+        {
+          "candidate_id": "s70_467f0bbe00dfd4b4",
+          "near_miss_distance": 4.2,
+          "death_stage": "replay",
+          "death_reason": "replay_blocked"
+        },
+        {
+          "candidate_id": "s70_5d913110238f8c91",
+          "near_miss_distance": 4.2,
+          "death_stage": "replay",
+          "death_reason": "replay_blocked"
+        },
+        {
+          "candidate_id": "s70_84fa89e4f9dd681b",
+          "near_miss_distance": 4.2,
+          "death_stage": "replay",
+          "death_reason": "replay_blocked"
+        },
+        {
+          "candidate_id": "s70_aa009c81302635d1",
+          "near_miss_distance": 4.2,
+          "death_stage": "replay",
+          "death_reason": "replay_blocked"
+        },
+        {
+          "candidate_id": "s70_ab4ffd9fb1e6fd13",
+          "near_miss_distance": 4.2,
+          "death_stage": "replay",
+          "death_reason": "replay_blocked"
+        },
+        {
+          "candidate_id": "s70_ccf21285f88bb036",
+          "near_miss_distance": 4.2,
+          "death_stage": "replay",
+          "death_reason": "replay_blocked"
+        },
+        {
+          "candidate_id": "s70_d810c05bd6e100a0",
+          "near_miss_distance": 4.2,
+          "death_stage": "replay",
+          "death_reason": "replay_blocked"
+        }
+      ],
+      "evaluations": [
+        {
+          "candidate_id": "s70_467f0bbe00dfd4b4",
+          "family": "funding_oi_imbalance_reversion",
+          "subfamily": "crowding_release",
+          "expected_regime": "funding_extreme",
+          "rank_score": 0.48179385829375,
+          "candidate_class": "promising_but_unproven",
+          "candidate_hierarchy": "junk",
+          "aggregate_risk": 0.39163377125000004,
+          "trade_density_risk": 1.0,
+          "cost_fragility_risk": 0.5,
+          "regime_concentration_risk": 0.0,
+          "hold_sanity_risk": 0.125,
+          "overlap_duplication_risk": 0.02105263,
+          "clustering_risk": 0.00701754,
+          "thin_evidence_risk": 1.0,
+          "transfer_risk_prior": 1.0,
+          "replay_trade_count": 0,
+          "replay_exp_lcb": -1.0,
+          "walkforward_usable_windows": 0,
+          "robustness_level": 0,
+          "robustness_level_name": "mechanism_not_viable",
+          "transfer_classification": "not_transferable",
+          "transfer_diagnostics": [
+            "insufficient_trades",
+            "trigger_rarity"
+          ],
+          "first_death_stage": "replay",
+          "death_reason": "replay_blocked",
+          "near_miss_distance": 4.2,
+          "final_class": "rejected"
+        },
+        {
+          "candidate_id": "s70_d810c05bd6e100a0",
+          "family": "funding_oi_imbalance_reversion",
+          "subfamily": "oi_divergence",
+          "expected_regime": "crowding",
+          "rank_score": 0.47904385829374996,
+          "candidate_class": "promising_but_unproven",
+          "candidate_hierarchy": "junk",
+          "aggregate_risk": 0.41507127125000004,
+          "trade_density_risk": 1.0,
+          "cost_fragility_risk": 0.5,
+          "regime_concentration_risk": 0.0,
+          "hold_sanity_risk": 0.3125,
+          "overlap_duplication_risk": 0.02105263,
+          "clustering_risk": 0.00701754,
+          "thin_evidence_risk": 1.0,
+          "transfer_risk_prior": 1.0,
+          "replay_trade_count": 0,
+          "replay_exp_lcb": -1.0,
+          "walkforward_usable_windows": 0,
+          "robustness_level": 0,
+          "robustness_level_name": "mechanism_not_viable",
+          "transfer_classification": "not_transferable",
+          "transfer_diagnostics": [
+            "insufficient_trades",
+            "trigger_rarity"
+          ],
+          "first_death_stage": "replay",
+          "death_reason": "replay_blocked",
+          "near_miss_distance": 4.2,
+          "final_class": "rejected"
+        },
+        {
+          "candidate_id": "s70_aa009c81302635d1",
+          "family": "funding_oi_imbalance_reversion",
+          "subfamily": "funding_flush",
+          "expected_regime": "funding_extreme",
+          "rank_score": 0.47629385829375,
+          "candidate_class": "promising_but_unproven",
+          "candidate_hierarchy": "junk",
+          "aggregate_risk": 0.41507127125000004,
+          "trade_density_risk": 1.0,
+          "cost_fragility_risk": 0.5,
+          "regime_concentration_risk": 0.0,
+          "hold_sanity_risk": 0.3125,
+          "overlap_duplication_risk": 0.02105263,
+          "clustering_risk": 0.00701754,
+          "thin_evidence_risk": 1.0,
+          "transfer_risk_prior": 1.0,
+          "replay_trade_count": 0,
+          "replay_exp_lcb": -1.0,
+          "walkforward_usable_windows": 0,
+          "robustness_level": 0,
+          "robustness_level_name": "mechanism_not_viable",
+          "transfer_classification": "not_transferable",
+          "transfer_diagnostics": [
+            "insufficient_trades",
+            "trigger_rarity"
+          ],
+          "first_death_stage": "replay",
+          "death_reason": "replay_blocked",
+          "near_miss_distance": 4.2,
+          "final_class": "rejected"
+        },
+        {
+          "candidate_id": "s70_01b49d2055f861c1",
+          "family": "funding_oi_imbalance_reversion",
+          "subfamily": "crowding_release",
+          "expected_regime": "crowding",
+          "rank_score": 0.4745964892937499,
+          "candidate_class": "promising_but_unproven",
+          "candidate_hierarchy": "junk",
+          "aggregate_risk": 0.38206688625,
+          "trade_density_risk": 1.0,
+          "cost_fragility_risk": 0.5,
+          "regime_concentration_risk": 0.0,
+          "hold_sanity_risk": 0.0625,
+          "overlap_duplication_risk": 0.01052632,
+          "clustering_risk": 0.00350877,
+          "thin_evidence_risk": 1.0,
+          "transfer_risk_prior": 1.0,
+          "replay_trade_count": 0,
+          "replay_exp_lcb": -1.0,
+          "walkforward_usable_windows": 0,
+          "robustness_level": 0,
+          "robustness_level_name": "mechanism_not_viable",
+          "transfer_classification": "not_transferable",
+          "transfer_diagnostics": [
+            "insufficient_trades",
+            "trigger_rarity"
+          ],
+          "first_death_stage": "replay",
+          "death_reason": "replay_blocked",
+          "near_miss_distance": 4.2,
+          "final_class": "rejected"
+        },
+        {
+          "candidate_id": "s70_ccf21285f88bb036",
+          "family": "funding_oi_imbalance_reversion",
+          "subfamily": "oi_divergence",
+          "expected_regime": "funding_extreme",
+          "rank_score": 0.47184648929374995,
+          "candidate_class": "promising_but_unproven",
+          "candidate_hierarchy": "junk",
+          "aggregate_risk": 0.38206688625,
+          "trade_density_risk": 1.0,
+          "cost_fragility_risk": 0.5,
+          "regime_concentration_risk": 0.0,
+          "hold_sanity_risk": 0.0625,
+          "overlap_duplication_risk": 0.01052632,
+          "clustering_risk": 0.00350877,
+          "thin_evidence_risk": 1.0,
+          "transfer_risk_prior": 1.0,
+          "replay_trade_count": 0,
+          "replay_exp_lcb": -1.0,
+          "walkforward_usable_windows": 0,
+          "robustness_level": 0,
+          "robustness_level_name": "mechanism_not_viable",
+          "transfer_classification": "not_transferable",
+          "transfer_diagnostics": [
+            "insufficient_trades",
+            "trigger_rarity"
+          ],
+          "first_death_stage": "replay",
+          "death_reason": "replay_blocked",
+          "near_miss_distance": 4.2,
+          "final_class": "rejected"
+        },
+        {
+          "candidate_id": "s70_84fa89e4f9dd681b",
+          "family": "funding_oi_imbalance_reversion",
+          "subfamily": "funding_flush",
+          "expected_regime": "crowding",
+          "rank_score": 0.4690964892937499,
+          "candidate_class": "promising_but_unproven",
+          "candidate_hierarchy": "junk",
+          "aggregate_risk": 0.38987938625,
+          "trade_density_risk": 1.0,
+          "cost_fragility_risk": 0.5,
+          "regime_concentration_risk": 0.0,
+          "hold_sanity_risk": 0.125,
+          "overlap_duplication_risk": 0.01052632,
+          "clustering_risk": 0.00350877,
+          "thin_evidence_risk": 1.0,
+          "transfer_risk_prior": 1.0,
+          "replay_trade_count": 0,
+          "replay_exp_lcb": -1.0,
+          "walkforward_usable_windows": 0,
+          "robustness_level": 0,
+          "robustness_level_name": "mechanism_not_viable",
+          "transfer_classification": "not_transferable",
+          "transfer_diagnostics": [
+            "insufficient_trades",
+            "trigger_rarity"
+          ],
+          "first_death_stage": "replay",
+          "death_reason": "replay_blocked",
+          "near_miss_distance": 4.2,
+          "final_class": "rejected"
+        },
+        {
+          "candidate_id": "s70_5d913110238f8c91",
+          "family": "funding_oi_imbalance_reversion",
+          "subfamily": "crowding_release",
+          "expected_regime": "funding_extreme",
+          "rank_score": 0.46634648929374994,
+          "candidate_class": "promising_but_unproven",
+          "candidate_hierarchy": "junk",
+          "aggregate_risk": 0.38987938625,
+          "trade_density_risk": 1.0,
+          "cost_fragility_risk": 0.5,
+          "regime_concentration_risk": 0.0,
+          "hold_sanity_risk": 0.125,
+          "overlap_duplication_risk": 0.01052632,
+          "clustering_risk": 0.00350877,
+          "thin_evidence_risk": 1.0,
+          "transfer_risk_prior": 1.0,
+          "replay_trade_count": 0,
+          "replay_exp_lcb": -1.0,
+          "walkforward_usable_windows": 0,
+          "robustness_level": 0,
+          "robustness_level_name": "mechanism_not_viable",
+          "transfer_classification": "not_transferable",
+          "transfer_diagnostics": [
+            "insufficient_trades",
+            "trigger_rarity"
+          ],
+          "first_death_stage": "replay",
+          "death_reason": "replay_blocked",
+          "near_miss_distance": 4.2,
+          "final_class": "rejected"
+        },
+        {
+          "candidate_id": "s70_ab4ffd9fb1e6fd13",
+          "family": "funding_oi_imbalance_reversion",
+          "subfamily": "oi_divergence",
+          "expected_regime": "crowding",
+          "rank_score": 0.46464912109375,
+          "candidate_class": "promising_but_unproven",
+          "candidate_hierarchy": "junk",
+          "aggregate_risk": 0.4115625,
+          "trade_density_risk": 1.0,
+          "cost_fragility_risk": 0.5,
+          "regime_concentration_risk": 0.0,
+          "hold_sanity_risk": 0.3125,
+          "overlap_duplication_risk": 0.0,
+          "clustering_risk": 0.0,
+          "thin_evidence_risk": 1.0,
+          "transfer_risk_prior": 1.0,
+          "replay_trade_count": 0,
+          "replay_exp_lcb": -1.0,
+          "walkforward_usable_windows": 0,
+          "robustness_level": 0,
+          "robustness_level_name": "mechanism_not_viable",
+          "transfer_classification": "not_transferable",
+          "transfer_diagnostics": [
+            "insufficient_trades",
+            "trigger_rarity"
+          ],
+          "first_death_stage": "replay",
+          "death_reason": "replay_blocked",
+          "near_miss_distance": 4.2,
+          "final_class": "rejected"
+        }
+      ],
+      "blocked_reason": "",
+      "mode_summary": {
+        "mode": "exploration",
+        "run_type": "exploration",
+        "evaluation_mode": false,
+        "interpretation_allowed": false,
+        "validation_state": "EXPLORATORY_ONLY",
+        "canonical_status": "EXPLORATORY",
+        "resolved_end_ts": "",
+        "resolved_end_ts_status": "MISSING",
+        "resolved_end_ts_auto_pinned": false,
+        "continuity_status": "RELAXED",
+        "data_hash_status": "PRESENT",
+        "data_scope_hash": "23256160a311e3d0",
+        "config_hash_effective": "b29ebc1973d6",
+        "blocked_reasons": [
+          "EXPLORATION_MODE_NOT_INTERPRETABLE_BY_DEFAULT"
+        ],
+        "seed_bundle": [],
+        "campaign_memory_cold_start": true,
+        "effective_values": {
+          "frozen_research_mode": false,
+          "require_resolved_end_ts": false,
+          "deterministic_sorting": true,
+          "strict_continuity": false,
+          "fail_on_gap": false,
+          "budget_mode_selected": "search"
+        },
+        "coverage_rows": [],
+        "summary_hash": "cfe1df7b55591e96"
+      }
+    },
+    "live_strict": {
+      "candidate_count": 0,
+      "promising_count": 0,
+      "validated_count": 0,
+      "robust_count": 0,
+      "blocked_count": 1,
+      "dominant_failure_reasons": {
+        "gap_count=1,largest_gap_bars=2,max_gap_bars=0": 1
+      },
+      "first_death_stage_counts": {},
+      "near_miss_inventory": [],
+      "evaluations": [],
+      "blocked_reason": "gap_count=1,largest_gap_bars=2,max_gap_bars=0",
+      "mode_summary": {
+        "mode": "evaluation",
+        "run_type": "evaluation",
+        "evaluation_mode": true,
+        "interpretation_allowed": true,
+        "validation_state": "EVALUATION_READY",
+        "canonical_status": "CANONICAL",
+        "resolved_end_ts": "2026-03-03T10:00:00+00:00",
+        "resolved_end_ts_status": "PINNED",
+        "resolved_end_ts_auto_pinned": true,
+        "continuity_status": "STRICT",
+        "data_hash_status": "PRESENT",
+        "data_scope_hash": "dc09b28ec55eaf90",
+        "config_hash_effective": "2321bcd15e51",
+        "blocked_reasons": [],
+        "seed_bundle": [
+          11,
+          19,
+          23,
+          29,
+          31
+        ],
+        "campaign_memory_cold_start": true,
+        "effective_values": {
+          "frozen_research_mode": true,
+          "require_resolved_end_ts": true,
+          "deterministic_sorting": true,
+          "strict_continuity": true,
+          "fail_on_gap": true,
+          "budget_mode_selected": "validate"
+        },
+        "coverage_rows": [
+          {
+            "backend": "parquet",
+            "symbol": "BTC/USDT",
+            "timeframe": "1h",
+            "exists": true,
+            "rows": 35061,
+            "start": "2022-03-03T12:00:00+00:00",
+            "end": "2026-03-03T10:00:00+00:00",
+            "path": "C:\\dev\\Buff-mini\\data\\raw\\BTC-USDT_1h.parquet"
+          },
+          {
+            "backend": "parquet",
+            "symbol": "BTC/USDT",
+            "timeframe": "4h",
+            "exists": false,
+            "rows": 0,
+            "start": null,
+            "end": null,
+            "path": "C:\\dev\\Buff-mini\\data\\raw\\BTC-USDT_4h.parquet"
+          },
+          {
+            "backend": "parquet",
+            "symbol": "ETH/USDT",
+            "timeframe": "1h",
+            "exists": true,
+            "rows": 35061,
+            "start": "2022-03-03T12:00:00+00:00",
+            "end": "2026-03-03T10:00:00+00:00",
+            "path": "C:\\dev\\Buff-mini\\data\\raw\\ETH-USDT_1h.parquet"
+          },
+          {
+            "backend": "parquet",
+            "symbol": "ETH/USDT",
+            "timeframe": "4h",
+            "exists": false,
+            "rows": 0,
+            "start": null,
+            "end": null,
+            "path": "C:\\dev\\Buff-mini\\data\\raw\\ETH-USDT_4h.parquet"
+          }
+        ],
+        "summary_hash": "45bee9632d637f06"
+      }
+    }
+  },
+  "gate_sensitivity": {
+    "replay": {
+      "baseline_min_trade_count": 40,
+      "baseline_min_exp_lcb": 0.0,
+      "survivor_counts": {
+        "synthetic_clean_easy": 0,
+        "synthetic_clean_hard": 0,
+        "live_relaxed": 0,
+        "live_strict": 0
+      },
+      "looser_trade_count": {
+        "synthetic_clean_easy": 1,
+        "synthetic_clean_hard": 1,
+        "live_relaxed": 0,
+        "live_strict": 0
+      },
+      "stricter_trade_count": {
+        "synthetic_clean_easy": 0,
+        "synthetic_clean_hard": 0,
+        "live_relaxed": 0,
+        "live_strict": 0
+      }
+    },
+    "walkforward": {
+      "baseline_min_usable_windows": 5,
+      "survivor_counts": {
+        "synthetic_clean_easy": 0,
+        "synthetic_clean_hard": 0,
+        "live_relaxed": 0,
+        "live_strict": 0
+      },
+      "looser": {
+        "synthetic_clean_easy": 0,
+        "synthetic_clean_hard": 0,
+        "live_relaxed": 0,
+        "live_strict": 0
+      },
+      "stricter": {
+        "synthetic_clean_easy": 0,
+        "synthetic_clean_hard": 0,
+        "live_relaxed": 0,
+        "live_strict": 0
+      }
+    },
+    "monte_carlo": {
+      "survivor_counts": {
+        "synthetic_clean_easy": 9,
+        "synthetic_clean_hard": 9,
+        "live_relaxed": 0,
+        "live_strict": 0
+      }
+    },
+    "transfer": {
+      "survivor_counts": {
+        "synthetic_clean_easy": 0,
+        "synthetic_clean_hard": 0,
+        "live_relaxed": 0,
+        "live_strict": 0
+      }
+    },
+    "continuity": {
+      "blocked_counts": {
+        "synthetic_clean_easy": 0,
+        "synthetic_clean_hard": 0,
+        "live_relaxed": 0,
+        "live_strict": 1
+      }
+    }
+  },
+  "dominant_blockers": [
+    {
+      "blocker": "ranking_funnel_pressure",
+      "count": 8
+    },
+    {
+      "blocker": "generator_depth",
+      "count": 8
+    },
+    {
+      "blocker": "data_canonicalization",
+      "count": 1
+    }
+  ],
+  "stage": "85",
+  "status": "SUCCESS",
+  "execution_status": "EXECUTED",
+  "stage_role": "real_validation",
+  "validation_state": "REALITY_MATRIX_READY",
+  "summary_hash": "fbc24b491b803c2c"
+}

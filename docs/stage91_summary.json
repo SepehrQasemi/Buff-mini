@@ -1,0 +1,144 @@
+{
+  "stage": "91",
+  "status": "SUCCESS",
+  "execution_status": "EXECUTED",
+  "stage_role": "reporting_only",
+  "validation_state": "SCOPE_LADDER_READY",
+  "rows": [
+    {
+      "asset_tier": "tier1",
+      "symbol": "BTC/USDT",
+      "timeframe": "15m",
+      "candidate_density": 400,
+      "promising_density": 1,
+      "validated_density": 0,
+      "robust_density": 0,
+      "blocked_density": 0,
+      "dominant_failure_reason": "exp_lcb"
+    },
+    {
+      "asset_tier": "tier1",
+      "symbol": "BTC/USDT",
+      "timeframe": "30m",
+      "candidate_density": 400,
+      "promising_density": 1,
+      "validated_density": 0,
+      "robust_density": 0,
+      "blocked_density": 0,
+      "dominant_failure_reason": "exp_lcb"
+    },
+    {
+      "asset_tier": "tier1",
+      "symbol": "BTC/USDT",
+      "timeframe": "1h",
+      "candidate_density": 400,
+      "promising_density": 1,
+      "validated_density": 0,
+      "robust_density": 0,
+      "blocked_density": 0,
+      "dominant_failure_reason": "exp_lcb"
+    },
+    {
+      "asset_tier": "tier1",
+      "symbol": "BTC/USDT",
+      "timeframe": "4h",
+      "candidate_density": 400,
+      "promising_density": 1,
+      "validated_density": 0,
+      "robust_density": 0,
+      "blocked_density": 0,
+      "dominant_failure_reason": "exp_lcb"
+    },
+    {
+      "asset_tier": "tier1",
+      "symbol": "ETH/USDT",
+      "timeframe": "15m",
+      "candidate_density": 400,
+      "promising_density": 1,
+      "validated_density": 0,
+      "robust_density": 0,
+      "blocked_density": 0,
+      "dominant_failure_reason": "exp_lcb"
+    },
+    {
+      "asset_tier": "tier1",
+      "symbol": "ETH/USDT",
+      "timeframe": "30m",
+      "candidate_density": 400,
+      "promising_density": 1,
+      "validated_density": 0,
+      "robust_density": 0,
+      "blocked_density": 0,
+      "dominant_failure_reason": "exp_lcb"
+    },
+    {
+      "asset_tier": "tier1",
+      "symbol": "ETH/USDT",
+      "timeframe": "1h",
+      "candidate_density": 400,
+      "promising_density": 1,
+      "validated_density": 0,
+      "robust_density": 0,
+      "blocked_density": 0,
+      "dominant_failure_reason": "exp_lcb"
+    },
+    {
+      "asset_tier": "tier1",
+      "symbol": "ETH/USDT",
+      "timeframe": "4h",
+      "candidate_density": 400,
+      "promising_density": 1,
+      "validated_density": 0,
+      "robust_density": 0,
+      "blocked_density": 0,
+      "dominant_failure_reason": "exp_lcb"
+    }
+  ],
+  "tier1_symbols": [
+    "BTC/USDT",
+    "ETH/USDT"
+  ],
+  "tier2_symbols": [],
+  "candidate_limit_per_scope": 1,
+  "regime_ladder": [
+    "trend",
+    "chop",
+    "high_vol",
+    "low_vol",
+    "funding_extreme",
+    "compression"
+  ],
+  "regime_scope_map": [
+    {
+      "regime": "trend",
+      "family_count": 2,
+      "timeframe_count": 4
+    },
+    {
+      "regime": "chop",
+      "family_count": 2,
+      "timeframe_count": 8
+    },
+    {
+      "regime": "high_vol",
+      "family_count": 2,
+      "timeframe_count": 6
+    },
+    {
+      "regime": "low_vol",
+      "family_count": 2,
+      "timeframe_count": 4
+    },
+    {
+      "regime": "funding_extreme",
+      "family_count": 1,
+      "timeframe_count": 8
+    },
+    {
+      "regime": "compression",
+      "family_count": 2,
+      "timeframe_count": 6
+    }
+  ],
+  "summary_hash": "19df0167052253b5"
+}

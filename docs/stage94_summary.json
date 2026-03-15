@@ -1,0 +1,201 @@
+{
+  "stage": "94",
+  "status": "SUCCESS",
+  "execution_status": "EXECUTED",
+  "stage_role": "real_validation",
+  "validation_state": "EDGE_INVENTORY_READY",
+  "symbols": [
+    "BTC/USDT",
+    "ETH/USDT"
+  ],
+  "timeframes": [
+    "1h",
+    "4h"
+  ],
+  "mechanism_families": [
+    "liquidity_sweep_reversal",
+    "structure_pullback_continuation",
+    "failed_breakout_reversal",
+    "volatility_regime_transition",
+    "exhaustion_mean_reversion"
+  ],
+  "edge_inventory": [],
+  "blocked_scope_rows": [
+    {
+      "symbol": "BTC/USDT",
+      "timeframe": "1h",
+      "blocked_reason": "gap_count=1,largest_gap_bars=2,max_gap_bars=0",
+      "mode_summary": {
+        "mode": "evaluation",
+        "run_type": "evaluation",
+        "evaluation_mode": true,
+        "interpretation_allowed": true,
+        "validation_state": "EVALUATION_READY",
+        "canonical_status": "CANONICAL",
+        "resolved_end_ts": "2026-03-03T10:00:00+00:00",
+        "resolved_end_ts_status": "PINNED",
+        "resolved_end_ts_auto_pinned": false,
+        "continuity_status": "STRICT",
+        "data_hash_status": "PRESENT",
+        "data_scope_hash": "0e5aa94981778527",
+        "config_hash_effective": "e26488a1d660",
+        "blocked_reasons": [],
+        "seed_bundle": [
+          11,
+          19,
+          23,
+          29,
+          31
+        ],
+        "campaign_memory_cold_start": true,
+        "effective_values": {
+          "frozen_research_mode": true,
+          "require_resolved_end_ts": true,
+          "deterministic_sorting": true,
+          "strict_continuity": true,
+          "fail_on_gap": true,
+          "budget_mode_selected": "validate"
+        },
+        "coverage_rows": [],
+        "summary_hash": "975fac390da79561"
+      }
+    },
+    {
+      "symbol": "BTC/USDT",
+      "timeframe": "4h",
+      "blocked_reason": "gap_count=1,largest_gap_bars=1,max_gap_bars=0",
+      "mode_summary": {
+        "mode": "evaluation",
+        "run_type": "evaluation",
+        "evaluation_mode": true,
+        "interpretation_allowed": true,
+        "validation_state": "EVALUATION_READY",
+        "canonical_status": "CANONICAL",
+        "resolved_end_ts": "2026-03-03T04:00:00+00:00",
+        "resolved_end_ts_status": "PINNED",
+        "resolved_end_ts_auto_pinned": false,
+        "continuity_status": "STRICT",
+        "data_hash_status": "PRESENT",
+        "data_scope_hash": "85e2e9bf2ad2f054",
+        "config_hash_effective": "4a0fb345edff",
+        "blocked_reasons": [],
+        "seed_bundle": [
+          11,
+          19,
+          23,
+          29,
+          31
+        ],
+        "campaign_memory_cold_start": true,
+        "effective_values": {
+          "frozen_research_mode": true,
+          "require_resolved_end_ts": true,
+          "deterministic_sorting": true,
+          "strict_continuity": true,
+          "fail_on_gap": true,
+          "budget_mode_selected": "validate"
+        },
+        "coverage_rows": [],
+        "summary_hash": "708dbf6920299f90"
+      }
+    },
+    {
+      "symbol": "ETH/USDT",
+      "timeframe": "1h",
+      "blocked_reason": "gap_count=1,largest_gap_bars=2,max_gap_bars=0",
+      "mode_summary": {
+        "mode": "evaluation",
+        "run_type": "evaluation",
+        "evaluation_mode": true,
+        "interpretation_allowed": true,
+        "validation_state": "EVALUATION_READY",
+        "canonical_status": "CANONICAL",
+        "resolved_end_ts": "2026-03-03T10:00:00+00:00",
+        "resolved_end_ts_status": "PINNED",
+        "resolved_end_ts_auto_pinned": false,
+        "continuity_status": "STRICT",
+        "data_hash_status": "PRESENT",
+        "data_scope_hash": "0e5aa94981778527",
+        "config_hash_effective": "e26488a1d660",
+        "blocked_reasons": [],
+        "seed_bundle": [
+          11,
+          19,
+          23,
+          29,
+          31
+        ],
+        "campaign_memory_cold_start": true,
+        "effective_values": {
+          "frozen_research_mode": true,
+          "require_resolved_end_ts": true,
+          "deterministic_sorting": true,
+          "strict_continuity": true,
+          "fail_on_gap": true,
+          "budget_mode_selected": "validate"
+        },
+        "coverage_rows": [],
+        "summary_hash": "975fac390da79561"
+      }
+    },
+    {
+      "symbol": "ETH/USDT",
+      "timeframe": "4h",
+      "blocked_reason": "gap_count=1,largest_gap_bars=1,max_gap_bars=0",
+      "mode_summary": {
+        "mode": "evaluation",
+        "run_type": "evaluation",
+        "evaluation_mode": true,
+        "interpretation_allowed": true,
+        "validation_state": "EVALUATION_READY",
+        "canonical_status": "CANONICAL",
+        "resolved_end_ts": "2026-03-03T04:00:00+00:00",
+        "resolved_end_ts_status": "PINNED",
+        "resolved_end_ts_auto_pinned": false,
+        "continuity_status": "STRICT",
+        "data_hash_status": "PRESENT",
+        "data_scope_hash": "85e2e9bf2ad2f054",
+        "config_hash_effective": "4a0fb345edff",
+        "blocked_reasons": [],
+        "seed_bundle": [
+          11,
+          19,
+          23,
+          29,
+          31
+        ],
+        "campaign_memory_cold_start": true,
+        "effective_values": {
+          "frozen_research_mode": true,
+          "require_resolved_end_ts": true,
+          "deterministic_sorting": true,
+          "strict_continuity": true,
+          "fail_on_gap": true,
+          "budget_mode_selected": "validate"
+        },
+        "coverage_rows": [],
+        "summary_hash": "708dbf6920299f90"
+      }
+    }
+  ],
+  "mechanism_inventory": {},
+  "regime_map": {},
+  "transfer_map": {
+    "transfer_class_counts": {},
+    "failure_diagnostics": {},
+    "regime_portability_map": [],
+    "summary_hash": "35fe542f5ca713e0"
+  },
+  "failure_map": {
+    "blocked::gap_count=1,largest_gap_bars=2,max_gap_bars=0": 2,
+    "blocked::gap_count=1,largest_gap_bars=1,max_gap_bars=0": 2
+  },
+  "candidate_class_counts": {
+    "robust_candidate": 0,
+    "promising_but_unproven": 0,
+    "rejected": 0
+  },
+  "campaign_outcome": "data_blocked_or_scope_blocked",
+  "classification": "system_blocked_uninterpretable",
+  "summary_hash": "b3d6124eed197044"
+}

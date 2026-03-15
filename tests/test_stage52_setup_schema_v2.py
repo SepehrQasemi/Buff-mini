@@ -22,6 +22,10 @@ def test_stage52_builds_valid_candidate_v2() -> None:
     assert candidate["eligible_for_replay"] is True
     assert float(candidate["rr_model"]["first_target_rr"]) >= 1.5
     assert str(candidate["economic_fingerprint"]).strip() != ""
+    assert str(candidate["subfamily"]).strip() != ""
+    assert str(candidate["risk_model"]).strip() != ""
+    assert str(candidate["exit_family"]).strip() != ""
+    assert int(candidate["time_stop_bars"]) >= 1
 
 
 def test_stage52_rejects_missing_confirmation() -> None:
