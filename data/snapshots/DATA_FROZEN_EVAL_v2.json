@@ -1,0 +1,57 @@
+{
+  "snapshot_id": "DATA_FROZEN_EVAL_v2",
+  "created_at": "20260315_123727",
+  "exchange": "binance",
+  "symbols": [
+    "BTC/USDT",
+    "ETH/USDT"
+  ],
+  "canonical_timeframes": [
+    "30m",
+    "1h",
+    "4h"
+  ],
+  "per_symbol_per_tf": {
+    "BTC/USDT": {
+      "30m": {
+        "sha256": "23e9c6474c86b8db76870314b52d3d3266e748aa54e5cbdb8454373488a1478d",
+        "start_ts": "2023-03-24T14:00:00+00:00",
+        "end_ts": "2026-03-03T11:00:00+00:00",
+        "candle_count": 51595
+      },
+      "1h": {
+        "sha256": "c3ef54916068a61ec91d8f282ab23cb1096a5df077a2c3a6e6afedd3458dcc72",
+        "start_ts": "2023-03-24T14:00:00+00:00",
+        "end_ts": "2026-03-03T10:00:00+00:00",
+        "candle_count": 25797
+      },
+      "4h": {
+        "sha256": "48c59f002fce0be204ab545f63a942c8aa7f83e2534411794e583c91f1ea3144",
+        "start_ts": "2023-03-24T16:00:00+00:00",
+        "end_ts": "2026-03-03T04:00:00+00:00",
+        "candle_count": 6448
+      }
+    },
+    "ETH/USDT": {
+      "30m": {
+        "sha256": "6cf2355684d3f547b0e45007c8ac31862ea098ec0cd100d83f91e09fbaa669e2",
+        "start_ts": "2023-03-24T14:00:00+00:00",
+        "end_ts": "2026-03-03T11:00:00+00:00",
+        "candle_count": 51595
+      },
+      "1h": {
+        "sha256": "b084f09ce4d893a9d1096c298368f94024136444bb17beb9e4fd04aa7a806bcf",
+        "start_ts": "2023-03-24T14:00:00+00:00",
+        "end_ts": "2026-03-03T10:00:00+00:00",
+        "candle_count": 25797
+      },
+      "4h": {
+        "sha256": "e158ce162de5252a05a8e2e48fc4506fb8051a73d94a18d7d9808a7f52d90e67",
+        "start_ts": "2023-03-24T16:00:00+00:00",
+        "end_ts": "2026-03-03T04:00:00+00:00",
+        "candle_count": 6448
+      }
+    }
+  },
+  "snapshot_hash": "18fed3f19383b259"
+}

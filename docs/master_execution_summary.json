@@ -1,126 +1,189 @@
 {
-  "execution_branch": "codex/stage85-94-execution",
-  "execution_head": "902cce5f11a9d87d0a8380e3d77994bc044e8e7e",
+  "execution_branch": "codex/stage95-103-max-execution",
+  "execution_head": "659a562152bc4fadf5f04af446522bfc5a99cb33",
   "baseline": {
     "branch": "main",
-    "commit": "3515ae8a0dfb92439c7593ff0639aebd7a9858c1",
-    "baseline_type": "merged_main"
-  },
-  "prereq": {
-    "status": "SUCCESS",
-    "validation_state": "PREREQUISITES_FINALIZED",
-    "summary_hash": "357fccbe6cac6088"
+    "commit": "a93ec8f97318086b87386391f71de9754eec2f29",
+    "local_main_matches_origin_main": true,
+    "baseline_readme_accurate": true
   },
   "stage_statuses": {
-    "85": {
+    "95": {
       "status": "SUCCESS",
       "execution_status": "EXECUTED",
-      "validation_state": "REALITY_MATRIX_READY",
-      "summary_hash": "fbc24b491b803c2c"
+      "validation_state": "LIVE_USEFULNESS_READY",
+      "summary_hash": "64b3919bad947f8b"
     },
-    "86": {
+    "96": {
       "status": "SUCCESS",
       "execution_status": "EXECUTED",
-      "validation_state": "FAMILY_AUDIT_READY",
-      "summary_hash": "afeedf7ca0e4c085"
+      "validation_state": "CANONICAL_REPAIR_READY",
+      "summary_hash": "09bea7197c96250a"
     },
-    "87": {
+    "97": {
       "status": "SUCCESS",
       "execution_status": "EXECUTED",
-      "validation_state": "MECHANISM_REFINEMENT_READY",
-      "summary_hash": "c91a99ade1de4510"
+      "validation_state": "RELAXED_TO_STRICT_BRIDGE_READY",
+      "summary_hash": "c141897474ab5101"
     },
-    "88": {
+    "98": {
       "status": "SUCCESS",
       "execution_status": "EXECUTED",
-      "validation_state": "FUNNEL_PRESSURE_DIAGNOSED",
-      "summary_hash": "3b3b31ee3b606da6"
+      "validation_state": "MECHANISM_SATURATION_READY",
+      "summary_hash": "4404d7c3ad6cbb12"
     },
-    "89": {
+    "99": {
       "status": "SUCCESS",
       "execution_status": "EXECUTED",
-      "validation_state": "DATA_FITNESS_READY",
-      "summary_hash": "597482fc55b7f2c8"
+      "validation_state": "CANDIDATE_QUALITY_ACCELERATION_READY",
+      "summary_hash": "6d7c3ef6cec06fd5"
     },
-    "90": {
+    "100": {
       "status": "SUCCESS",
       "execution_status": "EXECUTED",
-      "validation_state": "CAMPAIGN_COMPARISON_READY",
-      "summary_hash": "e44ae97d177855d4"
+      "validation_state": "MULTISCOPE_TRUTH_CAMPAIGN_READY",
+      "summary_hash": "6b096b5f5c3b90a9"
     },
-    "91": {
+    "101": {
       "status": "SUCCESS",
       "execution_status": "EXECUTED",
-      "validation_state": "SCOPE_LADDER_READY",
-      "summary_hash": "19df0167052253b5"
+      "validation_state": "NULL_HYPOTHESIS_ATTACK_READY",
+      "summary_hash": "16c3ee3d07489205"
     },
-    "92": {
+    "102": {
       "status": "SUCCESS",
       "execution_status": "EXECUTED",
-      "validation_state": "TRANSFER_INTELLIGENCE_READY",
-      "summary_hash": "c75af50467469b79"
+      "validation_state": "ROBUSTNESS_RESCUE_ATTEMPTS_READY",
+      "summary_hash": "68f405dd1e564aca"
     },
-    "93": {
+    "103": {
       "status": "SUCCESS",
       "execution_status": "EXECUTED",
-      "validation_state": "FAILURE_LEARNING_READY",
-      "summary_hash": "5668ef9867fd0590"
-    },
-    "94": {
-      "status": "SUCCESS",
-      "execution_status": "EXECUTED",
-      "validation_state": "EDGE_INVENTORY_READY",
-      "summary_hash": "b3d6124eed197044"
+      "validation_state": "FINAL_EDGE_VERDICT_READY",
+      "summary_hash": "984f60aa2aa00934"
     }
   },
   "controlled_detectability": {
+    "proven": true,
     "signal_detection_rate": 0.857143,
     "bad_control_rejection_rate": 1.0,
     "synthetic_winner_recall": 1.0,
-    "false_negative_rate_on_known_good": 0.142857,
-    "proven": true
+    "false_negative_rate_on_known_good": 0.142857
   },
-  "data_fitness": {
-    "evaluation_usable_class_counts": {
-      "evaluation_blocked": 8
-    },
-    "snapshot_meta": {
-      "data_snapshot_id": "DATA_FROZEN_v1",
-      "data_snapshot_hash": "c734cebc1e80bf15",
-      "data_snapshot_path": "data/snapshots/DATA_FROZEN_v1.json",
-      "data_snapshot_exists": true
+  "stage95_usefulness": {
+    "stage95b_recommended": true,
+    "stage95b_applied": true,
+    "dead_weight_family_count": 1,
+    "usefulness_delta": {
+      "useful_candidate_delta": 0,
+      "promising_delta": 0,
+      "mean_rank_score_delta": 0.051593,
+      "mean_near_miss_delta": 0.0,
+      "replay_death_fraction_delta": 0.0
     }
   },
-  "campaign_outcome": {
-    "campaign_outcome": "data_blocked_or_scope_blocked",
-    "classification": "system_blocked_uninterpretable",
-    "candidate_class_counts": {
-      "robust_candidate": 0,
-      "promising_but_unproven": 0,
-      "rejected": 0
-    },
-    "blocked_scope_rows": 4
+  "stage96_canonical": {
+    "snapshot_id": "DATA_FROZEN_EVAL_v2",
+    "snapshot_hash": "18fed3f19383b259",
+    "strict_usable_rows": 6
   },
-  "stage90_dominant_culprit": "evaluation_strictness_or_search_weakness",
+  "stage100_truth_campaign": {
+    "truth_counts": {
+      "replay_fragile_signal_only": 12,
+      "data_blocks_interpretation": 6
+    },
+    "tier1_symbols": [
+      "BTC/USDT",
+      "ETH/USDT"
+    ],
+    "tier2_symbols": [],
+    "candidate_limit_per_scope": 1
+  },
+  "stage101_null_attack": {
+    "candidate_count_reviewed": 3,
+    "control_win_counts": {
+      "delayed_fake_signal": 3,
+      "momentum_baseline": 3,
+      "mean_reversion_baseline": 3
+    },
+    "candidate_beats_all_controls_count": 0,
+    "candidate_beats_majority_controls_count": 0
+  },
+  "stage102_rescue": {
+    "candidate_limit_reviewed": 1,
+    "classification_counts": {
+      "still_generator_weak": 1
+    }
+  },
+  "stage103_final_edge_verdict": {
+    "final_edge_verdict": "GENERATOR_OR_SEARCH_FORMALISM_STILL_INSUFFICIENT",
+    "evidence_table": [
+      {
+        "stage": "95",
+        "metric": "dead_weight_family_count",
+        "value": 1
+      },
+      {
+        "stage": "96",
+        "metric": "canonical_usable_rows",
+        "value": 6
+      },
+      {
+        "stage": "100",
+        "metric": "replay_fragile_signal_rows",
+        "value": 12
+      },
+      {
+        "stage": "100",
+        "metric": "data_block_rows",
+        "value": 6
+      },
+      {
+        "stage": "101",
+        "metric": "candidates_beating_all_controls",
+        "value": 0
+      },
+      {
+        "stage": "101",
+        "metric": "candidates_beating_majority_controls",
+        "value": 0
+      },
+      {
+        "stage": "102",
+        "metric": "rescueable_count",
+        "value": 0
+      },
+      {
+        "stage": "102",
+        "metric": "transfer_blocked_count",
+        "value": 0
+      },
+      {
+        "stage": "102",
+        "metric": "still_generator_weak_count",
+        "value": 1
+      }
+    ]
+  },
   "stage_pr": {
-    "number": 4,
-    "title": "[codex] Execute stage 85-94 roadmap and rewrite README",
-    "url": "https://github.com/SepehrQasemi/Buff-mini/pull/4",
+    "number": 5,
+    "title": "Stage 95-103: live truth push and final edge verdict",
+    "url": "https://github.com/SepehrQasemi/Buff-mini/pull/5",
     "state": "OPEN",
-    "head": "codex/stage85-94-execution",
+    "head": "codex/stage95-103-max-execution",
     "base": "main",
     "merge_state_status": "BLOCKED",
     "is_draft": false,
     "checks": [
       {
         "name": "test",
-        "status": "IN_PROGRESS",
-        "conclusion": ""
+        "status": "COMPLETED",
+        "conclusion": "SUCCESS"
       },
       {
         "name": "test",
-        "status": "IN_PROGRESS",
-        "conclusion": ""
+        "status": "COMPLETED",
+        "conclusion": "SUCCESS"
       }
     ]
   },
@@ -130,6 +193,6 @@
     "allow_force_pushes": false,
     "allow_deletions": false
   },
-  "final_verdict": "MAJOR_REPAIR_MOSTLY_COMPLETE",
-  "summary_hash": "b63d6f4844ec04a3"
+  "final_verdict": "PARTIAL_REPAIR_MEANINGFUL",
+  "summary_hash": "d093655dd92ca542"
 }

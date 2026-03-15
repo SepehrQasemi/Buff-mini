@@ -21,18 +21,36 @@ def compute_candidate_risk_card(candidate: dict[str, Any], *, behavior_profile: 
     clustering_risk = float(behavior.get("clustering_risk", candidate.get("clustering_risk", 0.0)) or 0.0)
     failure_similarity = float(behavior.get("failure_pattern_similarity", candidate.get("failure_pattern_similarity", 0.0)) or 0.0)
     active_count = int(float(behavior.get("active_count", candidate.get("active_count", 0)) or 0))
+    trade_density_expectation = str(candidate.get("trade_density_expectation", "")).strip().lower()
+    transfer_expectation = str(candidate.get("transfer_expectation", "")).strip().lower()
+    expected_failures = {str(item).strip().lower() for item in list(candidate.get("expected_failure_modes", []) or [])}
+    exit_family = str(candidate.get("exit_family", candidate.get("target_logic", ""))).strip().lower()
     regime_map = _safe_json_mapping(behavior.get("regime_activation_map", candidate.get("regime_activation_map", "{}")))
     regime_concentration = float(max(regime_map.values()) if regime_map else candidate.get("regime_concentration_risk", 0.35) or 0.35)
-    thin_evidence_risk = float(candidate.get("thin_evidence_risk", max(0.0, 1.0 - min(1.0, active_count / 24.0))) or 0.0)
+    thin_evidence_base = max(0.0, 1.0 - min(1.0, active_count / 24.0))
+    if trade_density_expectation == "low":
+        thin_evidence_base = max(thin_evidence_base, 0.42)
+    if "opportunity_sparsity" in expected_failures:
+        thin_evidence_base = min(1.0, thin_evidence_base + 0.12)
+    thin_evidence_risk = float(candidate.get("thin_evidence_risk", thin_evidence_base) or 0.0)
+    trade_density_floor = 0.0 if trade_density_expectation == "high" else 0.10 if trade_density_expectation == "medium" else 0.28
+    cost_fragility_floor = 0.0
+    if "cost_fragility" in expected_failures or "cost_decay" in expected_failures:
+        cost_fragility_floor = 0.10
+    hold_sanity = float(min(1.0, abs(hold_bars - 16) / 32.0))
+    if exit_family == "time_exit" and hold_bars >= 16:
+        hold_sanity = min(1.0, hold_sanity + 0.08)
+    regime_floor = 0.18 if len([value for value in regime_map.values() if value > 0.10]) <= 1 else 0.0
+    transfer_floor = 0.0 if transfer_expectation == "high" else 0.08 if transfer_expectation == "moderate" else 0.18
     risk = {
-        "trade_density_risk": float(max(0.0, 1.0 - min(1.0, activation_density * 8.0))),
-        "cost_fragility_risk": float(max(0.0, min(1.0, 0.5 - (cost_edge * 40.0)))),
-        "regime_concentration_risk": float(max(0.0, min(1.0, regime_concentration))),
-        "hold_sanity_risk": float(min(1.0, abs(hold_bars - 16) / 32.0)),
+        "trade_density_risk": float(max(trade_density_floor, max(0.0, 1.0 - min(1.0, activation_density * 8.0)))),
+        "cost_fragility_risk": float(max(cost_fragility_floor, max(0.0, min(1.0, 0.5 - (cost_edge * 40.0))))),
+        "regime_concentration_risk": float(max(regime_floor, max(0.0, min(1.0, regime_concentration)))),
+        "hold_sanity_risk": hold_sanity,
         "overlap_duplication_risk": float(max(0.0, min(1.0, max(duplication_score, entry_overlap, exit_overlap)))),
         "clustering_risk": float(max(0.0, min(1.0, max(clustering_risk, failure_similarity)))),
         "thin_evidence_risk": float(max(0.0, min(1.0, thin_evidence_risk))),
-        "transfer_risk_prior": float(max(0.0, min(1.0, transfer_prior))),
+        "transfer_risk_prior": float(max(transfer_floor, max(0.0, min(1.0, transfer_prior)))),
         "rr_adequacy_bonus": float(max(0.0, min(1.0, rr_first_target / 3.0))),
     }
     risk["aggregate_risk"] = float(

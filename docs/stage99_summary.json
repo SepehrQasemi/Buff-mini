@@ -1,0 +1,227 @@
+{
+  "symbol": "BTC/USDT",
+  "timeframe": "1h",
+  "candidate_limit": 6,
+  "before_profile": "stage95_usefulness_push",
+  "after_profile": "stage99_quality_acceleration",
+  "before_counts": {
+    "candidate_count": 400,
+    "promising_count": 6,
+    "validated_count": 0,
+    "robust_count": 0,
+    "interesting_count": 0,
+    "rejected_count": 0
+  },
+  "after_counts": {
+    "candidate_count": 400,
+    "promising_count": 6,
+    "validated_count": 0,
+    "robust_count": 0,
+    "interesting_count": 0,
+    "rejected_count": 0
+  },
+  "transition_rows": [
+    {
+      "candidate_id": "s70_04ff8d2487b9cdc1",
+      "family": "structure_pullback_continuation",
+      "before_final_class": "promising_but_unproven",
+      "after_final_class": "absent",
+      "before_rank_score": 0.51382163984375,
+      "after_rank_score": 0.47407608984375005,
+      "rank_delta": -0.039746,
+      "change_reason": [
+        "useful_trade_density_or_transfer_prior",
+        "acceptable_trade_density",
+        "thicker_evidence_profile"
+      ]
+    },
+    {
+      "candidate_id": "s70_13a54f076f03d108",
+      "family": "structure_pullback_continuation",
+      "before_final_class": "promising_but_unproven",
+      "after_final_class": "promising_but_unproven",
+      "before_rank_score": 0.51414833984375,
+      "after_rank_score": 0.48484833984375003,
+      "rank_delta": -0.0293,
+      "change_reason": [
+        "useful_trade_density_or_transfer_prior",
+        "lower_clustering_risk"
+      ]
+    },
+    {
+      "candidate_id": "s70_1f4f067819f2535d",
+      "family": "liquidity_sweep_reversal",
+      "before_final_class": "promising_but_unproven",
+      "after_final_class": "promising_but_unproven",
+      "before_rank_score": 0.51379833984375,
+      "after_rank_score": 0.48519833984375,
+      "rank_delta": -0.0286,
+      "change_reason": [
+        "strong_trade_quality_bonus",
+        "useful_trade_density_or_transfer_prior",
+        "lower_clustering_risk"
+      ]
+    },
+    {
+      "candidate_id": "s70_22e318cecdbfc696",
+      "family": "structure_pullback_continuation",
+      "before_final_class": "promising_but_unproven",
+      "after_final_class": "promising_but_unproven",
+      "before_rank_score": 0.51414833984375,
+      "after_rank_score": 0.48484833984375003,
+      "rank_delta": -0.0293,
+      "change_reason": [
+        "useful_trade_density_or_transfer_prior",
+        "lower_clustering_risk"
+      ]
+    },
+    {
+      "candidate_id": "s70_36fd31b49fe76519",
+      "family": "liquidity_sweep_reversal",
+      "before_final_class": "promising_but_unproven",
+      "after_final_class": "promising_but_unproven",
+      "before_rank_score": 0.51379833984375,
+      "after_rank_score": 0.48519833984375,
+      "rank_delta": -0.0286,
+      "change_reason": [
+        "strong_trade_quality_bonus",
+        "useful_trade_density_or_transfer_prior",
+        "lower_clustering_risk"
+      ]
+    },
+    {
+      "candidate_id": "s70_98f70c07d2a05a58",
+      "family": "structure_pullback_continuation",
+      "before_final_class": "promising_but_unproven",
+      "after_final_class": "promising_but_unproven",
+      "before_rank_score": 0.5163983398437499,
+      "after_rank_score": 0.48684833984375003,
+      "rank_delta": -0.02955,
+      "change_reason": [
+        "useful_trade_density_or_transfer_prior",
+        "lower_clustering_risk"
+      ]
+    },
+    {
+      "candidate_id": "s70_fbd94d0d24f8a180",
+      "family": "liquidity_sweep_reversal",
+      "before_final_class": "absent",
+      "after_final_class": "promising_but_unproven",
+      "before_rank_score": 0.51379833984375,
+      "after_rank_score": 0.48519833984375,
+      "rank_delta": -0.0286,
+      "change_reason": [
+        "strong_trade_quality_bonus",
+        "useful_trade_density_or_transfer_prior",
+        "lower_clustering_risk"
+      ]
+    }
+  ],
+  "gate_heatmap": [
+    {
+      "family": "liquidity_sweep_reversal",
+      "gate": "replay",
+      "count": 3
+    },
+    {
+      "family": "structure_pullback_continuation",
+      "gate": "replay",
+      "count": 3
+    }
+  ],
+  "near_miss_inventory": [],
+  "candidate_hierarchy_counts": {
+    "promising_but_unproven": 6
+  },
+  "top_k_truth_review": [
+    {
+      "candidate_id": "s70_98f70c07d2a05a58",
+      "family": "structure_pullback_continuation",
+      "why_it_surfaced": [
+        "useful_trade_density_or_transfer_prior",
+        "lower_clustering_risk"
+      ],
+      "target_regime": "trend",
+      "replay_issue": "exp_lcb",
+      "transfer_issue": "regime_mismatch,timing_instability",
+      "mc_issue": "replay_gate_failed",
+      "rescue_hint": "tighten_participation_and_transfer_exposure"
+    },
+    {
+      "candidate_id": "s70_1f4f067819f2535d",
+      "family": "liquidity_sweep_reversal",
+      "why_it_surfaced": [
+        "strong_trade_quality_bonus",
+        "useful_trade_density_or_transfer_prior",
+        "lower_clustering_risk"
+      ],
+      "target_regime": "range",
+      "replay_issue": "exp_lcb",
+      "transfer_issue": "regime_mismatch,timing_instability",
+      "mc_issue": "replay_gate_failed",
+      "rescue_hint": "tighten_participation_and_transfer_exposure"
+    },
+    {
+      "candidate_id": "s70_36fd31b49fe76519",
+      "family": "liquidity_sweep_reversal",
+      "why_it_surfaced": [
+        "strong_trade_quality_bonus",
+        "useful_trade_density_or_transfer_prior",
+        "lower_clustering_risk"
+      ],
+      "target_regime": "transition",
+      "replay_issue": "exp_lcb",
+      "transfer_issue": "regime_mismatch,timing_instability",
+      "mc_issue": "replay_gate_failed",
+      "rescue_hint": "tighten_participation_and_transfer_exposure"
+    },
+    {
+      "candidate_id": "s70_fbd94d0d24f8a180",
+      "family": "liquidity_sweep_reversal",
+      "why_it_surfaced": [
+        "strong_trade_quality_bonus",
+        "useful_trade_density_or_transfer_prior",
+        "lower_clustering_risk"
+      ],
+      "target_regime": "range",
+      "replay_issue": "exp_lcb",
+      "transfer_issue": "regime_mismatch,timing_instability",
+      "mc_issue": "replay_gate_failed",
+      "rescue_hint": "tighten_participation_and_transfer_exposure"
+    },
+    {
+      "candidate_id": "s70_13a54f076f03d108",
+      "family": "structure_pullback_continuation",
+      "why_it_surfaced": [
+        "useful_trade_density_or_transfer_prior",
+        "lower_clustering_risk"
+      ],
+      "target_regime": "trend",
+      "replay_issue": "exp_lcb",
+      "transfer_issue": "regime_mismatch,timing_instability",
+      "mc_issue": "replay_gate_failed",
+      "rescue_hint": "tighten_participation_and_transfer_exposure"
+    },
+    {
+      "candidate_id": "s70_22e318cecdbfc696",
+      "family": "structure_pullback_continuation",
+      "why_it_surfaced": [
+        "useful_trade_density_or_transfer_prior",
+        "lower_clustering_risk"
+      ],
+      "target_regime": "transition",
+      "replay_issue": "exp_lcb",
+      "transfer_issue": "regime_mismatch,timing_instability",
+      "mc_issue": "replay_gate_failed",
+      "rescue_hint": "tighten_participation_and_transfer_exposure"
+    }
+  ],
+  "stage99b_required": true,
+  "stage99b_applied": true,
+  "summary_hash": "6d7c3ef6cec06fd5",
+  "stage": "99",
+  "status": "SUCCESS",
+  "execution_status": "EXECUTED",
+  "stage_role": "real_validation",
+  "validation_state": "CANDIDATE_QUALITY_ACCELERATION_READY"
+}

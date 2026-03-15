@@ -76,12 +76,17 @@ def evaluate_scope_campaign(
     auto_pin_resolved_end: bool = False,
     relax_continuity: bool = False,
     evaluate_transfer: bool = True,
+    ranking_profile: str | None = None,
+    data_source_override: str | None = None,
 ) -> dict[str, Any]:
     effective_cfg, mode_summary = build_mode_context(
         config,
         requested_mode=requested_mode,
         auto_pin_resolved_end=auto_pin_resolved_end,
     )
+    if str(data_source_override or "").strip():
+        effective_cfg = deepcopy(effective_cfg)
+        effective_cfg.setdefault("research_run", {})["data_source"] = str(data_source_override).strip()
     if relax_continuity:
         effective_cfg = deepcopy(effective_cfg)
         effective_cfg.setdefault("data", {}).setdefault("continuity", {})["strict_mode"] = False
@@ -134,6 +139,7 @@ def evaluate_scope_campaign(
         candidates,
         labels,
         market_frame=ranking_frame.copy(),
+        profile=str(ranking_profile or (effective_cfg.get("research_run", {}) or {}).get("ranking_profile", "stage99_quality_acceleration")),
     )
     merged = candidates.merge(ranked, on="candidate_id", how="inner")
     hierarchy_order = {
@@ -149,18 +155,15 @@ def evaluate_scope_campaign(
 
     symbols = discover_transfer_symbols(effective_cfg, primary_symbol=symbol)
     other_symbols = [item for item in symbols if item != symbol]
-    evaluations = [
-        evaluate_candidate_record(
-            candidate=dict(row),
-            config=effective_cfg,
-            symbol=symbol,
-            frame=frame,
-            market_meta=market_meta,
-            transfer_symbol=other_symbols[0] if other_symbols else "",
-            evaluate_transfer=bool(evaluate_transfer),
-        )
-        for row in top.to_dict(orient="records")
-    ]
+    evaluations = evaluate_candidate_batch(
+        candidates=top.to_dict(orient="records"),
+        config=effective_cfg,
+        symbol=symbol,
+        frame=frame,
+        market_meta=market_meta,
+        transfer_symbol=other_symbols[0] if other_symbols else "",
+        evaluate_transfer=bool(evaluate_transfer),
+    )
     failure_counts: dict[str, int] = {}
     for row in evaluations:
         reason = str(row.get("death_reason", "")).strip()
@@ -186,6 +189,30 @@ def evaluate_scope_campaign(
     }
 
 
+def evaluate_candidate_batch(
+    *,
+    candidates: list[dict[str, Any]],
+    config: dict[str, Any],
+    symbol: str,
+    frame: pd.DataFrame,
+    market_meta: dict[str, Any],
+    transfer_symbol: str = "",
+    evaluate_transfer: bool = True,
+) -> list[dict[str, Any]]:
+    return [
+        evaluate_candidate_record(
+            candidate=dict(row),
+            config=config,
+            symbol=symbol,
+            frame=frame,
+            market_meta=market_meta,
+            transfer_symbol=transfer_symbol,
+            evaluate_transfer=bool(evaluate_transfer),
+        )
+        for row in list(candidates)
+    ]
+
+
 def evaluate_candidate_record(
     *,
     candidate: dict[str, Any],
@@ -195,14 +222,24 @@ def evaluate_candidate_record(
     market_meta: dict[str, Any],
     transfer_symbol: str = "",
     evaluate_transfer: bool = True,
+    candidate_overrides: dict[str, Any] | None = None,
+    replay_options: dict[str, Any] | None = None,
 ) -> dict[str, Any]:
-    replay = run_candidate_replay(candidate=candidate, config=config, symbol=symbol, frame=frame, market_meta=market_meta)
+    effective_candidate = _merge_candidate_overrides(candidate, candidate_overrides)
+    replay = run_candidate_replay(
+        candidate=effective_candidate,
+        config=config,
+        symbol=symbol,
+        frame=frame,
+        market_meta=market_meta,
+        **_clean_replay_options(replay_options),
+    )
     replay_metrics = dict(replay.get("metrics", {}))
     transfer_diag = {"classification": "not_transferable", "diagnostics": ["no_secondary_asset"]}
     if not bool(evaluate_transfer):
         transfer_diag = {"classification": "not_evaluated", "diagnostics": ["transfer_skipped"]}
     elif str(transfer_symbol).strip():
-        transfer_metrics = compute_transfer_metrics(candidate=candidate, config=config, symbol=str(transfer_symbol))
+        transfer_metrics = compute_transfer_metrics(candidate=effective_candidate, config=config, symbol=str(transfer_symbol))
         transfer_diag = classify_transfer_outcome(
             primary_metrics=replay_metrics,
             transfer_metrics=transfer_metrics,
@@ -253,7 +290,7 @@ def evaluate_candidate_record(
             config=config,
         )
         return _finalize_candidate_record(
-            candidate=candidate,
+            candidate=effective_candidate,
             replay_metrics=replay_metrics,
             walkforward_summary=walkforward_summary,
             layered=layered,
@@ -263,15 +300,15 @@ def evaluate_candidate_record(
             hierarchy=hierarchy,
             near_miss_distance=near_miss_distance,
         )
-    walkforward = evaluate_candidate_walkforward(candidate=candidate, config=config, symbol=symbol, frame=frame, market_meta=market_meta)
+    walkforward = evaluate_candidate_walkforward(candidate=effective_candidate, config=config, symbol=symbol, frame=frame, market_meta=market_meta)
     monte_carlo = estimate_trade_monte_carlo(
         walkforward.get("forward_trades", pd.DataFrame()),
         seed=int((config.get("search", {}) or {}).get("seed", 42)),
         n_paths=500,
         block_size=8,
     )
-    perturb = evaluate_cross_perturbation(candidate=candidate, config=config, symbol=symbol, frame=frame, market_meta=market_meta)
-    split = evaluate_split_perturbation(candidate=candidate, config=config, symbol=symbol, frame=frame, market_meta=market_meta)
+    perturb = evaluate_cross_perturbation(candidate=effective_candidate, config=config, symbol=symbol, frame=frame, market_meta=market_meta)
+    split = evaluate_split_perturbation(candidate=effective_candidate, config=config, symbol=symbol, frame=frame, market_meta=market_meta)
     layered = summarize_layered_robustness(
         replay_metrics=replay_metrics,
         walkforward_summary=dict(walkforward.get("summary", {})),
@@ -310,7 +347,7 @@ def evaluate_candidate_record(
         config=config,
     )
     return _finalize_candidate_record(
-        candidate=candidate,
+        candidate=effective_candidate,
         replay_metrics=replay_metrics,
         walkforward_summary=walkforward_summary,
         layered=layered,
@@ -333,6 +370,38 @@ def _replay_gate_failed(
     min_trades = int(replay_gate.get("min_trade_count", 40))
     min_exp_lcb = float(replay_gate.get("min_exp_lcb", 0.0))
     return (not replay_allowed) or int(replay_trade_count) < int(min_trades) or float(replay_exp_lcb) < float(min_exp_lcb)
+
+
+def _merge_candidate_overrides(
+    candidate: dict[str, Any],
+    overrides: dict[str, Any] | None,
+) -> dict[str, Any]:
+    merged = deepcopy(candidate)
+    payload = deepcopy(overrides or {})
+    for key, value in payload.items():
+        if isinstance(value, dict) and isinstance(merged.get(key), dict):
+            nested = dict(merged.get(key, {}))
+            nested.update(value)
+            merged[key] = nested
+        else:
+            merged[key] = value
+    return merged
+
+
+def _clean_replay_options(replay_options: dict[str, Any] | None) -> dict[str, Any]:
+    allowed = {
+        "cost_multiplier",
+        "slippage_multiplier",
+        "funding_multiplier",
+        "hold_bars_multiplier",
+        "signal_delay_bars",
+        "signal_keep_ratio",
+    }
+    options = {}
+    for key, value in dict(replay_options or {}).items():
+        if key in allowed:
+            options[key] = value
+    return options
 
 
 def _finalize_candidate_record(
@@ -361,6 +430,8 @@ def _finalize_candidate_record(
         "rank_score": float(candidate.get("rank_score", 0.0)),
         "candidate_class": str(candidate.get("candidate_class", "")),
         "candidate_hierarchy": hierarchy,
+        "usefulness_prior": float(candidate.get("usefulness_prior", 0.0)),
+        "trade_quality_bonus": float(candidate.get("trade_quality_bonus", 0.0)),
         "aggregate_risk": float(candidate.get("aggregate_risk", 1.0)),
         "trade_density_risk": float(candidate.get("trade_density_risk", 1.0)),
         "cost_fragility_risk": float(candidate.get("cost_fragility_risk", 1.0)),
@@ -375,6 +446,10 @@ def _finalize_candidate_record(
         "walkforward_usable_windows": int(walkforward_summary.get("usable_windows", 0)),
         "robustness_level": int(layered.get("level_reached", 0)),
         "robustness_level_name": str(layered.get("level_name", "")),
+        "robustness_stop_reason": str(layered.get("stop_reason", "")),
+        "monte_carlo_passed": bool(layered.get("stress_results", {}).get("monte_carlo_passed", False)),
+        "cross_perturbation_passed": bool(layered.get("stress_results", {}).get("cross_perturbation_passed", False)),
+        "split_perturbation_passed": bool(layered.get("stress_results", {}).get("split_perturbation_passed", False)),
         "transfer_classification": str(transfer_diag.get("classification", "")),
         "transfer_diagnostics": list(transfer_diag.get("diagnostics", [])),
         "first_death_stage": death_stage,

@@ -31,7 +31,7 @@ FAMILY_GROUPS: dict[str, tuple[str, ...]] = {
 
 def evaluate_family_audit(config: dict[str, Any]) -> dict[str, Any]:
     scope = resolve_research_scope(config)
-    families = list(scope.get("active_setup_families", []))
+    families = list(scope.get("available_setup_families", []))
     discovery_timeframes = list(scope.get("discovery_timeframes", []))
     registry_rows = mechanism_registry()
     registry_by_family = {str(row["family"]): row for row in registry_rows}

@@ -1,0 +1,294 @@
+{
+  "symbol": "BTC/USDT",
+  "timeframe": "1h",
+  "families": [
+    "structure_pullback_continuation",
+    "liquidity_sweep_reversal",
+    "squeeze_flow_breakout",
+    "failed_breakout_reversal",
+    "exhaustion_mean_reversion",
+    "funding_oi_imbalance_reversion",
+    "volatility_regime_transition",
+    "multi_tf_disagreement_repair"
+  ],
+  "candidate_limit_per_family": 3,
+  "replay_window_bars": 2048,
+  "before_profile": "stage94_baseline",
+  "after_profile": "stage95_usefulness_push",
+  "mode_summary": {
+    "mode": "exploration",
+    "run_type": "exploration",
+    "evaluation_mode": false,
+    "interpretation_allowed": false,
+    "validation_state": "EXPLORATORY_ONLY",
+    "canonical_status": "EXPLORATORY",
+    "resolved_end_ts": "",
+    "resolved_end_ts_status": "MISSING",
+    "resolved_end_ts_auto_pinned": false,
+    "continuity_status": "RELAXED",
+    "data_hash_status": "PRESENT",
+    "data_scope_hash": "23256160a311e3d0",
+    "config_hash_effective": "7ee65bdb0cf4",
+    "blocked_reasons": [
+      "EXPLORATION_MODE_NOT_INTERPRETABLE_BY_DEFAULT"
+    ],
+    "seed_bundle": [],
+    "campaign_memory_cold_start": true,
+    "effective_values": {
+      "frozen_research_mode": false,
+      "require_resolved_end_ts": false,
+      "deterministic_sorting": true,
+      "strict_continuity": false,
+      "fail_on_gap": false,
+      "budget_mode_selected": "search",
+      "data_source": "live"
+    },
+    "coverage_rows": [],
+    "summary_hash": "a63abdeb08ef8ea6"
+  },
+  "before_counts": {
+    "candidate_count": 24,
+    "useful_candidate_count": 18,
+    "promising_count": 0,
+    "mean_rank_score": 0.455476,
+    "mean_near_miss_distance": 0.446763,
+    "replay_death_fraction": 0.375,
+    "near_miss_count": 21,
+    "hierarchy_counts": {
+      "interesting_but_fragile": 18,
+      "junk": 6
+    }
+  },
+  "after_counts": {
+    "candidate_count": 24,
+    "useful_candidate_count": 18,
+    "promising_count": 0,
+    "mean_rank_score": 0.507069,
+    "mean_near_miss_distance": 0.446763,
+    "replay_death_fraction": 0.375,
+    "near_miss_count": 21,
+    "hierarchy_counts": {
+      "interesting_but_fragile": 18,
+      "junk": 6
+    }
+  },
+  "usefulness_delta": {
+    "useful_candidate_delta": 0,
+    "promising_delta": 0,
+    "mean_rank_score_delta": 0.051593,
+    "mean_near_miss_delta": 0.0,
+    "replay_death_fraction_delta": 0.0
+  },
+  "family_usefulness": [
+    {
+      "family": "structure_pullback_continuation",
+      "before_candidate_count": 3,
+      "before_useful_candidate_count": 3,
+      "before_promising_count": 0,
+      "before_replay_death_fraction": 0.0,
+      "before_near_miss_count": 3,
+      "after_candidate_count": 3,
+      "after_useful_candidate_count": 3,
+      "after_promising_count": 0,
+      "after_replay_death_fraction": 0.0,
+      "after_near_miss_count": 3,
+      "useful_delta": 0,
+      "promising_delta": 0
+    },
+    {
+      "family": "liquidity_sweep_reversal",
+      "before_candidate_count": 3,
+      "before_useful_candidate_count": 3,
+      "before_promising_count": 0,
+      "before_replay_death_fraction": 0.0,
+      "before_near_miss_count": 3,
+      "after_candidate_count": 3,
+      "after_useful_candidate_count": 3,
+      "after_promising_count": 0,
+      "after_replay_death_fraction": 0.0,
+      "after_near_miss_count": 3,
+      "useful_delta": 0,
+      "promising_delta": 0
+    },
+    {
+      "family": "squeeze_flow_breakout",
+      "before_candidate_count": 3,
+      "before_useful_candidate_count": 3,
+      "before_promising_count": 0,
+      "before_replay_death_fraction": 1.0,
+      "before_near_miss_count": 3,
+      "after_candidate_count": 3,
+      "after_useful_candidate_count": 3,
+      "after_promising_count": 0,
+      "after_replay_death_fraction": 1.0,
+      "after_near_miss_count": 3,
+      "useful_delta": 0,
+      "promising_delta": 0
+    },
+    {
+      "family": "failed_breakout_reversal",
+      "before_candidate_count": 3,
+      "before_useful_candidate_count": 3,
+      "before_promising_count": 0,
+      "before_replay_death_fraction": 0.0,
+      "before_near_miss_count": 3,
+      "after_candidate_count": 3,
+      "after_useful_candidate_count": 3,
+      "after_promising_count": 0,
+      "after_replay_death_fraction": 0.0,
+      "after_near_miss_count": 3,
+      "useful_delta": 0,
+      "promising_delta": 0
+    },
+    {
+      "family": "exhaustion_mean_reversion",
+      "before_candidate_count": 3,
+      "before_useful_candidate_count": 3,
+      "before_promising_count": 0,
+      "before_replay_death_fraction": 0.0,
+      "before_near_miss_count": 3,
+      "after_candidate_count": 3,
+      "after_useful_candidate_count": 3,
+      "after_promising_count": 0,
+      "after_replay_death_fraction": 0.0,
+      "after_near_miss_count": 3,
+      "useful_delta": 0,
+      "promising_delta": 0
+    },
+    {
+      "family": "funding_oi_imbalance_reversion",
+      "before_candidate_count": 3,
+      "before_useful_candidate_count": 0,
+      "before_promising_count": 0,
+      "before_replay_death_fraction": 1.0,
+      "before_near_miss_count": 0,
+      "after_candidate_count": 3,
+      "after_useful_candidate_count": 0,
+      "after_promising_count": 0,
+      "after_replay_death_fraction": 1.0,
+      "after_near_miss_count": 0,
+      "useful_delta": 0,
+      "promising_delta": 0
+    },
+    {
+      "family": "volatility_regime_transition",
+      "before_candidate_count": 3,
+      "before_useful_candidate_count": 3,
+      "before_promising_count": 0,
+      "before_replay_death_fraction": 0.0,
+      "before_near_miss_count": 3,
+      "after_candidate_count": 3,
+      "after_useful_candidate_count": 3,
+      "after_promising_count": 0,
+      "after_replay_death_fraction": 0.0,
+      "after_near_miss_count": 3,
+      "useful_delta": 0,
+      "promising_delta": 0
+    },
+    {
+      "family": "multi_tf_disagreement_repair",
+      "before_candidate_count": 3,
+      "before_useful_candidate_count": 0,
+      "before_promising_count": 0,
+      "before_replay_death_fraction": 1.0,
+      "before_near_miss_count": 3,
+      "after_candidate_count": 3,
+      "after_useful_candidate_count": 0,
+      "after_promising_count": 0,
+      "after_replay_death_fraction": 1.0,
+      "after_near_miss_count": 3,
+      "useful_delta": 0,
+      "promising_delta": 0
+    }
+  ],
+  "family_replay_death_map": [
+    {
+      "family": "exhaustion_mean_reversion",
+      "candidate_count": 3,
+      "replay_deaths": 0,
+      "walkforward_deaths": 0,
+      "transfer_deaths": 0,
+      "survivors": 3,
+      "replay_death_fraction": 0.0
+    },
+    {
+      "family": "failed_breakout_reversal",
+      "candidate_count": 3,
+      "replay_deaths": 0,
+      "walkforward_deaths": 0,
+      "transfer_deaths": 0,
+      "survivors": 3,
+      "replay_death_fraction": 0.0
+    },
+    {
+      "family": "funding_oi_imbalance_reversion",
+      "candidate_count": 3,
+      "replay_deaths": 3,
+      "walkforward_deaths": 0,
+      "transfer_deaths": 0,
+      "survivors": 0,
+      "replay_death_fraction": 1.0
+    },
+    {
+      "family": "liquidity_sweep_reversal",
+      "candidate_count": 3,
+      "replay_deaths": 0,
+      "walkforward_deaths": 0,
+      "transfer_deaths": 0,
+      "survivors": 3,
+      "replay_death_fraction": 0.0
+    },
+    {
+      "family": "multi_tf_disagreement_repair",
+      "candidate_count": 3,
+      "replay_deaths": 3,
+      "walkforward_deaths": 0,
+      "transfer_deaths": 0,
+      "survivors": 0,
+      "replay_death_fraction": 1.0
+    },
+    {
+      "family": "squeeze_flow_breakout",
+      "candidate_count": 3,
+      "replay_deaths": 3,
+      "walkforward_deaths": 0,
+      "transfer_deaths": 0,
+      "survivors": 0,
+      "replay_death_fraction": 1.0
+    },
+    {
+      "family": "structure_pullback_continuation",
+      "candidate_count": 3,
+      "replay_deaths": 0,
+      "walkforward_deaths": 0,
+      "transfer_deaths": 0,
+      "survivors": 3,
+      "replay_death_fraction": 0.0
+    },
+    {
+      "family": "volatility_regime_transition",
+      "candidate_count": 3,
+      "replay_deaths": 0,
+      "walkforward_deaths": 0,
+      "transfer_deaths": 0,
+      "survivors": 3,
+      "replay_death_fraction": 0.0
+    }
+  ],
+  "dead_weight_families": [
+    {
+      "family": "funding_oi_imbalance_reversion",
+      "reason": "no_useful_survivors_and_replay_dominated",
+      "after_candidate_count": 3,
+      "after_replay_death_fraction": 1.0
+    }
+  ],
+  "stage95b_recommended": true,
+  "stage95b_applied": true,
+  "summary_hash": "64b3919bad947f8b",
+  "stage": "95",
+  "status": "SUCCESS",
+  "execution_status": "EXECUTED",
+  "stage_role": "real_validation",
+  "validation_state": "LIVE_USEFULNESS_READY"
+}

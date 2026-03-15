@@ -77,6 +77,10 @@ research_scope:
     - funding_oi_imbalance_reversion
     - volatility_regime_transition
     - multi_tf_disagreement_repair
+  frozen_setup_families:
+    - funding_oi_imbalance_reversion
+  non_default_setup_families:
+    - funding_oi_imbalance_reversion
   expansion_rules:
     transfer_symbol: "ETH/USDT"
     require_transfer_confirmation: true
@@ -210,6 +214,8 @@ reproducibility:
 
 research_run:
   data_source: live
+  evaluation_data_source: canonical_eval
+  ranking_profile: stage99_quality_acceleration
   ranking_lookback_bars: 4096
 
 data:
@@ -228,6 +234,8 @@ data:
   snapshot:
     id: DATA_FROZEN_v1
     path: data/snapshots/DATA_FROZEN_v1.json
+    evaluation_id: DATA_FROZEN_EVAL_v2
+    evaluation_path: data/snapshots/DATA_FROZEN_EVAL_v2.json
   feature_cache:
     enabled: true
   include_futures_extras: false

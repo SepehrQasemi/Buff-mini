@@ -110,6 +110,11 @@ def generate_expanded_candidates(
     ]
     raw["economic_fingerprint"] = [economic_fingerprint(dict(row)) for row in raw.to_dict(orient="records")]
     seeded = _apply_failure_feedback(raw, failure_feedback or {})
+    seeded = compress_subfamily_hypotheses(
+        seeded,
+        max_subfamilies_per_family=4 if mode == "full_audit" else 3,
+        max_variants_per_subfamily=256 if mode == "full_audit" else 160,
+    )
     max_per_bucket = 4 if mode == "full_audit" else 3
     collapsed = collapse_similarity_candidates(seeded, max_per_bucket=max_per_bucket)
     deduped = deduplicate_economic_candidates(collapsed)
@@ -119,6 +124,41 @@ def generate_expanded_candidates(
         deduped = deduplicate_economic_candidates(collapsed)
     out = deduped.sort_values(["priority_seed", "novelty_score", "candidate_id"], ascending=[False, False, True]).head(target).reset_index(drop=True)
     return out
+
+
+def compress_subfamily_hypotheses(
+    candidates: pd.DataFrame,
+    *,
+    max_subfamilies_per_family: int,
+    max_variants_per_subfamily: int,
+) -> pd.DataFrame:
+    frame = candidates.copy() if isinstance(candidates, pd.DataFrame) else pd.DataFrame()
+    if frame.empty:
+        return frame
+    work = frame.copy()
+    work["priority_seed"] = pd.to_numeric(work.get("priority_seed", 0.0), errors="coerce").fillna(0.0)
+    work["novelty_score"] = pd.to_numeric(work.get("novelty_score", 0.0), errors="coerce").fillna(0.0)
+    work["transfer_risk_prior"] = pd.to_numeric(work.get("transfer_risk_prior", 0.0), errors="coerce").fillna(0.0)
+    work["_subfamily_priority"] = [
+        _subfamily_priority(dict(row))
+        for row in work.to_dict(orient="records")
+    ]
+    keep_mask = pd.Series(False, index=work.index)
+    for family, family_frame in work.groupby(work.get("family", "").astype(str), sort=True):
+        del family
+        subfamily_scores = (
+            family_frame.groupby(family_frame.get("subfamily", "").astype(str), dropna=False)["_subfamily_priority"]
+            .mean()
+            .sort_values(ascending=False)
+        )
+        keep_subfamilies = set(subfamily_scores.head(max(1, int(max_subfamilies_per_family))).index.astype(str).tolist())
+        scoped = family_frame.loc[family_frame.get("subfamily", "").astype(str).isin(keep_subfamilies)].copy()
+        scoped = scoped.sort_values(["_subfamily_priority", "priority_seed", "novelty_score", "candidate_id"], ascending=[False, False, False, True])
+        scoped["_subfamily_rank"] = scoped.groupby(scoped.get("subfamily", "").astype(str), dropna=False).cumcount()
+        keep_idx = scoped.loc[scoped["_subfamily_rank"] < int(max_variants_per_subfamily)].index
+        keep_mask.loc[keep_idx] = True
+    out = work.loc[keep_mask].drop(columns=["_subfamily_priority"], errors="ignore")
+    return out.reset_index(drop=True)
 
 
 def _apply_failure_feedback(frame: pd.DataFrame, feedback: dict[str, Any]) -> pd.DataFrame:
@@ -143,3 +183,25 @@ def _apply_failure_feedback(frame: pd.DataFrame, feedback: dict[str, Any]) -> pd
         work["priority_seed"] = work["priority_seed"].clip(lower=0.0, upper=2.0)
         work["novelty_score"] = work["novelty_score"].clip(lower=0.0, upper=2.0)
     return work
+
+
+def _subfamily_priority(record: dict[str, Any]) -> float:
+    density = str(record.get("trade_density_expectation", "")).strip().lower()
+    transfer_expectation = str(record.get("transfer_expectation", "")).strip().lower()
+    expected_failures = list(record.get("expected_failure_modes", []) or [])
+    score = float(record.get("priority_seed", 0.0) or 0.0) + float(record.get("novelty_score", 0.0) or 0.0)
+    if density == "high":
+        score += 0.10
+    elif density == "medium":
+        score += 0.06
+    else:
+        score -= 0.04
+    if transfer_expectation == "high":
+        score += 0.06
+    elif transfer_expectation == "moderate":
+        score += 0.03
+    else:
+        score -= 0.03
+    score -= float(record.get("transfer_risk_prior", 0.0) or 0.0) * 0.12
+    score -= min(0.10, 0.015 * float(len(expected_failures)))
+    return float(round(score, 8))

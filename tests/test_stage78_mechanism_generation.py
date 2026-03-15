@@ -28,7 +28,8 @@ def test_stage78_generator_outputs_structured_mechanisms() -> None:
 def test_stage78_default_scope_exposes_full_mechanism_family_set() -> None:
     config = load_config(Path(DEFAULT_CONFIG_PATH))
     scope = resolve_research_scope(config)
-    families = set(scope["active_setup_families"])
+    active_families = set(scope["active_setup_families"])
+    available_families = set(scope["available_setup_families"])
     assert {
         "structure_pullback_continuation",
         "liquidity_sweep_reversal",
@@ -38,4 +39,6 @@ def test_stage78_default_scope_exposes_full_mechanism_family_set() -> None:
         "funding_oi_imbalance_reversion",
         "volatility_regime_transition",
         "multi_tf_disagreement_repair",
-    }.issubset(families)
+    }.issubset(available_families)
+    assert "funding_oi_imbalance_reversion" not in active_families
+    assert "funding_oi_imbalance_reversion" in set(scope["frozen_setup_families"])

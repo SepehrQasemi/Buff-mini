@@ -107,6 +107,7 @@ def build_mode_context(
     effective.setdefault("reproducibility", {})
     effective.setdefault("data", {})
     effective["data"].setdefault("continuity", {})
+    effective["data"].setdefault("snapshot", {})
     effective.setdefault("campaign_memory", {})
 
     if bool(mode_cfg.get("evaluation_mode", False)):
@@ -117,6 +118,12 @@ def build_mode_context(
         effective["campaign_memory"]["cold_start_each_run"] = True
         effective["campaign_memory"]["mode"] = "allocation_only"
         effective["research_run"]["seed_bundle"] = list(mode_cfg.get("seed_bundle", []))
+        evaluation_data_source = str((effective.get("research_run", {}) or {}).get("evaluation_data_source", "")).strip()
+        if evaluation_data_source:
+            effective["research_run"]["data_source"] = evaluation_data_source
+        evaluation_snapshot_path = str((effective.get("data", {}).get("snapshot", {}) or {}).get("evaluation_path", "")).strip()
+        if evaluation_snapshot_path:
+            effective["data"]["snapshot"]["path"] = evaluation_snapshot_path
 
     inferred_end_ts = ""
     inference_meta: dict[str, Any] = {"coverage_rows": [], "series_count": 0, "available_series": 0, "inferred_from_data": False}
@@ -190,6 +197,7 @@ def build_mode_context(
             "strict_continuity": bool(continuity_cfg.get("strict_mode", False)),
             "fail_on_gap": bool(continuity_cfg.get("fail_on_gap", False)),
             "budget_mode_selected": str((effective.get("budget_mode", {}) or {}).get("selected", "")),
+            "data_source": str((effective.get("research_run", {}) or {}).get("data_source", "live")),
         },
         "coverage_rows": coverage_rows,
     }

@@ -1,0 +1,197 @@
+{
+  "families": [
+    "structure_pullback_continuation",
+    "liquidity_sweep_reversal",
+    "squeeze_flow_breakout",
+    "failed_breakout_reversal",
+    "exhaustion_mean_reversion",
+    "funding_oi_imbalance_reversion",
+    "volatility_regime_transition",
+    "multi_tf_disagreement_repair"
+  ],
+  "timeframes": [
+    "15m",
+    "30m",
+    "1h",
+    "4h"
+  ],
+  "family_rows": [
+    {
+      "family": "structure_pullback_continuation",
+      "subfamily_count": 4,
+      "context_count": 3,
+      "trigger_count": 3,
+      "confirmation_count": 3,
+      "participation_count": 4,
+      "invalidation_count": 3,
+      "exit_family_count": 3,
+      "time_stop_count": 4,
+      "regime_count": 2
+    },
+    {
+      "family": "liquidity_sweep_reversal",
+      "subfamily_count": 4,
+      "context_count": 3,
+      "trigger_count": 3,
+      "confirmation_count": 3,
+      "participation_count": 4,
+      "invalidation_count": 3,
+      "exit_family_count": 3,
+      "time_stop_count": 4,
+      "regime_count": 2
+    },
+    {
+      "family": "squeeze_flow_breakout",
+      "subfamily_count": 4,
+      "context_count": 3,
+      "trigger_count": 3,
+      "confirmation_count": 3,
+      "participation_count": 4,
+      "invalidation_count": 3,
+      "exit_family_count": 3,
+      "time_stop_count": 4,
+      "regime_count": 2
+    },
+    {
+      "family": "failed_breakout_reversal",
+      "subfamily_count": 4,
+      "context_count": 3,
+      "trigger_count": 3,
+      "confirmation_count": 3,
+      "participation_count": 4,
+      "invalidation_count": 3,
+      "exit_family_count": 3,
+      "time_stop_count": 4,
+      "regime_count": 2
+    },
+    {
+      "family": "exhaustion_mean_reversion",
+      "subfamily_count": 4,
+      "context_count": 3,
+      "trigger_count": 3,
+      "confirmation_count": 3,
+      "participation_count": 4,
+      "invalidation_count": 3,
+      "exit_family_count": 2,
+      "time_stop_count": 4,
+      "regime_count": 3
+    },
+    {
+      "family": "funding_oi_imbalance_reversion",
+      "subfamily_count": 4,
+      "context_count": 2,
+      "trigger_count": 3,
+      "confirmation_count": 3,
+      "participation_count": 4,
+      "invalidation_count": 3,
+      "exit_family_count": 2,
+      "time_stop_count": 4,
+      "regime_count": 3
+    },
+    {
+      "family": "volatility_regime_transition",
+      "subfamily_count": 4,
+      "context_count": 3,
+      "trigger_count": 3,
+      "confirmation_count": 3,
+      "participation_count": 4,
+      "invalidation_count": 3,
+      "exit_family_count": 3,
+      "time_stop_count": 4,
+      "regime_count": 2
+    },
+    {
+      "family": "multi_tf_disagreement_repair",
+      "subfamily_count": 4,
+      "context_count": 3,
+      "trigger_count": 3,
+      "confirmation_count": 3,
+      "participation_count": 4,
+      "invalidation_count": 3,
+      "exit_family_count": 3,
+      "time_stop_count": 4,
+      "regime_count": 3
+    }
+  ],
+  "raw_candidate_count": 236736,
+  "post_compression_candidate_count": 8192,
+  "post_similarity_collapse_count": 8156,
+  "post_dedup_candidate_count": 8156,
+  "precompression_duplication_ratio": 0.965396,
+  "trivial_duplication_ratio": 0.004395,
+  "stage87_reference": {
+    "stage": "87",
+    "status": "SUCCESS",
+    "execution_status": "EXECUTED",
+    "stage_role": "heuristic_filter",
+    "validation_state": "MECHANISM_REFINEMENT_READY",
+    "registry_family_count": 8,
+    "raw_candidate_count": 24480,
+    "post_similarity_collapse_count": 6120,
+    "trivial_redundancy_reduction": 0.75,
+    "candidate_schema_supported_fields": [
+      "family",
+      "subfamily",
+      "context",
+      "trigger",
+      "confirmation",
+      "participation",
+      "invalidation",
+      "risk_model",
+      "exit_family",
+      "time_stop_bars",
+      "expected_regime",
+      "expected_failure_modes",
+      "trade_density_expectation",
+      "transfer_expectation"
+    ],
+    "sample_upgraded_candidate": {
+      "family": "structure_pullback_continuation",
+      "subfamily": "shallow_pullback",
+      "context": {
+        "primary": "trend",
+        "beam_score": 0.35,
+        "modules": [
+          "structure_engine",
+          "flow_regime_engine",
+          "mtf_bias_completion"
+        ]
+      },
+      "trigger": {
+        "type": "pullback_reclaim",
+        "strength": 0.35
+      },
+      "confirmation": {
+        "type": "volume_expansion_confirm",
+        "required": true
+      },
+      "participation": "aligned_flow",
+      "invalidation": "structure_break",
+      "risk_model": "trend_pullback",
+      "exit_family": "scale_out_then_trail",
+      "time_stop_bars": 8,
+      "expected_regime": "trend",
+      "expected_failure_modes": [
+        "late_trend",
+        "shallow_follow_through",
+        "transfer_decay"
+      ],
+      "trade_density_expectation": "medium",
+      "transfer_expectation": "moderate"
+    },
+    "summary_hash": "c91a99ade1de4510"
+  },
+  "richness_delta": {
+    "raw_candidate_delta_vs_stage87": 212256,
+    "dedup_candidate_delta_vs_stage87": 2036
+  },
+  "stage98b_required": true,
+  "stage98b_applied": true,
+  "stage98b_reason": "duplication_ratio_too_high",
+  "summary_hash": "4404d7c3ad6cbb12",
+  "stage": "98",
+  "status": "SUCCESS",
+  "execution_status": "EXECUTED",
+  "stage_role": "real_validation",
+  "validation_state": "MECHANISM_SATURATION_READY"
+}

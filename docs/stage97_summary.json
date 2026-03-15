@@ -1,0 +1,65 @@
+{
+  "symbols": [
+    "BTC/USDT"
+  ],
+  "timeframes": [
+    "30m",
+    "1h",
+    "4h"
+  ],
+  "candidate_limit_per_scope": 1,
+  "relaxed_candidate_count": 3,
+  "bridge_rows": [
+    {
+      "symbol": "BTC/USDT",
+      "timeframe": "30m",
+      "candidate_id": "s70_342bf76dc503e37f",
+      "family": "structure_pullback_continuation",
+      "relaxed_final_class": "promising_but_unproven",
+      "strict_final_class": "promising_but_unproven",
+      "relaxed_first_death_stage": "replay",
+      "strict_first_death_stage": "replay",
+      "relaxed_replay_exp_lcb": -0.00246211,
+      "strict_replay_exp_lcb": -0.00250274,
+      "bridge_classification": "become_weaker",
+      "strict_kill_reason": "exp_lcb"
+    },
+    {
+      "symbol": "BTC/USDT",
+      "timeframe": "1h",
+      "candidate_id": "s70_ca89f8139b275569",
+      "family": "structure_pullback_continuation",
+      "relaxed_final_class": "promising_but_unproven",
+      "strict_final_class": "promising_but_unproven",
+      "relaxed_first_death_stage": "replay",
+      "strict_first_death_stage": "replay",
+      "relaxed_replay_exp_lcb": -0.00242972,
+      "strict_replay_exp_lcb": -0.00240849,
+      "bridge_classification": "become_weaker",
+      "strict_kill_reason": "exp_lcb"
+    },
+    {
+      "symbol": "BTC/USDT",
+      "timeframe": "4h",
+      "candidate_id": "s70_7f7a5159f46d942b",
+      "family": "structure_pullback_continuation",
+      "relaxed_final_class": "promising_but_unproven",
+      "strict_final_class": "promising_but_unproven",
+      "relaxed_first_death_stage": "replay",
+      "strict_first_death_stage": "replay",
+      "relaxed_replay_exp_lcb": -0.0030566,
+      "strict_replay_exp_lcb": -0.00314457,
+      "bridge_classification": "become_weaker",
+      "strict_kill_reason": "exp_lcb"
+    }
+  ],
+  "classification_counts": {
+    "become_weaker": 3
+  },
+  "summary_hash": "c141897474ab5101",
+  "stage": "97",
+  "status": "SUCCESS",
+  "execution_status": "EXECUTED",
+  "stage_role": "real_validation",
+  "validation_state": "RELAXED_TO_STRICT_BRIDGE_READY"
+}
