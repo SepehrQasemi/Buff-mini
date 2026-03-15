@@ -57,7 +57,7 @@
 
 ## GitHub
 - execution_branch: `codex/stage95-103-max-execution`
-- execution_head: `f53c9ddf471dcd3c6917d8531951e20332e1bd11`
+- execution_head: `659a562152bc4fadf5f04af446522bfc5a99cb33`
 - PR number: `5`
 - PR title: `Stage 95-103: live truth push and final edge verdict`
 - PR url: `https://github.com/SepehrQasemi/Buff-mini/pull/5`
@@ -72,4 +72,4 @@
 
 ## Final Verdict
 - final_verdict: `PARTIAL_REPAIR_MEANINGFUL`
-- summary_hash: `5262b4d765e80f94`
+- summary_hash: `d093655dd92ca542`
