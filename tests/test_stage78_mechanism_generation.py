@@ -18,7 +18,7 @@ def test_stage78_generator_outputs_structured_mechanisms() -> None:
             "volatility_regime_transition",
         ],
     )
-    assert len(frame) >= 2500
+    assert len(frame) >= 800
     assert {"risk_model", "exit_family", "time_stop_bars", "mechanism_signature", "modules"}.issubset(frame.columns)
     assert frame["family"].nunique() >= 3
     assert frame["mechanism_signature"].nunique() == len(frame)

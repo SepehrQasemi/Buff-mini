@@ -102,7 +102,7 @@ def _truth_candidate(
     return TruthCandidate(candidate_id=candidate_id, regime=regime, expected_class=expected_class, strength=strength, candidate=candidate)
 
 
-def build_truth_lab_dataset(*, bars: int = 720, seed: int = 42) -> tuple[pd.DataFrame, list[TruthCandidate]]:
+def build_truth_lab_dataset(*, bars: int = 720, seed: int = 42, difficulty: str = "easy") -> tuple[pd.DataFrame, list[TruthCandidate]]:
     rng = np.random.default_rng(int(seed))
     frame = _base_frame(bars=bars)
     segment = bars // 5
@@ -113,6 +113,10 @@ def build_truth_lab_dataset(*, bars: int = 720, seed: int = 42) -> tuple[pd.Data
     flow = np.zeros(bars, dtype=float)
     close = np.zeros(bars, dtype=float)
     level = 100.0
+    diff = str(difficulty).strip().lower()
+    noise_mult = 1.0 if diff == "easy" else 1.65
+    impulse_mult = 1.0 if diff == "easy" else 0.72
+    weak_density_cut = 1.0 if diff == "easy" else 0.70
 
     for i in range(bars):
         regime_idx = min(4, i // max(1, segment))
@@ -120,29 +124,29 @@ def build_truth_lab_dataset(*, bars: int = 720, seed: int = 42) -> tuple[pd.Data
         if regime_idx == 0:
             drift = 0.32 + (0.06 * np.sin(local / 6.0))
             retrace = -1.05 if local % 24 == 8 else 0.0
-            change = drift + retrace + rng.normal(0.0, 0.05)
+            change = (drift * impulse_mult) + retrace + rng.normal(0.0, 0.05 * noise_mult)
             if local % 24 == 9:
                 trend[i] = 1.0
         elif regime_idx == 1:
             wave = np.sin(local / 4.0) * 1.5
-            change = (-0.55 * wave) + rng.normal(0.0, 0.07)
+            change = ((-0.55 * wave) * impulse_mult) + rng.normal(0.0, 0.07 * noise_mult)
             if local % 18 == 5:
                 mean_revert[i] = 1.0 if wave < 0 else -1.0
         elif regime_idx == 2:
             base = 0.05 * np.sin(local / 5.0)
-            impulse = 2.2 if local % 26 in {13, 14, 15} else 0.0
-            change = base + impulse + rng.normal(0.0, 0.08)
+            impulse = (2.2 * impulse_mult) if local % 26 in {13, 14, 15} else 0.0
+            change = base + impulse + rng.normal(0.0, 0.08 * noise_mult)
             if local % 26 == 12:
                 breakout[i] = 1.0
         elif regime_idx == 3:
-            fake = 1.8 if local % 28 == 9 else (-1.7 if local % 28 in {10, 11, 12} else 0.0)
-            change = fake + rng.normal(0.0, 0.09)
+            fake = (1.8 * impulse_mult) if local % 28 == 9 else ((-1.7 * impulse_mult) if local % 28 in {10, 11, 12} else 0.0)
+            change = fake + rng.normal(0.0, 0.09 * noise_mult)
             if local % 28 == 9:
                 failed[i] = -1.0
         else:
             burst = 0.25 * np.sin(local / 3.0)
-            exhaustion = 1.1 if local % 20 == 7 else (-1.1 if local % 20 == 8 else 0.0)
-            change = burst + exhaustion + rng.normal(0.0, 0.06)
+            exhaustion = (1.1 * impulse_mult) if local % 20 == 7 else ((-1.1 * impulse_mult) if local % 20 == 8 else 0.0)
+            change = burst + exhaustion + rng.normal(0.0, 0.06 * noise_mult)
             if local % 20 == 8:
                 flow[i] = -1.0
 
@@ -152,13 +156,13 @@ def build_truth_lab_dataset(*, bars: int = 720, seed: int = 42) -> tuple[pd.Data
     data = _finalize_prices(frame, close)
     data["lab_trend_long"] = trend > 0
     data["lab_trend_short"] = False
-    data["lab_trend_weak_long"] = np.roll(trend > 0, 1)
+    data["lab_trend_weak_long"] = np.roll(trend > 0, 1) & ((np.arange(bars) % max(1, int(round(1.0 / max(0.1, weak_density_cut))))) == 0)
     data["lab_trend_weak_short"] = False
     data["lab_trend_inverse_short"] = trend > 0
     data["lab_meanrev_long"] = mean_revert > 0
     data["lab_meanrev_short"] = mean_revert < 0
-    data["lab_meanrev_noise_long"] = (mean_revert > 0) & ((np.arange(bars) % 2) == 0)
-    data["lab_meanrev_noise_short"] = (mean_revert < 0) & ((np.arange(bars) % 2) == 0)
+    data["lab_meanrev_noise_long"] = (mean_revert > 0) & ((np.arange(bars) % (2 if diff == "easy" else 3)) == 0)
+    data["lab_meanrev_noise_short"] = (mean_revert < 0) & ((np.arange(bars) % (2 if diff == "easy" else 3)) == 0)
     data["lab_breakout_long"] = breakout > 0
     data["lab_breakout_short"] = False
     data["lab_breakout_random_long"] = rng.random(bars) < 0.03
@@ -305,10 +309,10 @@ def build_truth_lab_dataset(*, bars: int = 720, seed: int = 42) -> tuple[pd.Data
     return data, candidates
 
 
-def evaluate_detectability_suite(config: dict[str, Any], *, seed: int = 42) -> dict[str, Any]:
+def evaluate_detectability_suite(config: dict[str, Any], *, seed: int = 42, difficulty: str = "easy") -> dict[str, Any]:
     """Run the controlled signal-detectability proof through the live runtime path."""
 
-    frame, truth_candidates = build_truth_lab_dataset(seed=seed)
+    frame, truth_candidates = build_truth_lab_dataset(seed=seed, difficulty=difficulty)
     labels = compute_stage48_labels(
         frame[["timestamp", "open", "high", "low", "close", "volume"]],
         cfg=Stage48Config(round_trip_cost_pct=float(config.get("costs", {}).get("round_trip_cost_pct", 0.1)) / 100.0),
@@ -410,6 +414,7 @@ def evaluate_detectability_suite(config: dict[str, Any], *, seed: int = 42) -> d
             for key, value in eval_frame["candidate_class"].value_counts(dropna=False).to_dict().items()
         },
         "evaluations": evaluations,
+        "difficulty": str(difficulty).strip().lower(),
     }
     summary["status"] = "SUCCESS" if summary["bad_control_rejection_rate"] >= 0.66 and summary["synthetic_winner_recall"] >= 0.75 else "PARTIAL"
     summary["summary_hash"] = stable_hash(

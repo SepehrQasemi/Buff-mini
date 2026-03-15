@@ -1,0 +1,62 @@
+{
+  "stage": "87",
+  "status": "SUCCESS",
+  "execution_status": "EXECUTED",
+  "stage_role": "heuristic_filter",
+  "validation_state": "MECHANISM_REFINEMENT_READY",
+  "registry_family_count": 8,
+  "raw_candidate_count": 24480,
+  "post_similarity_collapse_count": 6120,
+  "trivial_redundancy_reduction": 0.75,
+  "candidate_schema_supported_fields": [
+    "family",
+    "subfamily",
+    "context",
+    "trigger",
+    "confirmation",
+    "participation",
+    "invalidation",
+    "risk_model",
+    "exit_family",
+    "time_stop_bars",
+    "expected_regime",
+    "expected_failure_modes",
+    "trade_density_expectation",
+    "transfer_expectation"
+  ],
+  "sample_upgraded_candidate": {
+    "family": "structure_pullback_continuation",
+    "subfamily": "shallow_pullback",
+    "context": {
+      "primary": "trend",
+      "beam_score": 0.35,
+      "modules": [
+        "structure_engine",
+        "flow_regime_engine",
+        "mtf_bias_completion"
+      ]
+    },
+    "trigger": {
+      "type": "pullback_reclaim",
+      "strength": 0.35
+    },
+    "confirmation": {
+      "type": "volume_expansion_confirm",
+      "required": true
+    },
+    "participation": "aligned_flow",
+    "invalidation": "structure_break",
+    "risk_model": "trend_pullback",
+    "exit_family": "scale_out_then_trail",
+    "time_stop_bars": 8,
+    "expected_regime": "trend",
+    "expected_failure_modes": [
+      "late_trend",
+      "shallow_follow_through",
+      "transfer_decay"
+    ],
+    "trade_density_expectation": "medium",
+    "transfer_expectation": "moderate"
+  },
+  "summary_hash": "c91a99ade1de4510"
+}

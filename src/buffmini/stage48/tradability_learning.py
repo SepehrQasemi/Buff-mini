@@ -9,7 +9,7 @@ import numpy as np
 import pandas as pd
 
 from buffmini.research.behavior import build_behavioral_fingerprints
-from buffmini.research.diagnostics import classify_candidate_tier, compute_candidate_risk_card
+from buffmini.research.diagnostics import classify_candidate_hierarchy, classify_candidate_tier, compute_candidate_risk_card
 
 
 @dataclass(frozen=True)
@@ -139,6 +139,17 @@ def score_candidates_with_ranker(candidates: pd.DataFrame, labels: pd.DataFrame,
         )
         for row in work.to_dict(orient="records")
     ]
+    work["candidate_hierarchy"] = [
+        classify_candidate_hierarchy(
+            rank_score=float(row.get("rank_score", 0.0)),
+            replay_exp_lcb=float(row.get("exp_lcb_proxy", 0.0)),
+            walkforward_usable_windows=int(float(row.get("walkforward_usable_windows", 0) or 0)),
+            decision_use_allowed=bool(row.get("decision_use_allowed", False)),
+            aggregate_risk=float(row.get("aggregate_risk", 1.0)),
+            robustness_level=int(float(row.get("robustness_level", 0) or 0)),
+        )
+        for row in work.to_dict(orient="records")
+    ]
     cols = [
         c
         for c in (
@@ -150,6 +161,7 @@ def score_candidates_with_ranker(candidates: pd.DataFrame, labels: pd.DataFrame,
             "predicted_tradability",
             "replay_worthiness",
             "candidate_class",
+            "candidate_hierarchy",
             "trade_density_risk",
             "cost_fragility_risk",
             "regime_concentration_risk",
@@ -274,7 +286,16 @@ def _augment_candidate_specific_fields(frame: pd.DataFrame, *, market_frame: pd.
     work["rr_first_target"] = pd.to_numeric(pd.Series(rr_values, index=work.index), errors="coerce").fillna(0.0)
     work["no_reject_penalty"] = pd.to_numeric(pd.Series(reject_penalty, index=work.index), errors="coerce").fillna(0.0)
 
-    behavior = build_behavioral_fingerprints(work, market_frame) if market_frame is not None and not market_frame.empty else pd.DataFrame(columns=["candidate_id"])
+    behavior = (
+        build_behavioral_fingerprints(
+            work,
+            market_frame,
+            max_candidates=96,
+            max_bars=4096,
+        )
+        if market_frame is not None and not market_frame.empty
+        else pd.DataFrame(columns=["candidate_id"])
+    )
     if not behavior.empty and "candidate_id" in work.columns:
         work = work.merge(behavior, on="candidate_id", how="left")
     for column, default in (

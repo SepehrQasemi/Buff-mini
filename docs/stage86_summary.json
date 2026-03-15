@@ -1,0 +1,778 @@
+{
+  "stage": "86",
+  "status": "SUCCESS",
+  "execution_status": "EXECUTED",
+  "stage_role": "reporting_only",
+  "validation_state": "FAMILY_AUDIT_READY",
+  "family_inventory": [
+    {
+      "family": "structure_pullback_continuation",
+      "subfamily_count": 3,
+      "submechanisms_covered": [
+        "shallow_pullback",
+        "deep_pullback",
+        "micro_break_rejoin"
+      ],
+      "submechanisms_missing": [
+        "trend_reset",
+        "breakout_retest"
+      ],
+      "context_richness": 2,
+      "trigger_richness": 2,
+      "confirmation_richness": 2,
+      "invalidation_richness": 2,
+      "exit_richness": 2,
+      "hold_horizon_richness": 3,
+      "mtf_richness": 1,
+      "regime_conditioning_richness": 2,
+      "transfer_expectation": "moderate",
+      "trade_density_expectation": "medium",
+      "expected_failure_modes": [
+        "late_trend",
+        "shallow_follow_through",
+        "transfer_decay"
+      ],
+      "registry_rationale": "structure_pullback_continuation is designed for trend/transition with expected weak points in late_trend,shallow_follow_through"
+    },
+    {
+      "family": "liquidity_sweep_reversal",
+      "subfamily_count": 3,
+      "submechanisms_covered": [
+        "session_sweep",
+        "range_sweep",
+        "pool_reclaim"
+      ],
+      "submechanisms_missing": [
+        "equal_high_sweep",
+        "equal_low_sweep"
+      ],
+      "context_richness": 3,
+      "trigger_richness": 2,
+      "confirmation_richness": 2,
+      "invalidation_richness": 2,
+      "exit_richness": 2,
+      "hold_horizon_richness": 3,
+      "mtf_richness": 0,
+      "regime_conditioning_richness": 2,
+      "transfer_expectation": "moderate",
+      "trade_density_expectation": "medium",
+      "expected_failure_modes": [
+        "trend_resume",
+        "wick_only_reversal",
+        "late_reclaim"
+      ],
+      "registry_rationale": "liquidity_sweep_reversal is designed for range/transition with expected weak points in trend_resume,wick_only_reversal"
+    },
+    {
+      "family": "squeeze_flow_breakout",
+      "subfamily_count": 3,
+      "submechanisms_covered": [
+        "opening_squeeze",
+        "midrange_compression",
+        "retest_breakout"
+      ],
+      "submechanisms_missing": [
+        "nested_compression",
+        "failed_squeeze_rebreak"
+      ],
+      "context_richness": 2,
+      "trigger_richness": 2,
+      "confirmation_richness": 2,
+      "invalidation_richness": 2,
+      "exit_richness": 2,
+      "hold_horizon_richness": 3,
+      "mtf_richness": 1,
+      "regime_conditioning_richness": 2,
+      "transfer_expectation": "moderate",
+      "trade_density_expectation": "low",
+      "expected_failure_modes": [
+        "false_break",
+        "late_expansion",
+        "cost_fragility"
+      ],
+      "registry_rationale": "squeeze_flow_breakout is designed for compression/high_vol with expected weak points in false_break,late_expansion"
+    },
+    {
+      "family": "failed_breakout_reversal",
+      "subfamily_count": 3,
+      "submechanisms_covered": [
+        "inside_fake_break",
+        "session_extreme_fail",
+        "trend_exhaust_fail"
+      ],
+      "submechanisms_missing": [
+        "range_break_fail",
+        "trend_break_fail"
+      ],
+      "context_richness": 2,
+      "trigger_richness": 2,
+      "confirmation_richness": 2,
+      "invalidation_richness": 2,
+      "exit_richness": 2,
+      "hold_horizon_richness": 3,
+      "mtf_richness": 0,
+      "regime_conditioning_richness": 2,
+      "transfer_expectation": "low",
+      "trade_density_expectation": "low",
+      "expected_failure_modes": [
+        "trend_resume",
+        "double_fake_break",
+        "thin_follow_through"
+      ],
+      "registry_rationale": "failed_breakout_reversal is designed for transition/high_vol with expected weak points in trend_resume,double_fake_break"
+    },
+    {
+      "family": "exhaustion_mean_reversion",
+      "subfamily_count": 3,
+      "submechanisms_covered": [
+        "atr_stretch_fade",
+        "band_snapback",
+        "panic_mean_revert"
+      ],
+      "submechanisms_missing": [
+        "multi_bar_climax",
+        "funding_stretch"
+      ],
+      "context_richness": 2,
+      "trigger_richness": 2,
+      "confirmation_richness": 2,
+      "invalidation_richness": 2,
+      "exit_richness": 2,
+      "hold_horizon_richness": 3,
+      "mtf_richness": 0,
+      "regime_conditioning_richness": 2,
+      "transfer_expectation": "low",
+      "trade_density_expectation": "medium",
+      "expected_failure_modes": [
+        "one_way_trend",
+        "late_mean_revert",
+        "cost_decay"
+      ],
+      "registry_rationale": "exhaustion_mean_reversion is designed for range/high_vol with expected weak points in one_way_trend,late_mean_revert"
+    },
+    {
+      "family": "funding_oi_imbalance_reversion",
+      "subfamily_count": 3,
+      "submechanisms_covered": [
+        "funding_flush",
+        "oi_divergence",
+        "crowding_release"
+      ],
+      "submechanisms_missing": [
+        "oi_flush",
+        "funding_spike"
+      ],
+      "context_richness": 2,
+      "trigger_richness": 2,
+      "confirmation_richness": 2,
+      "invalidation_richness": 2,
+      "exit_richness": 2,
+      "hold_horizon_richness": 3,
+      "mtf_richness": 0,
+      "regime_conditioning_richness": 2,
+      "transfer_expectation": "low",
+      "trade_density_expectation": "low",
+      "expected_failure_modes": [
+        "crowding_persistence",
+        "opportunity_sparsity",
+        "transfer_decay"
+      ],
+      "registry_rationale": "funding_oi_imbalance_reversion is designed for funding_extreme/crowding with expected weak points in crowding_persistence,opportunity_sparsity"
+    },
+    {
+      "family": "volatility_regime_transition",
+      "subfamily_count": 3,
+      "submechanisms_covered": [
+        "compression_release",
+        "vol_reclaim",
+        "atr_regime_shift"
+      ],
+      "submechanisms_missing": [
+        "vol_crush_reexpand",
+        "atr_reacceleration"
+      ],
+      "context_richness": 2,
+      "trigger_richness": 2,
+      "confirmation_richness": 2,
+      "invalidation_richness": 2,
+      "exit_richness": 2,
+      "hold_horizon_richness": 3,
+      "mtf_richness": 0,
+      "regime_conditioning_richness": 2,
+      "transfer_expectation": "moderate",
+      "trade_density_expectation": "medium",
+      "expected_failure_modes": [
+        "recompression",
+        "late_breakout",
+        "timing_instability"
+      ],
+      "registry_rationale": "volatility_regime_transition is designed for compression/transition with expected weak points in recompression,late_breakout"
+    },
+    {
+      "family": "multi_tf_disagreement_repair",
+      "subfamily_count": 3,
+      "submechanisms_covered": [
+        "htf_lag_repair",
+        "ltf_flip_realign",
+        "bias_reclaim"
+      ],
+      "submechanisms_missing": [
+        "htf_flip_realign",
+        "ltf_whipsaw_repair"
+      ],
+      "context_richness": 2,
+      "trigger_richness": 2,
+      "confirmation_richness": 2,
+      "invalidation_richness": 2,
+      "exit_richness": 2,
+      "hold_horizon_richness": 3,
+      "mtf_richness": 1,
+      "regime_conditioning_richness": 2,
+      "transfer_expectation": "moderate",
+      "trade_density_expectation": "medium",
+      "expected_failure_modes": [
+        "misalignment_persists",
+        "late_confirmation",
+        "transfer_decay"
+      ],
+      "registry_rationale": "multi_tf_disagreement_repair is designed for trend/transition with expected weak points in misalignment_persists,late_confirmation"
+    }
+  ],
+  "overlap_analysis": {
+    "semantic_overlap_pairs": [
+      {
+        "family_left": "exhaustion_mean_reversion",
+        "family_right": "failed_breakout_reversal",
+        "semantic_overlap": 0.0
+      },
+      {
+        "family_left": "exhaustion_mean_reversion",
+        "family_right": "funding_oi_imbalance_reversion",
+        "semantic_overlap": 0.0
+      },
+      {
+        "family_left": "exhaustion_mean_reversion",
+        "family_right": "liquidity_sweep_reversal",
+        "semantic_overlap": 0.0
+      },
+      {
+        "family_left": "exhaustion_mean_reversion",
+        "family_right": "multi_tf_disagreement_repair",
+        "semantic_overlap": 0.0
+      },
+      {
+        "family_left": "exhaustion_mean_reversion",
+        "family_right": "squeeze_flow_breakout",
+        "semantic_overlap": 0.0
+      },
+      {
+        "family_left": "exhaustion_mean_reversion",
+        "family_right": "structure_pullback_continuation",
+        "semantic_overlap": 0.0
+      },
+      {
+        "family_left": "exhaustion_mean_reversion",
+        "family_right": "volatility_regime_transition",
+        "semantic_overlap": 0.0
+      },
+      {
+        "family_left": "failed_breakout_reversal",
+        "family_right": "funding_oi_imbalance_reversion",
+        "semantic_overlap": 0.0
+      },
+      {
+        "family_left": "failed_breakout_reversal",
+        "family_right": "liquidity_sweep_reversal",
+        "semantic_overlap": 0.0
+      },
+      {
+        "family_left": "failed_breakout_reversal",
+        "family_right": "multi_tf_disagreement_repair",
+        "semantic_overlap": 0.0
+      },
+      {
+        "family_left": "failed_breakout_reversal",
+        "family_right": "squeeze_flow_breakout",
+        "semantic_overlap": 0.0
+      },
+      {
+        "family_left": "failed_breakout_reversal",
+        "family_right": "structure_pullback_continuation",
+        "semantic_overlap": 0.0
+      },
+      {
+        "family_left": "failed_breakout_reversal",
+        "family_right": "volatility_regime_transition",
+        "semantic_overlap": 0.0
+      },
+      {
+        "family_left": "funding_oi_imbalance_reversion",
+        "family_right": "liquidity_sweep_reversal",
+        "semantic_overlap": 0.0
+      },
+      {
+        "family_left": "funding_oi_imbalance_reversion",
+        "family_right": "multi_tf_disagreement_repair",
+        "semantic_overlap": 0.0
+      },
+      {
+        "family_left": "funding_oi_imbalance_reversion",
+        "family_right": "squeeze_flow_breakout",
+        "semantic_overlap": 0.0
+      },
+      {
+        "family_left": "funding_oi_imbalance_reversion",
+        "family_right": "structure_pullback_continuation",
+        "semantic_overlap": 0.0
+      },
+      {
+        "family_left": "funding_oi_imbalance_reversion",
+        "family_right": "volatility_regime_transition",
+        "semantic_overlap": 0.0
+      },
+      {
+        "family_left": "liquidity_sweep_reversal",
+        "family_right": "multi_tf_disagreement_repair",
+        "semantic_overlap": 0.0
+      },
+      {
+        "family_left": "liquidity_sweep_reversal",
+        "family_right": "squeeze_flow_breakout",
+        "semantic_overlap": 0.0
+      },
+      {
+        "family_left": "liquidity_sweep_reversal",
+        "family_right": "structure_pullback_continuation",
+        "semantic_overlap": 0.0
+      },
+      {
+        "family_left": "liquidity_sweep_reversal",
+        "family_right": "volatility_regime_transition",
+        "semantic_overlap": 0.0
+      },
+      {
+        "family_left": "multi_tf_disagreement_repair",
+        "family_right": "squeeze_flow_breakout",
+        "semantic_overlap": 0.0
+      },
+      {
+        "family_left": "multi_tf_disagreement_repair",
+        "family_right": "structure_pullback_continuation",
+        "semantic_overlap": 0.0
+      },
+      {
+        "family_left": "multi_tf_disagreement_repair",
+        "family_right": "volatility_regime_transition",
+        "semantic_overlap": 0.0
+      },
+      {
+        "family_left": "squeeze_flow_breakout",
+        "family_right": "structure_pullback_continuation",
+        "semantic_overlap": 0.0
+      },
+      {
+        "family_left": "squeeze_flow_breakout",
+        "family_right": "volatility_regime_transition",
+        "semantic_overlap": 0.0
+      },
+      {
+        "family_left": "structure_pullback_continuation",
+        "family_right": "volatility_regime_transition",
+        "semantic_overlap": 0.0
+      }
+    ],
+    "behavioral_overlap_pairs": [
+      {
+        "family_left": "exhaustion_mean_reversion",
+        "family_right": "failed_breakout_reversal",
+        "behavioral_overlap": 0.0
+      },
+      {
+        "family_left": "exhaustion_mean_reversion",
+        "family_right": "funding_oi_imbalance_reversion",
+        "behavioral_overlap": 0.0
+      },
+      {
+        "family_left": "exhaustion_mean_reversion",
+        "family_right": "liquidity_sweep_reversal",
+        "behavioral_overlap": 0.0
+      },
+      {
+        "family_left": "exhaustion_mean_reversion",
+        "family_right": "multi_tf_disagreement_repair",
+        "behavioral_overlap": 0.0
+      },
+      {
+        "family_left": "exhaustion_mean_reversion",
+        "family_right": "squeeze_flow_breakout",
+        "behavioral_overlap": 0.0
+      },
+      {
+        "family_left": "exhaustion_mean_reversion",
+        "family_right": "structure_pullback_continuation",
+        "behavioral_overlap": 0.0
+      },
+      {
+        "family_left": "exhaustion_mean_reversion",
+        "family_right": "volatility_regime_transition",
+        "behavioral_overlap": 0.0
+      },
+      {
+        "family_left": "failed_breakout_reversal",
+        "family_right": "funding_oi_imbalance_reversion",
+        "behavioral_overlap": 0.0
+      },
+      {
+        "family_left": "failed_breakout_reversal",
+        "family_right": "liquidity_sweep_reversal",
+        "behavioral_overlap": 0.0
+      },
+      {
+        "family_left": "failed_breakout_reversal",
+        "family_right": "multi_tf_disagreement_repair",
+        "behavioral_overlap": 0.0
+      },
+      {
+        "family_left": "failed_breakout_reversal",
+        "family_right": "squeeze_flow_breakout",
+        "behavioral_overlap": 0.0
+      },
+      {
+        "family_left": "failed_breakout_reversal",
+        "family_right": "structure_pullback_continuation",
+        "behavioral_overlap": 0.0
+      },
+      {
+        "family_left": "failed_breakout_reversal",
+        "family_right": "volatility_regime_transition",
+        "behavioral_overlap": 0.0
+      },
+      {
+        "family_left": "funding_oi_imbalance_reversion",
+        "family_right": "liquidity_sweep_reversal",
+        "behavioral_overlap": 0.0
+      },
+      {
+        "family_left": "funding_oi_imbalance_reversion",
+        "family_right": "multi_tf_disagreement_repair",
+        "behavioral_overlap": 0.0
+      },
+      {
+        "family_left": "funding_oi_imbalance_reversion",
+        "family_right": "squeeze_flow_breakout",
+        "behavioral_overlap": 0.0
+      },
+      {
+        "family_left": "funding_oi_imbalance_reversion",
+        "family_right": "structure_pullback_continuation",
+        "behavioral_overlap": 0.0
+      },
+      {
+        "family_left": "funding_oi_imbalance_reversion",
+        "family_right": "volatility_regime_transition",
+        "behavioral_overlap": 0.0
+      },
+      {
+        "family_left": "liquidity_sweep_reversal",
+        "family_right": "multi_tf_disagreement_repair",
+        "behavioral_overlap": 0.0
+      },
+      {
+        "family_left": "liquidity_sweep_reversal",
+        "family_right": "squeeze_flow_breakout",
+        "behavioral_overlap": 0.0
+      },
+      {
+        "family_left": "liquidity_sweep_reversal",
+        "family_right": "structure_pullback_continuation",
+        "behavioral_overlap": 0.0
+      },
+      {
+        "family_left": "liquidity_sweep_reversal",
+        "family_right": "volatility_regime_transition",
+        "behavioral_overlap": 0.0
+      },
+      {
+        "family_left": "multi_tf_disagreement_repair",
+        "family_right": "squeeze_flow_breakout",
+        "behavioral_overlap": 0.0
+      },
+      {
+        "family_left": "multi_tf_disagreement_repair",
+        "family_right": "structure_pullback_continuation",
+        "behavioral_overlap": 0.0
+      },
+      {
+        "family_left": "multi_tf_disagreement_repair",
+        "family_right": "volatility_regime_transition",
+        "behavioral_overlap": 0.0
+      },
+      {
+        "family_left": "squeeze_flow_breakout",
+        "family_right": "structure_pullback_continuation",
+        "behavioral_overlap": 0.0
+      },
+      {
+        "family_left": "squeeze_flow_breakout",
+        "family_right": "volatility_regime_transition",
+        "behavioral_overlap": 0.0
+      },
+      {
+        "family_left": "structure_pullback_continuation",
+        "family_right": "volatility_regime_transition",
+        "behavioral_overlap": 0.0
+      }
+    ],
+    "fingerprint_overlap_pairs": [
+      {
+        "family_left": "exhaustion_mean_reversion",
+        "family_right": "failed_breakout_reversal",
+        "fingerprint_overlap": 0.0
+      },
+      {
+        "family_left": "exhaustion_mean_reversion",
+        "family_right": "funding_oi_imbalance_reversion",
+        "fingerprint_overlap": 0.0
+      },
+      {
+        "family_left": "exhaustion_mean_reversion",
+        "family_right": "liquidity_sweep_reversal",
+        "fingerprint_overlap": 0.0
+      },
+      {
+        "family_left": "exhaustion_mean_reversion",
+        "family_right": "multi_tf_disagreement_repair",
+        "fingerprint_overlap": 0.0
+      },
+      {
+        "family_left": "exhaustion_mean_reversion",
+        "family_right": "squeeze_flow_breakout",
+        "fingerprint_overlap": 0.0
+      },
+      {
+        "family_left": "exhaustion_mean_reversion",
+        "family_right": "structure_pullback_continuation",
+        "fingerprint_overlap": 0.0
+      },
+      {
+        "family_left": "exhaustion_mean_reversion",
+        "family_right": "volatility_regime_transition",
+        "fingerprint_overlap": 0.0
+      },
+      {
+        "family_left": "failed_breakout_reversal",
+        "family_right": "funding_oi_imbalance_reversion",
+        "fingerprint_overlap": 0.0
+      },
+      {
+        "family_left": "failed_breakout_reversal",
+        "family_right": "liquidity_sweep_reversal",
+        "fingerprint_overlap": 0.0
+      },
+      {
+        "family_left": "failed_breakout_reversal",
+        "family_right": "multi_tf_disagreement_repair",
+        "fingerprint_overlap": 0.0
+      },
+      {
+        "family_left": "failed_breakout_reversal",
+        "family_right": "squeeze_flow_breakout",
+        "fingerprint_overlap": 0.0
+      },
+      {
+        "family_left": "failed_breakout_reversal",
+        "family_right": "structure_pullback_continuation",
+        "fingerprint_overlap": 0.0
+      },
+      {
+        "family_left": "failed_breakout_reversal",
+        "family_right": "volatility_regime_transition",
+        "fingerprint_overlap": 0.0
+      },
+      {
+        "family_left": "funding_oi_imbalance_reversion",
+        "family_right": "liquidity_sweep_reversal",
+        "fingerprint_overlap": 0.0
+      },
+      {
+        "family_left": "funding_oi_imbalance_reversion",
+        "family_right": "multi_tf_disagreement_repair",
+        "fingerprint_overlap": 0.0
+      },
+      {
+        "family_left": "funding_oi_imbalance_reversion",
+        "family_right": "squeeze_flow_breakout",
+        "fingerprint_overlap": 0.0
+      },
+      {
+        "family_left": "funding_oi_imbalance_reversion",
+        "family_right": "structure_pullback_continuation",
+        "fingerprint_overlap": 0.0
+      },
+      {
+        "family_left": "funding_oi_imbalance_reversion",
+        "family_right": "volatility_regime_transition",
+        "fingerprint_overlap": 0.0
+      },
+      {
+        "family_left": "liquidity_sweep_reversal",
+        "family_right": "multi_tf_disagreement_repair",
+        "fingerprint_overlap": 0.0
+      },
+      {
+        "family_left": "liquidity_sweep_reversal",
+        "family_right": "squeeze_flow_breakout",
+        "fingerprint_overlap": 0.0
+      },
+      {
+        "family_left": "liquidity_sweep_reversal",
+        "family_right": "structure_pullback_continuation",
+        "fingerprint_overlap": 0.0
+      },
+      {
+        "family_left": "liquidity_sweep_reversal",
+        "family_right": "volatility_regime_transition",
+        "fingerprint_overlap": 0.0
+      },
+      {
+        "family_left": "multi_tf_disagreement_repair",
+        "family_right": "squeeze_flow_breakout",
+        "fingerprint_overlap": 0.0
+      },
+      {
+        "family_left": "multi_tf_disagreement_repair",
+        "family_right": "structure_pullback_continuation",
+        "fingerprint_overlap": 0.0
+      },
+      {
+        "family_left": "multi_tf_disagreement_repair",
+        "family_right": "volatility_regime_transition",
+        "fingerprint_overlap": 0.0
+      },
+      {
+        "family_left": "squeeze_flow_breakout",
+        "family_right": "structure_pullback_continuation",
+        "fingerprint_overlap": 0.0
+      },
+      {
+        "family_left": "squeeze_flow_breakout",
+        "family_right": "volatility_regime_transition",
+        "fingerprint_overlap": 0.0
+      },
+      {
+        "family_left": "structure_pullback_continuation",
+        "family_right": "volatility_regime_transition",
+        "fingerprint_overlap": 0.0
+      }
+    ]
+  },
+  "blind_spots": [
+    {
+      "family": "structure_pullback_continuation",
+      "issue": "mechanism_depth_low",
+      "details": {
+        "context_richness": 2,
+        "trigger_richness": 2,
+        "confirmation_richness": 2,
+        "submechanisms_missing": [
+          "trend_reset",
+          "breakout_retest"
+        ]
+      }
+    },
+    {
+      "family": "liquidity_sweep_reversal",
+      "issue": "mechanism_depth_low",
+      "details": {
+        "context_richness": 3,
+        "trigger_richness": 2,
+        "confirmation_richness": 2,
+        "submechanisms_missing": [
+          "equal_high_sweep",
+          "equal_low_sweep"
+        ]
+      }
+    },
+    {
+      "family": "squeeze_flow_breakout",
+      "issue": "mechanism_depth_low",
+      "details": {
+        "context_richness": 2,
+        "trigger_richness": 2,
+        "confirmation_richness": 2,
+        "submechanisms_missing": [
+          "nested_compression",
+          "failed_squeeze_rebreak"
+        ]
+      }
+    },
+    {
+      "family": "failed_breakout_reversal",
+      "issue": "mechanism_depth_low",
+      "details": {
+        "context_richness": 2,
+        "trigger_richness": 2,
+        "confirmation_richness": 2,
+        "submechanisms_missing": [
+          "range_break_fail",
+          "trend_break_fail"
+        ]
+      }
+    },
+    {
+      "family": "exhaustion_mean_reversion",
+      "issue": "mechanism_depth_low",
+      "details": {
+        "context_richness": 2,
+        "trigger_richness": 2,
+        "confirmation_richness": 2,
+        "submechanisms_missing": [
+          "multi_bar_climax",
+          "funding_stretch"
+        ]
+      }
+    },
+    {
+      "family": "funding_oi_imbalance_reversion",
+      "issue": "mechanism_depth_low",
+      "details": {
+        "context_richness": 2,
+        "trigger_richness": 2,
+        "confirmation_richness": 2,
+        "submechanisms_missing": [
+          "oi_flush",
+          "funding_spike"
+        ]
+      }
+    },
+    {
+      "family": "volatility_regime_transition",
+      "issue": "mechanism_depth_low",
+      "details": {
+        "context_richness": 2,
+        "trigger_richness": 2,
+        "confirmation_richness": 2,
+        "submechanisms_missing": [
+          "vol_crush_reexpand",
+          "atr_reacceleration"
+        ]
+      }
+    },
+    {
+      "family": "multi_tf_disagreement_repair",
+      "issue": "mechanism_depth_low",
+      "details": {
+        "context_richness": 2,
+        "trigger_richness": 2,
+        "confirmation_richness": 2,
+        "submechanisms_missing": [
+          "htf_flip_realign",
+          "ltf_whipsaw_repair"
+        ]
+      }
+    }
+  ],
+  "family_count": 8,
+  "subfamily_total": 24,
+  "summary_hash": "afeedf7ca0e4c085"
+}

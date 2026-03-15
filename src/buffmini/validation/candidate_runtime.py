@@ -12,9 +12,11 @@ import pandas as pd
 
 from buffmini.backtest.engine import run_backtest
 from buffmini.config import get_universe_end
-from buffmini.constants import DERIVED_DATA_DIR, RAW_DATA_DIR
+from buffmini.constants import CANONICAL_DATA_DIR, DERIVED_DATA_DIR, RAW_DATA_DIR
 from buffmini.data.continuity import continuity_report
+from buffmini.data.derived_tf import get_timeframe
 from buffmini.data.store import build_data_store
+from buffmini.data.snapshot import snapshot_metadata_from_config
 from buffmini.stage45 import (
     compute_liquidity_map,
     compute_market_structure_engine,
@@ -119,37 +121,61 @@ def load_candidate_market_frame(
     resolved_end_ts = universe.get("resolved_end_ts") or end or ""
 
     frame = pd.DataFrame()
+    run_cfg = dict(config.get("research_run", {}) or {})
+    data_source = str(run_cfg.get("data_source", "live")).strip().lower() or "live"
     load_mode = "configured_store"
     load_errors: list[str] = []
-    try:
-        store = build_data_store(
-            backend=str(data_cfg.get("backend", "parquet")),
-            data_dir=RAW_DATA_DIR,
-            base_timeframe=str(universe.get("base_timeframe", "1h")),
-            resample_source=str(data_cfg.get("resample_source", "direct")),
-            derived_dir=DERIVED_DATA_DIR,
-            partial_last_bucket=bool(data_cfg.get("partial_last_bucket", False)),
-            resolved_end_ts=str(resolved_end_ts),
-        )
-        frame = store.load_ohlcv(symbol=symbol, timeframe=timeframe, start=start, end=end)
-    except Exception as exc:
-        load_errors.append(f"configured_store:{exc}")
-
-    if frame.empty and str(timeframe) != "1m":
+    if data_source == "canonical":
         try:
-            fallback_store = build_data_store(
+            canonical = get_timeframe(
+                symbol=symbol,
+                timeframe=timeframe,
+                canonical_dir=CANONICAL_DATA_DIR,
+                derived_dir=DERIVED_DATA_DIR,
+            )
+            frame = canonical.frame.copy()
+            load_mode = "canonical_snapshot"
+        except Exception as exc:
+            load_errors.append(f"canonical_snapshot:{exc}")
+    else:
+        try:
+            store = build_data_store(
                 backend=str(data_cfg.get("backend", "parquet")),
                 data_dir=RAW_DATA_DIR,
-                base_timeframe="1m",
-                resample_source="base",
+                base_timeframe=str(universe.get("base_timeframe", "1h")),
+                resample_source=str(data_cfg.get("resample_source", "direct")),
                 derived_dir=DERIVED_DATA_DIR,
                 partial_last_bucket=bool(data_cfg.get("partial_last_bucket", False)),
                 resolved_end_ts=str(resolved_end_ts),
             )
-            frame = fallback_store.load_ohlcv(symbol=symbol, timeframe=timeframe, start=start, end=end)
-            load_mode = "fallback_resampled_from_1m"
+            frame = store.load_ohlcv(symbol=symbol, timeframe=timeframe, start=start, end=end)
         except Exception as exc:
-            load_errors.append(f"fallback_resampled_from_1m:{exc}")
+            load_errors.append(f"configured_store:{exc}")
+
+        if frame.empty and str(timeframe) != "1m":
+            try:
+                fallback_store = build_data_store(
+                    backend=str(data_cfg.get("backend", "parquet")),
+                    data_dir=RAW_DATA_DIR,
+                    base_timeframe="1m",
+                    resample_source="base",
+                    derived_dir=DERIVED_DATA_DIR,
+                    partial_last_bucket=bool(data_cfg.get("partial_last_bucket", False)),
+                    resolved_end_ts=str(resolved_end_ts),
+                )
+                frame = fallback_store.load_ohlcv(symbol=symbol, timeframe=timeframe, start=start, end=end)
+                load_mode = "fallback_resampled_from_1m"
+            except Exception as exc:
+                load_errors.append(f"fallback_resampled_from_1m:{exc}")
+
+    if not frame.empty and "timestamp" in frame.columns:
+        ts = pd.to_datetime(frame["timestamp"], utc=True, errors="coerce")
+        mask = pd.Series(True, index=frame.index, dtype=bool)
+        if str(start or "").strip():
+            mask &= ts >= pd.to_datetime(start, utc=True, errors="coerce")
+        if str(end or "").strip():
+            mask &= ts <= pd.to_datetime(end, utc=True, errors="coerce")
+        frame = frame.loc[mask].copy().reset_index(drop=True)
 
     continuity = continuity_report(
         frame,
@@ -182,6 +208,7 @@ def load_candidate_market_frame(
     meta = {
         "symbol": str(symbol),
         "timeframe": str(timeframe),
+        "data_source": data_source,
         "rows": int(len(frame)),
         "row_count": int(len(frame)),
         "load_mode": load_mode,
@@ -211,6 +238,7 @@ def load_candidate_market_frame(
             "frozen_research_mode": frozen_mode,
             "require_resolved_end_ts": require_resolved_end_ts,
         },
+        "snapshot_meta": snapshot_metadata_from_config(config),
         "load_errors": load_errors,
     }
     return frame, meta
@@ -793,7 +821,8 @@ def build_candidate_signal_series(frame: pd.DataFrame, candidate: dict[str, Any]
         )
     elif family == "exhaustion_mean_reversion":
         mid = close.rolling(24, min_periods=1).mean().fillna(close)
-        atr = pd.to_numeric(frame.get("atr_14"), errors="coerce").fillna(0.0)
+        atr_source = frame["atr_14"] if "atr_14" in frame.columns else _atr14(frame)
+        atr = pd.to_numeric(atr_source, errors="coerce").fillna(0.0)
         distance = (close - mid) / atr.replace(0.0, np.nan)
         long_cond = (distance <= -1.25).fillna(False) & flow["flow_exhaustion"]
         short_cond = (distance >= 1.25).fillna(False) & flow["flow_exhaustion"]

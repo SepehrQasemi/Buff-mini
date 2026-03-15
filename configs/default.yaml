@@ -208,6 +208,10 @@ reproducibility:
   require_resolved_end_ts: false
   deterministic_sorting: true
 
+research_run:
+  data_source: live
+  ranking_lookback_bars: 4096
+
 data:
   backend: parquet
   resample_source: direct

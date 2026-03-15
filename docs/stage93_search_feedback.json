@@ -1,0 +1,12 @@
+{
+  "family_priority_adjustments": {
+    "liquidity_sweep_reversal": 0.137304,
+    "structure_pullback_continuation": 0.090619
+  },
+  "threshold_guidance": [
+    "broaden_trade_density",
+    "diversify_mechanism_mix",
+    "favor_lower_transfer_risk"
+  ],
+  "feedback_hash": "b8e58ffe4fe82463"
+}

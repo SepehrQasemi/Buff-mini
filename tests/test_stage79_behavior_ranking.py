@@ -3,6 +3,7 @@ from __future__ import annotations
 import numpy as np
 import pandas as pd
 
+from buffmini.research.behavior import build_behavioral_fingerprints
 from buffmini.stage48.tradability_learning import score_candidates_with_ranker
 
 
@@ -83,3 +84,37 @@ def test_stage79_ranking_adds_behavior_risk_and_classes() -> None:
     assert float(by_id.loc["dup_a", "overlap_duplication_risk"]) > float(by_id.loc["diverse_c", "overlap_duplication_risk"])
     assert float(by_id.loc["dup_b", "rank_score"]) < float(by_id.loc["diverse_c", "rank_score"])
     assert str(by_id.loc["diverse_c", "candidate_class"]) == "promising_but_unproven"
+
+
+def test_stage79_behavior_fingerprints_bound_work_but_preserve_family_diversity() -> None:
+    frame = _bars()
+    rows = []
+    for idx in range(80):
+        rows.append(
+            {
+                "candidate_id": f"cont_{idx}",
+                "family": "structure_pullback_continuation",
+                "beam_score": 0.8 - (idx * 0.001),
+                "exp_lcb_proxy": 0.008,
+                "cost_edge_proxy": 0.006,
+                "time_stop_bars": 12,
+                "rr_model": {"first_target_rr": 1.6},
+                "signal_spec": {"type": "frame_columns", "long_col": "sig_dup"},
+            }
+        )
+    for idx in range(80):
+        rows.append(
+            {
+                "candidate_id": f"rev_{idx}",
+                "family": "failed_breakout_reversal",
+                "beam_score": 0.78 - (idx * 0.001),
+                "exp_lcb_proxy": 0.007,
+                "cost_edge_proxy": 0.005,
+                "time_stop_bars": 14,
+                "rr_model": {"first_target_rr": 1.5},
+                "signal_spec": {"type": "frame_columns", "short_col": "sig_alt"},
+            }
+        )
+    profiled = build_behavioral_fingerprints(pd.DataFrame(rows), frame, max_candidates=24, max_bars=48)
+    assert len(profiled) <= 24
+    assert set(profiled["candidate_id"].str.split("_").str[0]) == {"cont", "rev"}

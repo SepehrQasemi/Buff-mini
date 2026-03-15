@@ -1,399 +1,435 @@
-﻿# Buff-mini
+# Buff-mini
 
-Auto Crypto Strategy Discovery Engine (MVP Phase 1).
+Buff-mini is a local, evidence-disciplined crypto research engine for discovering, screening, validating, and diagnosing strategy candidates under reproducible research controls.
 
-## What This Phase Builds
+It is built to answer two questions at the same time:
+- can the system reject fake edges and misleading validation theater?
+- can the system still surface weak-but-real signal when controlled signal structure actually exists?
 
-- Reproducible configuration system
-- Binance OHLCV ingestion via `ccxt` (including `1m` base support)
-- Parquet data storage layer
-- Feature pipeline (EMA, RSI, ATR, Donchian)
-- Minimal long/short backtest engine with ATR exits and costs
-- Stage-0 baseline strategy feasibility run
-- CLI scripts and Streamlit skeleton UI
-- CI workflow and unit tests
+## What Buff-mini Is
+
+- A research system for strategy discovery, ranking, validation, diagnostics, and campaign reporting.
+- A local-first Python 3.11 codebase with reproducible artifacts under `docs/` and `runs/`.
+- A system that distinguishes exploratory work from interpretation-grade evaluation.
+- A repo with PR-based governance and protected `main`.
+
+## What Buff-mini Is Not
+
+- Not a live trading bot.
+- Not proof that a profitable live edge already exists.
+- Not a system that treats proxy metrics, synthetic placeholders, or pretty reports as decision-grade evidence.
+- Not a guarantee that a candidate surviving a heuristic filter should be trusted.
+
+## Current Maturity State
+
+Buff-mini is materially stronger than the original MVP-era repo:
+- scientific honesty and stage semantics were tightened in Stages 74-75
+- controlled signal detectability, evaluation discipline, mechanism coverage, layered robustness, transfer diagnostics, and research ops were improved in Stages 76-84
+- reality isolation, family audit, deeper mechanism registry, funnel diagnostics, data fitness, campaign comparison, scope ladder, transfer intelligence, failure-driven learning, and first interpretable edge inventory were added in Stages 85-94
+
+Current blunt status:
+- controlled detectability is proven in synthetic environments
+- exploratory discovery and ranking are stronger and more informative than before
+- evaluation-mode live campaigns are still blocked by local data continuity issues on the available BTC/ETH datasets
+- no robust live edge candidate has been established yet
+
+## Core Principles
+
+### Scientific Honesty
+- proxy-only, synthetic, and reporting-only evidence must not drive final promotion
+- missing or blocked evidence is surfaced explicitly rather than hidden behind green-looking status
+- final verdicts can be blocked, and that is the correct outcome when evidence is insufficient
+
+### Exploration vs Evaluation
+- exploration is for search, diagnostics, and hypothesis shaping
+- evaluation is for interpretation-grade evidence only
+- exploratory outputs are not trustworthy by default for edge claims
+
+### Evidence and Provenance Discipline
+Decision-driving artifacts are expected to carry provenance such as:
+- candidate id
+- run id
+- config hash
+- data hash
+- metric source type
+- stage origin
+- decision-use flag
+- execution status
+- validation state
+
+### PR-Based Workflow
+- work happens on branches prefixed with `codex/`
+- `main` is protected
+- pull requests are required before merge
+- direct push to `main` is not the workflow
 
 ## Architecture Overview
 
-- `configs/`: default and preset YAML configs
-- `src/buffmini/config.py`: config loading, validation, hashing
-- `src/buffmini/data/`: loader, storage, features
-- `src/buffmini/backtest/`: costs, metrics, engine
-- `src/buffmini/baselines/stage0.py`: baseline strategies
-- `scripts/`: CLI entry scripts for data + Stage-0 runs
-- `src/buffmini/ui/`: Streamlit app skeleton and pages
-- `tests/`: config, backtest, and no-lookahead checks
+### 1. Discovery and Generation
+Key areas:
+- `src/buffmini/stage51/`
+- `src/buffmini/stage52/`
+- `src/buffmini/stage70/`
+- `src/buffmini/research/mechanisms.py`
 
-## Quickstart
+Responsibilities:
+- research scope resolution
+- candidate schema construction
+- mechanism-family expansion
+- bounded failure-driven search adaptation
+- economic fingerprints and similarity collapse
+
+### 2. Ranking and Funnel
+Key areas:
+- `src/buffmini/stage48/`
+- `src/buffmini/research/behavior.py`
+- `src/buffmini/research/diagnostics.py`
+- `src/buffmini/research/funnel.py`
+
+Responsibilities:
+- leakage-safe tradability labels
+- candidate-specific risk cards
+- behavioral fingerprints
+- candidate hierarchy (`junk`, `interesting_but_fragile`, `promising_but_unproven`, `validated_candidate`, `robust_candidate`)
+- funnel-pressure, near-miss, and kill-point diagnostics
+
+### 3. Validation
+Key areas:
+- `src/buffmini/validation/`
+- `src/buffmini/research/robustness.py`
+- `src/buffmini/research/transfer.py`
+- `scripts/run_stage57.py`, `scripts/run_stage58.py`, `scripts/run_stage67.py`, `scripts/run_stage72.py`
+
+Validation layers include:
+- real replay
+- walk-forward validation
+- Monte Carlo / stress
+- cross-perturbation and split perturbation
+- transfer validation
+- layered robustness classification
+
+### 4. Data and Canonicalization
+Key areas:
+- `src/buffmini/data/`
+- `src/buffmini/research/data_fitness.py`
+- `data/snapshots/`
+- `data/canonical/`
+
+Responsibilities:
+- raw and derived OHLCV loading
+- continuity checks and gap reporting
+- canonical snapshot metadata
+- live vs canonical comparison
+- evaluation blocking when strict data prerequisites fail
+
+### 5. Diagnostics and Reporting
+Key areas:
+- `src/buffmini/diagnostics/`
+- `src/buffmini/research/reality.py`
+- `src/buffmini/research/family_audit.py`
+- `src/buffmini/research/scope_ladder.py`
+- `src/buffmini/research/learning.py`
+- `docs/`
+
+Responsibilities:
+- reality matrix
+- family coverage audit
+- data fitness reports
+- transfer intelligence
+- failure taxonomy and search feedback
+- campaign inventory reports
+
+### 6. Campaign Execution and Research Operations
+Key areas:
+- `src/buffmini/research/campaign.py`
+- `src/buffmini/research/ops.py`
+- `scripts/run_stage83.py`
+- `scripts/run_stage94.py`
+- `.github/workflows/ci.yml`
+
+Responsibilities:
+- bounded multi-scope campaign execution
+- run registry and review checklists
+- CI semantic smoke checks
+- interpretation-grade reporting artifacts
+
+### 7. UI
+Key areas:
+- `src/buffmini/ui/app.py`
+- `src/buffmini/ui/pages/21_run_monitor.py`
+- `src/buffmini/ui/pages/22_results_studio.py`
+
+Responsibilities:
+- run monitoring
+- results browsing
+- evidence-quality / runtime-truth display
+- reducing false confidence in artifact review
+
+## Stage Roadmap Summary
+
+This repository contains many historical stage scripts. The current repaired story is best understood in these groups:
+
+### Stages 74-75: Semantic Repair
+- evidence-source typing
+- decision authority cleanup
+- transfer gating repair
+- honest status semantics
+- PR-based workflow hardening
+
+### Stages 76-84: Detectability, Evaluation Discipline, and Research Operations
+- synthetic truth lab
+- evaluation-mode controls
+- mechanism-family redesign
+- candidate-specific ranking
+- layered robustness funnel
+- transfer matrix
+- failure-driven feedback
+- research ops registry/checklists
+- first serious edge campaign path
+
+### Stages 85-94: Diagnosis, Scope, Data Fitness, and Interpretable Inventory
+- reality matrix and gate sensitivity
+- family coverage audit
+- deeper mechanism registry and anti-overlap
+- funnel pressure diagnosis
+- data fitness and canonical comparison
+- evaluation campaign rerun matrix
+- scope expansion ladder
+- transfer and regime intelligence
+- traceable failure-learning loop
+- first interpretable edge inventory campaign
+
+## Run Modes
+
+Buff-mini uses explicit run-mode semantics.
+
+### `smoke`
+Purpose:
+- fast local sanity checks
+- CI-friendly basic execution
+
+Interpretable:
+- no
+
+### `exploration`
+Purpose:
+- search
+- funnel diagnostics
+- mechanism coverage work
+- early campaign probing
+
+Interpretable:
+- not by default
+
+### `evaluation`
+Purpose:
+- interpretation-grade comparison attempts
+- strict continuity
+- frozen/canonical controls
+- resolved end pinning
+
+Interpretable:
+- only if prerequisites are actually satisfied and the run is not blocked
+
+### `audit`
+Purpose:
+- post-run review
+- semantic or evidence checks
+- artifact quality inspection
+
+Interpretable:
+- depends on the underlying run mode and evidence state
+
+## Validation Philosophy
+
+### Replay
+Replay is the first real gate.
+- must use real candles
+- must produce real metrics
+- can still fail immediately on trade count or expectancy lower-confidence bound
+
+### Walk-Forward
+Walk-forward is not decorative.
+- forward windows must be real and artifact-backed
+- usable-window counts matter
+- worst-window and degradation matter more than a single headline metric
+
+### Monte Carlo and Stress
+Stress is not a placeholder.
+Current stress layers include bounded versions of:
+- trade-order shuffle
+- cost stress
+- timing stress
+- split perturbation
+- related perturbation variants
+
+### Cross-Perturbation
+Cross-perturbation is used as robustness intelligence.
+It is not allowed to masquerade as stronger evidence than it really is.
+
+### Transfer
+Transfer is a real diagnostic layer.
+It can classify candidates as:
+- `transferable`
+- `partially_transferable`
+- `source_local`
+- `regime_local`
+- `not_transferable`
+
+### What Counts as Decision-Grade Evidence
+Decision-grade evidence requires real validation artifacts from the real path.
+Proxy-only or synthetic evidence is not sufficient.
+A green status on an orchestration or reporting stage is not enough.
+
+## Data Philosophy
+
+### Live vs Canonical
+- live data is useful for exploration and operational diagnostics
+- canonical snapshot-backed data is preferred for evaluation-grade reruns
+- the repo records snapshot metadata and data hashes where possible
+
+### Continuity
+Continuity is a first-class research constraint.
+- gaps are measured, surfaced, and can block evaluation
+- this is desirable because continuity problems can invalidate comparisons
+
+### Why Runs Can Be Blocked
+A run can be blocked because of:
+- missing resolved end timestamp
+- strict continuity failure
+- runtime truth failure
+- missing or mismatched canonical conditions
+
+That is not a bug by itself. It is part of the honesty contract.
+
+## Current Known Limitations
+
+- No robust live edge candidate has been established yet.
+- The current local BTC/ETH evaluation datasets are still blocked by strict continuity gaps under evaluation mode.
+- Canonical snapshot metadata exists, but the current canonical data rows do not yet match the snapshot candle counts cleanly.
+- Transfer scope is still constrained by locally available assets.
+- Generator/search quality is materially better than before, but still bounded and rule-based.
+- Ranking is far more candidate-specific than earlier versions, but it is still heuristic and not a proof stage.
+- Some older historical stage ecosystems remain in the repo; the repaired late-stage path is the one to trust for current interpretation.
+
+## Quick Start
+
+### Environment
+- Python `3.11`
+- local repo checkout
+- offline verification supported
+
+Install:
 
 ```bash
 pip install -e .
-python scripts/update_data.py
-python scripts/update_data.py --timeframe 1m --symbols BTC/USDT,ETH/USDT
-python scripts/run_stage0.py
-python scripts/run_stage0.py --dry-run
-streamlit run src/buffmini/ui/app.py
 ```
 
-1m convenience wrapper:
+Run tests:
 
 ```bash
-python scripts/update_data_1m.py --symbols BTC/USDT,ETH/USDT
+python -m pytest -q
 ```
 
-One-click local launch (no CLI after clone):
-
-- Windows: double-click `start_buffmini.bat`
-- macOS/Linux: `./start_buffmini.sh`
-- Details: [docs/quick_start_one_click.md](docs/quick_start_one_click.md)
-
-For offline validation (no exchange download), use `python scripts/run_stage0.py --dry-run`.
-
-Config note: `costs.round_trip_cost_pct` is interpreted as a percent value (`0.1` means `0.1%`, `1.0` means `1.0%`).
-
-## Stage-0 Purpose
-
-Stage-0 is a feasibility gate that runs three transparent baseline strategies on shared data and identical execution rules. It is intended to test whether any signal survives basic costs and risk constraints before any strategy discovery workflow is considered.
-
-No guarantee of profitability. Designed to prevent overfitting.
-
-`scripts/run_discovery.py` is a placeholder in MVP Phase 1 and does not run discovery generation yet.
-
-## Stage-4 Execution Layer
-
-Stage-4 converts selected research outputs into an execution-ready specification with configurable policy and risk controls.
-
-Supported execution modes:
-
-- `net`
-- `hedge`
-- `isolated`
-
-Generate trading spec from existing Stage-2/Stage-3.3 artifacts:
-
-```bash
-python scripts/run_stage4_spec.py \
-  --stage2-run-id 20260227_015806_3cb775eb81a0_stage2 \
-  --stage3-3-run-id 20260227_113410_aca9cf2325a2_stage3_3_selector
-```
-
-Run offline paper-execution simulation:
-
-```bash
-python scripts/run_stage4_simulate.py \
-  --stage2-run-id 20260227_015806_3cb775eb81a0_stage2 \
-  --stage3-3-run-id 20260227_113410_aca9cf2325a2_stage3_3_selector \
-  --days 90
-```
-
-Outputs:
-
-- `runs/<timestamp>_*_stage4/spec/trading_spec.md`
-- `runs/<timestamp>_*_stage4/spec/paper_trading_checklist.md`
-- `runs/<timestamp>_*_stage4/policy_snapshot.json`
-- `runs/<timestamp>_*_stage4_sim/` execution diagnostics
-
-## Stage-5 Product UI
-
-Stage-5 adds a product-style Streamlit workflow with:
-
-- Strategy Lab (safe one-page runner with presets)
-- Run Monitor (live stage progress/logs + cancel + reconnect)
-- Results Studio (artifact-driven summary/charts/reports + library export)
-- Strategy Library (save/reuse compact strategy packages)
-- Run Compare (side-by-side run analysis)
-- Paper Trading Playback (bar-by-bar UI from bundled artifacts)
-
-Start UI:
+Run the UI:
 
 ```bash
 streamlit run src/buffmini/ui/app.py
 ```
 
-or use the Stage-5.7 one-click launcher:
+## Key Commands
 
-- Windows: `start_buffmini.bat`
-- macOS/Linux: `start_buffmini.sh`
-
-Run Stage-5 pipeline from CLI:
-
+### Baseline / Prerequisite Status
 ```bash
-python scripts/run_pipeline.py \
-  --symbols BTC/USDT,ETH/USDT \
-  --timeframe 1h \
-  --window-months 12 \
-  --mode quick \
-  --execution-mode net \
-  --seed 42
+python scripts/run_baseline_status.py --docs-dir docs
 ```
 
-Export any completed pipeline run into `library/`:
-
+### Controlled Detectability Proof
 ```bash
-python scripts/export_to_library.py --run-id <pipeline_run_id>
+python scripts/run_stage76.py --config configs/default.yaml --docs-dir docs
 ```
 
-Super Run: enable auto-save in Strategy Lab, then Run Monitor exports to library automatically on successful completion.
-
-## Stage-6 Edge Amplification
-
-Stage-6 adds deterministic, no-lookahead execution overlays on top of the existing validated pipeline:
-
-- Regime classifier (`TREND`, `RANGE`, `VOL_EXPANSION`)
-- Confidence-weighted component sizing
-- Regime-aware dynamic leverage with conservative clipping
-
-Run an offline baseline-vs-Stage-6 comparison:
-
+### Evaluation Mode Check
 ```bash
-python scripts/run_stage6_compare.py --offline --seed 42 --window-months 3
+python scripts/run_stage77.py --config configs/default.yaml --docs-dir docs --mode evaluation
 ```
 
-Outputs:
-
-- `runs/<stage6_run_id>/stage6_compare/stage6_compare_report.md`
-- `runs/<stage6_run_id>/stage6_compare/stage6_compare_summary.json`
-- `docs/stage6_report.md`
-
-## Stage-8 Validation Foundation
-
-Stage-8 strengthens research integrity with deterministic validation layers:
-
-- Stage-8.1: standardized multi-window walk-forward (`train/holdout/forward`) with robust stats and stability classification.
-- Stage-8.2: cost model v2 with volatility-aware slippage, spread proxy, and deterministic execution delay.
-- Stage-8.3: automated future-leakage harness across all registered features.
-
-Run Stage-8 offline checks:
-
+### Family Audit and Refinement
 ```bash
-python scripts/run_stage8_walkforward.py --seed 42 --rows 10080
-python scripts/run_stage8_cost_sensitivity.py
+python scripts/run_stage86.py --config configs/default.yaml --docs-dir docs
+python scripts/run_stage87.py --config configs/default.yaml --docs-dir docs
 ```
 
-Outputs:
-
-- `runs/<run_id>_stage8_wf/` walk-forward artifacts
-- `docs/stage8_cost_sensitivity.md`
-- `docs/stage8_cost_sensitivity.json`
-- `docs/stage8_report.md`
-- `docs/stage8_report_summary.json`
-
-## Stage-9 Data Expansion
-
-Stage-9 adds futures-derived context data (BTC/USDT and ETH/USDT only):
-
-- Funding-rate ingestion + alignment
-- Open-interest ingestion + alignment
-- Leakage-safe funding/OI interaction features
-- Impact analysis reports (statistical bias evidence only)
-- Minimal DSL-lite regime selectors for family selection (non-blocking)
-
-Stage-9 is disabled by default for backward compatibility (`data.include_futures_extras: false`).
-
-Run Stage-9 data + analysis:
-
+### Funnel / Data / Campaign Diagnostics
 ```bash
-python scripts/update_futures_extras.py
-python scripts/run_stage9_impact.py
+python scripts/run_stage88.py --config configs/default.yaml --docs-dir docs
+python scripts/run_stage89.py --config configs/default.yaml --docs-dir docs
+python scripts/run_stage90.py --config configs/default.yaml --docs-dir docs
 ```
 
-Run Stage-9.3 recent OI overlay evidence report (OI masked outside trailing window):
-
+### Scope / Transfer / Learning / Inventory
 ```bash
-python scripts/run_stage9_3_overlay_report.py
+python scripts/run_stage91.py --config configs/default.yaml --docs-dir docs --candidate-limit-per-scope 1
+python scripts/run_stage92.py --config configs/default.yaml --docs-dir docs --candidate-limit-per-scope 1
+python scripts/run_stage93.py --config configs/default.yaml --docs-dir docs
+python scripts/run_stage94.py --config configs/default.yaml --docs-dir docs --max-candidates-per-scope 3
 ```
 
-Optional Stage-5 pipeline flag to include futures extras in feature generation:
-
+### Master Reporting
 ```bash
-python scripts/run_pipeline.py --include-futures-extras
+python scripts/run_master_execution.py --docs-dir docs
 ```
 
-Outputs:
+## Development Workflow
 
-- `docs/stage9_report.md`
-- `docs/stage9_report_summary.json`
-- `docs/stage9_impact_analysis.md`
-- `docs/stage9_data_quality.md`
-- `docs/stage9_3_recent_oi_overlay.md`
-- `docs/stage9_3_recent_oi_overlay_summary.json`
+- create a feature branch with the `codex/` prefix
+- make local changes
+- run targeted verification
+- run `python -m pytest -q`
+- push branch
+- open PR to `main`
+- get approval
+- merge through PR
 
-## Stage-10 Engine Upgrade
+Current governance assumptions:
+- `main` is protected
+- pull request is required before merge
+- at least one approval is required
+- force-push to `main` is blocked
 
-Stage-10 adds:
+## Artifact Guide
 
-- Regime scores + confidence labels
-- Expanded signal and exit libraries
-- Regime-aware soft activation (sizing multipliers, not hard trade blocking)
-- Stage-10.6 refinement: score-only activation input, tighter multiplier clamp, reduced default exits, and sandbox signal ranking
-- Baseline vs Stage-10 comparison runner with deterministic artifacts
+Generated artifacts live primarily in:
+- `docs/` for stage summaries and reports
+- `runs/` for run-specific artifacts and stage outputs
 
-Run synthetic offline Stage-10:
+Typical files:
+- `docs/stageXX_summary.json`: machine-readable stage summary
+- `docs/stageXX_report.md`: human-readable stage report
+- `docs/master_execution_summary.json`: top-level execution summary
+- `docs/master_execution_report.md`: top-level execution report
 
-```bash
-python scripts/run_stage10.py --dry-run --seed 42
-```
+How to read them:
+- read `validation_state`, not only `status`
+- check `stage_role` to understand whether a stage is heuristic, validation, reporting, or orchestration
+- confirm whether the run was exploratory or evaluation-mode
+- treat blocked outcomes as information, not as missing work
 
-Run Stage-10 on local real data (if `data/raw` exists):
+## Honest Project Status
 
-```bash
-python scripts/run_stage10.py --seed 42
-```
+Buff-mini can now make three honest claims:
+- it can prove controlled signal detectability in synthetic environments
+- it can separate exploratory from evaluation-grade runs much more clearly than before
+- it can explain why a live campaign is blocked or weak instead of hiding behind a shallow success label
 
-Run Stage-10.6 sandbox ranking (offline-friendly):
+Buff-mini cannot currently claim:
+- that a robust live edge has been found
+- that the available BTC/ETH evaluation data is continuity-clean
+- that transfer robustness is strong across a broad liquid universe
+- that every historical stage in the repo is equally trustworthy
 
-```bash
-python scripts/run_stage10_sandbox.py --dry-run --seed 42
-```
-
-Run Stage-10.7 sandbox ranking on local real data:
-
-```bash
-python scripts/run_stage10_sandbox.py --real-data --seed 42
-```
-
-Run Stage-10.7 exit A/B isolation:
-
-```bash
-python scripts/run_stage10.py --seed 42 --exit-mode compare
-```
-
-Outputs:
-
-- `runs/<run_id>_stage10/stage10_summary.json`
-- `runs/<run_id>_stage10/stage10_compare.csv`
-- `runs/<run_id>_stage10/regime_distribution.csv`
-- `runs/<run_id>_stage10/best_candidates.json`
-- `docs/stage10_report.md`
-- `docs/stage10_report_summary.json`
-- `runs/<run_id>_stage10_sandbox/sandbox_rankings.csv`
-- `runs/<run_id>_stage10_sandbox/sandbox_summary.json`
-- `docs/stage10_6_report.md`
-- `docs/stage10_6_report_summary.json`
-- `docs/stage10_7_report.md`
-- `docs/stage10_7_report_summary.json`
-
-## Stage-11 MTF Engine Capability
-
-Stage-11 adds a config-driven multi-timeframe infrastructure with:
-
-- Causal resample/alignment (`merge_asof` backward-only)
-- Deterministic MTF feature-pack caching
-- Optional bias/confirm/exit hooks (no-op when disabled)
-- Stage-10.7 baseline vs Stage-11 comparison with trade-count guard
-
-Run synthetic offline Stage-11:
-
-```bash
-python scripts/run_stage11.py --dry-run --seed 42
-```
-
-Run Stage-11 on local real parquet data:
-
-```bash
-python scripts/run_stage11.py --seed 42
-```
-
-Stage-11.1 presets:
-
-- `configs/presets/stage11_bias.yaml`
-- `configs/presets/stage11_confirm.yaml`
-- `configs/presets/stage11_bias_confirm.yaml`
-
-Use with:
-
-```bash
-python scripts/run_stage11.py --preset configs/presets/stage11_bias.yaml --seed 42
-```
-
-Run the full Stage-11.1 effectiveness matrix (baseline + bias + confirm + bias_confirm):
-
-```bash
-python scripts/run_stage11_matrix.py --seed 42
-```
-
-Outputs:
-
-- `runs/<run_id>_stage11_1/stage11_summary.json`
-- `runs/<run_id>_stage11_1/mtf_join_stats.json`
-- `runs/<run_id>_stage11_1/regime_distribution.csv`
-- `runs/<run_id>_stage11_1/comparison_vs_stage10_7.csv`
-- `runs/<run_id>_stage11_1/sizing_stats.json`
-- `runs/<run_id>_stage11_1/confirm_stats.json`
-- `runs/<run_id>_stage11_1/comparison_vs_baseline.json`
-- `docs/stage11_report.md`
-- `docs/stage11_report_summary.json`
-- `docs/stage11_1_report.md`
-- `docs/stage11_1_report_summary.json`
-
-## Stage-11.4 1m Data + Performance
-
-Stage-11.4 adds deterministic 1m ingestion, exact derived timeframe resampling, and cache-backed performance improvements while keeping legacy 1h behavior intact when `base_timeframe` is not used.
-
-Update 1m market data (Binance via ccxt):
-
-```bash
-python scripts/update_data.py --timeframe 1m --symbols BTC/USDT,ETH/USDT
-```
-
-Benchmark cache effectiveness:
-
-```bash
-python scripts/bench_engine.py --seed 42 --base-timeframe 1m --operational-timeframe 1h
-```
-
-Run operational timeframe sweep derived from 1m:
-
-```bash
-python scripts/run_timeframe_sweep.py --seed 42 --base-timeframe 1m --tfs 15m,30m,1h,2h,4h
-```
-
-Outputs:
-
-- `docs/stage11_4_1m_and_perf_report.md`
-- `docs/stage11_4_1m_and_perf_report_summary.json`
-- `docs/timeframe_sweep_from_1m.md`
-
-## Stage-12 Full Price-Family Sweep
-
-Stage-12 runs a deterministic matrix sweep for the price-based family across:
-
-- Symbols: `BTC/USDT`, `ETH/USDT`
-- Timeframes: `15m,30m,1h,2h,4h,1d`
-- Strategy family: Stage-0.6 price baselines + Stage-10 price signal families
-- Exit variants: `fixed_atr`, `structure_trailing`, `time_based`
-- Cost scenarios: `low`, `realistic`, `high` (all via `cost_model.v2`)
-- Walk-forward v2 robustness + Monte Carlo on top combinations
-
-Run:
-
-```bash
-python scripts/run_stage12.py --seed 42
-```
-
-Optional synthetic/offline dry-run:
-
-```bash
-python scripts/run_stage12.py --dry-run --seed 42
-```
-
-Outputs:
-
-- `runs/<run_id>_stage12/leaderboard.csv`
-- `runs/<run_id>_stage12/window_metrics.csv`
-- `runs/<run_id>_stage12/runtime_by_timeframe.csv`
-- `runs/<run_id>_stage12/stage12_summary.json`
-- `docs/stage12_report.md`
-- `docs/stage12_report_summary.json`
-
-## Output Structure
-
-- Raw market data: `data/raw/*.parquet`
-- Run artifacts: `runs/<timestamp>_<config_hash>/`
-  - `config.yaml`
-  - `summary.json`
-  - `leaderboard.csv`
-  - `strategies.json`
-  - `meta.json`
-  - `summary.csv`
-  - strategy-level `trades_*.csv` and `equity_*.csv`
+If you are reviewing the project today, the correct reading is:
+- the engine is much more scientifically honest
+- the discovery, ranking, and diagnostic layers are materially stronger
+- controlled detectability is demonstrated
+- live interpretation is still constrained by data fitness and the absence of a surviving robust candidate

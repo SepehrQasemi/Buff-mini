@@ -1,0 +1,149 @@
+{
+  "stage": "92",
+  "status": "SUCCESS",
+  "execution_status": "EXECUTED",
+  "stage_role": "reporting_only",
+  "validation_state": "TRANSFER_INTELLIGENCE_READY",
+  "symbols": [
+    "BTC/USDT",
+    "ETH/USDT"
+  ],
+  "families": [
+    "structure_pullback_continuation",
+    "failed_breakout_reversal",
+    "volatility_regime_transition",
+    "exhaustion_mean_reversion",
+    "liquidity_sweep_reversal",
+    "squeeze_flow_breakout"
+  ],
+  "candidate_limit_per_scope": 1,
+  "transfer_rows": [
+    {
+      "symbol": "BTC/USDT",
+      "timeframe": "15m",
+      "candidate_id": "s70_1a60f6b920b8d01b",
+      "family": "liquidity_sweep_reversal",
+      "expected_regime": "transition",
+      "classification": "not_transferable",
+      "diagnostics": [
+        "regime_mismatch",
+        "timing_instability"
+      ]
+    },
+    {
+      "symbol": "BTC/USDT",
+      "timeframe": "30m",
+      "candidate_id": "s70_4f80e0fa96d273bb",
+      "family": "liquidity_sweep_reversal",
+      "expected_regime": "range",
+      "classification": "not_transferable",
+      "diagnostics": [
+        "regime_mismatch",
+        "timing_instability"
+      ]
+    },
+    {
+      "symbol": "BTC/USDT",
+      "timeframe": "1h",
+      "candidate_id": "s70_13962c7b924fb9ed",
+      "family": "liquidity_sweep_reversal",
+      "expected_regime": "range",
+      "classification": "not_transferable",
+      "diagnostics": [
+        "regime_mismatch",
+        "timing_instability"
+      ]
+    },
+    {
+      "symbol": "BTC/USDT",
+      "timeframe": "4h",
+      "candidate_id": "s70_7f7a5159f46d942b",
+      "family": "structure_pullback_continuation",
+      "expected_regime": "trend",
+      "classification": "not_transferable",
+      "diagnostics": [
+        "regime_mismatch",
+        "timing_instability"
+      ]
+    },
+    {
+      "symbol": "ETH/USDT",
+      "timeframe": "15m",
+      "candidate_id": "s70_1a60f6b920b8d01b",
+      "family": "liquidity_sweep_reversal",
+      "expected_regime": "transition",
+      "classification": "not_transferable",
+      "diagnostics": [
+        "regime_mismatch",
+        "timing_instability"
+      ]
+    },
+    {
+      "symbol": "ETH/USDT",
+      "timeframe": "30m",
+      "candidate_id": "s70_4f80e0fa96d273bb",
+      "family": "liquidity_sweep_reversal",
+      "expected_regime": "range",
+      "classification": "not_transferable",
+      "diagnostics": [
+        "regime_mismatch",
+        "timing_instability"
+      ]
+    },
+    {
+      "symbol": "ETH/USDT",
+      "timeframe": "1h",
+      "candidate_id": "s70_39f9978eb588ee4a",
+      "family": "structure_pullback_continuation",
+      "expected_regime": "trend",
+      "classification": "not_transferable",
+      "diagnostics": [
+        "regime_mismatch",
+        "timing_instability"
+      ]
+    },
+    {
+      "symbol": "ETH/USDT",
+      "timeframe": "4h",
+      "candidate_id": "s70_7f7a5159f46d942b",
+      "family": "structure_pullback_continuation",
+      "expected_regime": "trend",
+      "classification": "not_transferable",
+      "diagnostics": [
+        "regime_mismatch",
+        "timing_instability"
+      ]
+    }
+  ],
+  "transfer_class_counts": {
+    "not_transferable": 8
+  },
+  "failure_diagnostics": {
+    "regime_mismatch": 8,
+    "timing_instability": 8
+  },
+  "regime_portability_map": [
+    {
+      "regime": "range",
+      "portable_fraction": 0.0,
+      "class_counts": {
+        "not_transferable": 3
+      }
+    },
+    {
+      "regime": "transition",
+      "portable_fraction": 0.0,
+      "class_counts": {
+        "not_transferable": 2
+      }
+    },
+    {
+      "regime": "trend",
+      "portable_fraction": 0.0,
+      "class_counts": {
+        "not_transferable": 3
+      }
+    }
+  ],
+  "summary_hash": "c75af50467469b79"
+}
