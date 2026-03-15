@@ -1,84 +1,126 @@
 {
-  "execution_branch": "codex/stage76-84-execution",
-  "execution_head": "06e8b10432c6acb782a0c2e7080c33108f1e3f0e",
-  "baseline_branch": "main",
-  "baseline_commit": "d056a9cf46a0cbda9180e6462b7d9ecaa475de1b",
-  "baseline_merged_to_main": true,
-  "stage75_finalized": true,
+  "execution_branch": "codex/stage85-94-execution",
+  "execution_head": "902cce5f11a9d87d0a8380e3d77994bc044e8e7e",
+  "baseline": {
+    "branch": "main",
+    "commit": "3515ae8a0dfb92439c7593ff0639aebd7a9858c1",
+    "baseline_type": "merged_main"
+  },
+  "prereq": {
+    "status": "SUCCESS",
+    "validation_state": "PREREQUISITES_FINALIZED",
+    "summary_hash": "357fccbe6cac6088"
+  },
   "stage_statuses": {
-    "76": {
+    "85": {
       "status": "SUCCESS",
       "execution_status": "EXECUTED",
-      "validation_state": "SIGNAL_DETECTABILITY_PROVEN",
-      "summary_hash": "94ea7435b2dc942f"
+      "validation_state": "REALITY_MATRIX_READY",
+      "summary_hash": "fbc24b491b803c2c"
     },
-    "77": {
-      "status": "PARTIAL",
-      "execution_status": "EXECUTED",
-      "validation_state": "EVALUATION_BLOCKED",
-      "summary_hash": "1c9c08ab219c88f3"
-    },
-    "78": {
+    "86": {
       "status": "SUCCESS",
       "execution_status": "EXECUTED",
-      "validation_state": "MECHANISM_GENERATION_READY",
-      "summary_hash": "d6c9cef37bcccffd"
+      "validation_state": "FAMILY_AUDIT_READY",
+      "summary_hash": "afeedf7ca0e4c085"
     },
-    "79": {
+    "87": {
       "status": "SUCCESS",
       "execution_status": "EXECUTED",
-      "validation_state": "PROMISING_CANDIDATES_SURFACED",
-      "summary_hash": "8a25cfdeade66a9f"
+      "validation_state": "MECHANISM_REFINEMENT_READY",
+      "summary_hash": "c91a99ade1de4510"
     },
-    "80": {
-      "status": "PARTIAL",
-      "execution_status": "EXECUTED",
-      "validation_state": "ROBUSTNESS_NOT_ESTABLISHED",
-      "summary_hash": "53f1652e10e941ac"
-    },
-    "81": {
+    "88": {
       "status": "SUCCESS",
       "execution_status": "EXECUTED",
-      "validation_state": "TRANSFER_MATRIX_READY",
-      "summary_hash": "3fc2b9a152eb326a"
+      "validation_state": "FUNNEL_PRESSURE_DIAGNOSED",
+      "summary_hash": "3b3b31ee3b606da6"
     },
-    "82": {
+    "89": {
       "status": "SUCCESS",
       "execution_status": "EXECUTED",
-      "validation_state": "FAILURE_FEEDBACK_READY",
-      "summary_hash": "98526a1c0bf77255"
+      "validation_state": "DATA_FITNESS_READY",
+      "summary_hash": "597482fc55b7f2c8"
     },
-    "83": {
+    "90": {
       "status": "SUCCESS",
       "execution_status": "EXECUTED",
-      "validation_state": "RESEARCH_OPS_READY",
-      "summary_hash": "e23a2d79ec166c3e"
+      "validation_state": "CAMPAIGN_COMPARISON_READY",
+      "summary_hash": "e44ae97d177855d4"
     },
-    "84": {
-      "status": "PARTIAL",
+    "91": {
+      "status": "SUCCESS",
       "execution_status": "EXECUTED",
-      "validation_state": "SERIOUS_EDGE_CAMPAIGN_BLOCKED",
-      "summary_hash": "1585d5d4e29a2b34"
+      "validation_state": "SCOPE_LADDER_READY",
+      "summary_hash": "19df0167052253b5"
+    },
+    "92": {
+      "status": "SUCCESS",
+      "execution_status": "EXECUTED",
+      "validation_state": "TRANSFER_INTELLIGENCE_READY",
+      "summary_hash": "c75af50467469b79"
+    },
+    "93": {
+      "status": "SUCCESS",
+      "execution_status": "EXECUTED",
+      "validation_state": "FAILURE_LEARNING_READY",
+      "summary_hash": "5668ef9867fd0590"
+    },
+    "94": {
+      "status": "SUCCESS",
+      "execution_status": "EXECUTED",
+      "validation_state": "EDGE_INVENTORY_READY",
+      "summary_hash": "b3d6124eed197044"
     }
   },
+  "controlled_detectability": {
+    "signal_detection_rate": 0.857143,
+    "bad_control_rejection_rate": 1.0,
+    "synthetic_winner_recall": 1.0,
+    "false_negative_rate_on_known_good": 0.142857,
+    "proven": true
+  },
+  "data_fitness": {
+    "evaluation_usable_class_counts": {
+      "evaluation_blocked": 8
+    },
+    "snapshot_meta": {
+      "data_snapshot_id": "DATA_FROZEN_v1",
+      "data_snapshot_hash": "c734cebc1e80bf15",
+      "data_snapshot_path": "data/snapshots/DATA_FROZEN_v1.json",
+      "data_snapshot_exists": true
+    }
+  },
+  "campaign_outcome": {
+    "campaign_outcome": "data_blocked_or_scope_blocked",
+    "classification": "system_blocked_uninterpretable",
+    "candidate_class_counts": {
+      "robust_candidate": 0,
+      "promising_but_unproven": 0,
+      "rejected": 0
+    },
+    "blocked_scope_rows": 4
+  },
+  "stage90_dominant_culprit": "evaluation_strictness_or_search_weakness",
   "stage_pr": {
-    "number": 3,
-    "title": "Stage 76-84: improve detectability, evaluation rigor, and research ops",
-    "url": "https://github.com/SepehrQasemi/Buff-mini/pull/3",
+    "number": 4,
+    "title": "[codex] Execute stage 85-94 roadmap and rewrite README",
+    "url": "https://github.com/SepehrQasemi/Buff-mini/pull/4",
     "state": "OPEN",
-    "head": "codex/stage76-84-execution",
+    "head": "codex/stage85-94-execution",
     "base": "main",
     "merge_state_status": "BLOCKED",
+    "is_draft": false,
     "checks": [
       {
         "name": "test",
-        "status": "COMPLETED",
-        "conclusion": "SUCCESS"
+        "status": "IN_PROGRESS",
+        "conclusion": ""
       },
       {
         "name": "test",
-        "status": "COMPLETED",
-        "conclusion": "SUCCESS"
+        "status": "IN_PROGRESS",
+        "conclusion": ""
       }
     ]
   },
@@ -89,5 +131,5 @@
     "allow_deletions": false
   },
   "final_verdict": "MAJOR_REPAIR_MOSTLY_COMPLETE",
-  "summary_hash": "3a75f1ad33cbf333"
+  "summary_hash": "b63d6f4844ec04a3"
 }

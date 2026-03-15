@@ -24,7 +24,7 @@
         "conclusion": "SUCCESS"
       }
     ],
-    "branch_clean_after_merge": false
+    "branch_clean_after_merge": true
   },
   "merged": true,
   "external_blockers_remaining": [],
@@ -32,7 +32,8 @@
     "branch": "main",
     "commit": "3515ae8a0dfb92439c7593ff0639aebd7a9858c1",
     "baseline_type": "merged_main",
+    "clean": true,
     "valid_for_stage85": true
   },
-  "summary_hash": "876940f0a3489db6"
+  "summary_hash": "357fccbe6cac6088"
 }

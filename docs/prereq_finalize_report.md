@@ -9,15 +9,16 @@
 ## Verification Before Merge
 - test: status=`COMPLETED` conclusion=`SUCCESS`
 - test: status=`COMPLETED` conclusion=`SUCCESS`
-- branch_clean_after_merge: `False`
+- branch_clean_after_merge: `True`
 
 ## Effective Baseline
 - branch: `main`
 - commit: `3515ae8a0dfb92439c7593ff0639aebd7a9858c1`
 - baseline_type: `merged_main`
+- clean: `True`
 - valid_for_stage85: `True`
 
 ## Remaining External Blockers
 - none
 
-- summary_hash: `876940f0a3489db6`
+- summary_hash: `357fccbe6cac6088`
